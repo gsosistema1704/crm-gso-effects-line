@@ -746,17 +746,16 @@
   .table-empty { text-align: center; padding: 40px 20px; color: var(--text-2); font-size: 13px; }
   .sales-table { table-layout: fixed; }
   .sales-table th, .sales-table td { overflow-wrap: anywhere; }
-  .sales-table th:nth-child(1), .sales-table td:nth-child(1) { width: 4%; text-align: right; padding-left: 8px; padding-right: 8px; }
-  .sales-table th:nth-child(2), .sales-table td:nth-child(2) { width: 8%; }
-  .sales-table th:nth-child(3), .sales-table td:nth-child(3) { width: 12%; }
-  .sales-table th:nth-child(4), .sales-table td:nth-child(4) { width: 17%; }
-  .sales-table th:nth-child(5), .sales-table td:nth-child(5) { width: 7%; text-align: center; }
-  .sales-table th:nth-child(6), .sales-table td:nth-child(6) { width: 5%; text-align: center; padding-left: 8px; padding-right: 8px; }
-  .sales-table th:nth-child(7), .sales-table td:nth-child(7) { width: 8%; padding-left: 8px; padding-right: 8px; }
-  .sales-table th:nth-child(8), .sales-table td:nth-child(8) { width: 9%; padding-left: 10px; padding-right: 10px; }
-  .sales-table th:nth-child(9), .sales-table td:nth-child(9) { width: 8%; padding-left: 10px; padding-right: 10px; }
-  .sales-table th:nth-child(10), .sales-table td:nth-child(10) { width: 10%; padding-left: 8px; padding-right: 8px; }
-  .sales-table th:nth-child(11), .sales-table td:nth-child(11) { width: 12%; text-align: center; padding-left: 8px; padding-right: 8px; }
+  .sales-table th:nth-child(1), .sales-table td:nth-child(1) { width: 8.71%; padding-left: 8px; padding-right: 8px; }
+  .sales-table th:nth-child(2), .sales-table td:nth-child(2) { width: 11.36%; }
+  .sales-table th:nth-child(3), .sales-table td:nth-child(3) { width: 20.45%; }
+  .sales-table th:nth-child(4), .sales-table td:nth-child(4) { width: 7.58%; text-align: center; }
+  .sales-table th:nth-child(5), .sales-table td:nth-child(5) { width: 4.55%; padding-left: 8px; padding-right: 8px; }
+  .sales-table th:nth-child(6), .sales-table td:nth-child(6) { width: 8.71%; }
+  .sales-table th:nth-child(7), .sales-table td:nth-child(7) { width: 9.85%; padding-left: 8px; padding-right: 8px; }
+  .sales-table th:nth-child(8), .sales-table td:nth-child(8) { width: 9.09%; padding-left: 10px; padding-right: 10px; }
+  .sales-table th:nth-child(9), .sales-table td:nth-child(9) { width: 11.36%; padding-left: 10px; padding-right: 10px; }
+  .sales-table th:nth-child(10), .sales-table td:nth-child(10) { width: 8.33%; text-align: center; padding-left: 8px; padding-right: 8px; }
   .row-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; align-items: center; }
   .btn-danger { color: var(--red-text); border-color: #EFB4B4; background: rgba(255, 248, 248, 0.76); }
   .btn-danger:hover { background: var(--red-bg); box-shadow: 0 10px 22px rgba(159, 42, 42, 0.10); }
@@ -13339,6 +13338,10 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
             <option value="5000">Acima de R$ 5.000</option>
             <option value="10000">Acima de R$ 10.000</option>
           </select>
+          <select class="input" id="filterClienteSort" onchange="renderClientes()">
+            <option value="az">Nome A-Z</option>
+            <option value="za">Nome Z-A</option>
+          </select>
           <button class="btn btn-soft" onclick="limparFiltrosClientes()">Limpar</button>
         </div>
 
@@ -14488,7 +14491,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
           </div>
         </div>
         <div style="margin-top:16px;">
-          <button class="btn btn-green" onclick="salvarPerfil()">Salvar Alterações</button>
+          <button class="btn btn-green" id="perfil-save-btn" onclick="salvarPerfil()">Salvar Alterações</button>
           <button class="btn" onclick="logout()" style="margin-left:8px;">Sair</button>
         </div>
       </div>
@@ -19089,6 +19092,8 @@ function limparFiltrosClientes() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  const sortEl = document.getElementById('filterClienteSort');
+  if (sortEl) sortEl.value = 'az';
   renderClientes();
 }
 
@@ -22954,7 +22959,12 @@ init();
     if (compra === '90') rows = rows.filter(r => r.ultima && r.dias <= 90);
     if (valorMin) rows = rows.filter(r => r.total >= valorMin);
 
-    const pageSignature = typeof gsoPaginationSignature === 'function' ? gsoPaginationSignature([term, status, compra, valorMin, rows.length]) : String(rows.length);
+    const sortMode = document.getElementById('filterClienteSort')?.value || 'az';
+    rows = rows.slice().sort((a, b) => sortMode === 'za'
+      ? String(b.nome || '').localeCompare(String(a.nome || ''), 'pt-BR')
+      : String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+
+    const pageSignature = typeof gsoPaginationSignature === 'function' ? gsoPaginationSignature([term, status, compra, valorMin, sortMode, rows.length]) : String(rows.length);
     const pageInfo = typeof gsoPaginateRows === 'function' ? gsoPaginateRows('clientes', rows, pageSignature) : { rows: rows.slice(0, PER_PAGE), page:1, pages:Math.max(1, Math.ceil(rows.length/PER_PAGE)), total:rows.length, start:0, end:Math.min(rows.length, PER_PAGE) };
     const tbody = document.getElementById('clientesTable');
     if (!tbody) return;
@@ -27294,6 +27304,8 @@ body.theme-dark #gso-calc #gc-tt td:last-child .gc-lnk{
 /* v40: botao Salvar — letra BRANCA no tema claro, PRETA no tema escuro */
 .btn-green, #mc-save-btn, #mf-save-btn{ color:#FFFFFF !important; }
 body.theme-dark .btn-green, body.theme-dark #mc-save-btn, body.theme-dark #mf-save-btn{ color:#111111 !important; }
+/* Meu Perfil: sempre letra branca, nos dois temas */
+#perfil-save-btn, body.theme-dark #perfil-save-btn{ color:#FFFFFF !important; }
 </style>
 </body>
 </html>
