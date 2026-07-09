@@ -1,0 +1,376 @@
+-- GSO CRM security hardening for Supabase.
+-- Apply in Supabase SQL Editor for the project used by outputs/index.html.
+-- Result:
+-- - anon cannot read CRM tables.
+-- - new Auth users are mirrored into public.crm_usuarios as "pendente".
+-- - Luisa's owner emails are always admin.
+-- - only approved users ("usuario" or "admin") can read/write CRM data.
+-- - admins can approve users by updating public.crm_usuarios.tipo_usuario.
+
+begin;
+
+create table if not exists public.crm_usuarios (
+  id uuid primary key references auth.users(id) on delete cascade,
+  nome text,
+  email text unique,
+  tipo_usuario text not null default 'pendente',
+  avatar_url text,
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+
+alter table public.crm_usuarios add column if not exists nome text;
+alter table public.crm_usuarios add column if not exists email text;
+alter table public.crm_usuarios add column if not exists tipo_usuario text not null default 'pendente';
+alter table public.crm_usuarios add column if not exists avatar_url text;
+alter table public.crm_usuarios add column if not exists criado_em timestamptz not null default now();
+alter table public.crm_usuarios add column if not exists atualizado_em timestamptz not null default now();
+
+create unique index if not exists crm_usuarios_email_key on public.crm_usuarios (lower(email));
+
+create or replace function public.crm_owner_emails()
+returns text[]
+language sql
+stable
+set search_path = ''
+as $$
+  select array[
+    'luisa1909@icloud.com',
+    'luisa.oliveiraeoliveira@gmail.com'
+  ]::text[];
+$$;
+
+create or replace function public.crm_is_owner_email(email text)
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  select lower(coalesce(email, '')) = any (public.crm_owner_emails());
+$$;
+
+create or replace function public.crm_current_email()
+returns text
+language sql
+stable
+set search_path = ''
+as $$
+  select lower(coalesce((select auth.jwt() ->> 'email'), ''));
+$$;
+
+create or replace function public.crm_is_current_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select exists (
+    select 1
+    from auth.users u
+    left join public.crm_usuarios cu on cu.id = u.id
+    where u.id = (select auth.uid())
+      and (
+        public.crm_is_owner_email(u.email)
+        or lower(coalesce(cu.tipo_usuario, '')) in ('admin', 'administrador')
+      )
+  );
+$$;
+
+create or replace function public.crm_is_current_approved()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select exists (
+    select 1
+    from auth.users u
+    left join public.crm_usuarios cu on cu.id = u.id
+    where u.id = (select auth.uid())
+      and (
+        public.crm_is_owner_email(u.email)
+        or lower(coalesce(cu.tipo_usuario, '')) in ('admin', 'administrador', 'usuario', 'aprovado')
+      )
+  );
+$$;
+
+revoke all on function public.crm_owner_emails() from public;
+revoke all on function public.crm_is_owner_email(text) from public;
+revoke all on function public.crm_current_email() from public;
+revoke all on function public.crm_is_current_admin() from public;
+revoke all on function public.crm_is_current_approved() from public;
+grant execute on function public.crm_owner_emails() to authenticated, service_role;
+grant execute on function public.crm_is_owner_email(text) to authenticated, service_role;
+grant execute on function public.crm_current_email() to authenticated, service_role;
+grant execute on function public.crm_is_current_admin() to authenticated, service_role;
+grant execute on function public.crm_is_current_approved() to authenticated, service_role;
+
+create or replace function public.crm_handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+begin
+  insert into public.crm_usuarios (
+    id,
+    nome,
+    email,
+    tipo_usuario,
+    criado_em,
+    atualizado_em
+  )
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'nome', split_part(new.email, '@', 1), 'Usuario'),
+    lower(new.email),
+    case when public.crm_is_owner_email(new.email) then 'admin' else 'pendente' end,
+    now(),
+    now()
+  )
+  on conflict (id) do update
+  set
+    email = excluded.email,
+    nome = coalesce(public.crm_usuarios.nome, excluded.nome),
+    tipo_usuario = case
+      when public.crm_is_owner_email(excluded.email) then 'admin'
+      else public.crm_usuarios.tipo_usuario
+    end,
+    atualizado_em = now();
+
+  return new;
+end;
+$$;
+
+revoke all on function public.crm_handle_new_user() from public;
+grant execute on function public.crm_handle_new_user() to service_role;
+
+drop trigger if exists crm_on_auth_user_created on auth.users;
+create trigger crm_on_auth_user_created
+after insert on auth.users
+for each row execute function public.crm_handle_new_user();
+
+insert into public.crm_usuarios (id, nome, email, tipo_usuario, criado_em, atualizado_em)
+select
+  u.id,
+  coalesce(u.raw_user_meta_data ->> 'nome', split_part(u.email, '@', 1), 'Usuario'),
+  lower(u.email),
+  case when public.crm_is_owner_email(u.email) then 'admin' else 'pendente' end,
+  now(),
+  now()
+from auth.users u
+on conflict (id) do update
+set
+  email = excluded.email,
+  tipo_usuario = case
+    when public.crm_is_owner_email(excluded.email) then 'admin'
+    else public.crm_usuarios.tipo_usuario
+  end,
+  atualizado_em = now();
+
+do $$
+declare
+  table_name text;
+  policy_name text;
+  crm_tables text[] := array[
+    'crm_usuarios',
+    'crm_profiles',
+    'crm_vendas',
+    'crm_clientes',
+    'crm_fiscais',
+    'crm_produtos',
+    'crm_boletos',
+    'crm_notas_fiscais',
+    'crm_conversas',
+    'crm_conversa_participantes',
+    'crm_mensagens',
+    'crm_anexos',
+    'crm_mensagem_leituras',
+    'crm_access_logs',
+    'crm_import_batches'
+  ];
+begin
+  foreach table_name in array crm_tables loop
+    if to_regclass(format('public.%I', table_name)) is not null then
+      execute format('alter table public.%I enable row level security', table_name);
+      execute format('grant select, insert, update, delete on public.%I to authenticated', table_name);
+      execute format('grant select, insert, update, delete on public.%I to service_role', table_name);
+      execute format('revoke all on public.%I from anon', table_name);
+
+      for policy_name in
+        select pol.policyname
+        from pg_policies pol
+        where pol.schemaname = 'public'
+          and pol.tablename = table_name
+      loop
+        execute format('drop policy if exists %I on public.%I', policy_name, table_name);
+      end loop;
+    end if;
+  end loop;
+end $$;
+
+create policy "crm_usuarios_select_own_or_admin"
+on public.crm_usuarios
+for select
+to authenticated
+using ((select auth.uid()) is not null and (id = (select auth.uid()) or public.crm_is_current_admin()));
+
+create policy "crm_usuarios_insert_self_pending"
+on public.crm_usuarios
+for insert
+to authenticated
+with check (
+  id = (select auth.uid())
+  and lower(email) = public.crm_current_email()
+  and (
+    lower(tipo_usuario) = 'pendente'
+    or (public.crm_is_owner_email(email) and lower(tipo_usuario) in ('admin', 'administrador'))
+  )
+);
+
+create policy "crm_usuarios_update_admin"
+on public.crm_usuarios
+for update
+to authenticated
+using (public.crm_is_current_admin())
+with check (public.crm_is_current_admin());
+
+create policy "crm_usuarios_delete_admin"
+on public.crm_usuarios
+for delete
+to authenticated
+using (public.crm_is_current_admin());
+
+do $$
+begin
+  if to_regclass('public.crm_profiles') is not null then
+    create policy "crm_profiles_select_approved"
+    on public.crm_profiles
+    for select
+    to authenticated
+    using (public.crm_is_current_approved() and (id = (select auth.uid()) or public.crm_is_current_admin()));
+
+    create policy "crm_profiles_insert_own_approved"
+    on public.crm_profiles
+    for insert
+    to authenticated
+    with check (public.crm_is_current_approved() and id = (select auth.uid()));
+
+    create policy "crm_profiles_update_own_approved"
+    on public.crm_profiles
+    for update
+    to authenticated
+    using (public.crm_is_current_approved() and (id = (select auth.uid()) or public.crm_is_current_admin()))
+    with check (public.crm_is_current_approved() and (id = (select auth.uid()) or public.crm_is_current_admin()));
+
+    create policy "crm_profiles_delete_admin"
+    on public.crm_profiles
+    for delete
+    to authenticated
+    using (public.crm_is_current_admin());
+  end if;
+end $$;
+
+do $$
+declare
+  table_name text;
+  data_tables text[] := array[
+    'crm_vendas',
+    'crm_clientes',
+    'crm_fiscais',
+    'crm_produtos',
+    'crm_boletos',
+    'crm_notas_fiscais',
+    'crm_conversas',
+    'crm_conversa_participantes',
+    'crm_mensagens',
+    'crm_anexos',
+    'crm_mensagem_leituras',
+    'crm_import_batches'
+  ];
+begin
+  foreach table_name in array data_tables loop
+    if to_regclass(format('public.%I', table_name)) is not null then
+      execute format('create policy %I on public.%I for select to authenticated using (public.crm_is_current_approved())', table_name || '_select_approved', table_name);
+      execute format('create policy %I on public.%I for insert to authenticated with check (public.crm_is_current_approved())', table_name || '_insert_approved', table_name);
+      execute format('create policy %I on public.%I for update to authenticated using (public.crm_is_current_approved()) with check (public.crm_is_current_approved())', table_name || '_update_approved', table_name);
+      execute format('create policy %I on public.%I for delete to authenticated using (public.crm_is_current_approved())', table_name || '_delete_approved', table_name);
+    end if;
+  end loop;
+end $$;
+
+do $$
+begin
+  if to_regclass('public.crm_access_logs') is not null then
+    create policy "crm_access_logs_insert_own_approved"
+    on public.crm_access_logs
+    for insert
+    to authenticated
+    with check (public.crm_is_current_approved() and user_id = (select auth.uid()));
+
+    create policy "crm_access_logs_select_admin"
+    on public.crm_access_logs
+    for select
+    to authenticated
+    using (public.crm_is_current_admin());
+  end if;
+end $$;
+
+do $$
+declare
+  policy_name text;
+begin
+  for policy_name in
+    select pol.policyname
+    from pg_policies pol
+    where pol.schemaname = 'storage'
+      and pol.tablename = 'objects'
+      and pol.policyname like 'gso_crm_%'
+  loop
+    execute format('drop policy if exists %I on storage.objects', policy_name);
+  end loop;
+end $$;
+
+create policy "gso_crm_storage_select_approved"
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id in ('gso-notas-fiscais', 'gso-mensagens', 'gso-boletos')
+  and public.crm_is_current_approved()
+);
+
+create policy "gso_crm_storage_insert_approved"
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id in ('gso-notas-fiscais', 'gso-mensagens', 'gso-boletos')
+  and public.crm_is_current_approved()
+);
+
+create policy "gso_crm_storage_update_approved"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id in ('gso-notas-fiscais', 'gso-mensagens', 'gso-boletos')
+  and public.crm_is_current_approved()
+)
+with check (
+  bucket_id in ('gso-notas-fiscais', 'gso-mensagens', 'gso-boletos')
+  and public.crm_is_current_approved()
+);
+
+create policy "gso_crm_storage_delete_approved"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id in ('gso-notas-fiscais', 'gso-mensagens', 'gso-boletos')
+  and public.crm_is_current_approved()
+);
+
+commit;
