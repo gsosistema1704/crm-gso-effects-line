@@ -27599,6 +27599,10 @@ body.theme-dark .btn-green, body.theme-dark #mc-save-btn, body.theme-dark #mf-sa
 .sales-table .nf-muted{ white-space:nowrap !important; display:inline-block; }
 /* Botão WhatsApp: mesmo verde no modo claro e no modo escuro */
 body.theme-dark .intel-wa:not(.is-disabled){ background:#25D366 !important; color:#FFFFFF !important; border-color:#25D366 !important; }
+/* Mobile: tirar os botões redondos flutuantes (voltar ao topo / tema) que ficavam por cima da barra de navegação de baixo */
+@media (max-width: 900px) {
+  #scroll-top-button, #gso-theme-fab { display: none !important; }
+}
 </style>
 </body>
 </html>
