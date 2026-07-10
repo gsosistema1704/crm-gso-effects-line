@@ -24095,12 +24095,12 @@ function intelRenderProdutos() {
 
 const INTEL_SEGDEF = [
   { nome: 'Campeão', cor: '#2E9E8F', desc: 'Compram muito e há pouco tempo. Seu núcleo — proteja.' },
-  { nome: 'Leal', cor: 'var(--green-text)', desc: 'Compram com frequência. Mantenha o relacionamento.' },
+  { nome: 'Leal', cor: '#4CAF7D', desc: 'Compram com frequência. Mantenha o relacionamento.' },
   { nome: 'Potencial', cor: '#5B7FD9', desc: 'Recentes, podem virar leais com estímulo.' },
-  { nome: 'Novo', cor: 'var(--blue-text)', desc: 'Primeira compra recente. Cause boa impressão.' },
-  { nome: 'Em Risco', cor: 'var(--amber-text)', desc: 'Já foram bons, estão esfriando. Aja agora.' },
+  { nome: 'Novo', cor: '#4FB8D9', desc: 'Primeira compra recente. Cause boa impressão.' },
+  { nome: 'Em Risco', cor: '#E0A33E', desc: 'Já foram bons, estão esfriando. Aja agora.' },
   { nome: 'Hibernando', cor: '#9B6FD9', desc: 'Inativos de médio prazo. Reative com oferta.' },
-  { nome: 'Perdido', cor: 'var(--red-text)', desc: 'Mais de 8 meses sem comprar. Recuperar é difícil.' }
+  { nome: 'Perdido', cor: '#D86C6C', desc: 'Mais de 8 meses sem comprar. Recuperar é difícil.' }
 ];
 
 function intelRenderSegmentos() {
@@ -24207,14 +24207,10 @@ function intelRenderSegmentos() {
   } catch (e) {}
   try {
     const segTotais = defs.map(s => (bySeg[s.nome] || []).reduce((sum, c) => sum + c.total, 0));
-    const segCores = defs.map(s => {
-      const el = document.createElement('div'); el.style.color = s.cor; document.body.appendChild(el);
-      const resolved = getComputedStyle(el).color; document.body.removeChild(el); return resolved;
-    });
     const ctxS = document.getElementById('intel-chart-segbar').getContext('2d');
     intelCharts.segbar = new Chart(ctxS, {
       type: 'bar',
-      data: { labels: defs.map(s => s.nome), datasets: [{ data: segTotais, backgroundColor: segCores, borderRadius: 7, maxBarThickness: 30 }] },
+      data: { labels: defs.map(s => s.nome), datasets: [{ data: segTotais, backgroundColor: defs.map(s => s.cor), borderRadius: 7, maxBarThickness: 30 }] },
       options: {
         indexAxis: 'y', maintainAspectRatio: false,
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtBR(c.parsed.x) } } },
