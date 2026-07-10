@@ -17807,9 +17807,20 @@ function computeClientes() {
   // Agrega vendas por cliente, enriquecendo com o cadastro único de Clientes - Dados.
   const map = {};
   const today = new Date();
+
+  // Índices por nameKey construídos uma única vez (em vez de um .find() varrendo
+  // state.fiscais/state.clientes para cada uma das ~1300 vendas, o que virava
+  // milhões de comparações a cada tecla digitada na busca de Clientes).
+  const fiscaisByKey = {};
+  state.fiscais.forEach(f => { if (f && f.nome) { const k = nameKey(f.nome); if (!(k in fiscaisByKey)) fiscaisByKey[k] = f; } });
+  const clientesByKey = {};
+  state.clientes.forEach(c => { const k = nameKey(c.nome); if (!(k in clientesByKey)) clientesByKey[k] = c; });
+  const fiscalFor = (nome) => fiscaisByKey[nameKey(nome)] || null;
+  const clienteFor = (nome) => clientesByKey[nameKey(nome)] || null;
+
   const buildBase = (nome, total = 0, pedidos = 0, ultima = null) => {
-    const cli = state.clientes.find(c => nameKey(c.nome) === nameKey(nome)) || {};
-    const fiscal = fiscalRecordForCliente(nome) || {};
+    const cli = clienteFor(nome) || {};
+    const fiscal = fiscalFor(nome) || {};
     const merged = mergeClienteFiscalInfo(cli, fiscal);
     return {
       nome,
@@ -17827,8 +17838,8 @@ function computeClientes() {
   const docDigitsFor = (nome) => {
     const nk = nameKey(nome);
     if (nk in _docCache) return _docCache[nk];
-    const fiscal = (typeof fiscalRecordForCliente === 'function' ? fiscalRecordForCliente(nome) : null) || {};
-    const cli = state.clientes.find(c => nameKey(c.nome) === nk) || {};
+    const fiscal = fiscalFor(nome) || {};
+    const cli = clienteFor(nome) || {};
     const docs = (typeof splitFiscalDocs === 'function')
       ? splitFiscalDocs({ cpf: cli.cpf || fiscal.cpf, cnpj: cli.cnpj || fiscal.cnpj, doc: cli.doc || fiscal.doc })
       : { cpf: '', cnpj: '' };
