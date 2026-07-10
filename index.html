@@ -17201,12 +17201,25 @@ function chartBlueGradient(ctx, height = 260) {
 }
 function fmtDate(d) {
   if (!d) return '—';
-  const dt = typeof d === 'string' ? new Date(d) : d;
+  let dt;
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.trim())) {
+    const [y, m, day] = d.trim().split('-').map(Number);
+    dt = new Date(y, m - 1, day);
+  } else {
+    dt = typeof d === 'string' ? new Date(d) : d;
+  }
   return dt.toLocaleDateString('pt-BR');
 }
+function safeDateOnly(d) {
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.trim())) {
+    const [y, m, day] = d.trim().split('-').map(Number);
+    return new Date(y, m - 1, day);
+  }
+  return typeof d === 'string' ? new Date(d) : d;
+}
 function daysBetween(d1, d2) {
-  const a = typeof d1 === 'string' ? new Date(d1) : d1;
-  const b = typeof d2 === 'string' ? new Date(d2) : d2;
+  const a = safeDateOnly(d1);
+  const b = safeDateOnly(d2);
   return Math.floor((b - a) / (1000 * 60 * 60 * 24));
 }
 function getUnCx(tamanho) {
@@ -17747,8 +17760,8 @@ function computeClientes() {
     const e = ensureCli(v.cliente);
     e.total += parseFloat(v.valor) || 0;
     e.pedidos += 1;
-    const dt = new Date(v.data);
-    if (!e.ultima || dt > e.ultima) e.ultima = dt;
+    const dt = dashboardDateObj(v.data);
+    if (dt && (!e.ultima || dt > e.ultima)) e.ultima = dt;
   });
 
   // Clientes cadastrados manualmente sem vendas.
@@ -23525,8 +23538,8 @@ function intelCompute(force) {
     const valorVenda = parseFloat(v.valor) || 0;
     c.total += valorVenda;
     c.pedidos += 1;
-    const dt = new Date(v.data);
-    if (!Number.isNaN(dt.getTime())) c.datas.push(dt);
+    const dt = dashboardDateObj(v.data);
+    if (dt) c.datas.push(dt);
     const vd = String(v.vendedor || '').trim();
     if (vd) c.vendedores[vd] = (c.vendedores[vd] || 0) + 1;
     c.historico.push({ data: dt, produto: v.produto || '', tamanho: v.tamanho || '', valor: valorVenda, qtd: v.qtd, pagamento: v.pagamento || '' });
