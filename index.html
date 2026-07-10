@@ -12999,18 +12999,14 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
     <button id="scroll-top-button" class="scroll-top-button" type="button" onclick="scrollCrmToTop()" title="Voltar ao topo" aria-label="Voltar ao topo">↑</button>
 	  <aside class="sidebar" id="sidebar">
 	    <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapsed()" title="Minimizar menu">›</button>
-	    <div class="sb-brand" onclick="navTo('inteligencia')" title="Abrir Dashboard">
+	    <div class="sb-brand" onclick="navTo('inteligencia')" title="Abrir Visão geral">
 	      <img class="sb-logo-img" src="assets/gso-logo-light.png" alt="GSO Effects Line">
 	    </div>
 
     <div class="sb-section">PRINCIPAL</div>
-    <div class="nav-item" data-view="dash" data-label="Visão geral" onclick="navTo('dash')">
-      <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
-      Visão geral
-    </div>
-    <div class="nav-item active" data-view="inteligencia" data-label="Inteligência" onclick="navTo('inteligencia')">
+    <div class="nav-item active" data-view="inteligencia" data-label="Visão geral" onclick="navTo('inteligencia')">
       <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5a4.5 4.5 0 0 0-2.6 8.17c.36.27.6.68.6 1.12V11h4v-.21c0-.44.24-.85.6-1.12A4.5 4.5 0 0 0 8 1.5Z"/><path d="M6 13.2h4M6.6 11v2.4M9.4 11v2.4"/></svg>
-      Inteligência
+      Visão geral
     </div>
 
     <div class="sb-section">OPERAÇÕES</div>
@@ -13056,123 +13052,6 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
 
   <main class="main">
     <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
-
-    <!-- ============ DASHBOARD ============ -->
-    <div id="view-dash">
-      <div class="header dashboard-header dashboard-slim-header">
-        <div>
-          <div class="h-title">Visão geral</div>
-          <div class="h-sub">Resumo direto do dia, cobrança, cadastros e desempenho comercial.</div>
-        </div>
-        <div class="h-actions">
-          <div class="dashboard-date" id="dashboard-date">Canoas</div>
-          <button class="btn btn-primary" onclick="navTo('nova')" data-tooltip="Registrar uma nova venda">+ Nova venda</button>
-        </div>
-      </div>
-
-      <div class="dashboard-executive-grid">
-        <section class="card dash-exec-card dash-sales-card">
-          <div class="dash-card-head">
-            <div>
-              <span class="dash-eyebrow">Hoje</span>
-              <h2>Vendas do dia</h2>
-              <p>Valor faturado e quantidade de vendas registradas hoje.</p>
-            </div>
-            <button class="btn btn-small" onclick="dashboardDrill('vendas_hoje')" data-tooltip="Ver apenas as vendas de hoje">Ver vendas</button>
-          </div>
-          <div class="dash-hero-value" id="dash-vendas-dia-valor">R$ 0,00</div>
-          <div class="dash-inline-metrics">
-            <div>
-              <span>Quantidade</span>
-              <strong id="dash-vendas-dia-qtd">0 vendas</strong>
-            </div>
-            <div>
-              <span>Ticket médio</span>
-              <strong id="dash-vendas-dia-ticket">R$ 0,00</strong>
-            </div>
-          </div>
-        </section>
-
-        <section class="card dash-exec-card dash-boletos-card">
-          <div class="dash-card-head">
-            <div>
-              <span class="dash-eyebrow">Financeiro</span>
-              <h2>Boletos que precisam de atenção</h2>
-              <p>Vencidos, vencendo hoje e boletos com vencimento neste mês.</p>
-            </div>
-            <button class="btn btn-small" onclick="dashboardDrill('boletos_criticos')" data-tooltip="Abrir central de boletos">Abrir</button>
-          </div>
-          <div class="dash-stat-strip three">
-            <div><span>Vencidos</span><strong id="dash-boletos-vencidos">0</strong></div>
-            <div><span>Hoje</span><strong id="dash-boletos-hoje">0</strong></div>
-            <div><span>No mês</span><strong id="dash-boletos-mes">0</strong></div>
-          </div>
-          <div id="dash-boletos-list" class="dash-clean-list">
-            <div class="dash-empty-line">Nenhum boleto em atenção.</div>
-          </div>
-        </section>
-
-        <section class="card dash-exec-card dash-cadastro-card">
-          <div class="dash-card-head">
-            <div>
-              <span class="dash-eyebrow">Base</span>
-              <h2>Pendências de cadastro</h2>
-              <p>Clientes sem CPF/CNPJ fiscal ou sem contato de WhatsApp.</p>
-            </div>
-            <button class="btn btn-small" onclick="dashboardDrill('cadastro_pendencias')" data-tooltip="Abrir Qualidade da Base">Corrigir</button>
-          </div>
-          <div class="dash-stat-strip three">
-            <div><span>Sem CPF/CNPJ</span><strong id="dash-cadastro-sem-doc">0</strong></div>
-            <div><span>Sem WhatsApp</span><strong id="dash-cadastro-sem-wpp">0</strong></div>
-            <div><span>Ambos</span><strong id="dash-cadastro-ambos">0</strong></div>
-          </div>
-          <div id="dash-cadastro-list" class="dash-clean-list">
-            <div class="dash-empty-line">Cadastros completos nos campos acompanhados.</div>
-          </div>
-        </section>
-
-        <section class="card dash-exec-card dash-products-card">
-          <div class="dash-card-head">
-            <div>
-              <span class="dash-eyebrow">Produtos</span>
-              <h2>Produto mais vendido</h2>
-              <p>Líder por quantidade vendida no dia, na semana e no mês.</p>
-            </div>
-            <button class="btn btn-small" onclick="navTo('produtos')" data-tooltip="Abrir catálogo de produtos">Produtos</button>
-          </div>
-          <div class="dash-period-grid">
-            <div class="dash-period-card" id="dash-produto-dia">
-              <span>Dia</span><strong>—</strong><small>0 un</small>
-            </div>
-            <div class="dash-period-card" id="dash-produto-semana">
-              <span>Semana</span><strong>—</strong><small>0 un</small>
-            </div>
-            <div class="dash-period-card" id="dash-produto-mes">
-              <span>Mês</span><strong>—</strong><small>0 un</small>
-            </div>
-          </div>
-        </section>
-
-        <section class="card dash-exec-card dash-seller-card">
-          <div class="dash-card-head">
-            <div>
-              <span class="dash-eyebrow">Equipe</span>
-              <h2>Vendedor destaque do mês</h2>
-              <p>Ranking por quantidade de vendas, sem considerar valor.</p>
-            </div>
-            <button class="btn btn-small" onclick="dashboardDrill('vendedor_mes')" data-tooltip="Filtrar vendas do vendedor líder">Ver</button>
-          </div>
-          <div class="dash-seller-hero">
-            <span id="dash-vendedor-nome">Sem vendas no mês</span>
-            <strong id="dash-vendedor-qtd">0 vendas</strong>
-          </div>
-          <div id="dash-vendedor-lista" class="dash-clean-list dash-seller-list">
-            <div class="dash-empty-line">Sem ranking mensal ainda.</div>
-          </div>
-        </section>
-      </div>
-
-    </div>
 
     <!-- ============ VENDAS ============ -->
     <div id="view-vendas" class="hidden">
@@ -14671,7 +14550,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
         </div>
 
         <div class="form-actions">
-          <button class="btn" onclick="navTo('dash')">Cancelar</button>
+          <button class="btn" onclick="navTo('inteligencia')">Cancelar</button>
           <button class="btn btn-primary" onclick="salvarVenda()">Salvar venda</button>
         </div>
       </div>
@@ -14679,10 +14558,12 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
     <div id="view-inteligencia" class="hidden">
       <div class="header">
         <div>
-          <div class="h-title">Inteligência</div>
+          <div class="h-title">Visão geral</div>
           <div class="h-sub">Análise comercial — clientes, produtos e ações</div>
         </div>
         <div class="h-actions">
+          <div class="dashboard-date" id="dashboard-date">Canoas</div>
+          <button class="btn btn-primary" onclick="navTo('nova')" data-tooltip="Registrar uma nova venda">+ Nova venda</button>
           <select id="intel-period" class="intel-period-select" onchange="intelSetPeriod(this.value)" title="Filtrar por período"><option value="all">Todos os anos</option></select>
           <button class="btn" onclick="gsoIntelExport()">Exportar lista de hoje</button>
         </div>
@@ -14700,7 +14581,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
   </main>
 
   <nav class="mobile-bottom-nav" aria-label="Navegação principal mobile">
-    <button type="button" data-mobile-view="dash" onclick="navTo('dash')" aria-label="Dashboard">
+    <button type="button" data-mobile-view="inteligencia" onclick="navTo('inteligencia')" aria-label="Visão geral">
       <span class="mobile-nav-ic">▦</span>
       <span>Início</span>
     </button>
@@ -17723,10 +17604,11 @@ function showApp() {
   applySidebarPreference();
   renderAll();
   navTo('inteligencia');
+  startDashboardClock();
 }
 
 // ============ NAVEGAÇÃO ============
-const VIEWS = ['dash','vendas','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','relatorios','calculadora','inteligencia','config','perfil','nova'];
+const VIEWS = ['vendas','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','relatorios','calculadora','inteligencia','config','perfil','nova'];
 function applySidebarPreference() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
@@ -17756,7 +17638,6 @@ function navTo(view) {
   closeMobileSidebar();
   updateMobileChrome(view);
 
-  if (view === 'dash') renderDash();
   if (view === 'vendas') renderVendas();
   if (view === 'boletos') renderBoletos();
   if (view === 'notas') renderNotasFiscais();
@@ -22308,13 +22189,13 @@ async function salvarVenda() {
   if (!clienteCadastrado) addPendingClientAlert(cliente, numeroVenda);
   const imprimir = confirm('✅ Venda nº ' + numeroVenda + ' registrada!\n\n' + cliente + ' — ' + fmtBR(valor) + (!clienteCadastrado ? '\n\nCliente ainda não cadastrado: deixei um aviso no menu Clientes.' : '') + '\n\nDeseja imprimir a nota simplificada desta venda agora?');
   if (imprimir) printSaleLabel(venda);
-  navTo('dash');
+  navTo('inteligencia');
 }
 
 
 // ============ MOBILE / APP MODE ============
 const MOBILE_VIEW_LABELS = {
-  dash: 'Dashboard',
+  inteligencia: 'Visão geral',
   vendas: 'Vendas',
   boletos: 'Boletos',
   notas: 'Notas fiscais',
@@ -23874,7 +23755,46 @@ function intelRenderOverview() {
     return `<tr><td class="strong">${escapeHtml(c.nome)}</td><td><span class="intel-tag">${escapeHtml(c.acao)}</span></td><td class="intel-muted">${escapeHtml(c.motivo)}</td><td class="num">${fmtBR(c.total)}</td><td>${intelStatusPill(c.status)}</td><td>${waBtn}</td></tr>`;
   }).join('');
 
+  const hoje = dashboardStartOfDay();
+  const vendasHoje = dashboardSalesInRange(hoje, hoje);
+  const valorHoje = vendasHoje.reduce((sum, venda) => sum + Number(venda.valor || 0), 0);
+  const ticketHoje = vendasHoje.length ? valorHoje / vendasHoje.length : 0;
+  const cadastro = dashboardRegistrationStats();
+
   pane.innerHTML = `
+    <div class="intel-grid cols-2" style="margin-bottom:16px;">
+      <div class="card dash-exec-card dash-sales-card">
+        <div class="dash-card-head">
+          <div>
+            <span class="dash-eyebrow">Hoje</span>
+            <h2>Vendas do dia</h2>
+            <p>Valor faturado e quantidade de vendas registradas hoje.</p>
+          </div>
+          <button class="btn btn-small" onclick="dashboardDrill('vendas_hoje')" data-tooltip="Ver apenas as vendas de hoje">Ver vendas</button>
+        </div>
+        <div class="dash-hero-value">${fmtBR(valorHoje)}</div>
+        <div class="dash-inline-metrics">
+          <div><span>Quantidade</span><strong>${vendasHoje.length.toLocaleString('pt-BR')} venda${vendasHoje.length === 1 ? '' : 's'}</strong></div>
+          <div><span>Ticket médio</span><strong>${fmtBR(ticketHoje)}</strong></div>
+        </div>
+      </div>
+      <div class="card dash-exec-card dash-cadastro-card">
+        <div class="dash-card-head">
+          <div>
+            <span class="dash-eyebrow">Base</span>
+            <h2>Pendências de cadastro</h2>
+            <p>Clientes sem CPF/CNPJ fiscal ou sem contato de WhatsApp.</p>
+          </div>
+          <button class="btn btn-small" onclick="dashboardDrill('cadastro_pendencias')" data-tooltip="Abrir Qualidade da Base">Corrigir</button>
+        </div>
+        <div class="dash-stat-strip three">
+          <div><span>Sem CPF/CNPJ</span><strong>${cadastro.semDoc.toLocaleString('pt-BR')}</strong></div>
+          <div><span>Sem WhatsApp</span><strong>${cadastro.semWpp.toLocaleString('pt-BR')}</strong></div>
+          <div><span>Ambos</span><strong>${cadastro.ambos.toLocaleString('pt-BR')}</strong></div>
+        </div>
+        <div class="dash-clean-list">${dashboardRenderCadastroRows(cadastro.pendentes)}</div>
+      </div>
+    </div>
     <div class="intel-grid cols-4" style="margin-bottom:16px;">
       <div class="intel-kpi"><div class="intel-kpi-label">Faturamento total</div><div class="intel-kpi-value">${fmtBR(k.faturamento)}</div><div class="intel-kpi-sub">${k.pedidosTot} pedidos</div></div>
       <div class="intel-kpi"><div class="intel-kpi-label">Ticket médio</div><div class="intel-kpi-value">${fmtBR(k.ticketMedio)}</div><div class="intel-kpi-sub">por pedido · ciclo médio ${d.cicloBase}d</div></div>
@@ -27587,6 +27507,53 @@ body.theme-dark .intel-wa:not(.is-disabled){ background:#25D366 !important; colo
 @media (max-width: 900px) {
   #scroll-top-button, #gso-theme-fab { display: none !important; }
 }
+
+/* Cartões "Vendas do dia" / "Pendências de cadastro" e o relógio, movidos do antigo Dashboard para dentro de Visão geral (Inteligência) */
+#view-inteligencia .dashboard-date {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 34px; padding: 0 10px 0 12px;
+  border-radius: 10px; border: 1px solid var(--fine-border, #E7E7E7); background: var(--fine-surface, #FFFFFF);
+  color: var(--fine-text, #282828); box-shadow: 0 3px 10px rgba(23,23,23,0.035); font-size: 11.5px; font-weight: 650; white-space: nowrap;
+}
+#view-inteligencia .dashboard-date-text { color: var(--fine-text, #282828); }
+#view-inteligencia .dashboard-time {
+  display: inline-flex; align-items: center; gap: 5px; padding-left: 9px;
+  border-left: 1px solid var(--fine-border, #E7E7E7); color: var(--fine-primary, #6F6F6F); font-variant-numeric: tabular-nums;
+}
+#view-inteligencia .dashboard-clock { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+body.theme-dark #view-inteligencia .dashboard-date { background: var(--fine-surface, #2A2A2A); border-color: var(--fine-border, #464646); color: var(--fine-text, #F5F7FA); }
+body.theme-dark #view-inteligencia .dashboard-time { color: var(--fine-primary, #808080); border-left-color: var(--fine-border, #464646); }
+@media (max-width: 720px) { #view-inteligencia .dashboard-date { width: 100%; justify-content: center; } }
+
+#view-inteligencia .dash-exec-card {
+  min-height: 168px; padding: 14px 16px; border-radius: 10px; border-color: var(--fine-border, #E7E7E7);
+  box-shadow: 0 3px 10px rgba(23,23,23,0.04); gap: 10px; background: var(--fine-surface, #FFFFFF); display: flex; flex-direction: column;
+}
+#view-inteligencia .dash-card-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+#view-inteligencia .dash-card-head h2 { font-size: 15.1px; line-height: 1.2; font-weight: 760; color: var(--fine-text, #282828); letter-spacing: -0.01em; margin: 2px 0 0; }
+#view-inteligencia .dash-card-head p { margin-top: 4px; max-width: 420px; font-size: 11.2px; line-height: 1.35; color: var(--fine-muted, #757575); }
+#view-inteligencia .dash-eyebrow { display: block; margin-bottom: 5px; font-size: 9px; font-weight: 820; color: var(--fine-primary, #6F6F6F); letter-spacing: 0.07em; text-transform: uppercase; }
+#view-inteligencia .dash-card-head .btn-small { min-height: 28px; padding: 0 9px; border-radius: 6px; font-size: 10.8px; line-height: 1; }
+#view-inteligencia .dash-hero-value { margin-top: 6px; color: var(--fine-text, #282828); font-size: 29px; line-height: 1; font-weight: 780; letter-spacing: -0.035em; }
+#view-inteligencia .dash-inline-metrics, #view-inteligencia .dash-stat-strip { display: grid; gap: 7px; margin-top: 10px; }
+#view-inteligencia .dash-inline-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#view-inteligencia .dash-stat-strip.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#view-inteligencia .dash-inline-metrics > div, #view-inteligencia .dash-stat-strip > div {
+  min-height: 46px; padding: 7px 9px; border-radius: 8px; background: var(--fine-soft-2, #FBFCFE); border: 1px solid var(--fine-border, #E7E7E7);
+}
+#view-inteligencia .dash-inline-metrics span, #view-inteligencia .dash-stat-strip span { display: block; margin-bottom: 4px; color: var(--fine-muted, #757575); font-size: 9.8px; font-weight: 700; }
+#view-inteligencia .dash-inline-metrics strong, #view-inteligencia .dash-stat-strip strong { color: var(--fine-text, #282828); font-size: 15.4px; font-weight: 780; }
+#view-inteligencia .dash-clean-list { margin-top: 8px; }
+#view-inteligencia .dash-clean-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--fine-border, #E7E7E7); cursor: pointer; }
+#view-inteligencia .dash-clean-row:last-child { border-bottom: none; }
+#view-inteligencia .dash-clean-row strong { font-size: 12px; font-weight: 720; color: var(--fine-text, #282828); }
+#view-inteligencia .dash-clean-row span { display: block; font-size: 10.6px; color: var(--fine-muted, #757575); }
+#view-inteligencia .dash-clean-row em { font-size: 10.6px; font-style: normal; color: var(--fine-text, #282828); }
+#view-inteligencia .dash-empty-line { padding: 9px 10px; border-radius: 8px; font-size: 11.4px; background: var(--fine-soft-2, #FBFCFE); color: var(--fine-muted, #757575); }
+body.theme-dark #view-inteligencia .dash-exec-card { background: var(--fine-surface, #2A2A2A); border-color: var(--fine-border, #464646); box-shadow: 0 6px 14px rgba(0,0,0,0.12); }
+body.theme-dark #view-inteligencia .dash-inline-metrics > div, body.theme-dark #view-inteligencia .dash-stat-strip > div, body.theme-dark #view-inteligencia .dash-empty-line {
+  background: var(--fine-soft, #333333); border-color: var(--fine-border, #464646);
+}
+@media (max-width: 900px) { #view-inteligencia .intel-grid.cols-2 { grid-template-columns: 1fr; } }
 </style>
 </body>
 </html>
