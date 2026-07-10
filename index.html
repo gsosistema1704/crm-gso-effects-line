@@ -23465,7 +23465,8 @@ init();
 .intel-chips { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 14px; }
 .intel-chip { background: var(--surface-2,#eef3f7); border: 1px solid var(--border); color: var(--text-2); padding: 7px 13px; border-radius: 20px; font-size: 12.5px; cursor: pointer; font-weight: 500; }
 .intel-chip:hover { color: var(--text); }
-.intel-chip.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.intel-chip.on { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+body.theme-dark .intel-chip.on { color: #141414; }
 
 .intel-acts { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
 .intel-actcard { display: flex; flex-direction: column; gap: 12px; position: relative; border-left: 3px solid var(--primary); }
