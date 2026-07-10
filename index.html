@@ -24273,7 +24273,7 @@ function openClienteDrawer(nome) {
   if (!c) return;
   const wa = intelWaDigits(c.telefone);
   const waBtn = wa
-    ? `<a class="btn btn-primary" style="width:100%;margin-bottom:6px;text-align:center;" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(intelWaMessage(c))}">Chamar no WhatsApp (mensagem pronta)</a>`
+    ? `<a class="btn btn-primary" style="width:100%;margin-bottom:6px;text-align:center;display:block;text-decoration:none;box-sizing:border-box;" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(intelWaMessage(c))}">Chamar no WhatsApp (mensagem pronta)</a>`
     : `<div class="intel-seg-note" style="margin-top:0;">Sem telefone cadastrado para este cliente. Atualize o cadastro para liberar o contato direto.</div>`;
   const body = document.getElementById('intel-seg-drawer-body');
   body.innerHTML = `
