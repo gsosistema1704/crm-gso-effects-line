@@ -22920,9 +22920,9 @@ init();
       '<td>' + (c.ultima && typeof fmtDate === 'function' ? fmtDate(c.ultima) : '—') + '</td>' +
       '<td><span class="pill ' + (typeof pillClass === 'function' ? pillClass(c.status) : '') + '">' + esc(c.status || '—') + '</span></td>' +
       '<td><div class="row-actions">' +
-      '<button class="btn btn-small" onclick="openClienteModal(' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')">Ver</button>' +
-      '<button class="btn btn-small" onclick="openClienteNotas(' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')">Notas</button>' +
-      '<button class="btn btn-small" onclick="openClienteBoletos(' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')">Boletos</button>' +
+      '<button class="btn btn-small" onclick="openClienteModal(' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')">Editar</button>' +
+      '<button class="btn btn-small btn-danger" onclick="excluirCliente(' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')">Apagar</button>' +
+      '<button class="btn btn-small" onclick="verMaisCliente(' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')">Ver mais</button>' +
       '</div></td></tr>').join('');
   };
 
