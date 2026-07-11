@@ -14384,8 +14384,8 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
     <div id="view-nova" class="hidden">
       <div class="header">
         <div>
-          <div class="h-title">Nova venda</div>
-          <div class="h-sub">Registrar pedido</div>
+          <div class="h-title" id="nova-h-title">Nova venda</div>
+          <div class="h-sub" id="nova-h-sub">Registrar pedido</div>
         </div>
       </div>
 
@@ -14550,8 +14550,8 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
         </div>
 
         <div class="form-actions">
-          <button class="btn" onclick="navTo('inteligencia')">Cancelar</button>
-          <button class="btn btn-primary" onclick="salvarVenda()">Salvar venda</button>
+          <button class="btn" id="nova-cancel-btn" onclick="cancelarNovaOuEdicaoVenda()">Cancelar</button>
+          <button class="btn btn-primary" id="nova-save-btn" onclick="salvarVenda()">Salvar venda</button>
         </div>
       </div>
     </div>
@@ -14596,70 +14596,13 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
   </nav>
 </div>
 
-<!-- ============ MODAL EDITAR VENDA ============ -->
-<div class="modal-bg" id="modal-venda">
-  <div class="modal">
-    <div class="modal-title">Editar venda</div>
-    <input type="hidden" id="mv-id">
-    <div class="form-row form-r2">
-      <div>
-        <label class="form-label">Data</label>
-        <input type="date" class="form-input" id="mv-data">
-      </div>
-      <div>
-        <label class="form-label">Cliente</label>
-        <input type="text" class="form-input" id="mv-cliente">
-      </div>
-    </div>
-    <div class="form-row form-r2">
-      <div>
-        <label class="form-label">Produto</label>
-        <input type="text" class="form-input" id="mv-produto">
-      </div>
-      <div>
-        <label class="form-label">Tamanho</label>
-        <input type="text" class="form-input" id="mv-tamanho" placeholder="Ex: 5L">
-      </div>
-    </div>
-    <div class="form-row form-r3-eq">
-      <div>
-        <label class="form-label">Aroma</label>
-        <input type="text" class="form-input" id="mv-aroma" placeholder="Neutro">
-      </div>
-      <div>
-        <label class="form-label">Qtd</label>
-        <input type="number" class="form-input" id="mv-qtd" min="1">
-      </div>
-      <div>
-        <label class="form-label">Valor (R$)</label>
-        <input type="number" class="form-input" id="mv-valor" step="0.01">
-      </div>
-    </div>
-    <div class="form-row form-r2">
-      <div>
-        <label class="form-label">Pagamento</label>
-        <input type="text" class="form-input" id="mv-pagamento">
-      </div>
-      <div>
-        <label class="form-label">Vendedor</label>
-        <input type="text" class="form-input" id="mv-vendedor">
-      </div>
-    </div>
-    <div class="form-row">
-      <div>
-        <label class="form-label">Número da nota fiscal</label>
-        <input type="text" class="form-input" id="mv-nf-numero" placeholder="Opcional">
-      </div>
-    </div>
-    <div class="form-row">
-      <div>
-        <label class="form-label">Observações</label>
-        <input type="text" class="form-input" id="mv-obs">
-      </div>
-    </div>
+<!-- ============ MODAL VER MAIS (genérico: Venda / Cliente) ============ -->
+<div class="modal-bg" id="modal-ver-mais">
+  <div class="modal modal-wide">
+    <div class="modal-title" id="ver-mais-title">Detalhes</div>
+    <div id="ver-mais-body"></div>
     <div class="form-actions">
-      <button class="btn" onclick="closeEditVenda()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarEdicaoVenda()">Salvar alterações</button>
+      <button class="btn btn-primary" onclick="document.getElementById('modal-ver-mais').classList.remove('show')">Fechar</button>
     </div>
   </div>
 </div>
@@ -17676,7 +17619,7 @@ function navTo(view) {
   if (view === 'inteligencia') renderInteligencia();
   if (view === 'config') renderConfig();
   if (view === 'perfil') renderPerfil();
-  if (view === 'nova') initNova();
+  if (view === 'nova') { if (editingVendaId) initEditVenda(editingVendaId); else initNova(); }
   setTimeout(enhanceButtonTooltips, 0);
 }
 
@@ -18494,23 +18437,12 @@ function renderVendas() {
   }
   gsoRenderPagination('vendasPagination', 'vendas', pageInfo);
   tbody.innerHTML = pageInfo.rows.map(r => {
-    const nfLabel = r.nf?.name ? (r.nf.name.length > 18 ? r.nf.name.slice(0,18)+'…' : r.nf.name) : '';
     const nfNumero = saleNfNumber(r);
     const hasNfPdf = dashboardHasSaleFile(r, 'nf');
     const pagamentoCanonico = canonicalPayment(r.pagamento || '');
-    const nfDisplay = nfNumero ? `NF nº ${escapeHtml(nfNumero)}` : (nfLabel || 'NF anexada');
-    const nfHtml = hasNfPdf
-      ? `<div class="nf-actions"><button class="upload-icon" onclick="openNF('${r.id}')" data-tip="Abrir a NF-e anexada nesta venda.">${nfDisplay}</button><button class="upload-icon nf-button-ok" onclick="document.getElementById('nf-${r.id}').click()" data-tip="Substituir a NF-e por outro PDF.">Trocar</button><button class="upload-icon nf-remove-button" onclick="removeNF('${r.id}')" data-tip="Apagar a NF-e desta venda.">Apagar</button><input type="file" id="nf-${r.id}" accept="application/pdf" style="display:none;" onchange="uploadNF('${r.id}', event)"></div>`
-      : (nfNumero
-        ? `<div class="nf-actions"><span class="note-number">NF nº ${escapeHtml(nfNumero)}</span><button class="upload-icon nf-button-ok" onclick="document.getElementById('nf-${r.id}').click()" data-tip="Anexar o PDF desta NF-e sem perder o número informado.">Anexar PDF</button><button class="upload-icon nf-remove-button" onclick="removeNF('${r.id}')" data-tip="Apagar o número da NF-e desta venda.">Apagar</button><input type="file" id="nf-${r.id}" accept="application/pdf" style="display:none;" onchange="uploadNF('${r.id}', event)"></div>`
-        : (pagamentoCanonico === 'Dinheiro'
-          ? `<span class="nf-muted">Dinheiro sem NF</span>`
-          : `<div class="nf-actions"><button class="upload-icon nf-button-missing" onclick="document.getElementById('nf-${r.id}').click()" data-tip="Anexar o PDF da NF-e nesta venda.">Anexar NF</button><input type="file" id="nf-${r.id}" accept="application/pdf" style="display:none;" onchange="uploadNF('${r.id}', event)"></div>`));
-    const boletoHtml = pagamentoCanonico === 'Boleto'
-      ? (r.boleto
-        ? `<div class="nf-actions"><button class="upload-icon boleto-button" onclick="openBoleto('${r.id}')" data-tip="Abrir o boleto anexado nesta venda.">Boleto PDF</button><button class="upload-icon" onclick="document.getElementById('boleto-${r.id}').click()" data-tip="Trocar o PDF do boleto.">Trocar</button><button class="upload-icon nf-remove-button" onclick="removeBoletoSale('${r.id}')" data-tip="Apagar o boleto anexado nesta venda.">Apagar</button><input type="file" id="boleto-${r.id}" accept="application/pdf" style="display:none;" onchange="uploadBoletoSale('${r.id}', event)"></div>`
-        : `<div class="nf-actions"><button class="upload-icon boleto-button" onclick="document.getElementById('boleto-${r.id}').click()" data-tip="Anexar o PDF do boleto nesta venda.">Anexar boleto</button><input type="file" id="boleto-${r.id}" accept="application/pdf" style="display:none;" onchange="uploadBoletoSale('${r.id}', event)"></div>`)
-      : '';
+    const nfCompact = hasNfPdf || nfNumero
+      ? `<span class="nf-compact-ok">NF ${nfNumero ? 'nº ' + escapeHtml(nfNumero) : 'anexada'}</span>`
+      : (pagamentoCanonico === 'Dinheiro' ? `<span class="nf-muted">Dinheiro sem NF</span>` : `<span class="nf-compact-missing">Sem NF</span>`);
     return `
       <tr>
         <td${saleCellClass(r, ['data'])}>${typeof gsoDateCell==='function'?gsoDateCell(r.data):fmtDate(r.data)}</td>
@@ -18519,14 +18451,14 @@ function renderVendas() {
         <td${saleCellClass(r, ['aroma'])}><span class="pill pill-aroma ${typeof gsoAromaClass==='function'?gsoAromaClass(r.aroma):''}">${r.aroma || 'Neutro'}</span></td>
         <td class="num${saleCellClassName(r, ['qtd'])}">${r.qtd}</td>
         <td class="num${saleCellClassName(r, ['valor'])}">${fmtBR(r.valor)}</td>
-        <td${saleCellClass(r, ['pagamento'])}><div class="payment-cell"><span>${paymentDisplay(r)}</span>${boletoHtml}</div></td>
+        <td${saleCellClass(r, ['pagamento'])}>${paymentDisplay(r)}</td>
         <td${saleCellClass(r, ['vendedor'])}><span class="pill pill-blue">${r.vendedor}</span></td>
-        <td>${nfHtml}</td>
+        <td>${nfCompact}</td>
         <td>
           <div class="row-actions">
             <button class="btn btn-small" onclick="openEditVenda('${r.id}')">Editar</button>
-            <button class="btn btn-small" onclick="printSaleLabelById('${r.id}')">Recibo</button>
-            <button class="btn btn-small btn-danger" onclick="excluirVenda('${r.id}')">Excluir</button>
+            <button class="btn btn-small btn-danger" onclick="excluirVenda('${r.id}')">Apagar</button>
+            <button class="btn btn-small" onclick="verMaisVenda('${r.id}')">Ver mais</button>
           </div>
         </td>
       </tr>
@@ -18738,76 +18670,62 @@ async function removeBoletoSale(id) {
 function openEditVenda(id) {
   const venda = state.vendas.find(v => v.id === id);
   if (!venda) return;
-  document.getElementById('mv-id').value = id;
-  document.getElementById('mv-data').value = venda.data || '';
-  document.getElementById('mv-cliente').value = venda.cliente || '';
-  document.getElementById('mv-produto').value = venda.produto || '';
-  document.getElementById('mv-tamanho').value = venda.tamanho || '';
-  document.getElementById('mv-aroma').value = venda.aroma || '';
-  document.getElementById('mv-qtd').value = venda.qtd || 1;
-  document.getElementById('mv-valor').value = venda.valor || 0;
-  document.getElementById('mv-pagamento').value = venda.pagamento || '';
-  document.getElementById('mv-vendedor').value = venda.vendedor || '';
-  const mvNfNumero = document.getElementById('mv-nf-numero');
-  if (mvNfNumero) mvNfNumero.value = saleNfNumber(venda);
-  document.getElementById('mv-obs').value = venda.obs || '';
-  document.getElementById('modal-venda').classList.add('show');
+  editingVendaId = id;
+  navTo('nova');
 }
 
-function closeEditVenda() {
-  document.getElementById('modal-venda').classList.remove('show');
+function closeVerMais() {
+  document.getElementById('modal-ver-mais').classList.remove('show');
+}
+
+function verMaisVenda(id) {
+  renderVerMaisVenda(id);
+  document.getElementById('modal-ver-mais').classList.add('show');
+}
+
+function renderVerMaisVenda(id) {
+  const r = state.vendas.find(v => v.id === id);
+  if (!r) { closeVerMais(); return; }
+  const nfLabel = r.nf?.name ? (r.nf.name.length > 18 ? r.nf.name.slice(0, 18) + '…' : r.nf.name) : '';
+  const nfNumero = saleNfNumber(r);
+  const hasNfPdf = dashboardHasSaleFile(r, 'nf');
+  const pagamentoCanonico = canonicalPayment(r.pagamento || '');
+  const nfDisplay = nfNumero ? `NF nº ${escapeHtml(nfNumero)}` : (nfLabel || 'NF anexada');
+  const nfHtml = hasNfPdf
+    ? `<div class="nf-actions"><button class="upload-icon" onclick="openNF('${r.id}')" data-tip="Abrir a NF-e anexada nesta venda.">${nfDisplay}</button><button class="upload-icon nf-button-ok" onclick="document.getElementById('vm-nf-${r.id}').click()" data-tip="Substituir a NF-e por outro PDF.">Trocar</button><button class="upload-icon nf-remove-button" onclick="removeNF('${r.id}').then(()=>renderVerMaisVenda('${r.id}'))" data-tip="Apagar a NF-e desta venda.">Apagar</button><input type="file" id="vm-nf-${r.id}" accept="application/pdf" style="display:none;" onchange="uploadNF('${r.id}', event).then(()=>renderVerMaisVenda('${r.id}'))"></div>`
+    : (nfNumero
+      ? `<div class="nf-actions"><span class="note-number">NF nº ${escapeHtml(nfNumero)}</span><button class="upload-icon nf-button-ok" onclick="document.getElementById('vm-nf-${r.id}').click()" data-tip="Anexar o PDF desta NF-e sem perder o número informado.">Anexar PDF</button><button class="upload-icon nf-remove-button" onclick="removeNF('${r.id}').then(()=>renderVerMaisVenda('${r.id}'))" data-tip="Apagar o número da NF-e desta venda.">Apagar</button><input type="file" id="vm-nf-${r.id}" accept="application/pdf" style="display:none;" onchange="uploadNF('${r.id}', event).then(()=>renderVerMaisVenda('${r.id}'))"></div>`
+      : `<div class="nf-actions"><button class="upload-icon nf-button-missing" onclick="document.getElementById('vm-nf-${r.id}').click()" data-tip="Anexar o PDF da NF-e nesta venda.">Anexar NF</button><input type="file" id="vm-nf-${r.id}" accept="application/pdf" style="display:none;" onchange="uploadNF('${r.id}', event).then(()=>renderVerMaisVenda('${r.id}'))"></div>`);
+  const boletoHtml = pagamentoCanonico === 'Boleto'
+    ? (r.boleto
+      ? `<div class="nf-actions"><button class="upload-icon boleto-button" onclick="openBoleto('${r.id}')" data-tip="Abrir o boleto anexado nesta venda.">Boleto PDF</button><button class="upload-icon" onclick="document.getElementById('vm-boleto-${r.id}').click()" data-tip="Trocar o PDF do boleto.">Trocar</button><button class="upload-icon nf-remove-button" onclick="removeBoletoSale('${r.id}').then(()=>renderVerMaisVenda('${r.id}'))" data-tip="Apagar o boleto anexado nesta venda.">Apagar</button><input type="file" id="vm-boleto-${r.id}" accept="application/pdf" style="display:none;" onchange="uploadBoletoSale('${r.id}', event).then(()=>renderVerMaisVenda('${r.id}'))"></div>`
+      : `<div class="nf-actions"><button class="upload-icon boleto-button" onclick="document.getElementById('vm-boleto-${r.id}').click()" data-tip="Anexar o PDF do boleto nesta venda.">Anexar boleto</button><input type="file" id="vm-boleto-${r.id}" accept="application/pdf" style="display:none;" onchange="uploadBoletoSale('${r.id}', event).then(()=>renderVerMaisVenda('${r.id}'))"></div>`)
+    : '';
+
+  document.getElementById('ver-mais-title').textContent = 'Venda nº ' + (r.numeroVenda || '—') + ' — ' + (r.cliente || '');
+  document.getElementById('ver-mais-body').innerHTML = `
+    <div class="vm-stats">
+      <div class="s"><div class="l">Data</div><div class="v">${typeof gsoDateCell === 'function' ? gsoDateCell(r.data) : fmtDate(r.data)}</div></div>
+      <div class="s"><div class="l">Produto</div><div class="v">${escapeHtml(r.produto || '—')}</div></div>
+      <div class="s"><div class="l">Tamanho</div><div class="v">${escapeHtml(r.tamanho || '—')}</div></div>
+      <div class="s"><div class="l">Aroma</div><div class="v">${escapeHtml(r.aroma || 'Neutro')}</div></div>
+      <div class="s"><div class="l">Qtd</div><div class="v">${r.qtd ?? '—'}</div></div>
+      <div class="s"><div class="l">Valor</div><div class="v">${fmtBR(r.valor)}</div></div>
+      <div class="s"><div class="l">Pagamento</div><div class="v">${escapeHtml(paymentDisplay(r))}</div></div>
+      <div class="s"><div class="l">Vendedor</div><div class="v">${escapeHtml(r.vendedor || '—')}</div></div>
+    </div>
+    <div class="vm-section"><div class="vm-section-title">Nota fiscal</div>${nfHtml}</div>
+    ${boletoHtml ? `<div class="vm-section"><div class="vm-section-title">Boleto</div>${boletoHtml}</div>` : ''}
+    ${r.obs ? `<div class="vm-section"><div class="vm-section-title">Observações</div><div class="v">${escapeHtml(r.obs)}</div></div>` : ''}
+    <div class="form-actions" style="margin-top:14px;">
+      <button class="btn btn-small" onclick="printSaleLabelById('${r.id}')">Recibo</button>
+    </div>
+  `;
 }
 
 function valuesDiffer(oldValue, newValue, numeric = false) {
   if (numeric) return Number(oldValue || 0) !== Number(newValue || 0);
   return String(oldValue || '').trim() !== String(newValue || '').trim();
-}
-
-function salvarEdicaoVenda() {
-  const id = document.getElementById('mv-id').value;
-  const venda = state.vendas.find(v => v.id === id);
-  if (!venda) return;
-
-  const updated = {
-    data: document.getElementById('mv-data').value,
-    cliente: document.getElementById('mv-cliente').value.trim(),
-    produto: document.getElementById('mv-produto').value.trim(),
-    tamanho: document.getElementById('mv-tamanho').value.trim(),
-    aroma: document.getElementById('mv-aroma').value.trim(),
-    qtd: parseInt(document.getElementById('mv-qtd').value) || 1,
-    valor: parseFloat(document.getElementById('mv-valor').value) || 0,
-    pagamento: document.getElementById('mv-pagamento').value.trim(),
-    vendedor: canonicalSellerName(document.getElementById('mv-vendedor').value),
-    nfNumber: document.getElementById('mv-nf-numero')?.value.trim() || '',
-    obs: document.getElementById('mv-obs').value.trim()
-  };
-
-  if (!updated.data || !updated.cliente || !updated.produto) {
-    alert('Preencha data, cliente e produto.');
-    return;
-  }
-
-  const numericFields = new Set(['qtd', 'valor']);
-  venda.editedFields = venda.editedFields || {};
-  let productStructureChanged = false;
-  Object.entries(updated).forEach(([field, value]) => {
-    if (valuesDiffer(venda[field], value, numericFields.has(field))) {
-      venda.editedFields[field] = true;
-      venda[field] = value;
-      if (['produto', 'tamanho', 'qtd'].includes(field)) productStructureChanged = true;
-    }
-  });
-  if (productStructureChanged) {
-    delete venda.items;
-    delete venda.catalogProduto;
-    delete venda.catalogTamanho;
-    delete venda.formato;
-  }
-  venda.editedAt = new Date().toISOString();
-  STORE.save('vendas', state.vendas);
-  closeEditVenda();
-  renderVendas();
-  renderDash();
 }
 
 // ============ RENDER CLIENTES ============
@@ -18983,14 +18901,39 @@ function renderClientes() {
       <td><span class="pill ${pillClass(c.status)}">${c.status}</span></td>
       <td>
         <div class="row-actions">
-          <button class="btn btn-small" onclick="alert(${attrJsString(`${c.nome}\n${c.pedidos} pedidos\n${c.dias === 999 ? 'Sem compras' : c.dias + ' dias desde a última'}`)})">Ver</button>
           <button class="btn btn-small" onclick="openClienteModal(${attrJsString(c.nome)})">Editar</button>
-          <button class="btn btn-small" onclick="openClienteNotas(${attrJsString(c.nome)})">Notas</button>
-          <button class="btn btn-small btn-danger" onclick="excluirCliente(${attrJsString(c.nome)})">Excluir</button>
+          <button class="btn btn-small btn-danger" onclick="excluirCliente(${attrJsString(c.nome)})">Apagar</button>
+          <button class="btn btn-small" onclick="verMaisCliente(${attrJsString(c.nome)})">Ver mais</button>
         </div>
       </td>
     </tr>
   `).join('');
+}
+
+function verMaisCliente(nome) {
+  const clis = computeClientes();
+  const c = clis.find(x => nameKey(x.nome) === nameKey(nome));
+  if (!c) return;
+  const fiscal = fiscalRecordForCliente(nome) || {};
+  const doc = composeFiscalDoc(fiscal);
+  document.getElementById('ver-mais-title').textContent = c.nome;
+  document.getElementById('ver-mais-body').innerHTML = `
+    <div class="vm-stats">
+      <div class="s"><div class="l">Status</div><div class="v"><span class="pill ${pillClass(c.status)}">${c.status}</span></div></div>
+      <div class="s"><div class="l">Telefone</div><div class="v">${escapeHtml(c.telefone || '—')}</div></div>
+      <div class="s"><div class="l">CPF/CNPJ</div><div class="v">${escapeHtml(doc || '—')}</div></div>
+      <div class="s"><div class="l">Cidade/UF</div><div class="v">${escapeHtml(clienteCidadeUf(c.metadata))}</div></div>
+      <div class="s"><div class="l">Última compra</div><div class="v">${c.ultima ? fmtDate(c.ultima) : '—'}</div></div>
+      <div class="s"><div class="l">Pedidos</div><div class="v">${c.pedidos}</div></div>
+      <div class="s"><div class="l">Total gasto</div><div class="v">${fmtBR(c.total)}</div></div>
+      <div class="s"><div class="l">Nascimento</div><div class="v">${escapeHtml(clienteNascimento(c.metadata))}</div></div>
+    </div>
+    ${fiscal.endereco ? `<div class="vm-section"><div class="vm-section-title">Endereço</div><div class="v">${escapeHtml(fiscal.endereco)}${fiscal.cep ? ' · CEP ' + escapeHtml(fiscal.cep) : ''}</div></div>` : ''}
+    <div class="form-actions" style="margin-top:14px;">
+      <button class="btn btn-small" onclick="closeVerMais(); openClienteNotas(${attrJsString(nome)});">Ver notas fiscais</button>
+    </div>
+  `;
+  document.getElementById('modal-ver-mais').classList.add('show');
 }
 
 function limparFiltrosClientes() {
@@ -21979,6 +21922,66 @@ function printSaleLabel(venda) {
 
 // ============ NOVA VENDA ============
 let currentSaleItems = [];
+let editingVendaId = null;
+
+function cancelarNovaOuEdicaoVenda() {
+  const wasEditing = Boolean(editingVendaId);
+  editingVendaId = null;
+  navTo(wasEditing ? 'vendas' : 'inteligencia');
+}
+
+function initEditVenda(id) {
+  const venda = state.vendas.find(v => v.id === id);
+  if (!venda) { editingVendaId = null; initNova(); return; }
+
+  document.getElementById('f-data').value = String(venda.data || '').slice(0, 10) || new Date().toISOString().split('T')[0];
+  document.getElementById('f-cliente').value = venda.cliente || '';
+  document.getElementById('f-valor').value = venda.valor || '';
+  document.getElementById('f-obs').value = venda.obs || '';
+  document.getElementById('f-pag').value = venda.pagamento || 'Dinheiro';
+  document.getElementById('f-parcelas').value = venda.pagamentoDetalhes?.parcelas || '';
+  document.getElementById('f-boleto-dias').value = venda.pagamentoDetalhes?.boletoDias || '';
+  document.getElementById('f-nf-pdf').value = '';
+  document.getElementById('f-boleto-pdf').value = '';
+  document.getElementById('f-aroma-custom').value = '';
+  document.getElementById('f-aroma-custom-row').classList.add('hidden');
+  const nfNumeroInput = document.getElementById('f-nf-numero');
+  if (nfNumeroInput) nfNumeroInput.value = saleNfNumber(venda) || '';
+
+  if (Array.isArray(venda.items) && venda.items.length) {
+    currentSaleItems = venda.items.map(it => ({ ...it }));
+  } else {
+    currentSaleItems = [{
+      produto: venda.catalogProduto || venda.produto || '',
+      tamanho: venda.catalogTamanho || venda.tamanho || '',
+      catalogProduto: venda.catalogProduto || venda.produto || '',
+      catalogTamanho: venda.catalogTamanho || venda.tamanho || '',
+      formato: venda.formato || 'UN',
+      aroma: venda.aroma || 'Neutro',
+      qtdEntrada: venda.qtd || 1,
+      qtdUnidades: venda.qtd || 1,
+      preco: venda.valor || 0,
+      descricao: venda.produto || ''
+    }];
+  }
+  renderSaleItemsList();
+
+  const clis = computeClientes();
+  document.getElementById('clientesList').innerHTML = clis.map(c => `<option value="${c.nome}">`).join('');
+  updateProductSelectOptions();
+  updateProductSizeOptions();
+  togglePaymentFields();
+  updatePreview();
+  const vendSelect = document.getElementById('f-vend');
+  if (vendSelect) vendSelect.value = venda.vendedor || vendSelect.value;
+
+  const titleEl = document.getElementById('nova-h-title');
+  const subEl = document.getElementById('nova-h-sub');
+  const saveBtn = document.getElementById('nova-save-btn');
+  if (titleEl) titleEl.textContent = 'Editar venda nº ' + (venda.numeroVenda || '');
+  if (subEl) subEl.textContent = 'Atualize os dados do pedido';
+  if (saveBtn) saveBtn.textContent = 'Salvar alterações';
+}
 
 function currentSaleItem() {
   const produto = document.getElementById('f-produto').value;
@@ -22064,6 +22067,13 @@ function togglePaymentFields() {
 }
 
 function initNova() {
+  editingVendaId = null;
+  const titleEl = document.getElementById('nova-h-title');
+  const subEl = document.getElementById('nova-h-sub');
+  const saveBtn = document.getElementById('nova-save-btn');
+  if (titleEl) titleEl.textContent = 'Nova venda';
+  if (subEl) subEl.textContent = 'Registrar pedido';
+  if (saveBtn) saveBtn.textContent = 'Salvar venda';
   document.getElementById('f-data').value = new Date().toISOString().split('T')[0];
   document.getElementById('f-cliente').value = '';
   document.getElementById('f-valor').value = '';
@@ -22148,8 +22158,17 @@ async function salvarVenda() {
     pagamentoDetalhes.boletoDias = boletoDias;
   }
 
+  const isEditing = Boolean(editingVendaId);
+  const existingVenda = isEditing ? state.vendas.find(v => v.id === editingVendaId) : null;
+  if (isEditing && !existingVenda) {
+    alert('Não encontrei essa venda para editar.');
+    editingVendaId = null;
+    navTo('vendas');
+    return;
+  }
+
   const clienteCadastrado = state.clientes.some(c => nameKey(c.nome) === nameKey(cliente));
-  const numeroVenda = nextSaleNumber();
+  const numeroVenda = isEditing ? existingVenda.numeroVenda : nextSaleNumber();
   const items = currentSaleItems.length > 0 ? [...currentSaleItems] : [currentSaleItem()];
   const precoSugerido = items.reduce((sum, item) => sum + (parseFloat(item.preco) || 0), 0);
   const desconto = precoSugerido > 0 && valor < precoSugerido ? precoSugerido - valor : 0;
@@ -22159,8 +22178,7 @@ async function salvarVenda() {
   const aromas = [...new Set(items.map(item => item.aroma || 'Neutro').filter(Boolean))];
   const singleItem = items.length === 1 ? items[0] : null;
 
-  const venda = {
-    id: 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+  const vendaFields = {
     numeroVenda,
     data: document.getElementById('f-data').value,
     cliente,
@@ -22181,6 +22199,10 @@ async function salvarVenda() {
     obs: document.getElementById('f-obs').value.trim(),
     items
   };
+  const venda = isEditing
+    ? Object.assign(existingVenda, vendaFields)
+    : { id: 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), ...vendaFields };
+
   const nfFile = pagamento === 'Dinheiro' ? null : document.getElementById('f-nf-pdf').files[0];
   const boletoFile = pagamento === 'Boleto' ? document.getElementById('f-boleto-pdf').files[0] : null;
   try {
@@ -22198,6 +22220,17 @@ async function salvarVenda() {
     alert(err.message);
     return;
   }
+
+  if (isEditing) {
+    venda.editedFields = venda.editedFields || {};
+    venda.editedAt = new Date().toISOString();
+    STORE.save('vendas', state.vendas);
+    editingVendaId = null;
+    alert('✅ Venda nº ' + numeroVenda + ' atualizada!');
+    navTo('vendas');
+    return;
+  }
+
   state.vendas.push(venda);
   STORE.save('vendas', state.vendas);
   if (!clienteCadastrado) addPendingClientAlert(cliente, numeroVenda);
@@ -27579,6 +27612,21 @@ body.theme-dark #view-inteligencia .dash-inline-metrics > div, body.theme-dark #
   background: var(--fine-soft, #333333); border-color: var(--fine-border, #464646);
 }
 @media (max-width: 900px) { #view-inteligencia .intel-grid.cols-2 { grid-template-columns: 1fr; } }
+
+/* Modal "Ver mais" (Vendas / Clientes) */
+.nf-compact-ok { font-size: 11.5px; font-weight: 600; color: var(--green-text); }
+.nf-compact-missing { font-size: 11.5px; color: var(--text-2); }
+.vm-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 14px 0; }
+.vm-stats .s { background: var(--surface-2,#eef3f7); padding: 12px 10px; }
+.vm-stats .s .l { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); font-weight: 600; }
+.vm-stats .s .v { font-weight: 700; font-size: 14px; margin-top: 5px; }
+@media (max-width: 700px) { .vm-stats { grid-template-columns: repeat(2, 1fr); } }
+.vm-section { margin-top: 14px; }
+.vm-section-title { font-size: 11.5px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+
+/* Padronização visual: todas as tabelas do sistema com conteúdo centralizado e espaçamento consistente */
+table th, table td { text-align: center !important; vertical-align: middle !important; padding: 12px 14px !important; }
+table thead th { padding: 11px 14px !important; }
 </style>
 </body>
 </html>
