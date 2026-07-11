@@ -27741,9 +27741,10 @@ table th, table td { text-align: center !important; vertical-align: middle !impo
 table thead th { padding: 11px 14px !important; }
 
 /* Filtro "Revisar" (vendas com cliente ambíguo) */
-.filter-revisar-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; height: 38px; border-radius: var(--radius, 10px); border: 1px solid var(--border, #E3E1D8); background: var(--surface-1, #fff); font-size: 13px; color: var(--text, #2C2C2A); cursor: pointer; white-space: nowrap; }
+.filter-revisar-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; height: 38px; border-radius: 12px; border: 1px solid var(--glass-rim); background: rgba(255, 255, 255, 0.82); font-size: 13px; color: var(--text); cursor: pointer; white-space: nowrap; backdrop-filter: blur(16px) saturate(140%); }
 .filter-revisar-toggle input { cursor: pointer; }
 .filter-revisar-toggle:has(input:checked) { border-color: rgba(201,60,55,.55); background: rgba(201,60,55,.10); color: #C93C37 !important; font-weight: 600; }
+body.theme-dark .filter-revisar-toggle { background: var(--crm-surface-muted) !important; color: var(--crm-text) !important; border-color: var(--crm-border) !important; }
 body.theme-dark .filter-revisar-toggle:has(input:checked) { border-color: rgba(201,60,55,.6) !important; background: rgba(201,60,55,.22) !important; color: #E8827D !important; }
 
 /* Bolinha vermelha que substitui o emoji de alerta nas linhas da tabela (mesmo tom do badge da aba Vendas) */
