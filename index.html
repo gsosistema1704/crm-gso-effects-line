@@ -27749,15 +27749,15 @@ table thead th { padding: 11px 14px !important; }
 /* Filtro "Revisar" (vendas com cliente ambíguo) */
 .filter-revisar-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; height: 38px; border-radius: var(--radius, 10px); border: 1px solid var(--border, #E3E1D8); background: var(--surface-1, #fff); font-size: 13px; color: var(--text, #2C2C2A); cursor: pointer; white-space: nowrap; }
 .filter-revisar-toggle input { cursor: pointer; }
-.filter-revisar-toggle:has(input:checked) { border-color: rgba(226,75,74,.55); background: rgba(226,75,74,.10); color: var(--red-text); font-weight: 600; }
-body.theme-dark .filter-revisar-toggle:has(input:checked) { border-color: rgba(226,75,74,.6) !important; background: rgba(226,75,74,.22) !important; }
+.filter-revisar-toggle:has(input:checked) { border-color: rgba(201,60,55,.55); background: rgba(201,60,55,.10); color: #C93C37 !important; font-weight: 600; }
+body.theme-dark .filter-revisar-toggle:has(input:checked) { border-color: rgba(201,60,55,.6) !important; background: rgba(201,60,55,.22) !important; color: #E8827D !important; }
 
-/* Bolinha vermelha que substitui o emoji de alerta nas linhas da tabela */
-.revisao-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--red-text); vertical-align: middle; margin-left: 5px; box-shadow: 0 0 0 3px rgba(226,75,74,.16); }
+/* Bolinha vermelha que substitui o emoji de alerta nas linhas da tabela (mesmo tom do badge da aba Vendas) */
+.revisao-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #C93C37; vertical-align: middle; margin-left: 5px; box-shadow: 0 0 0 3px rgba(201,60,55,.2); }
 
 /* Alerta de revisão dentro do "Ver mais" da venda */
-.vm-revisao { margin-top: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(226,75,74,.35); background: rgba(226,75,74,.08); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-body.theme-dark .vm-revisao { border-color: rgba(226,75,74,.45) !important; background: rgba(226,75,74,.18) !important; }
+.vm-revisao { margin-top: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(201,60,55,.35); background: rgba(201,60,55,.08); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+body.theme-dark .vm-revisao { border-color: rgba(201,60,55,.45) !important; background: rgba(201,60,55,.2) !important; }
 .vm-revisao-opcoes { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
 </style>
 </body>
