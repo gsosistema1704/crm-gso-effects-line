@@ -13014,7 +13014,6 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
       <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
       <span class="nav-label">Vendas</span>
       <span class="client-alert-badge hidden" id="saleReviewBadge" onclick="event.stopPropagation(); abrirRevisaoVendas();">0</span>
-      <span class="client-alert-bubble hidden" id="saleReviewBubble"></span>
     </div>
 		    <div class="nav-item" data-view="clientes" data-label="Clientes" onclick="navTo('clientes')">
 		      <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 14c0-2.5 2-4.5 5-4.5s5 2 5 4.5"/></svg>
@@ -13093,7 +13092,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
         </select>
         <label class="filter-revisar-toggle" title="Mostrar só vendas com cliente ambíguo, pendente de revisão">
           <input type="checkbox" id="filterRevisar" onchange="renderVendas()">
-          <span>⚠️ Revisar</span>
+          <span>Revisar</span>
         </label>
         <button class="btn btn-soft" onclick="limparFiltrosVendas()">Limpar</button>
       </div>
@@ -17544,19 +17543,14 @@ function updateClientAlert() {
 }
 function updateSaleReviewBadge() {
   const badge = document.getElementById('saleReviewBadge');
-  const bubble = document.getElementById('saleReviewBubble');
-  if (!badge || !bubble) return;
+  if (!badge) return;
   const pendentes = state.vendas.filter(v => v.revisaoCliente);
   if (pendentes.length === 0) {
     badge.classList.add('hidden');
-    bubble.classList.add('hidden');
-    bubble.textContent = '';
     return;
   }
   badge.textContent = pendentes.length > 9 ? '9+' : String(pendentes.length);
-  bubble.textContent = `${pendentes.length} venda${pendentes.length > 1 ? 's' : ''} com cliente ambíguo — clique para revisar.`;
   badge.classList.remove('hidden');
-  bubble.classList.remove('hidden');
 }
 function abrirRevisaoVendas() {
   navTo('vendas');
@@ -18530,7 +18524,7 @@ function renderVendas() {
     return `
       <tr>
         <td${saleCellClass(r, ['data'])}>${typeof gsoDateCell==='function'?gsoDateCell(r.data):fmtDate(r.data)}</td>
-        <td${saleCellClass(r, ['cliente'])}>${r.cliente}${r.revisaoCliente ? ' <span class="revisao-dot gso-has-tip" data-tip="Cliente ambíguo — precisa revisar em Ver mais"></span>' : ''}</td>
+        <td${saleCellClass(r, ['cliente'])}>${r.cliente}${r.revisaoCliente ? '&nbsp;<span class="revisao-dot gso-has-tip" data-tip="Cliente ambíguo — precisa revisar em Ver mais"></span>' : ''}</td>
         <td${saleCellClass(r, ['produto','tamanho'])}>${r.produto}</td>
         <td${saleCellClass(r, ['aroma'])}><span class="pill pill-aroma ${typeof gsoAromaClass==='function'?gsoAromaClass(r.aroma):''}">${r.aroma || 'Neutro'}</span></td>
         <td class="num${saleCellClassName(r, ['qtd'])}">${r.qtd}</td>
