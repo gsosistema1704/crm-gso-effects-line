@@ -27806,7 +27806,7 @@ body.theme-dark .vm-revisao { border-color: rgba(201,60,55,.45) !important; back
 /* Qualidade da Base: cards clicáveis que filtram a tabela abaixo */
 .metric-clickable { cursor: pointer; user-select: none; }
 .metric-clickable:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(0,0,0,.14); }
-.metric-clickable.active { border-color: var(--gso-accent) !important; box-shadow: 0 0 0 2px var(--gso-accent-soft), var(--shadow-tight); }
+body:not(.theme-dark) .metric-clickable.active, body.theme-dark .metric-clickable.active { border-color: var(--gso-accent) !important; box-shadow: 0 0 0 2px var(--gso-accent-soft), var(--shadow-tight) !important; }
 .metric-clickable.active .metric-label { color: var(--gso-accent) !important; font-weight: 700; }
 
 .qualidade-filtro-info { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 10px 16px; margin: 4px 0 14px; border-radius: 10px; background: var(--surface-2, #eef3f7); font-size: 13px; color: var(--text); }
