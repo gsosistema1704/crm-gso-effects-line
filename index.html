@@ -13090,7 +13090,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
           <option value="com">Com NF</option>
           <option value="sem">Sem NF</option>
         </select>
-        <label class="filter-revisar-toggle" title="Mostrar só vendas com cliente ambíguo, pendente de revisão">
+        <label class="filter-revisar-toggle" id="filterRevisarLabel" title="Mostrar só vendas com cliente ambíguo, pendente de revisão">
           <input type="checkbox" id="filterRevisar" onchange="renderVendas()">
           <span>Revisar</span>
         </label>
@@ -17543,14 +17543,17 @@ function updateClientAlert() {
 }
 function updateSaleReviewBadge() {
   const badge = document.getElementById('saleReviewBadge');
+  const filtroLabel = document.getElementById('filterRevisarLabel');
   if (!badge) return;
   const pendentes = state.vendas.filter(v => v.revisaoCliente);
   if (pendentes.length === 0) {
     badge.classList.add('hidden');
+    if (filtroLabel) filtroLabel.classList.remove('tem-pendencia');
     return;
   }
   badge.textContent = pendentes.length > 9 ? '9+' : String(pendentes.length);
   badge.classList.remove('hidden');
+  if (filtroLabel) filtroLabel.classList.add('tem-pendencia');
 }
 function abrirRevisaoVendas() {
   navTo('vendas');
@@ -27743,8 +27746,10 @@ table thead th { padding: 11px 14px !important; }
 /* Filtro "Revisar" (vendas com cliente ambíguo) */
 .filter-revisar-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; height: 38px; border-radius: 12px; border: 1px solid var(--glass-rim); background: rgba(255, 255, 255, 0.82); font-size: 13px; color: var(--text); cursor: pointer; white-space: nowrap; backdrop-filter: blur(16px) saturate(140%); }
 .filter-revisar-toggle input { cursor: pointer; }
+.filter-revisar-toggle.tem-pendencia { background: #FCECEC !important; color: #B0322F !important; border-color: #F2CFCE !important; }
 .filter-revisar-toggle:has(input:checked) { border-color: rgba(201,60,55,.55); background: rgba(201,60,55,.10); color: #C93C37 !important; font-weight: 600; }
 body.theme-dark .filter-revisar-toggle { background: var(--crm-surface-muted) !important; color: var(--crm-text) !important; border-color: var(--crm-border) !important; }
+body.theme-dark .filter-revisar-toggle.tem-pendencia { background: rgba(176,50,47,.22) !important; color: #f2a09e !important; border-color: rgba(242,160,158,.35) !important; }
 body.theme-dark .filter-revisar-toggle:has(input:checked) { border-color: rgba(201,60,55,.6) !important; background: rgba(201,60,55,.22) !important; color: #E8827D !important; }
 
 /* Bolinha vermelha que substitui o emoji de alerta nas linhas da tabela (mesmo tom do badge da aba Vendas) */
