@@ -13615,7 +13615,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
 	          <div class="h-sub">Análise de vendas, ranking e fiscal</div>
 	        </div>
         <div class="h-actions">
-          <button class="btn" onclick="alert('Exportar PDF: gera relatório consolidado (a implementar com biblioteca de PDF)')">Exportar PDF</button>
+          <button class="btn" onclick="exportarRelatorioPDF()">Exportar PDF</button>
 	        </div>
 	      </div>
 
@@ -13801,22 +13801,22 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
 		      </div>
 
 		      <div class="metrics" style="grid-template-columns:repeat(4,1fr);">
-		        <div class="metric">
+		        <div class="metric metric-clickable" id="q-card-total" onclick="setQualidadeFiltro('total')" data-tip="Ver todos os clientes da base">
 		          <div class="metric-label">Clientes</div>
 		          <div class="metric-value" id="q-clientes-total">0</div>
 		          <div class="metric-delta">Base comercial</div>
 		        </div>
-		        <div class="metric">
+		        <div class="metric metric-clickable metric-inativo" id="q-card-sem-tel" onclick="setQualidadeFiltro('sem-telefone')" data-tip="Ver apenas clientes sem telefone">
 		          <div class="metric-label">Sem telefone</div>
 		          <div class="metric-value" id="q-clientes-sem-tel">0</div>
 		          <div class="metric-delta">Clientes para completar</div>
 		        </div>
-		        <div class="metric">
+		        <div class="metric metric-clickable metric-ativo" id="q-card-fiscal" onclick="setQualidadeFiltro('fiscal')" data-tip="Ver apenas clientes com CPF/CNPJ salvo">
 		          <div class="metric-label">Clientes fiscais</div>
 		          <div class="metric-value" id="q-fiscais-total">0</div>
 		          <div class="metric-delta">Com CPF/CNPJ salvo</div>
 		        </div>
-		        <div class="metric">
+		        <div class="metric metric-clickable metric-inativo" id="q-card-sem-doc" onclick="setQualidadeFiltro('sem-doc')" data-tip="Ver apenas clientes sem CPF/CNPJ">
 		          <div class="metric-label">Sem CPF/CNPJ</div>
 		          <div class="metric-value" id="q-sem-doc">0</div>
 		          <div class="metric-delta">Comparado aos clientes</div>
@@ -13844,6 +13844,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
 		        </div>
 		      </div>
 
+		      <div class="qualidade-filtro-info" id="qualidadeFiltroInfo"></div>
 		      <div class="card table-card">
 		        <table>
 		          <thead>
@@ -13853,6 +13854,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
 		              <th>CPF/CNPJ</th>
 		              <th>Cidade/UF</th>
 		              <th>Pendências</th>
+		              <th>Ações</th>
 		            </tr>
 		          </thead>
 		          <tbody id="qualidadeTable"></tbody>
@@ -19355,6 +19357,19 @@ function renderQualityDoughnut(canvasId, oldChart, labels, values, colors) {
   });
 }
 
+let qualidadeFiltroAtivo = null;
+const QUALIDADE_FILTROS = {
+  total: { label: 'Todos os clientes', cardId: 'q-card-total' },
+  'sem-telefone': { label: 'Sem telefone', cardId: 'q-card-sem-tel' },
+  fiscal: { label: 'Clientes fiscais (com CPF/CNPJ)', cardId: 'q-card-fiscal' },
+  'sem-doc': { label: 'Sem CPF/CNPJ', cardId: 'q-card-sem-doc' }
+};
+
+function setQualidadeFiltro(tipo) {
+  qualidadeFiltroAtivo = (qualidadeFiltroAtivo === tipo) ? null : tipo;
+  renderQualidade();
+}
+
 function renderQualidade() {
   const q = computeQualidadeBase();
   document.getElementById('q-clientes-total').textContent = q.totalClientes.toLocaleString('pt-BR');
@@ -19375,24 +19390,52 @@ function renderQualidade() {
 	    [q.comDoc, q.semDoc]
 	  );
 
-  const rows = q.clientes.map(c => {
+  Object.values(QUALIDADE_FILTROS).forEach(f => {
+    document.getElementById(f.cardId)?.classList.remove('active');
+  });
+
+  let linhas = q.clientes.map(c => {
     const fiscal = fiscalDocForCliente(c.nome);
     const pendencias = [];
     if (!String(c.telefone || '').trim()) pendencias.push('Telefone');
     if (!fiscal) pendencias.push('CPF/CNPJ');
     return { c, fiscal, pendencias };
-  }).filter(row => row.pendencias.length > 0);
+  });
+
+  if (qualidadeFiltroAtivo && QUALIDADE_FILTROS[qualidadeFiltroAtivo]) {
+    document.getElementById(QUALIDADE_FILTROS[qualidadeFiltroAtivo].cardId)?.classList.add('active');
+    if (qualidadeFiltroAtivo === 'sem-telefone') linhas = linhas.filter(r => r.pendencias.includes('Telefone'));
+    else if (qualidadeFiltroAtivo === 'fiscal') linhas = linhas.filter(r => r.fiscal);
+    else if (qualidadeFiltroAtivo === 'sem-doc') linhas = linhas.filter(r => !r.fiscal);
+    // 'total' não filtra: mostra todos os clientes
+  } else {
+    linhas = linhas.filter(r => r.pendencias.length > 0);
+  }
+
+  const infoEl = document.getElementById('qualidadeFiltroInfo');
+  if (infoEl) {
+    const ativo = qualidadeFiltroAtivo && QUALIDADE_FILTROS[qualidadeFiltroAtivo];
+    infoEl.innerHTML = `
+      <span>Mostrando: <strong>${ativo ? escapeHtml(ativo.label) : 'Cadastros com pendências'}</strong> (${linhas.length.toLocaleString('pt-BR')})</span>
+      ${ativo ? `<button class="btn btn-soft btn-small" onclick="setQualidadeFiltro('${qualidadeFiltroAtivo}')">Limpar filtro</button>` : ''}
+    `;
+  }
 
   const tbody = document.getElementById('qualidadeTable');
-  tbody.innerHTML = rows.length ? rows.map(({ c, fiscal, pendencias }) => `
+  tbody.innerHTML = linhas.length ? linhas.map(({ c, fiscal, pendencias }) => `
     <tr>
-      <td><strong>${c.nome}</strong></td>
-      <td>${c.telefone || '—'}</td>
-      <td>${fiscal?.doc || '—'}</td>
-      <td>${clienteCidadeUf(c.metadata)}</td>
-      <td>${pendencias.map(p => `<span class="pill pill-red">${p}</span>`).join(' ')}</td>
+      <td><strong>${escapeHtml(c.nome)}</strong></td>
+      <td>${escapeHtml(c.telefone || '—')}</td>
+      <td>${escapeHtml(fiscal?.doc || '—')}</td>
+      <td>${escapeHtml(clienteCidadeUf(c.metadata))}</td>
+      <td>${pendencias.length ? pendencias.map(p => `<span class="pill pill-red">${p}</span>`).join(' ') : '<span class="pill pill-green">Completo</span>'}</td>
+      <td><button class="btn btn-small" onclick="openClienteModal(${attrJsString(c.nome)})">Editar</button></td>
     </tr>
-  `).join('') : '<tr><td colspan="5" class="table-empty">Base completa nos campos acompanhados</td></tr>';
+  `).join('') : '<tr><td colspan="6" class="table-empty">Nenhum cliente encontrado para este filtro</td></tr>';
+}
+
+function exportarRelatorioPDF() {
+  window.print();
 }
 
 // ============ RENDER PRODUTOS ============
@@ -27759,6 +27802,26 @@ body.theme-dark .filter-revisar-toggle:has(input:checked) { border-color: rgba(2
 .vm-revisao { margin-top: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(201,60,55,.35); background: rgba(201,60,55,.08); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 body.theme-dark .vm-revisao { border-color: rgba(201,60,55,.45) !important; background: rgba(201,60,55,.2) !important; }
 .vm-revisao-opcoes { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
+
+/* Qualidade da Base: cards clicáveis que filtram a tabela abaixo */
+.metric-clickable { cursor: pointer; user-select: none; }
+.metric-clickable:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(0,0,0,.14); }
+.metric-clickable.active { border-color: var(--gso-accent) !important; box-shadow: 0 0 0 2px var(--gso-accent-soft), var(--shadow-tight); }
+.metric-clickable.active .metric-label { color: var(--gso-accent) !important; font-weight: 700; }
+
+.qualidade-filtro-info { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 10px 16px; margin: 4px 0 14px; border-radius: 10px; background: var(--surface-2, #eef3f7); font-size: 13px; color: var(--text); }
+body.theme-dark .qualidade-filtro-info { background: var(--crm-surface-muted) !important; color: var(--crm-text) !important; }
+
+/* Exportar PDF: imprime apenas o conteúdo da aba de Relatórios visível */
+@media print {
+  body * { visibility: hidden !important; }
+  #view-relatorios, #view-relatorios * { visibility: visible !important; }
+  #view-relatorios { position: absolute; left: 0; top: 0; width: 100%; background: #fff !important; color: #000 !important; }
+  #view-relatorios .btn, #view-relatorios .row-actions, #view-relatorios .h-actions, #view-relatorios .subtabs { display: none !important; }
+  #view-relatorios .card, #view-relatorios .metric { box-shadow: none !important; border: 1px solid #ccc !important; background: #fff !important; color: #000 !important; }
+  #view-relatorios table, #view-relatorios th, #view-relatorios td, #view-relatorios .metric-value, #view-relatorios .metric-label, #view-relatorios .metric-delta { color: #000 !important; }
+  #view-relatorios .qualidade-filtro-info { background: #fff !important; border: 1px solid #ccc !important; color: #000 !important; }
+}
 </style>
 </body>
 </html>
