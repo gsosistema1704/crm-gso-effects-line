@@ -13063,7 +13063,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
         </div>
         <div class="h-actions">
           <button class="btn" onclick="openProdutoModal()">+ Novo produto</button>
-          <button class="btn btn-primary" onclick="navTo('nova')">+ Nova venda</button>
+          <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
         </div>
       </div>
 
@@ -13175,7 +13175,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
           <div class="h-sub"><span id="clientes-count">0</span> clientes na base</div>
         </div>
         <div class="h-actions">
-          <button class="btn btn-primary" onclick="navTo('nova')">+ Nova venda</button>
+          <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
           <button class="btn btn-primary" onclick="openClienteModal()">+ Novo Cliente</button>
         </div>
       </div>
@@ -13390,7 +13390,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
         </div>
         <div class="h-actions">
           <button class="btn" onclick="openProdutoModal()">+ Novo produto</button>
-          <button class="btn btn-primary" onclick="navTo('nova')">+ Nova venda</button>
+          <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
         </div>
       </div>
 
@@ -13615,6 +13615,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
 	          <div class="h-sub">Análise de vendas, ranking e fiscal</div>
 	        </div>
         <div class="h-actions">
+          <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
           <button class="btn" onclick="exportarRelatorioPDF()">Exportar PDF</button>
 	        </div>
 	      </div>
@@ -13876,6 +13877,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
           <button class="btn" onclick="limparPrecificacaoCustos()">Limpar precificação</button>
           <button class="btn" onclick="salvarHistoricoCalculadora()">Salvar histórico</button>
           <button class="btn btn-primary" onclick="copiarResumoCalculadora()">Copiar resumo</button>
+          <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
         </div>
       </div>
 
@@ -14241,6 +14243,9 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
           <div class="h-title">⚙ Configurações</div>
           <div class="h-sub">Informações do sistema e backup</div>
         </div>
+        <div class="h-actions">
+          <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
+        </div>
       </div>
 
       <div class="card config-card config-system-card">
@@ -14570,7 +14575,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
         </div>
         <div class="h-actions">
           <div class="dashboard-date" id="dashboard-date">Canoas</div>
-          <button class="btn btn-primary" onclick="navTo('nova')" data-tooltip="Registrar uma nova venda">+ Nova venda</button>
+          <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')" data-tooltip="Registrar uma nova venda">+ Nova venda</button>
           <select id="intel-period" class="intel-period-select" onchange="intelSetPeriod(this.value)" title="Filtrar por período"><option value="all">Todos os anos</option></select>
           <button class="btn" onclick="gsoIntelExport()">Exportar lista de hoje</button>
         </div>
@@ -24005,14 +24010,11 @@ function intelRenderOverview() {
           <div><span>Sem WhatsApp</span><strong>${cadastro.semWpp.toLocaleString('pt-BR')}</strong></div>
           <div><span>Ambos</span><strong>${cadastro.ambos.toLocaleString('pt-BR')}</strong></div>
         </div>
-        <div class="dash-clean-list">${dashboardRenderCadastroRows(cadastro.pendentes)}</div>
       </div>
     </div>
-    <div class="intel-grid cols-4" style="margin-bottom:16px;">
+    <div class="intel-grid cols-2" style="margin-bottom:16px;">
       <div class="intel-kpi"><div class="intel-kpi-label">Faturamento total</div><div class="intel-kpi-value">${fmtBR(k.faturamento)}</div><div class="intel-kpi-sub">${k.pedidosTot} pedidos</div></div>
       <div class="intel-kpi"><div class="intel-kpi-label">Ticket médio</div><div class="intel-kpi-value">${fmtBR(k.ticketMedio)}</div><div class="intel-kpi-sub">por pedido · ciclo médio ${d.cicloBase}d</div></div>
-      <div class="intel-kpi"><div class="intel-kpi-label">Clientes ativos</div><div class="intel-kpi-value is-green">${k.ativos}</div><div class="intel-kpi-sub">de ${k.clientesTot} no total</div></div>
-      <div class="intel-kpi"><div class="intel-kpi-label">Risco + Inativos</div><div class="intel-kpi-value is-amber">${k.risco + k.inativos}</div><div class="intel-kpi-sub">${k.risco} em risco · ${k.inativos} inativos</div></div>
     </div>
     ${k.semTelefone ? `<div class="intel-notice">${k.semTelefone} cliente(s) com compras estão sem telefone cadastrado — complete o cadastro para liberar o WhatsApp nas listas.</div>` : ''}
     <div class="card" style="margin-bottom:16px;">
@@ -27821,6 +27823,24 @@ body.theme-dark .qualidade-filtro-info { background: var(--crm-surface-muted) !i
   #view-relatorios .card, #view-relatorios .metric { box-shadow: none !important; border: 1px solid #ccc !important; background: #fff !important; color: #000 !important; }
   #view-relatorios table, #view-relatorios th, #view-relatorios td, #view-relatorios .metric-value, #view-relatorios .metric-label, #view-relatorios .metric-delta { color: #000 !important; }
   #view-relatorios .qualidade-filtro-info { background: #fff !important; border: 1px solid #ccc !important; color: #000 !important; }
+}
+
+/* "Vendas do dia" e "Pendências de cadastro" sempre com a mesma altura */
+#view-inteligencia .intel-grid.cols-2 { align-items: stretch; }
+#view-inteligencia .intel-grid.cols-2 > .dash-exec-card { height: 100%; }
+
+/* Botão "+ Nova venda" com destaque, igual em todas as abas */
+body:not(.theme-dark) .btn.btn-primary.btn-nova-venda, body.theme-dark .btn.btn-primary.btn-nova-venda {
+  background: linear-gradient(135deg, #E24B4A, #B0322F) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255,255,255,.3) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(176,50,47,.38), inset 0 1px 0 rgba(255,255,255,.25) !important;
+}
+body:not(.theme-dark) .btn.btn-primary.btn-nova-venda:hover, body.theme-dark .btn.btn-primary.btn-nova-venda:hover {
+  background: linear-gradient(135deg, #EC5D5C, #C13A37) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(176,50,47,.48), inset 0 1px 0 rgba(255,255,255,.25) !important;
 }
 </style>
 </body>
