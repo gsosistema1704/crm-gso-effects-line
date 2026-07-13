@@ -13098,7 +13098,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
       </div>
 
       <div class="card table-card">
-        <table class="sales-table">
+        <table class="sales-table mobile-card-table">
           <colgroup><col style="width:8.71%"><col style="width:11.36%"><col style="width:20.45%"><col style="width:7.58%"><col style="width:4.55%"><col style="width:8.71%"><col style="width:9.85%"><col style="width:9.09%"><col style="width:11.36%"><col style="width:8.33%"></colgroup>
           <thead>
             <tr>
@@ -13235,7 +13235,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
         </div>
 
         <div class="card table-card">
-          <table>
+          <table class="mobile-card-table">
             <thead>
 	              <tr>
 	                <th>Cliente</th>
@@ -13406,7 +13406,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
       <details class="price-manage-panel">
         <summary>Gerenciar cadastros de produtos</summary>
         <div class="card table-card price-manage-card">
-          <table class="product-table product-manage-table">
+          <table class="product-table product-manage-table mobile-card-table">
             <thead>
               <tr>
                 <th>Produto</th>
@@ -13848,7 +13848,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
 
 		      <div class="qualidade-filtro-info" id="qualidadeFiltroInfo"></div>
 		      <div class="card table-card">
-		        <table>
+		        <table class="mobile-card-table">
 		          <thead>
 		            <tr>
 		              <th>Cliente</th>
@@ -18552,16 +18552,16 @@ function renderVendas() {
       : (pagamentoCanonico === 'Dinheiro' ? `<span class="nf-muted">Dinheiro sem NF</span>` : `<span class="nf-compact-missing">Sem NF</span>`);
     return `
       <tr>
-        <td${saleCellClass(r, ['data'])}>${typeof gsoDateCell==='function'?gsoDateCell(r.data):fmtDate(r.data)}</td>
-        <td${saleCellClass(r, ['cliente'])}>${r.revisaoCliente ? `<span class="revisao-dot gso-has-tip" data-tip="Cliente ambíguo — precisa revisar em Ver mais"></span> ` : ''}${r.cliente}</td>
-        <td${saleCellClass(r, ['produto','tamanho'])}>${r.produto}</td>
-        <td${saleCellClass(r, ['aroma'])}><span class="pill pill-aroma ${typeof gsoAromaClass==='function'?gsoAromaClass(r.aroma):''}">${r.aroma || 'Neutro'}</span></td>
-        <td class="num${saleCellClassName(r, ['qtd'])}">${r.qtd}</td>
-        <td class="num${saleCellClassName(r, ['valor'])}">${fmtBR(r.valor)}</td>
-        <td${saleCellClass(r, ['pagamento'])}>${paymentDisplay(r)}</td>
-        <td${saleCellClass(r, ['vendedor'])}><span class="pill pill-blue">${r.vendedor}</span></td>
-        <td>${nfCompact}</td>
-        <td>
+        <td data-label="Data"${saleCellClass(r, ['data'])}>${typeof gsoDateCell==='function'?gsoDateCell(r.data):fmtDate(r.data)}</td>
+        <td data-label="Cliente"${saleCellClass(r, ['cliente'])}>${r.revisaoCliente ? `<span class="revisao-dot gso-has-tip" data-tip="Cliente ambíguo — precisa revisar em Ver mais"></span> ` : ''}${r.cliente}</td>
+        <td data-label="Produto"${saleCellClass(r, ['produto','tamanho'])}>${r.produto}</td>
+        <td data-label="Aroma"${saleCellClass(r, ['aroma'])}><span class="pill pill-aroma ${typeof gsoAromaClass==='function'?gsoAromaClass(r.aroma):''}">${r.aroma || 'Neutro'}</span></td>
+        <td data-label="Qtd" class="num${saleCellClassName(r, ['qtd'])}">${r.qtd}</td>
+        <td data-label="Valor" class="num${saleCellClassName(r, ['valor'])}">${fmtBR(r.valor)}</td>
+        <td data-label="Pagamento"${saleCellClass(r, ['pagamento'])}>${paymentDisplay(r)}</td>
+        <td data-label="Vendedor"${saleCellClass(r, ['vendedor'])}><span class="pill pill-blue">${r.vendedor}</span></td>
+        <td data-label="Nota fiscal">${nfCompact}</td>
+        <td data-label="Ações">
           <div class="row-actions">
             <button class="btn btn-small" onclick="openEditVenda('${r.id}')">Editar</button>
             <button class="btn btn-small btn-danger" onclick="excluirVenda('${r.id}')">Apagar</button>
@@ -19664,12 +19664,12 @@ function renderQualidade() {
   const tbody = document.getElementById('qualidadeTable');
   tbody.innerHTML = linhas.length ? linhas.map(({ c, fiscal, pendencias }) => `
     <tr>
-      <td><strong>${escapeHtml(c.nome)}</strong></td>
-      <td>${escapeHtml(c.telefone || '—')}</td>
-      <td>${escapeHtml(fiscal?.doc || '—')}</td>
-      <td>${escapeHtml(clienteCidadeUf(c.metadata))}</td>
-      <td>${pendencias.length ? pendencias.map(p => `<span class="pill pill-red">${p}</span>`).join(' ') : '<span class="pill pill-green">Completo</span>'}</td>
-      <td><button class="btn btn-small" onclick="openClienteModal(${attrJsString(c.nome)})">Editar</button></td>
+      <td data-label="Cliente"><strong>${escapeHtml(c.nome)}</strong></td>
+      <td data-label="Telefone">${escapeHtml(c.telefone || '—')}</td>
+      <td data-label="CPF/CNPJ">${escapeHtml(fiscal?.doc || '—')}</td>
+      <td data-label="Cidade/UF">${escapeHtml(clienteCidadeUf(c.metadata))}</td>
+      <td data-label="Pendências">${pendencias.length ? pendencias.map(p => `<span class="pill pill-red">${p}</span>`).join(' ') : '<span class="pill pill-green">Completo</span>'}</td>
+      <td data-label="Ações"><button class="btn btn-small" onclick="openClienteModal(${attrJsString(c.nome)})">Editar</button></td>
     </tr>
   `).join('') : '<tr><td colspan="6" class="table-empty">Nenhum cliente encontrado para este filtro</td></tr>';
 }
@@ -19699,10 +19699,10 @@ function renderProdutos() {
       const unCx = getUnCx(p.tamanho);
       return `
         <tr>
-          <td><strong>${escapeHtml(p.produto)}</strong></td>
-          <td>${escapeHtml(p.tamanho)}</td>
-          <td class="num">${unCx || '—'}</td>
-          <td>
+          <td data-label="Produto"><strong>${escapeHtml(p.produto)}</strong></td>
+          <td data-label="Tamanho">${escapeHtml(p.tamanho)}</td>
+          <td data-label="Un/CX" class="num">${unCx || '—'}</td>
+          <td data-label="Aroma">
             <select class="form-input" style="padding:4px 8px;font-size:12px;" onchange="updateProduto(${i}, 'aroma', this.value)">
               <option ${p.aroma==='Neutro'?'selected':''}>Neutro</option>
               <option ${p.aroma==='Tropical'?'selected':''}>Tropical</option>
@@ -19710,11 +19710,11 @@ function renderProdutos() {
               <option ${p.aroma==='Outro'?'selected':''}>Outro</option>
             </select>
           </td>
-          <td class="num">${agg.qtd}</td>
-          <td class="num">${fmtBR(agg.fat)}</td>
-          <td>${agg.ultima ? fmtDate(agg.ultima) : '—'}</td>
-          <td class="num">${agg.pedidos}</td>
-          <td>
+          <td data-label="Qtd Vendida" class="num">${agg.qtd}</td>
+          <td data-label="Faturamento" class="num">${fmtBR(agg.fat)}</td>
+          <td data-label="Última Venda">${agg.ultima ? fmtDate(agg.ultima) : '—'}</td>
+          <td data-label="Pedidos" class="num">${agg.pedidos}</td>
+          <td data-label="Ações">
             <div class="row-actions">
               <button class="btn btn-small" data-tip="Editar cadastro do produto" onclick="openProdutoModal(${attrJsString(p.id || estoqueProductId(p))})">Editar</button>
               <button class="btn btn-small btn-danger" data-tip="Excluir produto do catálogo" onclick="excluirProduto(${attrJsString(p.id || estoqueProductId(p))})">Excluir</button>
@@ -23320,13 +23320,13 @@ init();
     }
     if (typeof gsoRenderPagination === 'function') gsoRenderPagination('clientesPagination', 'clientes', pageInfo);
     tbody.innerHTML = pageInfo.rows.map(c => '<tr>' +
-      '<td><input type="checkbox" class="chk-unificar-linha" ' + (typeof unificarSelecionados !== 'undefined' && unificarSelecionados.has(nameKey(c.nome)) ? 'checked' : '') + ' onchange="atualizarSelecaoUnificar(this, ' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')"></td>' +
-      '<td><strong>' + esc(c.nome || '—') + '</strong></td>' +
-      '<td>' + esc(c.telefone || '—') + '</td>' +
-      '<td>' + esc(clienteDocResumoCompleto(c.nome)) + '</td>' +
-      '<td>' + (c.ultima && typeof fmtDate === 'function' ? fmtDate(c.ultima) : '—') + '</td>' +
-      '<td><span class="pill ' + (typeof pillClass === 'function' ? pillClass(c.status) : '') + '">' + esc(c.status || '—') + '</span></td>' +
-      '<td><div class="row-actions">' +
+      '<td data-label="Selecionar"><input type="checkbox" class="chk-unificar-linha" ' + (typeof unificarSelecionados !== 'undefined' && unificarSelecionados.has(nameKey(c.nome)) ? 'checked' : '') + ' onchange="atualizarSelecaoUnificar(this, ' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')"></td>' +
+      '<td data-label="Cliente"><strong>' + esc(c.nome || '—') + '</strong></td>' +
+      '<td data-label="Telefone">' + esc(c.telefone || '—') + '</td>' +
+      '<td data-label="CPF/CNPJ">' + esc(clienteDocResumoCompleto(c.nome)) + '</td>' +
+      '<td data-label="Última compra">' + (c.ultima && typeof fmtDate === 'function' ? fmtDate(c.ultima) : '—') + '</td>' +
+      '<td data-label="Status"><span class="pill ' + (typeof pillClass === 'function' ? pillClass(c.status) : '') + '">' + esc(c.status || '—') + '</span></td>' +
+      '<td data-label="Ações"><div class="row-actions">' +
       '<button class="btn btn-small" onclick="openClienteModal(' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')">Editar</button>' +
       '<button class="btn btn-small btn-danger" onclick="excluirCliente(' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')">Apagar</button>' +
       '<button class="btn btn-small" onclick="verMaisCliente(' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')">Ver mais</button>' +
@@ -28116,6 +28116,57 @@ body.theme-dark .unificar-preview { background: rgba(201,60,55,.16) !important; 
 #view-clientes #sub-crm .table-card th:nth-child(7),
 #view-clientes #sub-crm .table-card td:nth-child(7) { width: 20% !important; }
 #view-clientes #sub-crm .table-card td:nth-child(6) .pill { white-space: nowrap; }
+
+/* ===== Tabelas em modo cartão no celular (Vendas, Clientes, Qualidade da Base, Produtos) =====
+   Sem rolagem lateral, sem precisar girar o aparelho: cada linha vira um
+   cartão com "rótulo: valor" empilhado, usando o texto de data-label. */
+@media (max-width: 760px) {
+  table.mobile-card-table { min-width: 0 !important; width: 100% !important; table-layout: auto !important; }
+  table.mobile-card-table thead { display: none !important; }
+  table.mobile-card-table, table.mobile-card-table tbody, table.mobile-card-table tr { display: block !important; }
+  table.sales-table.mobile-card-table th,
+  table.sales-table.mobile-card-table td,
+  table.product-manage-table.mobile-card-table th,
+  table.product-manage-table.mobile-card-table td,
+  #view-clientes #sub-crm .table-card table.mobile-card-table th,
+  #view-clientes #sub-crm .table-card table.mobile-card-table td { width: auto !important; }
+  table.mobile-card-table tr {
+    display: block !important;
+    margin-bottom: 12px !important;
+    padding: 4px 12px !important;
+    border: 1px solid var(--border, #E3E1D8) !important;
+    border-radius: 12px !important;
+    background: var(--surface-1, #fff) !important;
+  }
+  table.mobile-card-table td {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    padding: 9px 0 !important;
+    border-bottom: 1px solid var(--border, #E3E1D8) !important;
+    text-align: right !important;
+    white-space: normal !important;
+  }
+  table.mobile-card-table td:last-child { border-bottom: none !important; }
+  table.mobile-card-table td::before {
+    content: attr(data-label);
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--text-2, #6F6F6F);
+    text-align: left;
+    flex-shrink: 0;
+  }
+  table.mobile-card-table td[data-label="Ações"] { display: block !important; }
+  table.mobile-card-table td[data-label="Ações"]::before { display: block; margin-bottom: 8px; }
+  table.mobile-card-table .row-actions { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }
+  table.mobile-card-table .row-actions .btn { width: 100% !important; }
+  body.theme-dark table.mobile-card-table tr { border-color: var(--crm-border, #464646) !important; background: var(--crm-surface, #2A2A2A) !important; }
+  body.theme-dark table.mobile-card-table td { border-bottom-color: var(--crm-border, #464646) !important; }
+  body.theme-dark table.mobile-card-table td::before { color: var(--crm-text-secondary, #A5A5A5) !important; }
+}
 </style>
 </body>
 </html>
