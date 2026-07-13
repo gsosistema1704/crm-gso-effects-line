@@ -28096,6 +28096,25 @@ body.theme-dark .unificar-busca-item:hover { background: rgba(255,255,255,.06); 
 .unificar-preview { font-size: 13px; line-height: 1.5; padding: 12px 14px; border-radius: 10px; background: rgba(201,60,55,.08); border: 1px solid rgba(201,60,55,.3); margin-top: 4px; }
 body.theme-dark .unificar-preview { background: rgba(201,60,55,.16) !important; border-color: rgba(201,60,55,.4) !important; }
 .unificar-preview:empty { display: none; }
+
+/* Larguras da tabela de Clientes recalculadas para as 7 colunas atuais
+   (checkbox + Cliente + Telefone + CPF/CNPJ + Última compra + Status + Ações) —
+   Status mais estreito e Ações mais largo para o botão "Ver mais" não cortar. */
+#view-clientes #sub-crm .table-card table { min-width: 940px !important; table-layout: fixed; }
+#view-clientes #sub-crm .table-card th:nth-child(1),
+#view-clientes #sub-crm .table-card td:nth-child(1) { width: 4% !important; }
+#view-clientes #sub-crm .table-card th:nth-child(2),
+#view-clientes #sub-crm .table-card td:nth-child(2) { width: 22% !important; }
+#view-clientes #sub-crm .table-card th:nth-child(3),
+#view-clientes #sub-crm .table-card td:nth-child(3) { width: 13% !important; }
+#view-clientes #sub-crm .table-card th:nth-child(4),
+#view-clientes #sub-crm .table-card td:nth-child(4) { width: 17% !important; }
+#view-clientes #sub-crm .table-card th:nth-child(5),
+#view-clientes #sub-crm .table-card td:nth-child(5) { width: 11% !important; }
+#view-clientes #sub-crm .table-card th:nth-child(6),
+#view-clientes #sub-crm .table-card td:nth-child(6) { width: 9% !important; }
+#view-clientes #sub-crm .table-card th:nth-child(7),
+#view-clientes #sub-crm .table-card td:nth-child(7) { width: 24% !important; }
 </style>
 </body>
 </html>
