@@ -15422,6 +15422,13 @@ function isAdminUser(usuario = null) {
   return tipo === 'admin' || tipo === 'administrador' || isOwnerEmail(email);
 }
 
+// Só a Luísa (luisa1909@icloud.com) pode aprovar/negar acessos de outros usuários —
+// diferente de isAdminUser(), que ainda vale para as outras ações administrativas do sistema.
+function isAccessApprover() {
+  const email = String(state.user?.email || state.session?.email || '').toLowerCase();
+  return email === 'luisa1909@icloud.com';
+}
+
 async function ensureCurrentUsuario(session) {
   const client = getSupabaseClient();
   if (!client || !session?.user) return null;
@@ -21796,7 +21803,7 @@ async function renderAccessAdmin() {
   if (!card || !body || !status) return;
   const client = getSupabaseClient();
   const session = await getSupabaseSession();
-  if (!client || !session || !isAdminUser()) {
+  if (!client || !session || !isAccessApprover()) {
     card.classList.add('hidden');
     return;
   }
@@ -21841,8 +21848,8 @@ async function renderAccessAdmin() {
 async function updateAccessUserType(id, tipo) {
   const client = getSupabaseClient();
   const session = await getSupabaseSession();
-  if (!client || !session || !isAdminUser()) {
-    alert('Apenas administradores podem alterar acessos.');
+  if (!client || !session || !isAccessApprover()) {
+    alert('Apenas a Luísa (luisa1909@icloud.com) pode aprovar ou negar acessos.');
     return;
   }
   const clean = normalizeUserType(tipo);
