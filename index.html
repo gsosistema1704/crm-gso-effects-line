@@ -24205,10 +24205,6 @@ function intelRenderOverview() {
   const d = intelCompute();
   if (!d.clientes.length) { pane.innerHTML = '<div class="card"><div class="intel-empty">Sem vendas registradas ainda.</div></div>'; return; }
   const k = d.kpis;
-  const topProdutos = Object.values(intelAggProdutos())
-    .map(p => ({ nome: p.produto + (p.tamanho ? ' ' + p.tamanho : ''), valor: p.fat }))
-    .sort((a, b) => b.valor - a.valor).slice(0, 6);
-  const maxProd = Math.max(1, ...topProdutos.map(p => p.valor));
   const prioridades = d.clientes.filter(c => c.pedidos > 0 && c.acao !== 'Relacionamento').sort((a, b) => b.score - a.score).slice(0, 5);
   const prioRows = prioridades.map(c => {
     const wa = intelWaDigits(c.telefone);
@@ -24255,10 +24251,6 @@ function intelRenderOverview() {
         </div>
       </div>
     </div>
-    <div class="intel-grid cols-2" style="margin-bottom:16px;">
-      <div class="intel-kpi"><div class="intel-kpi-label">Faturamento total</div><div class="intel-kpi-value">${fmtBR(k.faturamento)}</div><div class="intel-kpi-sub">${k.pedidosTot} pedidos</div></div>
-      <div class="intel-kpi"><div class="intel-kpi-label">Ticket médio</div><div class="intel-kpi-value">${fmtBR(k.ticketMedio)}</div><div class="intel-kpi-sub">por pedido · ciclo médio ${d.cicloBase}d</div></div>
-    </div>
     ${k.semTelefone ? `<div class="intel-notice">${k.semTelefone} cliente(s) com compras estão sem telefone cadastrado — complete o cadastro para liberar o WhatsApp nas listas.</div>` : ''}
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -24275,15 +24267,6 @@ function intelRenderOverview() {
       <div class="card">
         <div class="card-title">Mix de pagamento</div><div class="card-sub">Faturamento por forma de pagamento</div>
         <div class="intel-chart-wrap"><canvas id="intel-chart-pgto"></canvas></div>
-      </div>
-    </div>
-    <div class="card" style="margin-top:16px; max-width:50%;">
-      <div class="card-title">Produtos mais vendidos</div><div class="card-sub">Top 6 por faturamento</div>
-      <div style="margin-top:12px;">
-        ${topProdutos.map(p => `
-          <div class="dash-row"><div><strong>${escapeHtml(p.nome)}</strong></div>
-          <div class="dash-bar"><div class="dash-bar-fill" style="width:${(p.valor / maxProd) * 100}%;"></div></div>
-          <div class="dash-muted">${fmtBR(p.valor)}</div></div>`).join('')}
       </div>
     </div>
   `;
@@ -25523,6 +25506,8 @@ body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gc
 #gso-calc .num{ text-align:right; }
 #gso-calc th.num{ text-align:right; }
 #gso-calc .gc-lnk{ border:0; background:none; font:600 12px inherit; font-family:inherit; color:var(--gcink); text-decoration:underline; text-underline-offset:3px; cursor:pointer; padding:0; }
+#gso-calc .gc-mp-del{ border:0; background:none; font:700 11px inherit; font-family:inherit; color:var(--gcbd); cursor:pointer; padding:0 0 0 6px; opacity:.75; }
+#gso-calc .gc-mp-del:hover{ opacity:1; }
 #gso-calc tr.gc-hide{ display:none; }
 #gso-calc .gc-empty{ padding:16px 8px; color:var(--gcfnt); font-size:12.5px; display:none; }
 #gso-calc td[data-ed]{ cursor:text; }
@@ -25638,6 +25623,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     bubble: { M1: 200 }
   };
   var INS_KEYS = ['G1', 'P1', 'A1', 'A2', 'M1'];
+  function insKeysExtra() { return Object.keys(store.insumosLabels || {}); }
+  function insKeysAll() { return INS_KEYS.concat(insKeysExtra()); }
+  function insLabel(key) { return (store.insumosLabels && store.insumosLabels[key]) || key; }
   function normNome(n) { return String(n || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
   function insumos() { return Object.assign({}, INSUMOS_DEF, store.insumos || {}); }
   function materiais() { return Object.assign({}, MATERIAIS_DEF, store.materiais || {}); }
@@ -25646,15 +25634,42 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     var base = RECEITAS_DEF[k] || {};
     var ov = (store.receitas || {})[k] || {};
     var r = {};
-    INS_KEYS.forEach(function (i) { r[i] = (ov[i] != null) ? ov[i] : (base[i] || 0); });
+    insKeysAll().forEach(function (i) { r[i] = (ov[i] != null) ? ov[i] : (base[i] || 0); });
     return r;
   }
   function custoLitroDe(nome) {
     var r = receitaDe(nome), p = insumos();
     var bat = params().batelada || BATELADA_L_DEFAULT;
     var custo = 0, litros = 0;
-    INS_KEYS.forEach(function (i) { custo += (r[i] || 0) * (p[i] || 0); litros += (r[i] || 0); });
+    insKeysAll().forEach(function (i) { custo += (r[i] || 0) * (p[i] || 0); litros += (r[i] || 0); });
     return { custoLitro: litros > 0 ? custo / bat : 0, litros: litros, custoBatelada: round2(custo), bat: bat };
+  }
+  function adicionarMateriaPrima() {
+    var nome = window.prompt('Nome da nova matéria-prima (ex: Cera, Glicerina, Óleo X):', '');
+    if (nome == null) return;
+    nome = nome.trim();
+    if (!nome) { alert('Digite um nome.'); return; }
+    var key = 'X' + nome.toUpperCase().replace(/[^A-Z0-9]+/g, '');
+    if (!key || key === 'X') { alert('Use letras ou números no nome.'); return; }
+    var all = insKeysAll();
+    var finalKey = key, n = 2;
+    while (all.indexOf(finalKey) >= 0) { finalKey = key + n; n++; }
+    store.insumosLabels = store.insumosLabels || {};
+    store.insumosLabels[finalKey] = nome;
+    save();
+    renderCustos(); renderEstrategia(); refreshResultado();
+  }
+  function removerMateriaPrima(key) {
+    if (INS_KEYS.indexOf(key) >= 0) return;
+    var nome = insLabel(key);
+    if (!window.confirm('Remover "' + nome + '"? O valor/L e as quantidades já usadas nas receitas dos produtos também serão apagados.')) return;
+    if (store.insumosLabels) delete store.insumosLabels[key];
+    if (store.insumos) delete store.insumos[key];
+    if (store.receitas) {
+      Object.keys(store.receitas).forEach(function (p) { if (store.receitas[p]) delete store.receitas[p][key]; });
+    }
+    save();
+    renderCustos(); renderEstrategia(); refreshResultado();
   }
 
   /* ---------- custos e preços por produto ---------- */
@@ -26124,14 +26139,18 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   function mpCardHTML() {
     var p = insumos(), m = materiais();
     var bat = params().batelada || BATELADA_L_DEFAULT;
-    var insHtml = INS_KEYS.map(function (i) {
-      return '<div class="gc-kv"><span class="l">Valor/L ' + i + ' (R$)</span><b>' + mpSpan('ins', i, p[i]) + '</b></div>';
+    var keys = insKeysAll();
+    var insHtml = keys.map(function (i) {
+      var isCustom = INS_KEYS.indexOf(i) < 0;
+      var delBtn = isCustom ? ' <button type="button" class="gc-mp-del" data-mp-del="' + esc(i) + '" title="Remover esta matéria-prima">✕</button>' : '';
+      return '<div class="gc-kv"><span class="l">Valor/L ' + esc(insLabel(i)) + ' (R$)</span><b>' + mpSpan('ins', i, p[i]) + delBtn + '</b></div>';
     }).join('');
     var matDefs = [['gar5', 'Garrafa + tampa 5L'], ['cx5', 'Caixa 5L (rateio 1/4)'], ['rot5', 'Rótulo 5L'],
                    ['gar1', 'Garrafa + tampa 1L'], ['cx1', 'Caixa 1L (rateio 1/6)'], ['rot1', 'Rótulo 1L']];
     var matHtml = matDefs.map(function (d) {
       return '<div class="gc-kv"><span class="l">' + d[1] + ' (R$)</span><b>' + mpSpan('mat', d[0], m[d[0]]) + '</b></div>';
     }).join('');
+    var addBtn = '<div style="margin-top:10px"><button type="button" class="gc-lnk" data-mp-add="1">+ Adicionar matéria-prima</button></div>';
     // receitas: um produto líquido por linha
     var nomes = [], vist = {};
     prodRows().forEach(function (r) {
@@ -26139,7 +26158,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     });
     var linhas = nomes.map(function (nome) {
       var r = receitaDe(nome), cl = custoLitroDe(nome);
-      var tds = INS_KEYS.map(function (i) {
+      var tds = keys.map(function (i) {
         return '<td class="num" data-ed="mp" data-mp="rec:' + normNome(nome) + ':' + i + '">' + inVal(r[i]) + '</td>';
       }).join('');
       var totPill = cl.litros === 0 ? '<span class="gc-pill gray">—</span>'
@@ -26152,11 +26171,18 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
         '<td class="num">' + (cl.custoLitro > 0 ? fmt(round2(cl.custoLitro)) : '—') + '</td>' +
         '<td class="num">' + liq5 + '</td><td class="num">' + liq1 + '</td></tr>';
     }).join('');
+    var nomeColPct = 16, fixedColsPct = 12 + 10 + 11 + 11;
+    var insColPct = keys.length ? ((100 - nomeColPct - fixedColsPct) / keys.length) : 0;
+    var colgroup = '<col style="width:' + nomeColPct + '%">' +
+      keys.map(function () { return '<col style="width:' + insColPct.toFixed(2) + '%">'; }).join('') +
+      '<col style="width:12%"><col style="width:10%"><col style="width:11%"><col style="width:11%">';
+    var theadIns = keys.map(function (i) { return '<th class="num">' + esc(insLabel(i)) + ' (L)</th>'; }).join('');
     return '<div class="gc-blk gc-adv" style="margin-bottom:14px"><h2>Matérias-primas e receitas <span>batelada de ' + bat + 'L · clique em um valor para editar</span></h2>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 26px">' + insHtml + matHtml + '</div>' +
+      addBtn +
       '<div style="height:14px"></div>' +
-      '<table class="gct"><colgroup><col style="width:16%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:12%"><col style="width:10%"><col style="width:11%"><col style="width:11%"></colgroup>' +
-      '<thead><tr><th>PRODUTO</th><th class="num">G1 (L)</th><th class="num">P1 (L)</th><th class="num">A1 (L)</th><th class="num">A2 (L)</th><th class="num">M1 (L)</th><th class="num">TOTAL</th><th class="num">CUSTO/L</th><th class="num">LÍQUIDO 5L</th><th class="num">LÍQUIDO 1L</th></tr></thead>' +
+      '<table class="gct"><colgroup>' + colgroup + '</colgroup>' +
+      '<thead><tr><th>PRODUTO</th>' + theadIns + '<th class="num">TOTAL</th><th class="num">CUSTO/L</th><th class="num">LÍQUIDO 5L</th><th class="num">LÍQUIDO 1L</th></tr></thead>' +
       '<tbody>' + linhas + '</tbody></table>' +
       '<div class="gc-hint" style="margin-top:10px">Custo do líquido = (soma dos litros × valor/L) ÷ batelada × litros da embalagem. Para 5L: líquido + garrafa/tampa 5L + rótulo 5L + 1/4 da caixa 5L · Para 1L: líquido + garrafa/tampa 1L + rótulo 1L + 1/6 da caixa 1L. Ajustes manuais por produto (na ficha) têm prioridade.</div></div>';
   }
@@ -26513,6 +26539,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
         return;
       }
       var csv = t.closest('[data-csv]'); if (csv) { exportCSV(); return; }
+      var mpAdd = t.closest('[data-mp-add]'); if (mpAdd) { adicionarMateriaPrima(); return; }
+      var mpDel = t.closest('[data-mp-del]'); if (mpDel) { removerMateriaPrima(mpDel.dataset.mpDel); return; }
       var mp = t.closest('[data-mp]'); if (mp) { startEditMp(mp); return; }
       var ed = t.closest('td[data-ed]'); if (ed) { startEdit(ed); return; }
       var pov = t.closest('[data-pov]'); if (pov) { startEditParam(pov); return; }
@@ -27986,20 +28014,20 @@ body.theme-dark #view-inteligencia .dashboard-time { color: var(--fine-primary, 
 @media (max-width: 720px) { #view-inteligencia .dashboard-date { width: 100%; justify-content: center; } }
 
 #view-inteligencia .dash-exec-card {
-  min-height: 168px; padding: 14px 16px; border-radius: 10px; border-color: var(--fine-border, #E7E7E7);
-  box-shadow: 0 3px 10px rgba(23,23,23,0.04); gap: 10px; background: var(--fine-surface, #FFFFFF); display: flex; flex-direction: column;
+  min-height: 0; padding: 10px 14px; border-radius: 10px; border-color: var(--fine-border, #E7E7E7);
+  box-shadow: 0 3px 10px rgba(23,23,23,0.04); gap: 6px; background: var(--fine-surface, #FFFFFF); display: flex; flex-direction: column;
 }
 #view-inteligencia .dash-card-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
-#view-inteligencia .dash-card-head h2 { font-size: 15.1px; line-height: 1.2; font-weight: 760; color: var(--fine-text, #282828); letter-spacing: -0.01em; margin: 2px 0 0; }
-#view-inteligencia .dash-card-head p { margin-top: 4px; max-width: 420px; font-size: 11.2px; line-height: 1.35; color: var(--fine-muted, #757575); }
-#view-inteligencia .dash-eyebrow { display: block; margin-bottom: 5px; font-size: 9px; font-weight: 820; color: var(--fine-primary, #6F6F6F); letter-spacing: 0.07em; text-transform: uppercase; }
-#view-inteligencia .dash-card-head .btn-small { min-height: 28px; padding: 0 9px; border-radius: 6px; font-size: 10.8px; line-height: 1; }
-#view-inteligencia .dash-hero-value { margin-top: 6px; color: var(--fine-text, #282828); font-size: 29px; line-height: 1; font-weight: 780; letter-spacing: -0.035em; }
-#view-inteligencia .dash-inline-metrics, #view-inteligencia .dash-stat-strip { display: grid; gap: 7px; margin-top: 10px; }
+#view-inteligencia .dash-card-head h2 { font-size: 13.6px; line-height: 1.2; font-weight: 760; color: var(--fine-text, #282828); letter-spacing: -0.01em; margin: 2px 0 0; }
+#view-inteligencia .dash-card-head p { margin-top: 3px; max-width: 420px; font-size: 10.4px; line-height: 1.3; color: var(--fine-muted, #757575); }
+#view-inteligencia .dash-eyebrow { display: block; margin-bottom: 3px; font-size: 8.5px; font-weight: 820; color: var(--fine-primary, #6F6F6F); letter-spacing: 0.07em; text-transform: uppercase; }
+#view-inteligencia .dash-card-head .btn-small { min-height: 26px; padding: 0 9px; border-radius: 6px; font-size: 10.4px; line-height: 1; }
+#view-inteligencia .dash-hero-value { margin-top: 2px; color: var(--fine-text, #282828); font-size: 22px; line-height: 1; font-weight: 780; letter-spacing: -0.035em; }
+#view-inteligencia .dash-inline-metrics, #view-inteligencia .dash-stat-strip { display: grid; gap: 6px; margin-top: 6px; }
 #view-inteligencia .dash-inline-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 #view-inteligencia .dash-stat-strip.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 #view-inteligencia .dash-inline-metrics > div, #view-inteligencia .dash-stat-strip > div {
-  min-height: 46px; padding: 7px 9px; border-radius: 8px; background: var(--fine-soft-2, #FBFCFE); border: 1px solid var(--fine-border, #E7E7E7);
+  min-height: 36px; padding: 5px 8px; border-radius: 8px; background: var(--fine-soft-2, #FBFCFE); border: 1px solid var(--fine-border, #E7E7E7);
 }
 #view-inteligencia .dash-inline-metrics span, #view-inteligencia .dash-stat-strip span { display: block; margin-bottom: 4px; color: var(--fine-muted, #757575); font-size: 9.8px; font-weight: 700; }
 #view-inteligencia .dash-inline-metrics strong, #view-inteligencia .dash-stat-strip strong { color: var(--fine-text, #282828); font-size: 15.4px; font-weight: 780; }
