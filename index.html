@@ -14872,51 +14872,65 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
         <input type="text" class="form-input" id="ml-cliente" placeholder="Nome do lojista">
       </div>
     </div>
-    <div class="form-row form-r3">
-      <div>
-        <label class="form-label">Produto</label>
-        <select class="form-input" id="ml-produto">
-          <option>Palco</option>
-          <option>DJs and Clubs</option>
-          <option>Haze</option>
-          <option>Haze Oil</option>
-          <option>CO₂ Simulator</option>
-          <option>Low Fog</option>
-          <option>Snow</option>
-          <option>Bubble</option>
-          <option>Clean</option>
-          <option>Top Up - Limpeza a Seco</option>
-          <option>Top Up - Lentes e Telas Cristalinas</option>
-          <option>Álcool Isopropílico</option>
-        </select>
+    <div class="sale-item-builder">
+      <div class="form-row form-r4" style="margin-bottom:10px;">
+        <div>
+          <label class="form-label">Produto</label>
+          <select class="form-input" id="ml-produto" onchange="updateLojistaPreview()">
+            <option>Palco</option>
+            <option>DJs and Clubs</option>
+            <option>Haze</option>
+            <option>Haze Oil</option>
+            <option>Up Fog</option>
+            <option>CO₂ Simulator</option>
+            <option>Low Fog</option>
+            <option>Snow</option>
+            <option>Bubble</option>
+            <option>Clean</option>
+            <option>Top Up - Limpeza a Seco</option>
+            <option>Top Up - Lentes e Telas Cristalinas</option>
+            <option>Álcool Isopropílico</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Tamanho</label>
+          <select class="form-input" id="ml-tamanho" onchange="updateLojistaPreview()">
+            <option>5L</option>
+            <option>1L</option>
+            <option>150g</option>
+            <option>120mL</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Aroma</label>
+          <select class="form-input" id="ml-aroma">
+            <option>Neutro</option>
+            <option>Tropical</option>
+            <option>Tutti Frutti</option>
+            <option>Outro</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Qtd</label>
+          <input type="number" class="form-input" id="ml-qtd" value="1" min="1" oninput="updateLojistaPreview()">
+        </div>
       </div>
-      <div>
-        <label class="form-label">Tamanho</label>
-        <select class="form-input" id="ml-tamanho">
-          <option>5L</option>
-          <option>1L</option>
-          <option>150g</option>
-          <option>120mL</option>
-        </select>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="btn btn-soft" onclick="adicionarProdutoLojista()">Adicionar produto ao pedido</button>
+        <span class="card-sub" id="ml-preco-tabela-hint">Preço da tabela lojista: —</span>
       </div>
-      <div>
-        <label class="form-label">Aroma</label>
-        <select class="form-input" id="ml-aroma">
-          <option>Neutro</option>
-          <option>Tropical</option>
-          <option>Tutti Frutti</option>
-          <option>Outro</option>
-        </select>
-      </div>
+      <div class="sale-items-list" id="lojistaItemsList"></div>
     </div>
+
+    <div class="preview">
+      <span class="preview-label">Total pela tabela lojista</span>
+      <span class="preview-value" id="ml-preco-sugerido">R$ 0,00</span>
+    </div>
+
     <div class="form-row form-r2">
       <div>
-        <label class="form-label">Qtd</label>
-        <input type="number" class="form-input" id="ml-qtd" value="1" min="1">
-      </div>
-      <div>
-        <label class="form-label">Valor cobrado do lojista (R$)</label>
-        <input type="number" class="form-input" id="ml-valor" placeholder="0,00" step="0.01">
+        <label class="form-label">Valor total cobrado (R$)</label>
+        <input type="number" class="form-input" id="ml-valor" placeholder="0,00" step="0.01" oninput="this.dataset.tocado='1'">
       </div>
     </div>
     <div class="form-row form-r2">
@@ -18801,20 +18815,96 @@ function renderVendasLojista() {
     `).join('');
 }
 
+function currentLojistaItem() {
+  const produto = document.getElementById('ml-produto').value;
+  const tamanho = document.getElementById('ml-tamanho').value;
+  const qtd = parseInt(document.getElementById('ml-qtd').value, 10) || 1;
+  let aroma = document.getElementById('ml-aroma').value;
+  const precoUnit = lojistaPrecoUnitario(produto, tamanho);
+  const preco = precoUnit != null ? qtd * precoUnit : 0;
+  return {
+    produto,
+    tamanho,
+    aroma,
+    qtd,
+    precoUnit,
+    preco,
+    descricao: `${qtd} ${produto} ${tamanho}`
+  };
+}
+
+function renderLojistaItemsList() {
+  const el = document.getElementById('lojistaItemsList');
+  if (!el) return;
+  if (currentLojistaItems.length === 0) {
+    el.innerHTML = '<div class="card-sub">Nenhum produto adicionado ao pedido ainda.</div>';
+  } else {
+    el.innerHTML = currentLojistaItems.map((item, index) => `
+      <div class="sale-item-row">
+        <div>
+          <div class="sale-item-main">${escapeHtml(item.descricao)}</div>
+          <div class="sale-item-sub">${escapeHtml(item.aroma || 'Neutro')} • ${item.precoUnit != null ? fmtBR(item.precoUnit) + '/un (tabela lojista)' : 'Sem preço de tabela'}</div>
+        </div>
+        <div class="sale-item-value">${item.preco ? fmtBR(item.preco) : 'Sem preço'}</div>
+        <button type="button" class="btn btn-small btn-danger" onclick="removerProdutoLojista(${index})">Remover</button>
+      </div>
+    `).join('');
+  }
+  const total = currentLojistaItems.reduce((sum, item) => sum + (item.preco || 0), 0);
+  const sugeridoEl = document.getElementById('ml-preco-sugerido');
+  if (sugeridoEl) sugeridoEl.textContent = fmtBR(total);
+  const valorInput = document.getElementById('ml-valor');
+  if (valorInput && !valorInput.dataset.tocado) valorInput.value = total ? total.toFixed(2) : '';
+}
+
+function updateLojistaPreview() {
+  const produto = document.getElementById('ml-produto').value;
+  const tamanho = document.getElementById('ml-tamanho').value;
+  const precoUnit = lojistaPrecoUnitario(produto, tamanho);
+  const hint = document.getElementById('ml-preco-tabela-hint');
+  if (hint) hint.textContent = 'Preço da tabela lojista: ' + (precoUnit != null ? fmtBR(precoUnit) + '/un' : 'sem valor cadastrado, informe manualmente');
+}
+
+function adicionarProdutoLojista() {
+  const item = currentLojistaItem();
+  if (!item.produto || !item.tamanho || item.qtd <= 0) {
+    alert('Escolha produto, tamanho e quantidade.');
+    return;
+  }
+  currentLojistaItems.push(item);
+  document.getElementById('ml-qtd').value = 1;
+  renderLojistaItemsList();
+}
+
+function removerProdutoLojista(index) {
+  currentLojistaItems.splice(index, 1);
+  renderLojistaItemsList();
+}
+
 function openVendaLojistaModal(id = '') {
   if (!isAdminUser()) { alert('Apenas administradores podem lançar vendas para lojistas.'); return; }
   const venda = id ? state.vendasLojista.find(v => v.id === id) : null;
   document.getElementById('ml-id').value = venda ? venda.id : '';
   document.getElementById('ml-data').value = venda ? String(venda.data || '').slice(0, 10) : dashboardDateKey(new Date());
   document.getElementById('ml-cliente').value = venda?.cliente || '';
-  document.getElementById('ml-produto').value = venda?.produto || 'Palco';
-  document.getElementById('ml-tamanho').value = venda?.tamanho || '5L';
-  document.getElementById('ml-aroma').value = venda?.aroma || 'Neutro';
-  document.getElementById('ml-qtd').value = venda?.qtd || 1;
-  document.getElementById('ml-valor').value = venda?.valor || '';
+  document.getElementById('ml-produto').value = 'Palco';
+  document.getElementById('ml-tamanho').value = '5L';
+  document.getElementById('ml-aroma').value = 'Neutro';
+  document.getElementById('ml-qtd').value = 1;
+  const valorInput = document.getElementById('ml-valor');
+  valorInput.value = venda?.valor || '';
+  delete valorInput.dataset.tocado;
   document.getElementById('ml-pag').value = venda?.pagamento || 'Dinheiro';
   document.getElementById('ml-vend').value = venda?.vendedor || 'Luísa Oliveira';
   document.getElementById('ml-obs').value = venda?.obs || '';
+  currentLojistaItems = venda
+    ? (Array.isArray(venda.items) && venda.items.length
+        ? venda.items.map(it => ({ ...it, precoUnit: it.precoUnit != null ? it.precoUnit : lojistaPrecoUnitario(it.produto, it.tamanho) }))
+        : [{ produto: venda.produto, tamanho: venda.tamanho, aroma: venda.aroma, qtd: venda.qtd, precoUnit: lojistaPrecoUnitario(venda.produto, venda.tamanho), preco: venda.valor, descricao: `${venda.qtd} ${venda.produto} ${venda.tamanho}` }])
+    : [];
+  if (venda) valorInput.dataset.tocado = '1';
+  renderLojistaItemsList();
+  updateLojistaPreview();
   const title = document.getElementById('modal-lojista-title');
   if (title) title.textContent = venda ? 'Editar venda lojista' : 'Nova venda lojista';
   document.getElementById('modal-lojista').classList.add('show');
@@ -18824,23 +18914,32 @@ async function salvarVendaLojista() {
   if (!isAdminUser()) { alert('Apenas administradores podem lançar vendas para lojistas.'); return; }
   const cliente = document.getElementById('ml-cliente').value.trim();
   const valor = parseMoneyValue(document.getElementById('ml-valor').value);
-  if (!cliente || isNaN(valor) || valor <= 0) {
-    alert('Preencha o lojista e o valor cobrado.');
+  if (!cliente || currentLojistaItems.length === 0 || isNaN(valor) || valor <= 0) {
+    alert('Preencha o lojista, adicione ao menos um produto ao pedido e informe o valor cobrado.');
     return;
   }
   const id = document.getElementById('ml-id').value;
   const isEditing = Boolean(id);
   const existing = isEditing ? state.vendasLojista.find(v => v.id === id) : null;
   const numeroVenda = isEditing ? existing.numeroVenda : nextSaleNumberLojista();
+  const items = [...currentLojistaItems];
+  const descricaoProduto = items.map(item => item.descricao).join(' + ');
+  const qtdUnidades = items.reduce((sum, item) => sum + (parseInt(item.qtd, 10) || 0), 0);
+  const tamanhos = [...new Set(items.map(item => item.tamanho).filter(Boolean))];
+  const aromas = [...new Set(items.map(item => item.aroma || 'Neutro').filter(Boolean))];
+  const singleItem = items.length === 1 ? items[0] : null;
+  const precoSugerido = items.reduce((sum, item) => sum + (item.preco || 0), 0);
   const vendaFields = {
     numeroVenda,
     data: document.getElementById('ml-data').value,
     cliente,
-    produto: document.getElementById('ml-produto').value,
-    tamanho: document.getElementById('ml-tamanho').value,
-    aroma: document.getElementById('ml-aroma').value,
-    qtd: parseInt(document.getElementById('ml-qtd').value, 10) || 1,
+    produto: descricaoProduto,
+    tamanho: singleItem ? singleItem.tamanho : (tamanhos.length === 1 ? tamanhos[0] : 'Misto'),
+    aroma: aromas.join(' + ') || 'Neutro',
+    qtd: qtdUnidades,
     valor,
+    precoSugerido,
+    items,
     pagamento: document.getElementById('ml-pag').value,
     vendedor: canonicalSellerName(document.getElementById('ml-vend').value),
     obs: document.getElementById('ml-obs').value.trim()
@@ -22598,7 +22697,29 @@ function printSaleLabel(venda) {
 
 // ============ NOVA VENDA ============
 let currentSaleItems = [];
+let currentLojistaItems = [];
 let editingVendaId = null;
+
+// Tabela de valores lojista (2026) — preço unitário cobrado do lojista/revendedor por produto+tamanho.
+const LOJISTA_PRECOS = {
+  'Palco|1L': 15.40,
+  'Palco|5L': 56.90,
+  'DJs and Clubs|5L': 78.35,
+  'Haze|5L': 62.90,
+  'Haze Oil|5L': 233.00,
+  'Up Fog|5L': 97.50,
+  'CO₂ Simulator|5L': 167.90,
+  'Low Fog|5L': 167.90,
+  'Snow|5L': 46.80,
+  'Bubble|1L': 29.90,
+  'Clean|1L': 8.90,
+  'Top Up - Limpeza a Seco|150g': 28.75,
+  'Top Up - Lentes e Telas Cristalinas|120mL': 15.89
+};
+function lojistaPrecoUnitario(produto, tamanho) {
+  const preco = LOJISTA_PRECOS[produto + '|' + tamanho];
+  return typeof preco === 'number' ? preco : null;
+}
 // Guarda a data da última venda salva nesta sessão, para pré-preencher a próxima
 // "Nova venda" com o mesmo dia — útil para lançar várias vendas atrasadas em sequência
 // sem ter que redigitar a data toda vez (o que fazia alguma ficar com o dia de hoje por engano).
