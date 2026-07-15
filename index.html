@@ -26061,7 +26061,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     store.insumos = store.insumos || {};
     store.insumos[finalKey] = 0;
     save();
-    renderCustos(); renderEstrategia(); refreshResultado();
+    renderCustos(); renderFormulacao(); renderEstrategia(); refreshResultado();
   }
   function removerMateriaPrima(key) {
     if (INS_KEYS.indexOf(key) >= 0) return;
@@ -26073,7 +26073,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       Object.keys(store.receitas).forEach(function (p) { if (store.receitas[p]) delete store.receitas[p][key]; });
     }
     save();
-    renderCustos(); renderEstrategia(); refreshResultado();
+    renderCustos(); renderFormulacao(); renderEstrategia(); refreshResultado();
   }
 
   /* ---------- custos e preços por produto ---------- */
@@ -26237,8 +26237,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       '<div class="gc-tabs">' +
       '<button data-t="pedido" class="on">Pedido</button>' +
       '<button data-t="custos">Custos e preços</button>' +
+      '<button data-t="formulacao">Formulação</button>' +
       '<button data-t="estrategia">Estratégia</button></div>' +
-      '<section id="gc-pedido"></section><section id="gc-custos" style="display:none"></section><section id="gc-estrategia" style="display:none"></section>';
+      '<section id="gc-pedido"></section><section id="gc-custos" style="display:none"></section><section id="gc-formulacao" style="display:none"></section><section id="gc-estrategia" style="display:none"></section>';
     view.appendChild(root);
     if (!$('#gso-calc-ovl')) {
       var ovl = document.createElement('div'); ovl.id = 'gso-calc-ovl'; document.body.appendChild(ovl);
@@ -26255,7 +26256,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       });
     }
     bind(root);
-    renderPedido(); renderCustos(); renderEstrategia();
+    renderPedido(); renderCustos(); renderFormulacao(); renderEstrategia();
   }
   function drOpen(t, html) { $('#gc-dr-t').textContent = t; $('#gc-dr-b').innerHTML = html; document.body.classList.add('gc-dro'); }
   function drClose() { document.body.classList.remove('gc-dro'); }
@@ -26265,9 +26266,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   function setTab(t) {
     UI.tab = t;
     $all('#gso-calc .gc-tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
-    ['pedido', 'custos', 'estrategia'].forEach(function (k) { var el = $('#gc-' + k); if (el) el.style.display = (k === t) ? '' : 'none'; });
+    ['pedido', 'custos', 'formulacao', 'estrategia'].forEach(function (k) { var el = $('#gc-' + k); if (el) el.style.display = (k === t) ? '' : 'none'; });
     if (t === 'estrategia') renderEstrategia();
     if (t === 'custos') renderCustos();
+    if (t === 'formulacao') renderFormulacao();
   }
 
   /* ---------- ABA PEDIDO ---------- */
@@ -26493,6 +26495,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   function selOpts(list, cur, todosLabel) {
     return '<option value="">' + todosLabel + '</option>' + list.map(function (v) { return '<option' + (v === cur ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('');
   }
+  function renderFormulacao() {
+    var el = $('#gc-formulacao'); if (!el) return;
+    el.innerHTML = mpCardHTML();
+  }
   function renderCustos() {
     var el = $('#gc-custos'); if (!el) return;
     var P = params();
@@ -26523,7 +26529,6 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       '<button class="' + (UI.seg === 'c2' ? 'on' : '') + '" data-seg="c2">Tabelas comerciais</button></div>' +
       '<div id="gc-c1" style="' + (UI.seg === 'c1' ? '' : 'display:none') + '">' +
       '<div class="gc-blk gc-adv" style="margin-bottom:14px"><h2>Parâmetros globais <span>clique em um valor para editar</span></h2>' + paramsKv + '</div>' +
-      mpCardHTML() +
       '<div class="gc-blk"><h2>Custos dos produtos <span>quanto custa fazer</span></h2>' +
       '<div class="gc-filters">' +
       '<select data-flt="tc:0">' + selOpts(nomesUnicos(), fil['tc:0'], 'Produto: todos') + '</select>' +
@@ -26581,7 +26586,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       keys.map(function () { return '<col style="width:' + insColPct.toFixed(2) + '%">'; }).join('') +
       '<col style="width:12%"><col style="width:10%"><col style="width:11%"><col style="width:11%">';
     var theadIns = keys.map(function (i) { return '<th class="num">' + esc(insLabel(i)) + ' (L)</th>'; }).join('');
-    return '<div class="gc-blk gc-adv" style="margin-bottom:14px"><h2>Matérias-primas e receitas <span>batelada de ' + bat + 'L · clique em um valor para editar</span></h2>' +
+    return '<div class="gc-blk" style="margin-bottom:14px"><h2>Matérias-primas e receitas <span>batelada de ' + bat + 'L · clique em um valor para editar</span></h2>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 26px">' + insHtml + matHtml + '</div>' +
       addBtn +
       '<div style="height:14px"></div>' +
@@ -26862,7 +26867,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
         r[spec[2]] = v; store.receitas[spec[1]] = r;
       }
       save();
-      renderCustos(); renderEstrategia(); refreshResultado();
+      renderCustos(); renderFormulacao(); renderEstrategia(); refreshResultado();
     }
     inp.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') done(true); if (ev.key === 'Escape') done(false); });
     inp.addEventListener('blur', function () { done(true); });
@@ -27018,12 +27023,12 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       var _nav = window.navTo;
       window.navTo = function (v) {
         var out = _nav.apply(this, arguments);
-        try { fixSidebar(); if (v === 'calculadora') { mount(); renderPedido(); renderCustos(); renderEstrategia(); } } catch (e) {}
+        try { fixSidebar(); if (v === 'calculadora') { mount(); renderPedido(); renderCustos(); renderFormulacao(); renderEstrategia(); } } catch (e) {}
         return out;
       };
     }
   }
-  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _store: function () { return store; }, _params: params, refresh: function () { renderPedido(); renderCustos(); renderEstrategia(); } };
+  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _store: function () { return store; }, _params: params, refresh: function () { renderPedido(); renderCustos(); renderFormulacao(); renderEstrategia(); } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 0);
 })();
