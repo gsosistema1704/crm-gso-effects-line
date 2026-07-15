@@ -25880,8 +25880,6 @@ body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gc
 #gso-calc .gc-msg.ok{ background:var(--gcokbg); color:var(--gcok); }
 #gso-calc .gc-msg.warn{ background:var(--gcwabg); color:var(--gcwa); }
 #gso-calc .gc-msg.bad{ background:var(--gcbdbg); color:var(--gcbd); }
-#gso-calc .gc-adv{ display:none; }
-#gso-calc.gc-avancado .gc-adv{ display:block; }
 #gso-calc details.gc-slim{ border-top:1px solid var(--gcln); margin-top:12px; padding-top:10px; }
 #gso-calc details.gc-slim summary{ cursor:pointer; font-weight:600; font-size:12px; color:var(--gcmut); list-style:none; }
 #gso-calc details.gc-slim summary::-webkit-details-marker{ display:none; }
@@ -26122,6 +26120,23 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     return { liquido: liquido, origem: origem, garrafa: garrafa, caixa: caixa, rotulo: rotulo, outros: outros,
       embalagem: embalagem, total: total, em: c.em || null, por: c.por || null };
   }
+  // Tabela de valores (2026) — seeds das 3 tabelas comerciais (consumidor final / revenda / revenda 10%).
+  // Servem só de valor inicial: qualquer edição feita direto na tabela (clique no valor) tem prioridade.
+  var CONSUMIDOR_SEED = {
+    'Palco|1L': 30.00, 'Palco|5L': 90.00, 'DJs and Clubs|5L': 120.00, 'Haze|5L': 120.00, 'Haze Oil|5L': 290.00,
+    'CO₂ Simulator|5L': 240.00, 'Low Fog|5L': 240.00, 'Snow|5L': 90.00, 'Bubble|1L': 40.00, 'Clean|1L': 20.00,
+    'Top Up - Limpeza a Seco|150g': 50.00, 'Top Up - Lentes e Telas Cristalinas|120mL': 30.00, 'Álcool Isopropílico|1L': 40.00
+  };
+  var REVENDEDOR_SEED = {
+    'Palco|1L': 15.40, 'Palco|5L': 56.90, 'DJs and Clubs|5L': 78.35, 'Haze|5L': 62.90, 'Haze Oil|5L': 233.00,
+    'CO₂ Simulator|5L': 167.90, 'Low Fog|5L': 167.90, 'Snow|5L': 46.80, 'Bubble|1L': 29.90, 'Clean|1L': 8.90,
+    'Top Up - Limpeza a Seco|150g': 28.75, 'Top Up - Lentes e Telas Cristalinas|120mL': 15.89
+  };
+  var REVENDEDOR10_SEED = {
+    'Palco|1L': 13.86, 'Palco|5L': 51.20, 'DJs and Clubs|5L': 70.50, 'Haze|5L': 55.90, 'Haze Oil|5L': 209.00,
+    'CO₂ Simulator|5L': 151.11, 'Low Fog|5L': 151.11, 'Snow|5L': 46.80, 'Bubble|1L': 29.90, 'Clean|1L': 8.90,
+    'Top Up - Limpeza a Seco|150g': 28.75, 'Top Up - Lentes e Telas Cristalinas|120mL': 15.89
+  };
   function precos(k, row) {
     var o = store.tabelas[k] || {};
     var P = params();
@@ -26130,10 +26145,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     var cxV2425 = (row && row.caixa2024) || null;
     var caixa = (o.caixa != null) ? o.caixa : ((row && row.caixa2026) || null);
     var lojista = (o.lojista != null) ? o.lojista : null;
-    var revendedor = (o.revendedor != null) ? o.revendedor : null;
+    var revendedor = (o.revendedor != null) ? o.revendedor : (REVENDEDOR_SEED[k] != null ? REVENDEDOR_SEED[k] : null);
+    var revendedor10 = (o.revendedor10 != null) ? o.revendedor10 : (REVENDEDOR10_SEED[k] != null ? REVENDEDOR10_SEED[k] : null);
     var sugerido = (o.sugerido != null) ? o.sugerido : vigente;
-    var consumidor = (o.consumidor != null) ? o.consumidor : (vigente != null ? round2(vigente * P.fatorConsumidor) : null);
-    return { v2425: v2425, vigente: vigente, caixa: caixa, cxV2425: cxV2425, lojista: lojista, revendedor: revendedor, sugerido: sugerido, consumidor: consumidor, ov: o };
+    var consumidor = (o.consumidor != null) ? o.consumidor : (CONSUMIDOR_SEED[k] != null ? CONSUMIDOR_SEED[k] : (vigente != null ? round2(vigente * P.fatorConsumidor) : null));
+    return { v2425: v2425, vigente: vigente, caixa: caixa, cxV2425: cxV2425, lojista: lojista, revendedor: revendedor, revendedor10: revendedor10, sugerido: sugerido, consumidor: consumidor, ov: o };
   }
   function margemDe(preco, custoTotal, fiscalPct) {
     if (preco == null || !preco || custoTotal == null) return null;
@@ -26150,6 +26166,20 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   }
 
   /* ---------- engine do pedido (puro, testável) ---------- */
+  function materiaisNecessarios(itens) {
+    var totals = {};
+    insKeysAll().forEach(function (i) { totals[i] = 0; });
+    itens.forEach(function (it) {
+      var L = litrosDe(it.tamanho) * it.unidades;
+      if (L <= 0) return;
+      var r = receitaDe(it.produto);
+      var cl = custoLitroDe(it.produto);
+      if (!cl.litros) return;
+      var fator = L / cl.litros;
+      insKeysAll().forEach(function (i) { totals[i] += (r[i] || 0) * fator; });
+    });
+    return totals;
+  }
   function computeOrder(itens, ctx) {
     var P = ctx.params;
     var litros = 0, un5 = 0, un1 = 0, caixas = 0, unidades = 0, bruto = 0, custoProd = 0, semCusto = false;
@@ -26203,7 +26233,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       bruto: round2(bruto), descontoValor: round2(descontoValor), valor: valor,
       custoProd: round2(custoProd), fiscal: fiscal, fin: fin, frete: frete, custoTotal: custoTotal,
       lucro: lucro, margem: margem, markup: markup, minimo: minimo, ideal: ideal, premium: premium,
-      status: st, frase: frase, alertas: alertas, semCusto: semCusto
+      status: st, frase: frase, alertas: alertas, semCusto: semCusto, materiais: materiaisNecessarios(itens)
     };
   }
 
@@ -26230,8 +26260,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   function precoEntradaPara(nome, tamanho, formato, tipoCliente) {
     var k = keyOf(nome, tamanho); var pr = precos(k, rowDe(nome, tamanho));
     if (formato === 'CX') return pr.caixa != null ? pr.caixa : (pr.vigente != null ? round2(pr.vigente * fatorCaixa(tamanho)) : null);
-    if (tipoCliente === 'Lojista' && pr.lojista != null) return pr.lojista;
     if (tipoCliente === 'Revendedor' && pr.revendedor != null) return pr.revendedor;
+    if (tipoCliente === 'Revendedor (10%)' && pr.revendedor10 != null) return pr.revendedor10;
     if (tipoCliente === 'Consumidor final' && pr.consumidor != null) return pr.consumidor;
     return pr.vigente;
   }
@@ -26240,10 +26270,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   function mount() {
     var view = $('#view-calculadora'); if (!view || $('#gso-calc')) return;
     var root = document.createElement('div'); root.id = 'gso-calc';
-    if ((store.modo || 'simples') === 'avancado') root.className = 'gc-avancado';
     root.innerHTML =
-      '<div class="gc-head"><h1>Calculadora</h1>' +
-      '<div class="gc-mode"><button id="gc-ms" class="' + (store.modo !== 'avancado' ? 'on' : '') + '">Simples</button><button id="gc-ma" class="' + (store.modo === 'avancado' ? 'on' : '') + '">Avançado</button></div></div>' +
+      '<div class="gc-head"><h1>Calculadora</h1></div>' +
       '<div class="gc-sub">Monte o pedido e veja na hora se vale a pena fechar.</div>' +
       '<div class="gc-tabs">' +
       '<button data-t="pedido" class="on">Pedido</button>' +
@@ -26290,7 +26318,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       embIdx: parseInt(($('#gc-f-emb') || {}).value || '0', 10) || 0,
       aroma: ($('#gc-f-aroma') || {}).value || 'Neutro',
       qtd: Math.max(1, parseInt(num(($('#gc-f-qtd') || {}).value) || 1, 10)),
-      tipo: ($('#gc-f-tipo') || {}).value || 'Lojista',
+      tipo: ($('#gc-f-tipo') || {}).value || 'Consumidor final',
       pag: ($('#gc-f-pag') || {}).value || 'Pix',
       frete: ($('#gc-f-frete') || {}).value || 'A combinar',
       freteV: ($('#gc-f-fretev') || {}).value || '',
@@ -26308,7 +26336,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   }
   function renderPedido() {
     var el = $('#gc-pedido'); if (!el) return;
-    var f = el.dataset.built ? fields() : { produto: nomesUnicos()[0] || '', embIdx: 0, aroma: 'Neutro', qtd: 1, tipo: 'Lojista', pag: 'Pix', frete: 'A combinar', freteV: '', desc: '', cliente: '', vend: usuarioAtual(), obs: '' };
+    var f = el.dataset.built ? fields() : { produto: nomesUnicos()[0] || '', embIdx: 0, aroma: 'Neutro', qtd: 1, tipo: 'Consumidor final', pag: 'Pix', frete: 'A combinar', freteV: '', desc: '', cliente: '', vend: usuarioAtual(), obs: '' };
     var nomes = nomesUnicos();
     if (nomes.indexOf(f.produto) < 0) f.produto = nomes[0] || '';
     var embs = embOpcoes(f.produto); if (f.embIdx >= embs.length) f.embIdx = 0;
@@ -26326,7 +26354,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       '<label class="gcf">Embalagem<select id="gc-f-emb">' + embs.map(function (o, i) { return '<option value="' + i + '"' + (i === f.embIdx ? ' selected' : '') + '>' + esc(o.label) + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf">Aroma' + aromaSel + '</label>' +
       '<label class="gcf">Quantidade<input id="gc-f-qtd" type="text" inputmode="numeric" value="' + esc(f.qtd) + '"></label>' +
-      '<label class="gcf">Tipo de cliente<select id="gc-f-tipo">' + ['Consumidor final', 'Lojista', 'Revendedor', 'Locadora / evento', 'Igreja'].map(function (t) { return '<option' + (t === f.tipo ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
+      '<label class="gcf">Tipo de cliente<select id="gc-f-tipo">' + ['Consumidor final', 'Revendedor', 'Revendedor (10%)'].map(function (t) { return '<option' + (t === f.tipo ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf">Pagamento<select id="gc-f-pag">' + ['Pix', 'Crédito', 'Débito', 'Boleto', 'Dinheiro'].map(function (t) { return '<option' + (t === f.pag ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf">Frete<select id="gc-f-frete">' + ['A combinar', 'Por conta do cliente', 'Subsidiado', 'Grátis'].map(function (t) { return '<option' + (t === f.frete ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf" id="gc-f-fretev-w" style="' + (f.frete === 'Subsidiado' || f.frete === 'Grátis' ? '' : 'display:none') + '">Custo do frete p/ GSO (R$)<input id="gc-f-fretev" type="text" inputmode="decimal" value="' + esc(f.freteV) + '"></label>' +
@@ -26357,16 +26385,23 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       '<div class="gc-kv"><span class="l">Lucro estimado</span><b>' + fmt(r.lucro) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Mínimo recomendado</span><b>' + fmt(r.minimo) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Preço ideal</span><b>' + fmt(r.ideal) + '</b></div>' +
-      '<div class="gc-kv gc-adv"><span class="l">Preço premium</span><b>' + fmt(r.premium) + '</b></div>';
+      '<div class="gc-kv"><span class="l">Preço premium</span><b>' + fmt(r.premium) + '</b></div>';
     var msg = r.frase ? '<div class="gc-msg ' + (r.status.cls === 'gray' ? 'warn' : r.status.cls) + '">' + esc(r.frase) + '</div>' : '';
     var al = r.alertas.map(function (a) { return '<div class="gc-msg warn">' + esc(a) + '</div>'; }).join('');
     var sugHtml = '<div class="gc-msg" style="background:var(--gcgrbg);color:var(--gcmut)">' + sug + '</div>';
-    var prod = '<details class="gc-slim gc-adv" open><summary>Produção</summary>' +
+    var materiaisRows = Object.keys(r.materiais || {})
+      .filter(function (k) { return (r.materiais[k] || 0) > 0.001; })
+      .map(function (k) { return '<div class="gc-kv"><span class="l">Matéria-prima: ' + esc(insLabel(k)) + '</span><b>' + round2(r.materiais[k]).toLocaleString('pt-BR') + ' L</b></div>'; })
+      .join('');
+    var prod = '<details class="gc-slim" open><summary>Produção</summary>' +
       '<div class="gc-kv"><span class="l">Litros · bateladas (até ' + (P.batelada || 200) + 'L)</span><b>' + (r.litros || 0).toLocaleString('pt-BR') + ' L · ' + r.bateladas + '</b></div>' +
       '<div class="gc-kv"><span class="l">Unidades 5L · 1L</span><b>' + r.un5 + ' · ' + r.un1 + '</b></div>' +
       '<div class="gc-kv"><span class="l">Caixas fechadas</span><b>' + r.caixas + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Garrafas · tampas · rótulos</span><b>' + r.unidades + ' · ' + r.unidades + ' · ' + r.unidades + '</b></div></details>';
-    var custo = '<details class="gc-slim gc-adv"><summary>Custo</summary>' +
+      '<div class="gc-kv"><span class="l">Garrafas + tampas + rótulos 5L</span><b>' + r.un5 + '</b></div>' +
+      '<div class="gc-kv"><span class="l">Garrafas + tampas + rótulos 1L</span><b>' + r.un1 + '</b></div>' +
+      (materiaisRows || '<div class="gc-kv"><span class="l">Matérias-primas</span><b>—</b></div>') +
+      '</details>';
+    var custo = '<details class="gc-slim"><summary>Custo</summary>' +
       '<div class="gc-kv"><span class="l">Produtos + embalagem</span><b>' + fmt(r.custoProd) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Fiscal (' + P.fiscal + '%)</span><b>' + fmt(r.fiscal) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Financeiro</span><b>' + fmt(r.fin) + '</b></div>' +
@@ -26518,9 +26553,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   }
   function renderFormulacao() {
     var el = $('#gc-formulacao'); if (!el) return;
-    el.innerHTML =
-      '<div class="gc-blk" style="margin-bottom:14px"><h2>Parâmetros globais <span>clique em um valor para editar</span></h2>' + paramsKvHTML() + '</div>' +
-      mpCardHTML();
+    el.innerHTML = mpCardHTML();
   }
   function renderCustos() {
     var el = $('#gc-custos'); if (!el) return;
@@ -26552,8 +26585,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       '<table class="gct" id="gc-tc"><colgroup><col style="width:22%"><col style="width:9%"><col style="width:14%"><col style="width:13%"><col style="width:13%"><col style="width:11%"><col style="width:9%"><col style="width:9%"></colgroup>' +
       '<thead><tr><th>PRODUTO</th><th>EMB.</th><th class="num">CUSTO LÍQUIDO</th><th class="num">EMBALAGEM</th><th class="num">CUSTO TOTAL</th><th class="num">ATUALIZADO</th><th>STATUS</th><th></th></tr></thead>' +
       '<tbody>' + rowsC + '</tbody></table><div class="gc-empty" id="gc-tc-e">Nenhum produto com esses filtros.</div></div></div>' +
-      '<div id="gc-c2" style="' + (UI.seg === 'c2' ? '' : 'display:none') + '">' + tabelasHTML + '</div>';
-    aplicaFiltro('tc'); aplicaFiltro('tt');
+      '<div id="gc-c2" style="' + (UI.seg === 'c2' ? '' : 'display:none') + '">' + tabelasHTML +
+      '<div class="gc-blk gc-params-grid" style="margin-top:14px"><h2>Parâmetros globais <span>clique em um valor para editar</span></h2>' + paramsKvHTML() + '</div>' +
+      '</div>';
+    aplicaFiltro('tc');
   }
 
   function mpSpan(tipo, chave, val) {
@@ -26609,75 +26644,31 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       '<div class="gc-hint" style="margin-top:10px">Custo do líquido = (soma dos litros × valor/L) ÷ batelada × litros da embalagem. Para 5L: líquido + garrafa/tampa 5L + rótulo 5L + 1/4 da caixa 5L · Para 1L: líquido + garrafa/tampa 1L + rótulo 1L + 1/6 da caixa 1L. Ajustes manuais por produto (na ficha) têm prioridade.</div></div>';
   }
 
-  function renderTabelaComercial() {
-    var P = params(); var fil = UI.filtros;
-    var head, cols, rows = [];
-    var view = UI.tabela;
-    prodRows().forEach(function (r) {
+  function tabelaTierHTML(titulo, campo) {
+    var P = params();
+    var rows = prodRows().map(function (r) {
       var k = keyOf(r.produto, r.tamanho); var ci = custoInfo(k); var pr = precos(k, r);
-      var temC = ci.total != null;
-      function stc(preco) { var m = margemDe(preco, ci.total, P.fiscal); return statusDe(m, temC); }
-      var stVig = stc(pr.vigente);
+      var preco = pr[campo];
+      var m = margemDe(preco, ci.total, P.fiscal);
+      var st = statusDe(m, ci.total != null);
+      if (preco == null && ci.total != null) st = { k: 'sempreco', cls: 'gray', label: 'Sem preço' };
       var nomeEmb = esc(r.produto) + ' ' + esc(r.tamanho);
-      if (view === 'comp') {
-        rows.push('<tr data-f="' + esc(r.produto) + '|' + stVig.label + '"><td>' + nomeEmb + '</td>' +
-          '<td class="num"><b>' + fmt(ci.total) + '</b></td>' +
-          tdEd('vigente', k, pr.vigente) + tdEd('lojista', k, pr.lojista) + tdEd('revendedor', k, pr.revendedor) +
-          '<td><span class="gc-pill ' + stVig.cls + '">' + stVig.label + '</span></td>' +
-          '<td><button class="gc-lnk" data-prod-det="' + esc(k) + '">Detalhes</button></td></tr>');
-      } else if (view === 'vig') {
-        var m = margemDe(pr.vigente, ci.total, P.fiscal);
-        rows.push('<tr data-f="' + esc(r.produto) + '|' + stVig.label + '"><td>' + nomeEmb + '</td><td>' + esc(r.aroma || 'Neutro') + '</td>' +
-          '<td class="num">' + fmt(ci.total) + '</td>' + tdEd('vigente', k, pr.vigente) + tdEd('caixa', k, pr.caixa) +
-          '<td class="num">' + fmtPct(m) + '</td><td><span class="gc-pill ' + stVig.cls + '">' + stVig.label + '</span></td></tr>');
-      } else if (view === 'hist') {
-        var dif = (pr.v2425 != null && pr.vigente != null) ? pr.vigente - pr.v2425 : null;
-        var difp = (dif != null && pr.v2425) ? dif / pr.v2425 * 100 : null;
-        var rj = (pr.v2425 != null && pr.vigente != null && pr.vigente <= pr.v2425) ? '<span class="gc-pill warn">Avaliar reajuste</span>' : (pr.v2425 != null ? '<span class="gc-pill ok">Reajustado</span>' : '<span class="gc-pill gray">—</span>');
-        var rjF = (pr.v2425 != null && pr.vigente != null && pr.vigente <= pr.v2425) ? 'Avaliar' : 'Reajustado';
-        rows.push('<tr data-f="' + esc(r.produto) + '|' + rjF + '"><td>' + nomeEmb + '</td>' + tdEd('v2425', k, pr.v2425) +
-          tdEd('vigente', k, pr.vigente) + '<td class="num">' + (dif == null ? '—' : (dif >= 0 ? '+' : '') + fmt(dif).replace('R$ ', 'R$ ')) + '</td>' +
-          '<td class="num">' + (difp == null ? '—' : (difp >= 0 ? '+' : '') + fmtPct(difp)) + '</td><td>' + rj + '</td></tr>');
-      } else if (view === 'loj') {
-        var ml = margemDe(pr.lojista, ci.total, P.fiscal); var stl = statusDe(ml, temC);
-        var descL = (pr.vigente && pr.lojista != null) ? (1 - pr.lojista / pr.vigente) * 100 : null;
-        rows.push('<tr data-f="' + esc(r.produto) + '|' + stl.label + '"><td>' + nomeEmb + '</td>' +
-          '<td class="num">' + fmt(pr.vigente) + '</td>' + tdEd('lojista', k, pr.lojista) +
-          '<td class="num">' + (descL == null ? '—' : '-' + fmtPct(descL)) + '</td><td class="num">' + fmtPct(ml) + '</td>' +
-          '<td><span class="gc-pill ' + stl.cls + '">' + (pr.lojista == null ? 'Sem preço' : stl.label) + '</span></td></tr>');
-      } else if (view === 'rev') {
-        var mr = margemDe(pr.revendedor, ci.total, P.fiscal); var str2 = statusDe(mr, temC);
-        var mrev = (pr.sugerido && pr.revendedor != null) ? (1 - pr.revendedor / pr.sugerido) * 100 : null;
-        rows.push('<tr data-f="' + esc(r.produto) + '|' + str2.label + '"><td>' + nomeEmb + '</td>' +
-          tdEd('revendedor', k, pr.revendedor) + tdEd('sugerido', k, pr.sugerido) +
-          '<td class="num">' + fmtPct(mr) + '</td><td class="num">' + fmtPct(mrev) + '</td>' +
-          '<td><span class="gc-pill ' + str2.cls + '">' + (pr.revendedor == null ? 'Sem preço' : str2.label) + '</span></td></tr>');
-      }
-    });
-    var headers = {
-      comp: ['PRODUTO', 'CUSTO', 'VIGENTE', 'LOJISTA', 'REVENDEDOR', 'STATUS', ''],
-      vig: ['PRODUTO', 'AROMA', 'CUSTO', 'VIGENTE (UN)', 'VIGENTE (CAIXA)', 'MARGEM', 'STATUS'],
-      hist: ['PRODUTO', '2024/2025', 'VIGENTE', 'DIF. R$', 'DIF. %', 'REAJUSTE?'],
-      loj: ['PRODUTO', 'VIGENTE', 'LOJISTA', 'DESCONTO', 'MARGEM', 'STATUS'],
-      rev: ['PRODUTO', 'REVENDEDOR', 'SUGERIDO REVENDA', 'MARGEM GSO', 'MARGEM REVENDEDOR', 'STATUS']
-    };
-    var widths = {
-      comp: [24, 12, 13, 13, 13, 14, 11], vig: [22, 11, 12, 14, 14, 12, 15],
-      hist: [24, 14, 14, 13, 12, 23], loj: [24, 14, 14, 13, 13, 22], rev: [24, 14, 16, 13, 15, 18]
-    };
-    var h = headers[view], w = widths[view];
-    var statusOpts = view === 'hist' ? ['Reajustado', 'Avaliar'] : ['Saudável', 'Atenção', 'Abaixo do mínimo', 'Premium', 'Sem custo', 'Sem preço'];
-    return '<div class="gc-blk"><h2>Tabelas comerciais <span>por quanto vender</span></h2>' +
-      '<div class="gc-filters">' +
-      '<select data-tabsel>' + [['comp', 'Ver: Comparativo geral'], ['vig', 'Ver: Valores vigentes'], ['hist', 'Ver: Valores 2024/2025'], ['loj', 'Ver: Lojista'], ['rev', 'Ver: Revendedor']].map(function (o) { return '<option value="' + o[0] + '"' + (UI.tabela === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
-      '<select data-flt="tt:0">' + selOpts(nomesUnicos(), fil['tt:0'], 'Produto: todos') + '</select>' +
-      '<select data-flt="tt:1">' + selOpts(statusOpts, fil['tt:1'], 'Status: todos') + '</select>' +
-      '<button class="clear" data-clr="tt">limpar filtros</button>' +
-      '<button class="gc-btn" data-csv style="margin-left:auto">Exportar CSV</button>' +
-      '<span class="gc-hint-ed">· Clique em um valor para editar</span></div>' +
-      '<table class="gct" id="gc-tt"><colgroup>' + w.map(function (x) { return '<col style="width:' + x + '%">'; }).join('') + '</colgroup>' +
-      '<thead><tr>' + h.map(function (x, i) { return '<th class="' + (i > 0 && i < h.length - 1 ? 'num' : '') + '">' + x + '</th>'; }).join('') + '</tr></thead>' +
-      '<tbody>' + rows.join('') + '</tbody></table><div class="gc-empty" id="gc-tt-e">Nada com esses filtros.</div>' +
+      return '<tr><td>' + nomeEmb + '</td>' + tdEd(campo, k, preco) +
+        '<td class="num">' + fmtPct(m) + '</td>' +
+        '<td><span class="gc-pill ' + st.cls + '">' + st.label + '</span></td></tr>';
+    }).join('');
+    return '<div class="gc-blk gc-tabela-tier"><h2>' + esc(titulo) + '</h2>' +
+      '<table class="gct"><colgroup><col style="width:42%"><col style="width:22%"><col style="width:16%"><col style="width:20%"></colgroup>' +
+      '<thead><tr><th>PRODUTO</th><th class="num">VALOR</th><th class="num">MARGEM</th><th>STATUS</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div>';
+  }
+  function renderTabelaComercial() {
+    return '<div class="gc-blk"><h2>Tabelas comerciais <span>por quanto vender · clique em um valor para editar</span></h2>' +
+      '<div class="gc-tabelas-3-grid">' +
+      tabelaTierHTML('Consumidor final', 'consumidor') +
+      tabelaTierHTML('Revenda', 'revendedor') +
+      tabelaTierHTML('Revenda (10%)', 'revendedor10') +
+      '</div>' +
       '<div class="gc-hint" style="margin-top:10px">Revendedor: 1º e 2º pedidos à vista, mínimo R$ 1.000 · do 3º em diante boleto liberado, sem mínimo.</div></div>';
   }
   function tdEd(campo, k, valor) {
@@ -26792,7 +26783,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       '<div class="gc-row"><button class="gc-btn dark" id="gc-c-save">Salvar custos</button></div>' +
       '<div style="font:700 10px inherit;letter-spacing:.14em;color:var(--gcfnt);margin:14px 0 6px">PREÇOS (por quanto vender)</div>' +
       mrow('2024/2025', pr.v2425) + mrow('Vigente (unidade)', pr.vigente) + mrow('Vigente (caixa)', pr.caixa) +
-      mrow('Lojista', pr.lojista) + mrow('Revendedor', pr.revendedor) +
+      mrow('Revendedor', pr.revendedor) + mrow('Revendedor (10%)', pr.revendedor10) +
       '<div class="gc-kv"><span class="l">Sugerido de revenda</span><b>' + fmt(pr.sugerido) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Consumidor final</span><b>' + fmt(pr.consumidor) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Margens mín · ideal · premium</span><b>' + P.margemMin + ' · ' + P.margem + ' · ' + P.margemPremium + '%</b></div>' +
@@ -26915,13 +26906,6 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   function bind(root) {
     root.addEventListener('click', function (e) {
       var t = e.target;
-      if (t.id === 'gc-ms' || t.id === 'gc-ma') {
-        store.modo = t.id === 'gc-ma' ? 'avancado' : 'simples'; save();
-        root.classList.toggle('gc-avancado', store.modo === 'avancado');
-        $('#gc-ms').classList.toggle('on', store.modo !== 'avancado');
-        $('#gc-ma').classList.toggle('on', store.modo === 'avancado');
-        return;
-      }
       var tabBtn = t.closest('.gc-tabs button'); if (tabBtn) { setTab(tabBtn.dataset.t); return; }
       var segBtn = t.closest('[data-seg]'); if (segBtn) { UI.seg = segBtn.dataset.seg; renderCustos(); return; }
       if (t.id === 'gc-add') { addItem(); return; }
@@ -28137,19 +28121,22 @@ body.theme-dark #gso-calc .gc-seg button.on{ background:#DBDBDB !important; colo
 /* Parâmetros globais + Formulação: cartões compactos (ambos os temas) */
 #gc-formulacao > .gc-blk{ display:block; }
 #gc-formulacao > .gc-blk h2{ margin-bottom:10px; }
-#gc-formulacao > .gc-blk .gc-kv{
+#gc-formulacao > .gc-blk .gc-kv, .gc-params-grid .gc-kv{
   display:flex; flex-direction:column; align-items:flex-start; gap:4px;
   border:1px solid var(--gcln); border-radius:10px; padding:7px 10px; margin:0;
   background: rgba(0,0,0,.02);
 }
-#gc-formulacao > .gc-blk .gc-kv .l{ font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
-#gc-formulacao > .gc-blk .gc-kv b{ font-size:14px; display:flex; align-items:center; gap:4px; }
-#gc-formulacao > .gc-blk:first-child > div:not([class]){ display:contents; }
+#gc-formulacao > .gc-blk .gc-kv .l, .gc-params-grid .gc-kv .l{ font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+#gc-formulacao > .gc-blk .gc-kv b, .gc-params-grid .gc-kv b{ font-size:14px; display:flex; align-items:center; gap:4px; }
+.gc-params-grid > div:not([class]){ display:contents; }
 @supports (display:grid){
-  #gc-formulacao > .gc-blk:first-child{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px; }
-  #gc-formulacao > .gc-blk:first-child h2{ grid-column:1/-1; margin-bottom:2px; }
+  .gc-params-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px; }
+  .gc-params-grid h2{ grid-column:1/-1; margin-bottom:2px; }
 }
 #gc-formulacao .gc-mp-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px; }
+.gc-tabelas-3-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; align-items:start; }
+.gc-tabela-tier{ padding:14px; margin:0; }
+.gc-tabela-tier h2{ font-size:12.5px; }
 /* ---------- ESCURO: paleta neutra absoluta para o módulo ---------- */
 body.theme-dark #gso-calc{
   --gcsf:#232323; --gcink:#EDEDED; --gcmut:#B3B3B3; --gcfnt:#8C8C8C;
@@ -28159,7 +28146,7 @@ body.theme-dark #gso-calc .gc-blk{
   background:#232323 !important; border-color:#3A3A3A !important;
   box-shadow: 0 1px 2px rgba(0,0,0,.5), 0 12px 28px rgba(0,0,0,.35) !important;
 }
-body.theme-dark #gc-formulacao > .gc-blk .gc-kv{ background:#1D1D1D; border-color:#3A3A3A; }
+body.theme-dark #gc-formulacao > .gc-blk .gc-kv, body.theme-dark .gc-params-grid .gc-kv{ background:#1D1D1D; border-color:#3A3A3A; }
 body.theme-dark #gso-calc [data-pov]{ color:#E6E6E6 !important; border-bottom-color:#6E6E6E !important; }
 body.theme-dark #gso-calc .gc-status .big,
 body.theme-dark #gso-calc td[data-ed]{ color:#E6E6E6 !important; }
