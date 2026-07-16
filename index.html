@@ -26678,22 +26678,23 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
         (custoRows ? '<details class="gc-custo-details"><summary>Custo de embalagem e total por formato</summary>' + custoRows + '</details>' : '') +
         '</div>';
     }).join('');
-    return '<div class="gc-blk" style="margin-bottom:14px"><h2>Matérias-primas e receitas <span>batelada de ' + bat + 'L · clique em um valor para editar</span></h2>' +
-      '<div class="gc-mp-sec">' +
-        '<div class="gc-mp-sec-title">Matérias-primas <span>valor por litro ou kg — os ativos usados nas receitas abaixo</span></div>' +
+    return '<div class="gc-blk" style="margin-bottom:14px">' +
+        '<h2>Matérias-primas <span>valor por litro ou kg · usadas nas receitas abaixo</span></h2>' +
         '<div class="gc-mp-grid">' + insHtml + '</div>' +
         addBtn +
       '</div>' +
-      '<div class="gc-mp-sec gc-mp-sec-emb">' +
-        '<div class="gc-mp-sec-title">Embalagens <span>custo fixo por unidade de garrafa, caixa e rótulo</span></div>' +
+      '<div class="gc-blk" style="margin-bottom:14px">' +
+        '<h2>Embalagens <span>custo fixo por unidade de garrafa, caixa e rótulo</span></h2>' +
         '<div class="gc-mp-emb-grid">' +
           '<div class="gc-mp-emb-col"><div class="gc-mp-emb-col-h">5L</div>' + matColHtml(matDefs5) + '</div>' +
           '<div class="gc-mp-emb-col"><div class="gc-mp-emb-col-h">1L</div>' + matColHtml(matDefs1) + '</div>' +
         '</div>' +
       '</div>' +
-      '<div style="height:14px"></div>' +
-      '<div class="gc-receita-list">' + cards + '</div>' +
-      '<div class="gc-hint" style="margin-top:10px">Custo do líquido = (soma das quantidades × valor por unidade) ÷ batelada × litros da embalagem. Para 5L: líquido + garrafa/tampa 5L + rótulo 5L + 1/4 da caixa 5L · Para 1L: líquido + garrafa/tampa 1L + rótulo 1L + 1/6 da caixa 1L. Ajustes manuais por produto (na ficha) têm prioridade.</div></div>';
+      '<div class="gc-blk">' +
+        '<h2>Receitas por produto <span>batelada de ' + bat + 'L · clique em um valor para editar</span></h2>' +
+        '<div class="gc-receita-list">' + cards + '</div>' +
+        '<div class="gc-hint" style="margin-top:10px">Custo do líquido = (soma das quantidades × valor por unidade) ÷ batelada × litros da embalagem. Para 5L: líquido + garrafa/tampa 5L + rótulo 5L + 1/4 da caixa 5L · Para 1L: líquido + garrafa/tampa 1L + rótulo 1L + 1/6 da caixa 1L. Ajustes manuais por produto (na ficha) têm prioridade.</div>' +
+      '</div>';
   }
 
   function tdEd(campo, k, valor) {
@@ -28129,10 +28130,7 @@ body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !impor
 }
 #gc-formulacao .gc-mp-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:0 28px; margin-bottom:6px; }
 
-/* Matérias-primas vs Embalagens: duas seções claramente separadas, não mais uma grade única */
-#gc-formulacao .gc-mp-sec + .gc-mp-sec{ border-top:1px solid var(--gcln); margin-top:16px; padding-top:16px; }
-#gc-formulacao .gc-mp-sec-title{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--gcmut); margin-bottom:10px; }
-#gc-formulacao .gc-mp-sec-title span{ display:block; font-size:11.5px; font-weight:500; text-transform:none; letter-spacing:0; color:var(--gcfnt); margin-top:2px; }
+/* Matérias-primas, Embalagens e Receitas: 3 blocos irmãos (ver mpCardHTML), não mais 1 card único */
 #gc-formulacao .gc-mp-emb-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:0 28px; }
 #gc-formulacao .gc-mp-emb-col-h{ font-size:11px; font-weight:700; color:var(--gcink); background:var(--gcbg); border-radius:6px; padding:3px 8px; display:inline-block; margin-bottom:4px; }
 
@@ -28141,10 +28139,10 @@ body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !impor
 #gso-calc .gc-un-btn{ border:0 !important; background:none !important; box-shadow:none !important; min-height:0 !important; border-radius:0 !important; padding:0 !important; font:600 10px inherit !important; font-family:inherit; color:var(--gcfnt) !important; cursor:pointer; }
 #gso-calc .gc-un-btn.on{ color:var(--gcink) !important; text-decoration:underline; text-underline-offset:2px; }
 
-/* Receitas por produto: uma lista, separadas por linha — não um cartão por produto */
-#gso-calc .gc-receita-list{ border-top:1px solid var(--gcln); }
-#gso-calc .gc-receita-card{ border:0; border-radius:0; padding:12px 0; border-bottom:1px solid var(--gcln); }
-#gso-calc .gc-receita-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; font-size:13px; }
+/* Receitas por produto: um bloco leve por produto, para separar visualmente sem empilhar caixas */
+#gso-calc .gc-receita-list{ display:flex; flex-direction:column; gap:10px; }
+#gso-calc .gc-receita-card{ border:1px solid var(--gcln); border-radius:12px; padding:14px 16px; background:var(--gcbg); }
+#gso-calc .gc-receita-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; font-size:13.5px; }
 #gso-calc .gc-receita-chips{ display:flex; flex-wrap:wrap; column-gap:20px; row-gap:7px; align-items:baseline; }
 
 /* matéria-prima dentro da receita: texto corrido, sem pílula */
