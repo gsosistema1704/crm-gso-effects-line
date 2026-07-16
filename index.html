@@ -795,6 +795,7 @@
     align-items: center;
   }
   .filter-panel.clients { grid-template-columns: minmax(240px, 1fr) repeat(3, minmax(150px, auto)); }
+  .filter-panel.lojista { grid-template-columns: minmax(240px, 1fr) minmax(160px, auto) auto; }
 	  .input {
 	    padding: 10px 14px;
 	    border: 1px solid var(--glass-rim);
@@ -1919,7 +1920,7 @@
     .menu-toggle { display: block; }
     .metrics { grid-template-columns: repeat(2, 1fr); }
     .row-2, .row-2-equal, .row-3, .trans-grid, .message-grid { grid-template-columns: 1fr; }
-    .form-r2, .form-r3, .form-r3-eq, .form-r4, .form-r5, .filter-panel, .filter-panel.clients, .sale-item-row { grid-template-columns: 1fr; }
+    .form-r2, .form-r3, .form-r3-eq, .form-r4, .form-r5, .filter-panel, .filter-panel.clients, .filter-panel.lojista, .sale-item-row { grid-template-columns: 1fr; }
     .header { flex-direction: column; align-items: flex-start; }
     .messages-shell { grid-template-columns: 1fr; min-height: auto; }
     .conversation-panel, .chat-panel { min-height: 420px; }
@@ -5441,6 +5442,7 @@ body,
 
 #view-vendas .filter-panel,
 #view-clientes .filter-panel.clients,
+#view-lojista .filter-panel.lojista,
 #sub-notas .search,
 #view-estoque .search {
   background: transparent !important;
@@ -7582,6 +7584,7 @@ body.dark-mode .scroll-top-button:hover,
 
   .filter-panel,
   .filter-panel.clients,
+  .filter-panel.lojista,
   .search,
   .notes-toolbar,
   .estoque-toolbar,
@@ -13136,7 +13139,7 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
         </div>
       </div>
 
-      <div class="filter-panel">
+      <div class="filter-panel lojista">
         <input type="text" class="input" id="searchLojista" placeholder="Buscar lojista, produto..." oninput="renderVendasLojista()">
         <input type="date" class="input" id="filterDataLojista" title="Filtrar por dia" aria-label="Filtrar por dia" onchange="renderVendasLojista()">
         <button class="btn btn-soft" onclick="document.getElementById('searchLojista').value='';document.getElementById('filterDataLojista').value='';renderVendasLojista();">Limpar</button>
