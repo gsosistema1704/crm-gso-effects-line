@@ -24957,9 +24957,16 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       if (margemSemFrete >= P.margem && margem < P.margem) alertas.push('O frete reduziu a margem abaixo do recomendado.');
     }
     if (st.k === 'baixo' && minimo != null) alertas.push('Para manter a margem saudável, o valor recomendado é ' + fmt(ideal || minimo) + '.');
+    var bateladaL = P.batelada || BATELADA_L_DEFAULT;
+    var bateladas = litros > 0 ? Math.ceil(litros / bateladaL) : 0;
+    var sobraLitros = bateladas > 0 ? round2(bateladas * bateladaL - litros) : 0;
+    var sobraUn5 = sobraLitros > 0 ? Math.floor(sobraLitros / 5) : 0;
+    var sobraUn1 = sobraLitros > 0 ? Math.floor(sobraLitros / 1) : 0;
     return {
-      litros: round2(litros), bateladas: litros > 0 ? Math.ceil(litros / (P.batelada || BATELADA_L_DEFAULT)) : 0,
-      un5: un5, un1: un1, caixas: caixas, unidades: unidades,
+      litros: round2(litros), bateladas: bateladas,
+      sobraLitros: sobraLitros, sobraUn5: sobraUn5, sobraUn1: sobraUn1,
+      un5: un5, un1: un1, caixas5: Math.floor(un5 / 4), restoUn5: un5 % 4, caixas1: Math.floor(un1 / 6), restoUn1: un1 % 6,
+      caixas: caixas, unidades: unidades,
       bruto: round2(bruto), descontoValor: round2(descontoValor), valor: valor,
       custoProd: round2(custoProd), fiscal: fiscal, fin: fin, frete: frete, custoTotal: custoTotal,
       lucro: lucro, margem: margem, markup: markup, minimo: minimo, ideal: ideal, premium: premium,
@@ -25116,14 +25123,22 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       .filter(function (k) { return (r.materiais[k] || 0) > 0.001; })
       .map(function (k) { return '<div class="gc-kv"><span class="l">Matéria-prima: ' + esc(insLabel(k)) + '</span><b>' + round2(r.materiais[k]).toLocaleString('pt-BR') + ' L</b></div>'; })
       .join('');
-    var prod = '<details class="gc-slim" open><summary>Produção</summary>' +
-      '<div class="gc-kv"><span class="l">Litros · bateladas (até ' + (P.batelada || 200) + 'L)</span><b>' + (r.litros || 0).toLocaleString('pt-BR') + ' L · ' + r.bateladas + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Unidades 5L · 1L</span><b>' + r.un5 + ' · ' + r.un1 + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Caixas fechadas</span><b>' + r.caixas + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Garrafas + tampas + rótulos 5L</span><b>' + r.un5 + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Garrafas + tampas + rótulos 1L</span><b>' + r.un1 + '</b></div>' +
-      (materiaisRows || '<div class="gc-kv"><span class="l">Matérias-primas</span><b>—</b></div>') +
-      '</details>';
+    var prodRowsHtml = '<div class="gc-kv"><span class="l">Litros · bateladas (até ' + (P.batelada || 200) + 'L)</span><b>' + (r.litros || 0).toLocaleString('pt-BR') + ' L · ' + r.bateladas + '</b></div>';
+    if (r.sobraLitros > 0) {
+      var galoesHtml = [];
+      if (r.un5 > 0) galoesHtml.push(r.sobraUn5 + ' galões de 5L');
+      if (r.un1 > 0) galoesHtml.push(r.sobraUn1 + ' galões de 1L');
+      prodRowsHtml += '<div class="gc-kv"><span class="l">Sobra da última batelada</span><b>' + r.sobraLitros.toLocaleString('pt-BR') + ' L' + (galoesHtml.length ? ' · ' + galoesHtml.join(' ou ') : '') + '</b></div>';
+    }
+    if (r.un5 > 0 && r.un1 > 0) prodRowsHtml += '<div class="gc-kv"><span class="l">Unidades 5L · 1L</span><b>' + r.un5 + ' · ' + r.un1 + '</b></div>';
+    else if (r.un5 > 0) prodRowsHtml += '<div class="gc-kv"><span class="l">Unidades 5L</span><b>' + r.un5 + '</b></div>';
+    else if (r.un1 > 0) prodRowsHtml += '<div class="gc-kv"><span class="l">Unidades 1L</span><b>' + r.un1 + '</b></div>';
+    if (r.un5 > 0) prodRowsHtml += '<div class="gc-kv"><span class="l">Caixas (5L)</span><b>' + r.caixas5 + (r.restoUn5 ? ' + ' + r.restoUn5 + ' un. solta' + (r.restoUn5 === 1 ? '' : 's') : '') + '</b></div>';
+    if (r.un1 > 0) prodRowsHtml += '<div class="gc-kv"><span class="l">Caixas (1L)</span><b>' + r.caixas1 + (r.restoUn1 ? ' + ' + r.restoUn1 + ' un. solta' + (r.restoUn1 === 1 ? '' : 's') : '') + '</b></div>';
+    if (r.un5 > 0) prodRowsHtml += '<div class="gc-kv"><span class="l">Garrafas + tampas + rótulos 5L</span><b>' + r.un5 + '</b></div>';
+    if (r.un1 > 0) prodRowsHtml += '<div class="gc-kv"><span class="l">Garrafas + tampas + rótulos 1L</span><b>' + r.un1 + '</b></div>';
+    prodRowsHtml += materiaisRows || '<div class="gc-kv"><span class="l">Matérias-primas</span><b>—</b></div>';
+    var prod = '<details class="gc-slim" open><summary>Produção</summary>' + prodRowsHtml + '</details>';
     var kvMore = '<details class="gc-slim"><summary>Outros indicadores</summary>' +
       '<div class="gc-kv"><span class="l">Margem líquida</span><b>' + fmtPct(r.margem) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Preço ideal</span><b>' + fmt(r.ideal) + '</b></div>' +
@@ -25140,14 +25155,15 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     var acts = '<div class="gc-row">' +
       '<button class="gc-btn dark" id="gc-venda">Transformar em venda</button>' +
       '<button class="gc-btn zap" id="gc-zap">Orçamento WhatsApp</button>' +
+      '<button class="gc-btn" id="gc-copiar">Copiar resumo</button>' +
       '<button class="gc-btn" id="gc-salvar">Salvar simulação</button>' +
       '<button class="gc-btn red" id="gc-limpar">Limpar</button></div>';
     return head + kvTop + msg + al + prod + kvMore + custo + det + acts;
   }
   function refreshResultado() {
     var f = fields();
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
     var res = $('#gc-res'); if (res) res.innerHTML = resultadoHTML(r);
-    var iw = $('#gc-pedido .gc-blk:nth-child(1)'); // no-op guard
     return r;
   }
   function addItem() {
@@ -25186,6 +25202,47 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     linhas.push('Frete: ' + f.frete);
     linhas.push('');
     linhas.push('Pedido sujeito à disponibilidade de estoque.');
+    return linhas.join('\n');
+  }
+  function resumoTecnicoTexto() {
+    var f = fields();
+    var P = params();
+    var r = computeOrder(UI.itens, { params: P, desconto: f.desc, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var linhas = ['Resumo técnico do pedido', ''];
+    UI.itens.forEach(function (it) {
+      linhas.push('- ' + it.produto + ' ' + it.tamanho + ' (' + it.embLabel + ') × ' + it.qtdEntrada + ' — ' + fmt(it.total));
+    });
+    linhas.push('');
+    linhas.push('Total do pedido: ' + fmt(r.valor) + ' (' + r.status.label + ')');
+    linhas.push('Lucro estimado: ' + fmt(r.lucro));
+    linhas.push('Mínimo recomendado: ' + fmt(r.minimo));
+    linhas.push('Margem líquida: ' + fmtPct(r.margem));
+    linhas.push('Preço ideal: ' + fmt(r.ideal));
+    linhas.push('Preço premium: ' + fmt(r.premium));
+    linhas.push('');
+    linhas.push('Produção');
+    linhas.push('Litros · bateladas (até ' + (P.batelada || BATELADA_L_DEFAULT) + 'L): ' + (r.litros || 0).toLocaleString('pt-BR') + ' L · ' + r.bateladas);
+    if (r.sobraLitros > 0) {
+      var galoes = [];
+      if (r.un5 > 0) galoes.push(r.sobraUn5 + ' galões de 5L');
+      if (r.un1 > 0) galoes.push(r.sobraUn1 + ' galões de 1L');
+      linhas.push('Sobra da última batelada: ' + r.sobraLitros.toLocaleString('pt-BR') + ' L' + (galoes.length ? ' (' + galoes.join(' ou ') + ')' : ''));
+    }
+    if (r.un5 > 0) linhas.push('Unidades 5L: ' + r.un5 + ' · Caixas (5L): ' + r.caixas5 + (r.restoUn5 ? ' + ' + r.restoUn5 + ' un. solta' + (r.restoUn5 === 1 ? '' : 's') : ''));
+    if (r.un1 > 0) linhas.push('Unidades 1L: ' + r.un1 + ' · Caixas (1L): ' + r.caixas1 + (r.restoUn1 ? ' + ' + r.restoUn1 + ' un. solta' + (r.restoUn1 === 1 ? '' : 's') : ''));
+    if (r.un5 > 0) linhas.push('Garrafas + tampas + rótulos 5L: ' + r.un5);
+    if (r.un1 > 0) linhas.push('Garrafas + tampas + rótulos 1L: ' + r.un1);
+    Object.keys(r.materiais || {}).forEach(function (k) {
+      if ((r.materiais[k] || 0) > 0.001) linhas.push('Matéria-prima ' + insLabel(k) + ': ' + round2(r.materiais[k]).toLocaleString('pt-BR') + ' L');
+    });
+    linhas.push('');
+    linhas.push('Custo');
+    linhas.push('Produto + embalagem: ' + fmt(r.custoProd));
+    linhas.push('Fiscal (' + P.fiscal + '%): ' + fmt(r.fiscal));
+    linhas.push('Financeiro: ' + fmt(r.fin));
+    linhas.push('Frete subsidiado: ' + fmt(r.frete));
+    linhas.push('Custo total real: ' + fmt(r.custoTotal));
+    linhas.push('Markup: ' + (r.markup ? (Math.round(r.markup * 100) / 100).toLocaleString('pt-BR') + '×' : '—'));
     return linhas.join('\n');
   }
   function salvarSim(convertida) {
@@ -25606,6 +25663,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       var rm = t.closest('[data-rm]'); if (rm) { UI.itens.splice(parseInt(rm.dataset.rm, 10), 1); renderPedido(); return; }
       var pe = t.closest('[data-preco]'); if (pe) { editPrecoItem(parseInt(pe.dataset.preco, 10)); return; }
       if (t.id === 'gc-zap') { if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; } moOpen(zapTexto()); return; }
+      if (t.id === 'gc-copiar') { if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; } moOpen(resumoTecnicoTexto(), 'Resumo técnico do pedido'); return; }
       if (t.id === 'gc-salvar') { if (salvarSim(false)) renderPedido(); return; }
       if (t.id === 'gc-venda') { transformarEmVenda(); return; }
       if (t.id === 'gc-limpar') { UI.itens = []; renderPedido(); return; }
