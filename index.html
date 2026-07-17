@@ -25390,7 +25390,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     // em store.receitaProdutosExtra, sem afetar os demais.
     var nomes = [], vist = {}, nomesCatalogo = {};
     prodRows().forEach(function (r) {
+      if (!r.produto) return;
       var nk = normNome(r.produto);
+      if (!nk) return;
       if (!nomesCatalogo[nk]) nomesCatalogo[nk] = r.produto;
       if (litrosDe(r.tamanho) > 0 && !vist[nk]) { vist[nk] = 1; nomes.push(r.produto); }
     });
