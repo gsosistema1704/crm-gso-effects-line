@@ -24740,6 +24740,24 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     save();
     renderFormulacao(); renderEstrategia(); refreshResultado();
   }
+  // Produtos que não usam litros (ex.: Top Up em g/mL) ficam fora da lista de Formulação
+  // por padrão; a usuária pode incluí-los manualmente aqui, sem afetar os demais produtos.
+  function adicionarProdutoFormulacao(nomeProduto) {
+    if (!nomeProduto) return;
+    var k = normNome(nomeProduto);
+    store.receitaProdutosExtra = store.receitaProdutosExtra || [];
+    if (store.receitaProdutosExtra.indexOf(k) < 0) store.receitaProdutosExtra.push(k);
+    save();
+    renderFormulacao(); renderEstrategia(); refreshResultado();
+  }
+  function removerProdutoFormulacao(produtoKey) {
+    if (!window.confirm('Remover este produto da lista de Formulação? A receita (matérias-primas selecionadas) cadastrada para ele será apagada.')) return;
+    store.receitaProdutosExtra = (store.receitaProdutosExtra || []).filter(function (k) { return k !== produtoKey; });
+    if (store.receitaMateriais) delete store.receitaMateriais[produtoKey];
+    if (store.receitas) delete store.receitas[produtoKey];
+    save();
+    renderFormulacao(); renderEstrategia(); refreshResultado();
+  }
   function insumos() {
     var p = Object.assign({}, INSUMOS_DEF, store.insumos || {});
     insKeysAll().forEach(function (key) { if (p[key] == null) p[key] = 0; });
@@ -25366,13 +25384,28 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       }).join('');
     }
     var addBtn = '<div style="margin-top:10px"><button type="button" class="gc-lnk" data-mp-add="1">+ Adicionar matéria-prima</button></div>';
-    // receitas: um card por produto, só com as matérias-primas selecionadas para ele
-    var nomes = [], vist = {};
+    // receitas: um card por produto, só com as matérias-primas selecionadas para ele.
+    // Por padrão só entram produtos com tamanho em litros (usam o cálculo de batelada);
+    // produtos em outras unidades (ex.: Top Up em g/mL) podem ser incluídos manualmente
+    // em store.receitaProdutosExtra, sem afetar os demais.
+    var nomes = [], vist = {}, nomesCatalogo = {};
     prodRows().forEach(function (r) {
-      if (litrosDe(r.tamanho) > 0 && !vist[normNome(r.produto)]) { vist[normNome(r.produto)] = 1; nomes.push(r.produto); }
+      var nk = normNome(r.produto);
+      if (!nomesCatalogo[nk]) nomesCatalogo[nk] = r.produto;
+      if (litrosDe(r.tamanho) > 0 && !vist[nk]) { vist[nk] = 1; nomes.push(r.produto); }
     });
+    var extras = store.receitaProdutosExtra || [];
+    extras.forEach(function (nk) {
+      if (!vist[nk] && nomesCatalogo[nk]) { vist[nk] = 1; nomes.push(nomesCatalogo[nk]); }
+    });
+    var disponiveisProduto = Object.keys(nomesCatalogo).filter(function (nk) { return !vist[nk]; }).map(function (nk) { return nomesCatalogo[nk]; });
+    var addProdutoSel = disponiveisProduto.length
+      ? ('<select class="gc-mat-add" data-receita-produto-add="1"><option value="">+ adicionar produto…</option>' +
+         disponiveisProduto.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('') + '</select>')
+      : '';
     var cards = nomes.map(function (nomeDisplay) {
       var k = normNome(nomeDisplay);
+      var isExtra = extras.indexOf(k) >= 0;
       var ativos = receitaAtivosDe(k);
       var r = receitaDe(k), cl = custoLitroDe(k);
       var chips = ativos.map(function (i) {
@@ -25400,7 +25433,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
           '<button type="button" class="gc-lnk" data-open-custo="' + esc(ck) + '">Editar</button></div>';
       }).join('');
       return '<div class="gc-receita-card">' +
-        '<div class="gc-receita-head"><b>' + esc(nomeDisplay) + '</b>' + totPill + '</div>' +
+        '<div class="gc-receita-head"><b>' + esc(nomeDisplay) + '</b>' + totPill +
+        (isExtra ? '<button type="button" class="gc-mat-chip-x" data-receita-produto-del="' + esc(k) + '" title="Remover produto da lista de Formulação">✕</button>' : '') +
+        '</div>' +
         '<div class="gc-receita-chips">' + (chips || '<span class="gc-hint" style="padding:0">Nenhuma matéria-prima selecionada ainda.</span>') + addSel + '</div>' +
         '<div class="gc-receita-foot">Custo/L: <b>' + (cl.custoLitro > 0 ? fmt(round2(cl.custoLitro)) : '—') + '</b> · Líquido 5L: <b>' + liq5 + '</b> · Líquido 1L: <b>' + liq1 + '</b></div>' +
         (custoRows ? '<details class="gc-custo-details"><summary>Custo de embalagem e total por formato</summary>' + custoRows + '</details>' : '') +
@@ -25421,7 +25456,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       '<div class="gc-blk">' +
         '<h2>Receitas por produto <span>batelada de ' + bat + 'L · clique em um valor para editar</span></h2>' +
         '<div class="gc-receita-list">' + cards + '</div>' +
-        '<div class="gc-hint" style="margin-top:10px">Custo do líquido = (soma das quantidades × valor por unidade) ÷ batelada × litros da embalagem. Para 5L: líquido + garrafa/tampa 5L + rótulo 5L + 1/4 da caixa 5L · Para 1L: líquido + garrafa/tampa 1L + rótulo 1L + 1/6 da caixa 1L. Ajustes manuais por produto (na ficha) têm prioridade.</div>' +
+        (addProdutoSel ? '<div style="margin-top:10px">' + addProdutoSel + '</div>' : '') +
+        '<div class="gc-hint" style="margin-top:10px">Custo do líquido = (soma das quantidades × valor por unidade) ÷ batelada × litros da embalagem. Para 5L: líquido + garrafa/tampa 5L + rótulo 5L + 1/4 da caixa 5L · Para 1L: líquido + garrafa/tampa 1L + rótulo 1L + 1/6 da caixa 1L. Ajustes manuais por produto (na ficha) têm prioridade. Produtos adicionados manualmente (não medidos em litros) não usam essa conta de batelada.</div>' +
       '</div>';
   }
 
@@ -25700,6 +25736,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       var mpDel = t.closest('[data-mp-del]'); if (mpDel) { removerMateriaPrima(mpDel.dataset.mpDel); return; }
       var mpUn = t.closest('[data-mp-un]'); if (mpUn) { var unParts = mpUn.dataset.mpUn.split('|'); setInsUnidade(unParts[0], unParts[1]); return; }
       var recMatDel = t.closest('[data-rec-mat-del]'); if (recMatDel) { var rmParts = recMatDel.dataset.recMatDel.split('|'); removerMaterialDoProduto(rmParts[0], rmParts[1]); return; }
+      var prodDel2 = t.closest('[data-receita-produto-del]'); if (prodDel2) { removerProdutoFormulacao(prodDel2.dataset.receitaProdutoDel); return; }
       var mp = t.closest('[data-mp]'); if (mp) { startEditMp(mp); return; }
       var ed = t.closest('td[data-ed]'); if (ed) { startEdit(ed); return; }
       var pov = t.closest('[data-pov]'); if (pov) { startEditParam(pov); return; }
@@ -25710,6 +25747,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       if (t.hasAttribute && t.hasAttribute('data-estrtab')) { UI.estrTabela = t.value; renderEstrategia(); return; }
       if (t.hasAttribute && t.hasAttribute('data-ord')) { UI.ordenar = t.value; renderEstrategia(); return; }
       if (t.hasAttribute && t.hasAttribute('data-rec-mat-add')) { adicionarMaterialAoProduto(t.dataset.recMatAdd, t.value); return; }
+      if (t.hasAttribute && t.hasAttribute('data-receita-produto-add')) { adicionarProdutoFormulacao(t.value); return; }
       if (t.id === 'gc-f-prod') { renderPedido(); return; }
       if (t.id === 'gc-f-frete') { var w = $('#gc-f-fretev-w'); if (w) w.style.display = (t.value === 'Subsidiado' || t.value === 'Grátis') ? '' : 'none'; refreshResultado(); return; }
       if (t.id && t.id.indexOf('gc-f-') === 0) { refreshResultado(); return; }
