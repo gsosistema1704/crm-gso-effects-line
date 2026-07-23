@@ -11155,8 +11155,32 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
   #view-vendas .filter-panel {
     grid-template-columns: minmax(230px, 1.4fr) repeat(5, minmax(128px, 0.8fr));
   }
-  #view-vendas #filterDataVenda {
-    min-width: 138px;
+  #view-vendas .filter-date-range {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 260px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--line-strong, #d9dce1);
+    border-radius: 8px;
+    padding: 0 8px;
+  }
+  #view-vendas .filter-date-range span {
+    font-size: 11px;
+    color: var(--text-2, #6b7280);
+    white-space: nowrap;
+  }
+  #view-vendas .filter-date-range input[type="date"] {
+    border: none !important;
+    background: transparent !important;
+    padding: 8px 2px !important;
+    min-width: 108px;
+  }
+  @media (max-width: 760px) {
+    #view-vendas .filter-date-range {
+      min-width: 0;
+      width: 100%;
+    }
   }
   #view-vendas #filterProdutoVenda {
     min-width: 160px;
@@ -11757,7 +11781,12 @@ th,
 
       <div class="filter-panel">
         <input type="text" class="input" id="searchVendas" placeholder="Buscar cliente, produto..." oninput="renderVendas()">
-        <input type="date" class="input" id="filterDataVenda" title="Filtrar por dia" aria-label="Filtrar por dia" onchange="renderVendas()">
+        <div class="filter-date-range" title="Filtrar vendas por período">
+          <span>De</span>
+          <input type="date" class="input" id="filterDataVenda" aria-label="Data inicial do período" onchange="renderVendas()">
+          <span>até</span>
+          <input type="date" class="input" id="filterDataVendaAte" aria-label="Data final do período" onchange="renderVendas()">
+        </div>
         <select class="input" id="filterAno" onchange="renderVendas()">
           <option value="">Todos os anos</option>
         </select>
@@ -16951,7 +16980,7 @@ function gsoClearPagination(containerId) {
 
 function limparFiltrosVendas() {
   dashboardSalesQuickFilter = '';
-  ['searchVendas','filterDataVenda','filterAno','filterProdutoVenda','filterAromaVenda','filterPagamento','filterVendedor','filterNF'].forEach(id => {
+  ['searchVendas','filterDataVenda','filterDataVendaAte','filterAno','filterProdutoVenda','filterAromaVenda','filterPagamento','filterVendedor','filterNF'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -16979,6 +17008,7 @@ function renderVendas() {
 
   const term = document.getElementById('searchVendas').value.toLowerCase();
   const dataFiltro = document.getElementById('filterDataVenda')?.value || '';
+  const dataFiltroAte = document.getElementById('filterDataVendaAte')?.value || '';
   const ano = document.getElementById('filterAno').value;
   const produtoFiltro = document.getElementById('filterProdutoVenda')?.value || '';
   const aromaFiltro = document.getElementById('filterAromaVenda')?.value || '';
@@ -16993,7 +17023,8 @@ function renderVendas() {
     (r.vendedor || '').toLowerCase().includes(term) ||
     (r.pagamento || '').toLowerCase().includes(term)
   );
-  if (dataFiltro) rows = rows.filter(r => dashboardDateKey(r.data) === dataFiltro);
+  if (dataFiltro) rows = rows.filter(r => dashboardDateKey(r.data) >= dataFiltro);
+  if (dataFiltroAte) rows = rows.filter(r => dashboardDateKey(r.data) <= dataFiltroAte);
   if (ano) rows = rows.filter(r => (dashboardDateObj(r.data)?.getFullYear()) === parseInt(ano));
   if (produtoFiltro) rows = rows.filter(r => vendaMatchesProductFilter(r, produtoFiltro));
   if (aromaFiltro) rows = rows.filter(r => saleAromaValues(r).some(aroma => nameKey(aroma) === nameKey(aromaFiltro)));
@@ -17005,7 +17036,7 @@ function renderVendas() {
   if (dashboardSalesQuickFilter === 'hoje') rows = rows.filter(r => dashboardDateKey(r.data) === dashboardDateKey(new Date()));
   if (dashboardSalesQuickFilter === 'sem_boleto') rows = rows.filter(r => canonicalPayment(r.pagamento || '') === 'Boleto' && !dashboardHasSaleFile(r, 'boleto'));
 
-  const pageSignature = gsoPaginationSignature([term, dataFiltro, ano, produtoFiltro, aromaFiltro, pagamentoFiltro, vendedorFiltro, nfFiltro, revisarFiltro, dashboardSalesQuickFilter, rows.length]);
+  const pageSignature = gsoPaginationSignature([term, dataFiltro, dataFiltroAte, ano, produtoFiltro, aromaFiltro, pagamentoFiltro, vendedorFiltro, nfFiltro, revisarFiltro, dashboardSalesQuickFilter, rows.length]);
   const pageInfo = gsoPaginateRows('vendas', rows, pageSignature);
   const tbody = document.getElementById('vendasTable');
   if (rows.length === 0) {
