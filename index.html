@@ -11156,10 +11156,11 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
     grid-template-columns: minmax(230px, 1.4fr) repeat(5, minmax(128px, 0.8fr));
   }
   #view-vendas .filter-date-range {
+    grid-column: span 2;
     display: flex;
     align-items: center;
-    gap: 6px;
-    min-width: 260px;
+    gap: 4px;
+    min-width: 0;
     background: var(--surface, #fff);
     border: 1px solid var(--line-strong, #d9dce1);
     border-radius: 8px;
@@ -11169,16 +11170,24 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
     font-size: 11px;
     color: var(--text-2, #6b7280);
     white-space: nowrap;
+    flex: 0 0 auto;
   }
   #view-vendas .filter-date-range input[type="date"] {
     border: none !important;
     background: transparent !important;
     padding: 8px 2px !important;
-    min-width: 108px;
+    min-width: 0;
+    width: 0;
+    flex: 1 1 96px;
+  }
+  @media (max-width: 1180px) {
+    #view-vendas .filter-date-range {
+      grid-column: span 2;
+    }
   }
   @media (max-width: 760px) {
     #view-vendas .filter-date-range {
-      min-width: 0;
+      grid-column: 1 / -1;
       width: 100%;
     }
   }
