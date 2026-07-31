@@ -11941,6 +11941,7 @@ th,
         </div>
         <div class="h-actions">
           <button class="btn btn-primary hidden" id="btn-unificar-clientes" onclick="abrirUnificacaoClientes()">Unificar (<span id="unificar-count">0</span>)</button>
+          <button class="btn hidden" id="btn-exportar-clientes" onclick="exportarClientesSelecionados()">Exportar (<span id="exportar-count">0</span>)</button>
           <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
           <button class="btn btn-primary" onclick="openClienteModal()">+ Novo Cliente</button>
         </div>
@@ -17958,14 +17959,56 @@ async function excluirCliente(nome) {
 let unificarSelecionados = new Set();
 let unificarNomePrincipal = null;
 
+function atualizarBotoesSelecaoClientes() {
+  const btnUnificar = document.getElementById('btn-unificar-clientes');
+  const countUnificar = document.getElementById('unificar-count');
+  if (countUnificar) countUnificar.textContent = String(unificarSelecionados.size);
+  if (btnUnificar) btnUnificar.classList.toggle('hidden', unificarSelecionados.size < 2);
+
+  const btnExportar = document.getElementById('btn-exportar-clientes');
+  const countExportar = document.getElementById('exportar-count');
+  if (countExportar) countExportar.textContent = String(unificarSelecionados.size);
+  if (btnExportar) btnExportar.classList.toggle('hidden', unificarSelecionados.size < 1);
+}
+
 function atualizarSelecaoUnificar(checkbox, nome) {
   const key = nameKey(nome);
   if (checkbox.checked) unificarSelecionados.add(key);
   else unificarSelecionados.delete(key);
-  const btn = document.getElementById('btn-unificar-clientes');
-  const count = document.getElementById('unificar-count');
-  if (count) count.textContent = String(unificarSelecionados.size);
-  if (btn) btn.classList.toggle('hidden', unificarSelecionados.size < 2);
+  atualizarBotoesSelecaoClientes();
+}
+
+function selecionarTodosClientesFiltrados() {
+  const lista = window.__clientesFiltradosAtuais || [];
+  if (!lista.length) return;
+  lista.forEach(c => unificarSelecionados.add(nameKey(c.nome)));
+  atualizarBotoesSelecaoClientes();
+  if (typeof renderClientes === 'function') renderClientes();
+}
+
+function exportarClientesSelecionados() {
+  if (unificarSelecionados.size === 0) { alert('Selecione ao menos 1 cliente para exportar.'); return; }
+  const clis = (typeof computeClientes === 'function' ? computeClientes() : []).filter(c => unificarSelecionados.has(nameKey(c.nome)));
+  const doc = nome => {
+    const fiscal = fiscalRecordForCliente(nome) || {};
+    const docs = splitFiscalDocs(fiscal) || {};
+    const joined = [docs.cpf, docs.cnpj].filter(Boolean).join(' / ');
+    if (joined) return joined;
+    const composto = composeFiscalDoc(fiscal);
+    if (composto) return composto;
+    return String(fiscal.doc || fiscal.cpf || fiscal.cnpj || '').trim();
+  };
+  let csv = 'Nome,Telefone,CPF/CNPJ,Última compra,Status,Total gasto\n';
+  clis.forEach(c => {
+    csv += `"${(c.nome || '').replace(/"/g, '""')}","${(c.telefone || '').replace(/"/g, '""')}","${doc(c.nome).replace(/"/g, '""')}","${c.ultima ? fmtDate(c.ultima) : ''}","${c.status || ''}","${fmtBR(c.total || 0)}"\n`;
+  });
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `clientes_selecionados_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function toggleTodosUnificar(checkbox) {
@@ -21629,6 +21672,23 @@ init();
   #mc-delete-btn {
     margin-right: auto;
   }
+  .gso-lnk-selecionar-tudo {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-left: 8px;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--blue, #2563eb);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .gso-lnk-selecionar-tudo:hover {
+    opacity: 0.8;
+  }
 </style>
 <script id="gso-clientes-colunas-final-10-script">
 (function(){
@@ -21895,7 +21955,7 @@ init();
     if (fiscal) fiscal.classList.add('hidden');
     const thead = document.querySelector('#sub-crm .table-card table thead');
     if (thead) {
-      thead.innerHTML = '<tr><th style="width:34px;"><input type="checkbox" id="chk-unificar-todos" onclick="toggleTodosUnificar(this)" data-tip="Selecionar todos os visíveis" class="gso-has-tip"></th><th>Cliente</th><th>Telefone</th><th>CPF/CNPJ</th><th>Última compra</th><th>Status</th><th>Ações</th></tr>';
+      thead.innerHTML = '<tr><th style="width:34px;"><input type="checkbox" id="chk-unificar-todos" onclick="toggleTodosUnificar(this)" data-tip="Selecionar todos desta página" class="gso-has-tip"></th><th>Cliente <button type="button" class="gso-lnk-selecionar-tudo" onclick="selecionarTodosClientesFiltrados()">Selecionar tudo</button></th><th>Telefone</th><th>CPF/CNPJ</th><th>Última compra</th><th>Status</th><th>Ações</th></tr>';
     }
   }
 
@@ -21933,6 +21993,9 @@ init();
     rows = rows.slice().sort((a, b) => sortMode === 'za'
       ? String(b.nome || '').localeCompare(String(a.nome || ''), 'pt-BR')
       : String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+
+    // Lista completa já filtrada/ordenada (todas as páginas), pro "Selecionar tudo" usar.
+    window.__clientesFiltradosAtuais = rows;
 
     const pageSignature = typeof gsoPaginationSignature === 'function' ? gsoPaginationSignature([term, status, compra, valorMin, sortMode, rows.length]) : String(rows.length);
     const pageInfo = typeof gsoPaginateRows === 'function' ? gsoPaginateRows('clientes', rows, pageSignature) : { rows: rows.slice(0, PER_PAGE), page:1, pages:Math.max(1, Math.ceil(rows.length/PER_PAGE)), total:rows.length, start:0, end:Math.min(rows.length, PER_PAGE) };
