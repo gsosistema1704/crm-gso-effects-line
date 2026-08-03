@@ -6180,25 +6180,12 @@ body.theme-dark #view-mensagens .message-bubble {
 
 /* ============ BUGFIX: CANVAS DOS GRÁFICOS NO MODO ESCURO ============ */
 body.theme-dark #chartDashPagamento,
-body.theme-dark #chartQualidadeClientes,
-body.theme-dark #chartQualidadeFiscal,
 body.dark #chartDashPagamento,
-body.dark #chartQualidadeClientes,
-body.dark #chartQualidadeFiscal,
 body.dark-mode #chartDashPagamento,
-body.dark-mode #chartQualidadeClientes,
-body.dark-mode #chartQualidadeFiscal,
-[data-theme="dark"] #chartDashPagamento,
-[data-theme="dark"] #chartQualidadeClientes,
-[data-theme="dark"] #chartQualidadeFiscal {
+[data-theme="dark"] #chartDashPagamento {
   background: transparent !important;
   background-image: none !important;
   border-color: transparent !important;
-}body.theme-dark #relatorios-qualidade .chart-wrap-sm,
-body.dark #relatorios-qualidade .chart-wrap-sm,
-body.dark-mode #relatorios-qualidade .chart-wrap-sm,
-[data-theme="dark"] #relatorios-qualidade .chart-wrap-sm{
-  background: transparent !important;
 }
 
 
@@ -12377,261 +12364,6 @@ th,
     </div>
 
     <!-- ============ RELATORIOS ============ -->
-    <div id="view-relatorios" class="hidden">
-	      <div class="header">
-	        <div>
-	          <div class="h-title">Relatórios</div>
-	          <div class="h-sub">Análise de vendas, ranking e fiscal</div>
-	        </div>
-        <div class="h-actions">
-          <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
-          <button class="btn" onclick="exportarRelatorioPDF()">Exportar PDF</button>
-	        </div>
-	      </div>
-
-	      <div class="subtabs">
-	        <div class="subtab active" data-rel-tab="geral" onclick="switchRelatorioTab('geral')">Relatórios</div>
-	        <div class="subtab" data-rel-tab="qualidade" onclick="switchRelatorioTab('qualidade')">Qualidade da Base</div>
-	      </div>
-
-	      <div id="relatorios-main" class="relatorios-pro">
-        <div class="report-kpi-grid">
-          <div class="report-kpi">
-            <div class="report-kpi-label">Financeiro</div>
-            <div class="report-kpi-value" id="rel-kpi-total">R$ 0,00</div>
-            <div class="report-kpi-sub">Faturamento total registrado</div>
-          </div>
-          <div class="report-kpi">
-            <div class="report-kpi-label">Mês atual</div>
-            <div class="report-kpi-value" id="rel-kpi-mes">R$ 0,00</div>
-            <div class="report-kpi-sub" id="rel-kpi-mes-sub">0 vendas no período</div>
-          </div>
-          <div class="report-kpi">
-            <div class="report-kpi-label">Fiscal</div>
-            <div class="report-kpi-value" id="rel-kpi-fiscal">0%</div>
-            <div class="report-kpi-sub" id="rel-kpi-fiscal-sub">vendas com NF vinculada</div>
-          </div>
-          <div class="report-kpi">
-            <div class="report-kpi-label">Cidades</div>
-            <div class="report-kpi-value" id="rel-kpi-cidades">0</div>
-            <div class="report-kpi-sub" id="rel-kpi-cidades-sub">vendas fora de Canoas</div>
-          </div>
-        </div>
-
-        <div class="report-chart-grid">
-          <div class="card report-card-compact">
-            <div class="card-h">
-              <div>
-                <div class="card-title">Faturamento semanal</div>
-                <div class="card-sub">Valores em reais por semana</div>
-              </div>
-            </div>
-            <div class="chart-wrap">
-              <canvas id="chartRelSemanal"></canvas>
-              <div class="empty-chart hidden" id="empty-rel-semanal">Sem dados ainda</div>
-            </div>
-          </div>
-          <div class="card report-card-compact">
-            <div class="card-h">
-              <div>
-                <div class="card-title">Faturamento mensal</div>
-                <div class="card-sub">Valores em reais por mês</div>
-              </div>
-            </div>
-            <div class="chart-wrap">
-              <canvas id="chartRelMensal"></canvas>
-              <div class="empty-chart hidden" id="empty-rel-mensal">Sem dados ainda</div>
-            </div>
-          </div>
-          <div class="card report-card-compact">
-            <div class="card-h">
-              <div>
-                <div class="card-title">Faturamento anual</div>
-                <div class="card-sub">Valores em reais por ano</div>
-              </div>
-            </div>
-            <div class="chart-wrap">
-              <canvas id="chartRelAnual"></canvas>
-              <div class="empty-chart hidden" id="empty-rel-anual">Sem dados ainda</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="row-2-equal report-row">
-          <div class="card">
-            <div class="card-h">
-              <div>
-                <div class="card-title">Meta do mês que passou</div>
-                <div class="card-sub" id="rel-meta-sub">Meta mensal em reais</div>
-              </div>
-            </div>
-            <div class="report-goal-box">
-              <div>
-                <label class="form-label">Meta em R$</label>
-                <input type="text" class="form-input" id="rel-meta-valor" placeholder="Ex: 150.000,00">
-              </div>
-              <button class="btn btn-primary" onclick="saveRelatorioMetaMensal()">Salvar meta</button>
-            </div>
-            <div class="chart-wrap-sm">
-              <canvas id="chartRelMeta"></canvas>
-              <div class="empty-chart hidden" id="empty-rel-meta">Informe a meta para comparar com o mês anterior.</div>
-            </div>
-            <div class="report-goal-summary" id="rel-meta-resumo"></div>
-          </div>
-          <div class="card">
-            <div class="card-h">
-              <div>
-                <div class="card-title">Fiscal e documentos</div>
-                <div class="card-sub">NF por venda e faturamento fiscal</div>
-              </div>
-            </div>
-            <div class="chart-wrap-sm">
-              <canvas id="chartRelFiscal"></canvas>
-              <div class="empty-chart hidden" id="empty-rel-fiscal">Sem dados ainda</div>
-            </div>
-            <div class="report-mini-list" id="rel-fiscal-resumo"></div>
-          </div>
-        </div>
-
-        <div class="card data-card">
-          <div class="card-h">
-            <div>
-              <div class="card-title">Produto e aroma mais vendidos por mês</div>
-              <div class="card-sub">Ranking mensal por quantidade vendida, incluindo o aroma dominante</div>
-            </div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Mês</th>
-                <th>Produto líder</th>
-                <th>Tamanho</th>
-                <th>Aroma líder</th>
-                <th class="num">Qtd vendida</th>
-                <th class="num">Faturamento</th>
-              </tr>
-            </thead>
-            <tbody id="rel-produtos-mes"></tbody>
-          </table>
-        </div>
-
-        <div class="card data-card">
-          <div class="card-h">
-            <div>
-              <div class="card-title">Vendas por vendedor</div>
-              <div class="card-sub">Faturamento, quantidade e ticket médio por vendedor</div>
-            </div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Vendedor</th>
-                <th class="num">Faturamento</th>
-                <th class="num">Número de vendas</th>
-                <th class="num">Ticket médio</th>
-                <th class="num">Participação</th>
-              </tr>
-            </thead>
-            <tbody id="rel-vendedor"></tbody>
-          </table>
-        </div>
-
-        <div class="card data-card">
-          <div class="card-h">
-            <div>
-              <div class="card-title">Top produtos</div>
-              <div class="card-sub">Ranking geral por quantidade vendida, usando nomes do catálogo</div>
-            </div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th class="num">Rank</th>
-                <th>Produto</th>
-                <th>Tamanho</th>
-                <th class="num">Qtd vendida</th>
-                <th class="num">Pedidos</th>
-                <th class="num">Faturamento</th>
-              </tr>
-            </thead>
-            <tbody id="rel-produtos"></tbody>
-          </table>
-        </div>
-	      </div>
-
-	      <div id="relatorios-qualidade" class="hidden">
-		      <div class="header">
-		        <div>
-		          <div class="h-title">Qualidade da Base</div>
-		          <div class="h-sub">Campos importantes que ainda faltam nos cadastros</div>
-		        </div>
-		        <div class="h-actions">
-		          <button class="btn btn-primary" onclick="openClienteModal()">+ Novo Cliente</button>
-		        </div>
-		      </div>
-
-		      <div class="metrics" style="grid-template-columns:repeat(4,1fr);">
-		        <div class="metric metric-clickable" id="q-card-total" onclick="setQualidadeFiltro('total')" data-tip="Ver todos os clientes da base">
-		          <div class="metric-label">Clientes</div>
-		          <div class="metric-value" id="q-clientes-total">0</div>
-		          <div class="metric-delta">Base comercial</div>
-		        </div>
-		        <div class="metric metric-clickable metric-inativo" id="q-card-sem-tel" onclick="setQualidadeFiltro('sem-telefone')" data-tip="Ver apenas clientes sem telefone">
-		          <div class="metric-label">Sem telefone</div>
-		          <div class="metric-value" id="q-clientes-sem-tel">0</div>
-		          <div class="metric-delta">Clientes para completar</div>
-		        </div>
-		        <div class="metric metric-clickable metric-ativo" id="q-card-fiscal" onclick="setQualidadeFiltro('fiscal')" data-tip="Ver apenas clientes com CPF/CNPJ salvo">
-		          <div class="metric-label">Clientes fiscais</div>
-		          <div class="metric-value" id="q-fiscais-total">0</div>
-		          <div class="metric-delta">Com CPF/CNPJ salvo</div>
-		        </div>
-		        <div class="metric metric-clickable metric-inativo" id="q-card-sem-doc" onclick="setQualidadeFiltro('sem-doc')" data-tip="Ver apenas clientes sem CPF/CNPJ">
-		          <div class="metric-label">Sem CPF/CNPJ</div>
-		          <div class="metric-value" id="q-sem-doc">0</div>
-		          <div class="metric-delta">Comparado aos clientes</div>
-		        </div>
-		      </div>
-
-		      <div class="row-2-equal">
-		        <div class="card">
-		          <div class="card-h">
-		            <div>
-		              <div class="card-title">Clientes</div>
-		              <div class="card-sub">Telefone/celular preenchido</div>
-		            </div>
-		          </div>
-		          <div class="chart-wrap-sm"><canvas id="chartQualidadeClientes"></canvas></div>
-		        </div>
-		        <div class="card">
-		          <div class="card-h">
-		            <div>
-		              <div class="card-title">Clientes - Dados</div>
-		              <div class="card-sub">CPF/CNPJ vinculado ao cliente</div>
-		            </div>
-		          </div>
-		          <div class="chart-wrap-sm"><canvas id="chartQualidadeFiscal"></canvas></div>
-		        </div>
-		      </div>
-
-		      <div class="qualidade-filtro-info" id="qualidadeFiltroInfo"></div>
-		      <div class="card table-card">
-		        <table class="mobile-card-table">
-		          <thead>
-		            <tr>
-		              <th>Cliente</th>
-		              <th>Telefone</th>
-		              <th>CPF/CNPJ</th>
-		              <th>Cidade/UF</th>
-		              <th>Pendências</th>
-		              <th>Ações</th>
-		            </tr>
-		          </thead>
-		          <tbody id="qualidadeTable"></tbody>
-		        </table>
-		      </div>
-	      </div>
-	    </div>
 
 
     <!-- ============ CALCULADORA ============ -->
@@ -12989,8 +12721,175 @@ th,
         <div class="subtab" data-intel-tab="produtos" onclick="switchInteligenciaTab('produtos')">Produtos</div>
         <div class="subtab" data-intel-tab="vendedores" onclick="switchInteligenciaTab('vendedores')">Vendedores</div>
         <div class="subtab" data-intel-tab="segmentos" onclick="switchInteligenciaTab('segmentos')">Segmentos</div>
+        <div class="subtab" data-intel-tab="relatorios" onclick="switchInteligenciaTab('relatorios')">Relatórios</div>
       </div>
       <div id="intel-pane"></div>
+
+	      <div id="relatorios-main" class="relatorios-pro hidden">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button class="btn" onclick="exportarRelatorioPDF()">Exportar PDF</button></div>
+        <div class="report-kpi-grid">
+          <div class="report-kpi">
+            <div class="report-kpi-label">Financeiro</div>
+            <div class="report-kpi-value" id="rel-kpi-total">R$ 0,00</div>
+            <div class="report-kpi-sub">Faturamento total registrado</div>
+          </div>
+          <div class="report-kpi">
+            <div class="report-kpi-label">Mês atual</div>
+            <div class="report-kpi-value" id="rel-kpi-mes">R$ 0,00</div>
+            <div class="report-kpi-sub" id="rel-kpi-mes-sub">0 vendas no período</div>
+          </div>
+          <div class="report-kpi">
+            <div class="report-kpi-label">Fiscal</div>
+            <div class="report-kpi-value" id="rel-kpi-fiscal">0%</div>
+            <div class="report-kpi-sub" id="rel-kpi-fiscal-sub">vendas com NF vinculada</div>
+          </div>
+          <div class="report-kpi">
+            <div class="report-kpi-label">Cidades</div>
+            <div class="report-kpi-value" id="rel-kpi-cidades">0</div>
+            <div class="report-kpi-sub" id="rel-kpi-cidades-sub">vendas fora de Canoas</div>
+          </div>
+        </div>
+
+        <div class="report-chart-grid">
+          <div class="card report-card-compact">
+            <div class="card-h">
+              <div>
+                <div class="card-title">Faturamento semanal</div>
+                <div class="card-sub">Valores em reais por semana</div>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chartRelSemanal"></canvas>
+              <div class="empty-chart hidden" id="empty-rel-semanal">Sem dados ainda</div>
+            </div>
+          </div>
+          <div class="card report-card-compact">
+            <div class="card-h">
+              <div>
+                <div class="card-title">Faturamento mensal</div>
+                <div class="card-sub">Valores em reais por mês</div>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chartRelMensal"></canvas>
+              <div class="empty-chart hidden" id="empty-rel-mensal">Sem dados ainda</div>
+            </div>
+          </div>
+          <div class="card report-card-compact">
+            <div class="card-h">
+              <div>
+                <div class="card-title">Faturamento anual</div>
+                <div class="card-sub">Valores em reais por ano</div>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chartRelAnual"></canvas>
+              <div class="empty-chart hidden" id="empty-rel-anual">Sem dados ainda</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row-2-equal report-row">
+          <div class="card">
+            <div class="card-h">
+              <div>
+                <div class="card-title">Meta do mês que passou</div>
+                <div class="card-sub" id="rel-meta-sub">Meta mensal em reais</div>
+              </div>
+            </div>
+            <div class="report-goal-box">
+              <div>
+                <label class="form-label">Meta em R$</label>
+                <input type="text" class="form-input" id="rel-meta-valor" placeholder="Ex: 150.000,00">
+              </div>
+              <button class="btn btn-primary" onclick="saveRelatorioMetaMensal()">Salvar meta</button>
+            </div>
+            <div class="chart-wrap-sm">
+              <canvas id="chartRelMeta"></canvas>
+              <div class="empty-chart hidden" id="empty-rel-meta">Informe a meta para comparar com o mês anterior.</div>
+            </div>
+            <div class="report-goal-summary" id="rel-meta-resumo"></div>
+          </div>
+          <div class="card">
+            <div class="card-h">
+              <div>
+                <div class="card-title">Fiscal e documentos</div>
+                <div class="card-sub">NF por venda e faturamento fiscal</div>
+              </div>
+            </div>
+            <div class="chart-wrap-sm">
+              <canvas id="chartRelFiscal"></canvas>
+              <div class="empty-chart hidden" id="empty-rel-fiscal">Sem dados ainda</div>
+            </div>
+            <div class="report-mini-list" id="rel-fiscal-resumo"></div>
+          </div>
+        </div>
+
+        <div class="card data-card">
+          <div class="card-h">
+            <div>
+              <div class="card-title">Produto e aroma mais vendidos por mês</div>
+              <div class="card-sub">Ranking mensal por quantidade vendida, incluindo o aroma dominante</div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Mês</th>
+                <th>Produto líder</th>
+                <th>Tamanho</th>
+                <th>Aroma líder</th>
+                <th class="num">Qtd vendida</th>
+                <th class="num">Faturamento</th>
+              </tr>
+            </thead>
+            <tbody id="rel-produtos-mes"></tbody>
+          </table>
+        </div>
+
+        <div class="card data-card">
+          <div class="card-h">
+            <div>
+              <div class="card-title">Vendas por vendedor</div>
+              <div class="card-sub">Faturamento, quantidade e ticket médio por vendedor</div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Vendedor</th>
+                <th class="num">Faturamento</th>
+                <th class="num">Número de vendas</th>
+                <th class="num">Ticket médio</th>
+                <th class="num">Participação</th>
+              </tr>
+            </thead>
+            <tbody id="rel-vendedor"></tbody>
+          </table>
+        </div>
+
+        <div class="card data-card">
+          <div class="card-h">
+            <div>
+              <div class="card-title">Top produtos</div>
+              <div class="card-sub">Ranking geral por quantidade vendida, usando nomes do catálogo</div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th class="num">Rank</th>
+                <th>Produto</th>
+                <th>Tamanho</th>
+                <th class="num">Qtd vendida</th>
+                <th class="num">Pedidos</th>
+                <th class="num">Faturamento</th>
+              </tr>
+            </thead>
+            <tbody id="rel-produtos"></tbody>
+          </table>
+        </div>
+	      </div>
     </div>
   </main>
 
@@ -16233,7 +16132,7 @@ function showApp() {
 }
 
 // ============ NAVEGAÇÃO ============
-const VIEWS = ['vendas','lojista','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','relatorios','calculadora','inteligencia','config','perfil','nova'];
+const VIEWS = ['vendas','lojista','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','calculadora','inteligencia','config','perfil','nova'];
 function applySidebarPreference() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
@@ -16284,11 +16183,6 @@ function navTo(view) {
     if (activeTransTab === 'reativacao') renderReativacao();
   }
   if (view === 'mensagens') renderMensagens();
-  if (view === 'relatorios') {
-    renderRelatorios();
-    const activeRelTab = document.querySelector('#view-relatorios .subtab.active')?.dataset.relTab;
-    if (activeRelTab === 'qualidade') renderQualidade();
-  }
   if (view === 'inteligencia') renderInteligencia();
   if (view === 'config') renderConfig();
   if (view === 'perfil') renderPerfil();
@@ -16302,14 +16196,6 @@ function switchTransmissaoTab(tab) {
   document.getElementById('transmissao-reativacao').classList.toggle('hidden', tab !== 'reativacao');
   if (tab === 'listas') renderTransmissao();
   if (tab === 'reativacao') renderReativacao();
-}
-
-function switchRelatorioTab(tab) {
-  document.querySelectorAll('#view-relatorios .subtab').forEach(s => s.classList.toggle('active', s.dataset.relTab === tab));
-  document.getElementById('relatorios-main').classList.toggle('hidden', tab !== 'geral');
-  document.getElementById('relatorios-qualidade').classList.toggle('hidden', tab !== 'qualidade');
-  if (tab === 'geral') renderRelatorios();
-  if (tab === 'qualidade') renderQualidade();
 }
 
 // ============ COMPUTAÇÕES ============
@@ -16412,7 +16298,6 @@ function computeAnos() {
 
 // ============ RENDER DASHBOARD ============
 let chartDashPagamentoInst = null, chartRelSemanalInst = null, chartRelMensalInst = null, chartRelAnualInst = null, chartRelFiscalInst = null, chartRelCidadesInst = null, chartRelMetaInst = null;
-let chartQualidadeClientesInst = null, chartQualidadeFiscalInst = null;
 
 function dashBarRows(rows, maxValue, valueFormatter) {
   if (rows.length === 0) return '<div class="table-empty">Sem dados ainda</div>';
@@ -16799,8 +16684,7 @@ function dashboardDrill(type) {
     return;
   }
   if (type === 'cadastro_pendencias') {
-    navTo('relatorios');
-    setTimeout(() => switchRelatorioTab('qualidade'), 0);
+    navTo('clientes');
     return;
   }
   if (type === 'produto_mais_vendido') {
@@ -17932,9 +17816,7 @@ async function salvarCliente() {
   document.getElementById('modal-cliente').classList.remove('show');
   renderClientes();
   renderFiscal();
-  renderDash();
-  if (!document.getElementById('relatorios-qualidade')?.classList.contains('hidden')) renderQualidade();
-  updateClientAlert();
+  renderDash();  updateClientAlert();
 }
 
 
@@ -17959,9 +17841,7 @@ async function excluirCliente(nome) {
     if (apagarVendas) await client.from('crm_vendas').delete().eq('cliente', nome);
   }
   renderClientes();
-  renderDash();
-  if (!document.getElementById('relatorios-qualidade')?.classList.contains('hidden')) renderQualidade();
-  updateClientAlert();
+  renderDash();  updateClientAlert();
   if (!apagarVendas && vendasCliente.length > 0) {
     alert('Cadastro removido. Como as vendas foram mantidas, o cliente ainda pode aparecer na tabela pelo histórico.');
   }
@@ -18308,9 +18188,7 @@ async function executarUnificacaoClientes(nomesSelecionados, nomePrincipal) {
   renderClientes();
   renderDash();
   updateClientAlert();
-  if (typeof updateSaleReviewBadge === 'function') updateSaleReviewBadge();
-  if (!document.getElementById('relatorios-qualidade')?.classList.contains('hidden')) renderQualidade();
-}
+  if (typeof updateSaleReviewBadge === 'function') updateSaleReviewBadge();}
 
 function renderFiscal() {
   ensureLocalIds();
@@ -18382,9 +18260,7 @@ function salvarFiscal() {
   STORE.save('fiscais', state.fiscais);
   document.getElementById('modal-fiscal').classList.remove('show');
   renderFiscal();
-  renderDash();
-  if (!document.getElementById('relatorios-qualidade')?.classList.contains('hidden')) renderQualidade();
-}
+  renderDash();}
 
 
 async function excluirFiscal(id) {
@@ -18400,9 +18276,7 @@ async function excluirFiscal(id) {
     else await client.from('crm_fiscais').delete().eq('nome', fiscal.nome).eq('doc', fiscal.doc || '');
   }
   renderFiscal();
-  renderDash();
-  if (!document.getElementById('relatorios-qualidade')?.classList.contains('hidden')) renderQualidade();
-}
+  renderDash();}
 
 function removerFiscal(i) {
   const fiscal = state.fiscais[i];
@@ -18410,114 +18284,9 @@ function removerFiscal(i) {
   if (!confirm('Remover este registro fiscal?')) return;
   state.fiscais.splice(i, 1);
   STORE.save('fiscais', state.fiscais);
-  renderFiscal();
-  if (!document.getElementById('relatorios-qualidade')?.classList.contains('hidden')) renderQualidade();
-}
+  renderFiscal();}
 
 
-// ============ QUALIDADE DA BASE ============
-function computeQualidadeBase() {
-  const clientes = computeClientes();
-  const totalClientes = clientes.length;
-  const semTelefone = clientes.filter(c => !String(c.telefone || '').trim()).length;
-  const comTelefone = totalClientes - semTelefone;
-  const comDoc = clientes.filter(c => fiscalDocForCliente(c.nome)).length;
-  const semDoc = Math.max(0, totalClientes - comDoc);
-  return { clientes, totalClientes, comTelefone, semTelefone, comDoc, semDoc };
-}
-
-function renderQualityDoughnut(canvasId, oldChart, labels, values, colors) {
-  const canvas = document.getElementById(canvasId);
-  if (oldChart) oldChart.destroy();
-  if (!canvas) return null;
-  const ctx = canvas.getContext('2d');
-  const palette = colors || chartPastelPalette().slice(0, Math.max(values.length, 2));
-  return new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{ data: values, backgroundColor: palette, borderColor: chartSurfaceStroke(), borderWidth: 2 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom', labels: { color: isDarkThemeEnabled() ? '#C7C7C7' : '#333333' } } } }
-  });
-}
-
-let qualidadeFiltroAtivo = null;
-const QUALIDADE_FILTROS = {
-  total: { label: 'Todos os clientes', cardId: 'q-card-total' },
-  'sem-telefone': { label: 'Sem telefone', cardId: 'q-card-sem-tel' },
-  fiscal: { label: 'Clientes fiscais (com CPF/CNPJ)', cardId: 'q-card-fiscal' },
-  'sem-doc': { label: 'Sem CPF/CNPJ', cardId: 'q-card-sem-doc' }
-};
-
-function setQualidadeFiltro(tipo) {
-  qualidadeFiltroAtivo = (qualidadeFiltroAtivo === tipo) ? null : tipo;
-  renderQualidade();
-}
-
-function renderQualidade() {
-  const q = computeQualidadeBase();
-  document.getElementById('q-clientes-total').textContent = q.totalClientes.toLocaleString('pt-BR');
-  document.getElementById('q-clientes-sem-tel').textContent = q.semTelefone.toLocaleString('pt-BR');
-  document.getElementById('q-fiscais-total').textContent = q.comDoc.toLocaleString('pt-BR');
-  document.getElementById('q-sem-doc').textContent = q.semDoc.toLocaleString('pt-BR');
-
-  chartQualidadeClientesInst = renderQualityDoughnut(
-    'chartQualidadeClientes',
-    chartQualidadeClientesInst,
-	    ['Com telefone', 'Sem telefone'],
-	    [q.comTelefone, q.semTelefone]
-	  );
-  chartQualidadeFiscalInst = renderQualityDoughnut(
-    'chartQualidadeFiscal',
-    chartQualidadeFiscalInst,
-	    ['Com CPF/CNPJ', 'Sem CPF/CNPJ'],
-	    [q.comDoc, q.semDoc]
-	  );
-
-  Object.values(QUALIDADE_FILTROS).forEach(f => {
-    document.getElementById(f.cardId)?.classList.remove('active');
-  });
-
-  let linhas = q.clientes.map(c => {
-    const fiscal = fiscalDocForCliente(c.nome);
-    const pendencias = [];
-    if (!String(c.telefone || '').trim()) pendencias.push('Telefone');
-    if (!fiscal) pendencias.push('CPF/CNPJ');
-    return { c, fiscal, pendencias };
-  });
-
-  if (qualidadeFiltroAtivo && QUALIDADE_FILTROS[qualidadeFiltroAtivo]) {
-    document.getElementById(QUALIDADE_FILTROS[qualidadeFiltroAtivo].cardId)?.classList.add('active');
-    if (qualidadeFiltroAtivo === 'sem-telefone') linhas = linhas.filter(r => r.pendencias.includes('Telefone'));
-    else if (qualidadeFiltroAtivo === 'fiscal') linhas = linhas.filter(r => r.fiscal);
-    else if (qualidadeFiltroAtivo === 'sem-doc') linhas = linhas.filter(r => !r.fiscal);
-    // 'total' não filtra: mostra todos os clientes
-  } else {
-    linhas = linhas.filter(r => r.pendencias.length > 0);
-  }
-
-  const infoEl = document.getElementById('qualidadeFiltroInfo');
-  if (infoEl) {
-    const ativo = qualidadeFiltroAtivo && QUALIDADE_FILTROS[qualidadeFiltroAtivo];
-    infoEl.innerHTML = `
-      <span>Mostrando: <strong>${ativo ? escapeHtml(ativo.label) : 'Cadastros com pendências'}</strong> (${linhas.length.toLocaleString('pt-BR')})</span>
-      ${ativo ? `<button class="btn btn-soft btn-small" onclick="setQualidadeFiltro('${qualidadeFiltroAtivo}')">Limpar filtro</button>` : ''}
-    `;
-  }
-
-  const tbody = document.getElementById('qualidadeTable');
-  tbody.innerHTML = linhas.length ? linhas.map(({ c, fiscal, pendencias }) => `
-    <tr>
-      <td data-label="Cliente"><strong>${escapeHtml(c.nome)}</strong></td>
-      <td data-label="Telefone">${escapeHtml(c.telefone || '—')}</td>
-      <td data-label="CPF/CNPJ">${escapeHtml(fiscal?.doc || '—')}</td>
-      <td data-label="Cidade/UF">${escapeHtml(clienteCidadeUf(c.metadata))}</td>
-      <td data-label="Pendências">${pendencias.length ? pendencias.map(p => `<span class="pill pill-red">${p}</span>`).join(' ') : '<span class="pill pill-green">Completo</span>'}</td>
-      <td data-label="Ações"><button class="btn btn-small" onclick="openClienteModal(${attrJsString(c.nome)})">Editar</button></td>
-    </tr>
-  `).join('') : '<tr><td colspan="6" class="table-empty">Nenhum cliente encontrado para este filtro</td></tr>';
-}
 
 function exportarRelatorioPDF() {
   window.print();
@@ -23023,7 +22792,7 @@ function intelRenderOverview() {
             <h2>Pendências de cadastro</h2>
             <p>Clientes sem CPF/CNPJ fiscal ou sem contato de WhatsApp.</p>
           </div>
-          <button class="btn btn-small" onclick="dashboardDrill('cadastro_pendencias')" data-tooltip="Abrir Qualidade da Base">Corrigir</button>
+          <button class="btn btn-small" onclick="dashboardDrill('cadastro_pendencias')" data-tooltip="Abrir Clientes">Corrigir</button>
         </div>
         <div class="dash-stat-strip three">
           <div><span>Sem CPF/CNPJ</span><strong>${cadastro.semDoc.toLocaleString('pt-BR')}</strong></div>
@@ -23543,6 +23312,16 @@ function renderInteligencia() {
     var ys = intelYears();
     sel.innerHTML = '<option value="all">Todos os anos</option>' + ys.map(function (y) { return '<option value="' + y + '">' + y + '</option>'; }).join('');
     sel.value = intelPeriod;
+  }
+  var relMain = document.getElementById('relatorios-main');
+  var intelPane = document.getElementById('intel-pane');
+  if (relMain) relMain.classList.toggle('hidden', intelActiveTab !== 'relatorios');
+  if (intelPane) intelPane.classList.toggle('hidden', intelActiveTab === 'relatorios');
+
+  if (intelActiveTab === 'relatorios') {
+    if (typeof renderRelatorios === 'function') renderRelatorios();
+    if (typeof enhanceButtonTooltips === 'function') setTimeout(enhanceButtonTooltips, 0);
+    return;
   }
   intelDestroyCharts();
   if (intelActiveTab === 'overview') intelRenderOverview();
@@ -26250,7 +26029,7 @@ body.theme-dark #gso-calc #gc-te td:last-child .gc-lnk:hover{
       paintFab(); logo(); charts();
       try{ var app=document.getElementById("app"); var cv=app&&app.dataset?app.dataset.currentView:"";
         if(cv==="inteligencia"&&typeof renderInteligencia==="function"){ renderInteligencia(); }
-        else if((cv==="dash"||cv==="relatorios")&&typeof navTo==="function"){ navTo(cv); } }catch(e){}
+        else if(cv==="dash"&&typeof navTo==="function"){ navTo(cv); } }catch(e){}
     }
   function toggle(){ setTheme(isDark()?'light':'dark'); }
   function build(){ if(!document.body || document.getElementById("gso-theme-fab")) return;
@@ -26380,18 +26159,14 @@ body.theme-dark .vm-revisao { border-color: rgba(201,60,55,.45) !important; back
 body:not(.theme-dark) .metric-clickable.active, body.theme-dark .metric-clickable.active { border-color: var(--gso-accent) !important; box-shadow: 0 0 0 2px var(--gso-accent-soft), var(--shadow-tight) !important; }
 .metric-clickable.active .metric-label { color: var(--gso-accent) !important; font-weight: 700; }
 
-.qualidade-filtro-info { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 10px 16px; margin: 4px 0 14px; border-radius: 10px; background: var(--surface-2, #eef3f7); font-size: 13px; color: var(--text); }
-body.theme-dark .qualidade-filtro-info { background: var(--crm-surface-muted) !important; color: var(--crm-text) !important; }
-
-/* Exportar PDF: imprime apenas o conteúdo da aba de Relatórios visível */
+/* Exportar PDF: imprime apenas o conteúdo do relatório visível */
 @media print {
   body * { visibility: hidden !important; }
-  #view-relatorios, #view-relatorios * { visibility: visible !important; }
-  #view-relatorios { position: absolute; left: 0; top: 0; width: 100%; background: #fff !important; color: #000 !important; }
-  #view-relatorios .btn, #view-relatorios .row-actions, #view-relatorios .h-actions, #view-relatorios .subtabs { display: none !important; }
-  #view-relatorios .card, #view-relatorios .metric { box-shadow: none !important; border: 1px solid #ccc !important; background: #fff !important; color: #000 !important; }
-  #view-relatorios table, #view-relatorios th, #view-relatorios td, #view-relatorios .metric-value, #view-relatorios .metric-label, #view-relatorios .metric-delta { color: #000 !important; }
-  #view-relatorios .qualidade-filtro-info { background: #fff !important; border: 1px solid #ccc !important; color: #000 !important; }
+  #relatorios-main, #relatorios-main * { visibility: visible !important; }
+  #relatorios-main { position: absolute; left: 0; top: 0; width: 100%; background: #fff !important; color: #000 !important; }
+  #relatorios-main .btn, #relatorios-main .row-actions, #relatorios-main .h-actions { display: none !important; }
+  #relatorios-main .card, #relatorios-main .metric { box-shadow: none !important; border: 1px solid #ccc !important; background: #fff !important; color: #000 !important; }
+  #relatorios-main table, #relatorios-main th, #relatorios-main td, #relatorios-main .metric-value, #relatorios-main .metric-label, #relatorios-main .metric-delta { color: #000 !important; }
 }
 
 /* "Vendas do dia" e "Pendências de cadastro" sempre com a mesma altura */
