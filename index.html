@@ -13438,6 +13438,11 @@ let gsoRealtimeChannel = null;
 let remoteHydrating = false;
 let remoteSaveTimer = null;
 let remoteRefreshTimer = null;
+// true enquanto existe um STORE.save() ainda não confirmado no Supabase (dentro do debounce
+// de 450ms ou da própria chamada em andamento). Enquanto isso, uma atualização em tempo real
+// não pode recarregar/sobrescrever o estado local, senão apagaria essa alteração ainda não
+// enviada (ex.: cliente recém-cadastrado somendo de novo ao salvar a venda).
+let localSaveInFlight = false;
 let gsoRefreshTimer = null;
 let lastUnreadTotal = 0;
 let lastUnreadAlertTotal = 0;
@@ -13975,13 +13980,16 @@ async function syncCollectionToSupabase(key, data) {
 function queueRemoteSave(key, data) {
   if (!['vendas','vendasLojista','clientes','fiscais','produtos'].includes(key)) return;
   if (remoteHydrating) { setTimeout(() => queueRemoteSave(key, data), 450); return; }
+  localSaveInFlight = true;
   clearTimeout(remoteSaveTimer);
   remoteSaveTimer = setTimeout(() => {
     setSyncStatus('syncing', 'Sincronizando...');
-    syncCollectionToSupabase(key, data).catch(err => {
-      console.warn('Supabase sync error:', err);
-      setSyncStatus('offline', 'Pendente de sincronização');
-    });
+    syncCollectionToSupabase(key, data)
+      .catch(err => {
+        console.warn('Supabase sync error:', err);
+        setSyncStatus('offline', 'Pendente de sincronização');
+      })
+      .finally(() => { localSaveInFlight = false; });
   }, 450);
 }
 
@@ -14070,7 +14078,10 @@ async function loadRemoteState() {
 
 function scheduleRemoteRefresh() {
   clearTimeout(remoteRefreshTimer);
-  remoteRefreshTimer = setTimeout(() => loadRemoteState(), 500);
+  remoteRefreshTimer = setTimeout(() => {
+    if (localSaveInFlight) { scheduleRemoteRefresh(); return; }
+    loadRemoteState();
+  }, 500);
 }
 
 function setupRealtime() {
