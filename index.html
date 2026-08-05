@@ -13436,13 +13436,17 @@ let supabaseClient = null;
 let supabaseRealtimeChannel = null;
 let gsoRealtimeChannel = null;
 let remoteHydrating = false;
-let remoteSaveTimer = null;
 let remoteRefreshTimer = null;
-// true enquanto existe um STORE.save() ainda não confirmado no Supabase (dentro do debounce
-// de 450ms ou da própria chamada em andamento). Enquanto isso, uma atualização em tempo real
-// não pode recarregar/sobrescrever o estado local, senão apagaria essa alteração ainda não
-// enviada (ex.: cliente recém-cadastrado somendo de novo ao salvar a venda).
-let localSaveInFlight = false;
+// Um debounce POR CHAVE (clientes/fiscais/vendas/...), não um único timer compartilhado —
+// salvar "clientes" e "fiscais" em seguida (ex.: dentro de salvarCliente()) precisa mandar
+// os dois pro Supabase, não só o último (um timer compartilhado cancelava o primeiro).
+let remoteSaveTimers = {};
+let remoteSavePending = {};
+// Chaves com um STORE.save() ainda não confirmado no Supabase (dentro do debounce de 450ms
+// ou da própria chamada em andamento). Enquanto isso, uma atualização em tempo real não pode
+// recarregar/sobrescrever o estado local, senão apagaria essa alteração ainda não enviada
+// (ex.: cliente recém-cadastrado somendo de novo ao salvar a venda).
+let activeSaveKeys = new Set();
 let gsoRefreshTimer = null;
 let lastUnreadTotal = 0;
 let lastUnreadAlertTotal = 0;
@@ -13980,16 +13984,20 @@ async function syncCollectionToSupabase(key, data) {
 function queueRemoteSave(key, data) {
   if (!['vendas','vendasLojista','clientes','fiscais','produtos'].includes(key)) return;
   if (remoteHydrating) { setTimeout(() => queueRemoteSave(key, data), 450); return; }
-  localSaveInFlight = true;
-  clearTimeout(remoteSaveTimer);
-  remoteSaveTimer = setTimeout(() => {
+  activeSaveKeys.add(key);
+  remoteSavePending[key] = data;
+  clearTimeout(remoteSaveTimers[key]);
+  remoteSaveTimers[key] = setTimeout(() => {
+    const payload = remoteSavePending[key];
+    delete remoteSavePending[key];
+    delete remoteSaveTimers[key];
     setSyncStatus('syncing', 'Sincronizando...');
-    syncCollectionToSupabase(key, data)
+    syncCollectionToSupabase(key, payload)
       .catch(err => {
         console.warn('Supabase sync error:', err);
         setSyncStatus('offline', 'Pendente de sincronização');
       })
-      .finally(() => { localSaveInFlight = false; });
+      .finally(() => { activeSaveKeys.delete(key); });
   }, 450);
 }
 
@@ -14079,7 +14087,7 @@ async function loadRemoteState() {
 function scheduleRemoteRefresh() {
   clearTimeout(remoteRefreshTimer);
   remoteRefreshTimer = setTimeout(() => {
-    if (localSaveInFlight) { scheduleRemoteRefresh(); return; }
+    if (activeSaveKeys.size > 0) { scheduleRemoteRefresh(); return; }
     loadRemoteState();
   }, 500);
 }
@@ -23434,6 +23442,7 @@ body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gc
 #gso-calc .gc-pill.warn{ background:var(--gcwabg); color:var(--gcwa); }
 #gso-calc .gc-pill.bad{ background:var(--gcbdbg); color:var(--gcbd); }
 #gso-calc .gc-pill.gray{ background:var(--gcgrbg); color:var(--gcgr); }
+#gso-calc .gc-pill.blue{ background:var(--gcblbg); color:var(--gcbl); }
 
 #gso-calc .gc-status{ display:flex; align-items:center; gap:10px; padding-bottom:14px; border-bottom:1px solid var(--gcln); }
 #gso-calc .gc-status .lab{ font-weight:600; font-size:11px; color:var(--gcfnt); }
@@ -24352,6 +24361,26 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       var tamanhosCatalogo = []; prodRows().forEach(function (row) { if (row.produto === nomeDisplay && row.tamanho && tamanhosCatalogo.indexOf(row.tamanho) < 0) tamanhosCatalogo.push(row.tamanho); });
       var temLitro = tamanhosCatalogo.some(function (t) { return litrosDe(t) > 0; });
       var temML = tamanhosCatalogo.some(function (t) { return /mL$/i.test(t); });
+      var temPeso = tamanhosCatalogo.some(function (t) { return /g$/i.test(t.trim()); });
+      // Para produtos vendidos por peso (ex.: Top Up Limpeza a Seco em potes de 150g), mostra
+      // quantos potes completos a batelada rende e quanto sobra — ajuda a planejar a produção.
+      var potePill = '';
+      if (temPeso && cl.litros > 0) {
+        var tamGramas = null;
+        tamanhosCatalogo.some(function (t) {
+          var m = /^([\d.,]+)\s*g$/i.exec(t.trim());
+          if (m) { tamGramas = num(m[1]) || 0; return true; }
+          return false;
+        });
+        if (tamGramas > 0) {
+          var totalGramas = cl.litros * 1000;
+          var potes = Math.floor(totalGramas / tamGramas);
+          var sobraG = Math.round(totalGramas - potes * tamGramas);
+          potePill = '<span class="gc-pill blue">Produz ' + potes.toLocaleString('pt-BR') + ' pote' + (potes === 1 ? '' : 's') +
+            ' completo' + (potes === 1 ? '' : 's') + ' de ' + tamGramas + ' g' +
+            (sobraG > 0 ? ' · Sobra de ' + sobraG + ' g' : '') + '</span>';
+        }
+      }
       var tamanhos = tamanhosCatalogo.slice();
       (TAMANHOS_EXTRA_CUSTO[k] || []).forEach(function (t) { if (tamanhos.indexOf(t) < 0) tamanhos.push(t); });
       var custoRows = tamanhos.map(function (tam) {
@@ -24372,7 +24401,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
         footHtml = '<div class="gc-receita-foot">Custo/L: <b>' + (cl.custoLitro > 0 ? fmt(round2(cl.custoLitro)) : '—') + '</b></div>';
       }
       return '<div class="gc-receita-card">' +
-        '<div class="gc-receita-head"><b>' + esc(nomeDisplay) + '</b>' + totPill +
+        '<div class="gc-receita-head"><b>' + esc(nomeDisplay) + '</b>' + totPill + potePill +
         (isExtra ? '<button type="button" class="gc-mat-chip-x" data-receita-produto-del="' + esc(k) + '" title="Remover produto da lista de Formulação">✕</button>' : '') +
         '</div>' +
         '<div class="gc-receita-chips">' + (chips || '<span class="gc-hint" style="padding:0">Nenhuma matéria-prima selecionada ainda.</span>') + addSel + '</div>' +
