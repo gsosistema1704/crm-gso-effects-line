@@ -12717,16 +12717,36 @@ th,
       <div class="subtabs">
         <div class="subtab active" data-intel-tab="overview" onclick="switchInteligenciaTab('overview')">Visão geral</div>
         <div class="subtab" data-intel-tab="call" onclick="switchInteligenciaTab('call')">Quem chamar hoje</div>
-        <div class="subtab" data-intel-tab="clientes" onclick="switchInteligenciaTab('clientes')">Clientes</div>
-        <div class="subtab" data-intel-tab="produtos" onclick="switchInteligenciaTab('produtos')">Produtos</div>
-        <div class="subtab" data-intel-tab="vendedores" onclick="switchInteligenciaTab('vendedores')">Vendedores</div>
-        <div class="subtab" data-intel-tab="segmentos" onclick="switchInteligenciaTab('segmentos')">Segmentos</div>
         <div class="subtab" data-intel-tab="relatorios" onclick="switchInteligenciaTab('relatorios')">Relatórios</div>
       </div>
       <div id="intel-pane"></div>
 
 	      <div id="relatorios-main" class="relatorios-pro hidden">
         <div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button class="btn" onclick="exportarRelatorioPDF()">Exportar PDF</button></div>
+
+        <div class="card data-card" style="margin-bottom:14px;">
+          <div class="card-h">
+            <div>
+              <div class="card-title">Segmentos de clientes</div>
+              <div class="card-sub">Clique num segmento para ver a estratégia sugerida e contatar os clientes dele</div>
+            </div>
+          </div>
+          <div class="intel-grid cols-auto" id="rel-segmentos-cards"></div>
+        </div>
+
+        <div class="card data-card" style="margin-bottom:14px;">
+          <div class="card-h">
+            <div>
+              <div class="card-title">Clientes</div>
+              <div class="card-sub">Top clientes por faturamento</div>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Cliente</th><th class="num">Total</th><th class="num">Pedidos</th><th>Última compra</th></tr></thead>
+            <tbody id="rel-clientes-simples"></tbody>
+          </table>
+        </div>
+
         <div class="report-kpi-grid">
           <div class="report-kpi">
             <div class="report-kpi-label">Financeiro</div>
@@ -12793,7 +12813,7 @@ th,
           <div class="card">
             <div class="card-h">
               <div>
-                <div class="card-title">Meta do mês que passou</div>
+                <div class="card-title">Meta do mês atual</div>
                 <div class="card-sub" id="rel-meta-sub">Meta mensal em reais</div>
               </div>
             </div>
@@ -19310,6 +19330,10 @@ function reportPreviousMonthKey() {
   return reportMonthKey(d);
 }
 
+function reportCurrentMonthKey() {
+  return reportMonthKey(new Date());
+}
+
 function reportReadGoals() {
   try { return JSON.parse(localStorage.getItem('gso_report_monthly_goals') || '{}') || {}; }
   catch (err) { return {}; }
@@ -19320,7 +19344,7 @@ function reportWriteGoals(goals) {
 }
 
 function saveRelatorioMetaMensal() {
-  const key = reportPreviousMonthKey();
+  const key = reportCurrentMonthKey();
   const input = document.getElementById('rel-meta-valor');
   const goals = reportReadGoals();
   const value = parseMoneyValue(input?.value || '0');
@@ -19442,6 +19466,37 @@ function reportMonthlyProductAroma(sales) {
 
 function renderRelatorios() {
   normalizeSellerNames();
+
+  // Segmentos e Clientes (versões simplificadas, movidas pra dentro de Relatórios).
+  const dCli = intelCompute();
+  const listaCliAtivos = dCli.clientes.filter(c => c.pedidos > 0);
+
+  const segCardsEl = document.getElementById('rel-segmentos-cards');
+  if (segCardsEl) {
+    const bySeg = {}; INTEL_SEGDEF.forEach(s => bySeg[s.nome] = []);
+    listaCliAtivos.forEach(c => { (bySeg[c.segmento] || (bySeg[c.segmento] = [])).push(c); });
+    segCardsEl.innerHTML = INTEL_SEGDEF.map(s => {
+      const arr = bySeg[s.nome] || [];
+      const fat = arr.reduce((sum, c) => sum + c.total, 0);
+      return `<div class="card intel-segcard" style="--c:${s.cor};" onclick="openSegDrawer('${s.nome.replace(/'/g, "\\'")}')">
+        <div class="intel-seg-head"><span class="intel-seg-name"><span class="intel-segcard-dot"></span>${s.nome}</span><span class="intel-seg-count" style="color:${s.cor};">${arr.length}</span></div>
+        <div class="intel-seg-desc" style="margin-top:4px;">Faturamento: <strong style="color:var(--text);">${fmtBR(fat)}</strong></div>
+      </div>`;
+    }).join('');
+  }
+
+  const cliBodyEl = document.getElementById('rel-clientes-simples');
+  if (cliBodyEl) {
+    const topCli = listaCliAtivos.slice().sort((a, b) => b.total - a.total).slice(0, 15);
+    cliBodyEl.innerHTML = topCli.length ? topCli.map(c => `
+      <tr>
+        <td>${escapeHtml(c.nome)}</td>
+        <td class="num">${fmtBR(c.total)}</td>
+        <td class="num">${c.pedidos}</td>
+        <td>${c.ultima ? fmtDate(c.ultima) : '—'}</td>
+      </tr>`).join('') : '<tr><td colspan="4" class="table-empty">Nenhum cliente com compras ainda</td></tr>';
+  }
+
   const sales = reportValidSales();
   const totalFat = sales.reduce((sum, v) => sum + v._valor, 0);
   const currentMonth = reportMonthKey(new Date());
@@ -19472,22 +19527,21 @@ function renderRelatorios() {
   chartRelMensalInst = reportRenderBarChart('chartRelMensal', 'empty-rel-mensal', chartRelMensalInst, reportGroupRevenue(sales, 'month').slice(-12), reportMonthLabel, 2);
   chartRelAnualInst = reportRenderBarChart('chartRelAnual', 'empty-rel-anual', chartRelAnualInst, reportGroupRevenue(sales, 'year'), key => key, 4);
 
-  // Meta do mês anterior
-  const prevKey = reportPreviousMonthKey();
-  const prevLabel = reportMonthLabel(prevKey);
-  const prevFat = sales.filter(v => reportMonthKey(v._date) === prevKey).reduce((sum, v) => sum + v._valor, 0);
+  // Meta do mês atual
+  const metaKey = reportCurrentMonthKey();
+  const metaLabel = reportMonthLabel(metaKey);
+  const metaFat = sales.filter(v => reportMonthKey(v._date) === metaKey).reduce((sum, v) => sum + v._valor, 0);
   const goals = reportReadGoals();
-  const goal = parseFloat(goals[prevKey] || 0) || 0;
+  const goal = parseFloat(goals[metaKey] || 0) || 0;
   const metaSub = document.getElementById('rel-meta-sub');
-  if (metaSub) metaSub.textContent = `Referente a ${prevLabel}`;
+  if (metaSub) metaSub.textContent = `Referente a ${metaLabel}`;
   const metaInput = document.getElementById('rel-meta-valor');
   if (metaInput && document.activeElement !== metaInput) metaInput.value = goal ? goal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
   const metaResumo = document.getElementById('rel-meta-resumo');
   if (metaResumo) {
-    const pct = goal > 0 ? Math.round((prevFat / goal) * 100) : 0;
-    const gap = goal - prevFat;
+    const pct = goal > 0 ? Math.round((metaFat / goal) * 100) : 0;
     metaResumo.innerHTML = `
-      <div class="report-goal-chip"><span>Realizado</span><strong>${fmtBR(prevFat)}</strong></div>
+      <div class="report-goal-chip"><span>Realizado</span><strong>${fmtBR(metaFat)}</strong></div>
       <div class="report-goal-chip"><span>Meta</span><strong>${goal ? fmtBR(goal) : '—'}</strong></div>
       <div class="report-goal-chip"><span>Resultado</span><strong>${goal ? pct + '%' : 'Definir'}</strong></div>
     `;
@@ -19507,8 +19561,8 @@ function renderRelatorios() {
       chartRelMetaInst = new Chart(metaCanvas.getContext('2d'), {
         type: 'doughnut',
         data: {
-          labels: prevFat >= goal ? ['Meta atingida', 'Acima da meta'] : ['Realizado', 'Falta'],
-          datasets: [{ data: prevFat >= goal ? [goal, prevFat - goal] : [prevFat, Math.max(goal - prevFat, 0)], backgroundColor: [palette[1], prevFat >= goal ? palette[0] : '#E5E7EB'], borderColor: chartSurfaceStroke(), borderWidth: 2 }]
+          labels: metaFat >= goal ? ['Meta atingida', 'Acima da meta'] : ['Realizado', 'Falta'],
+          datasets: [{ data: metaFat >= goal ? [goal, metaFat - goal] : [metaFat, Math.max(goal - metaFat, 0)], backgroundColor: [palette[1], metaFat >= goal ? palette[0] : '#E5E7EB'], borderColor: chartSurfaceStroke(), borderWidth: 2 }]
         },
         options: { responsive: true, maintainAspectRatio: false, cutout: '66%', plugins: { tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmtBR(ctx.raw || 0)}` } } } }
       });
@@ -23345,10 +23399,6 @@ function renderInteligencia() {
   intelDestroyCharts();
   if (intelActiveTab === 'overview') intelRenderOverview();
   else if (intelActiveTab === 'call') intelRenderCall();
-  else if (intelActiveTab === 'clientes') intelRenderClientes();
-  else if (intelActiveTab === 'produtos') intelRenderProdutos();
-  else if (intelActiveTab === 'vendedores') intelRenderVendedores();
-  else if (intelActiveTab === 'segmentos') intelRenderSegmentos();
   if (typeof enhanceButtonTooltips === 'function') setTimeout(enhanceButtonTooltips, 0);
 }
 
