@@ -24032,7 +24032,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     renderPedido(); renderFormulacao(); renderEstrategia(); renderML();
   }
   function drOpen(t, html) { $('#gc-dr-t').textContent = t; $('#gc-dr-b').innerHTML = html; document.body.classList.add('gc-dro'); }
-  function drClose() { document.body.classList.remove('gc-dro'); }
+  function drClose() { document.body.classList.remove('gc-dro'); var b = $('#gc-dr-b'); if (b) b.innerHTML = ''; }
   function moOpen(txt, titulo) { $('#gc-mo-t').textContent = titulo || 'Orçamento para WhatsApp'; $('#gc-mo-tx').value = txt; document.body.classList.add('gc-mo'); }
   function moClose() { document.body.classList.remove('gc-mo'); }
 
@@ -24737,8 +24737,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       }).join('');
     }
 
+    var primeiraRenderizacao = true;
     function render() {
-      lerCamposSimples();
+      // Na primeira renderização, o draft já veio pronto do anúncio clicado — não ler os
+      // campos do formulário aqui, porque #gc-dr-b ainda tem o HTML do anúncio ANTERIOR
+      // (drClose só esconde a gaveta, não limpa o conteúdo), e isso sobrescrevia o draft
+      // novo com os valores do anúncio antigo, fazendo qualquer card abrir sempre o mesmo.
+      if (!primeiraRenderizacao) lerCamposSimples();
+      primeiraRenderizacao = false;
       var c = anuncioCalc(draft);
       var st = anuncioStatus(c);
       var html =
