@@ -24010,8 +24010,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       '<div class="gc-tabs">' +
       '<button data-t="pedido" class="on">Pedido</button>' +
       '<button data-t="formulacao">Formulação</button>' +
-      '<button data-t="estrategia">Estratégia</button></div>' +
-      '<section id="gc-pedido"></section><section id="gc-formulacao" style="display:none"></section><section id="gc-estrategia" style="display:none"></section>';
+      '<button data-t="estrategia">Estratégia</button>' +
+      '<button data-t="ml">Mercado Livre</button></div>' +
+      '<section id="gc-pedido"></section><section id="gc-formulacao" style="display:none"></section><section id="gc-estrategia" style="display:none"></section><section id="gc-ml" style="display:none"></section>';
     view.appendChild(root);
     if (!$('#gso-calc-ovl')) {
       var ovl = document.createElement('div'); ovl.id = 'gso-calc-ovl'; document.body.appendChild(ovl);
@@ -24028,7 +24029,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       });
     }
     bind(root);
-    renderPedido(); renderFormulacao(); renderEstrategia();
+    renderPedido(); renderFormulacao(); renderEstrategia(); renderML();
   }
   function drOpen(t, html) { $('#gc-dr-t').textContent = t; $('#gc-dr-b').innerHTML = html; document.body.classList.add('gc-dro'); }
   function drClose() { document.body.classList.remove('gc-dro'); }
@@ -24038,9 +24039,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   function setTab(t) {
     UI.tab = t;
     $all('#gso-calc .gc-tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
-    ['pedido', 'formulacao', 'estrategia'].forEach(function (k) { var el = $('#gc-' + k); if (el) el.style.display = (k === t) ? '' : 'none'; });
+    ['pedido', 'formulacao', 'estrategia', 'ml'].forEach(function (k) { var el = $('#gc-' + k); if (el) el.style.display = (k === t) ? '' : 'none'; });
     if (t === 'estrategia') renderEstrategia();
     if (t === 'formulacao') renderFormulacao();
+    if (t === 'ml') renderML();
   }
 
   /* ---------- ABA PEDIDO ---------- */
@@ -24633,6 +24635,189 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     });
   }
 
+  /* ---------- ABA MERCADO LIVRE ---------- */
+  function anuncioProdutoOpcoes(selecionado) {
+    var opts = ['<option value="">Nenhum (informar custo manualmente)</option>'];
+    var vistos = {};
+    prodRows().forEach(function (r) {
+      if (!r.produto || !r.tamanho) return;
+      var val = r.produto + '|' + r.tamanho;
+      if (vistos[val]) return; vistos[val] = 1;
+      opts.push('<option value="' + esc(val) + '"' + (val === selecionado ? ' selected' : '') + '>' + esc(r.produto) + ' ' + esc(r.tamanho) + '</option>');
+    });
+    return opts.join('');
+  }
+  function anuncioItens(a) {
+    if (Array.isArray(a.itensCatalogo) && a.itensCatalogo.length) return a.itensCatalogo;
+    // compat com anúncios salvos antes de o kit suportar vários produtos.
+    if (a.produtoCatalogo && a.tamanhoCatalogo) return [{ produto: a.produtoCatalogo, tamanho: a.tamanhoCatalogo, qtd: 1 }];
+    return [];
+  }
+  function anuncioCustoProduto(a) {
+    var itens = anuncioItens(a);
+    if (!itens.length) return num(a.custoManual) || 0;
+    return round2(itens.reduce(function (sum, it) {
+      var ci = custoInfo(keyOf(it.produto, it.tamanho));
+      return sum + (ci.total || 0) * (num(it.qtd) || 0);
+    }, 0));
+  }
+  function anuncioCalc(a) {
+    var precoFinal = round2(Math.max(0, (num(a.preco) || 0) - (num(a.desconto) || 0)));
+    var comissaoValor = round2(precoFinal * (num(a.comissaoPct) || 0) / 100);
+    var custoExtra = round2(num(a.custoExtra) || 0);
+    var custoProduto = anuncioCustoProduto(a);
+    var recebido = round2(precoFinal - comissaoValor - custoExtra);
+    var lucro = round2(recebido - custoProduto);
+    var margem = precoFinal > 0 ? round2((lucro / precoFinal) * 100) : null;
+    return { precoFinal: precoFinal, comissaoValor: comissaoValor, custoExtra: custoExtra, custoProduto: custoProduto, recebido: recebido, lucro: lucro, margem: margem };
+  }
+  function anuncioStatus(c) {
+    var P = params();
+    if (c.lucro <= 0) return { cls: 'bad', label: 'Prejuízo' };
+    if (c.margem != null && c.margem < P.margemMin) return { cls: 'warn', label: 'Abaixo do mínimo' };
+    return { cls: 'ok', label: 'Saudável' };
+  }
+  function renderML() {
+    var el = $('#gc-ml'); if (!el) return;
+    var anuncios = store.anuncios || [];
+    var cards = anuncios.map(function (a) {
+      var c = anuncioCalc(a);
+      var st = anuncioStatus(c);
+      return '<div class="gc-receita-card" data-open-anuncio="' + esc(a.id) + '" style="cursor:pointer">' +
+        '<div class="gc-receita-head"><b>' + esc(a.nome || 'Sem nome') + '</b><span class="gc-pill ' + st.cls + '">' + st.label + '</span></div>' +
+        '<div class="gc-hint" style="padding:0">Código: ' + esc(a.codigo || '—') + (a.tipoAnuncio ? ' · ' + esc(a.tipoAnuncio) : '') + '</div>' +
+        '<div class="gc-receita-foot">Preço: <b>' + fmt(c.precoFinal) + '</b> · Líquido: <b>' + fmt(c.recebido) + '</b> · Lucro: <b>' + fmt(c.lucro) + '</b>' + (c.margem != null ? ' (' + c.margem + '%)' : '') + '</div>' +
+      '</div>';
+    }).join('');
+    el.innerHTML =
+      '<div class="gc-blk">' +
+        '<h2>Mercado Livre <span>seus anúncios · clique num card pra ver detalhes e editar</span></h2>' +
+        '<div style="margin-bottom:12px"><button type="button" class="gc-btn dark" id="gc-ml-novo">+ Novo anúncio</button></div>' +
+        '<div class="gc-receita-list">' + (cards || '<div class="gc-hint">Nenhum anúncio cadastrado ainda. Clique em "+ Novo anúncio", ou me mande os prints dos seus anúncios que eu cadastro pra você.</div>') + '</div>' +
+      '</div>';
+  }
+  function abrirAnuncio(id) {
+    var existente = id ? (store.anuncios || []).filter(function (x) { return x.id === id; })[0] : null;
+    var base = existente || { id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), codigo: '', nome: '', itensCatalogo: [], tipoAnuncio: 'Clássico', preco: 0, comissaoPct: 0, custoExtra: 0, peso: 0, desconto: 0, custoManual: 0, obs: '' };
+    var isNovo = !existente;
+    // rascunho mutável — só grava em store.anuncios quando clicar em Salvar.
+    var draft = JSON.parse(JSON.stringify(base));
+    draft.itensCatalogo = anuncioItens(base).map(function (it) { return { produto: it.produto, tamanho: it.tamanho, qtd: it.qtd }; });
+    delete draft.produtoCatalogo; delete draft.tamanhoCatalogo;
+
+    var campoNum = function (label, id2, val) {
+      return '<div class="gc-kv"><span class="l">' + label + '</span><b><input id="' + id2 + '" type="text" inputmode="decimal" value="' + esc(String(val == null ? '' : val)) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>';
+    };
+    var campoTxt = function (label, id2, val, largura) {
+      return '<div class="gc-kv"><span class="l">' + label + '</span><b><input id="' + id2 + '" type="text" value="' + esc(val || '') + '" style="width:' + (largura || 200) + 'px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink)"></b></div>';
+    };
+
+    function lerCamposSimples() {
+      if (!$('#gc-ml-nome')) return;
+      draft.nome = $('#gc-ml-nome').value.trim();
+      draft.codigo = $('#gc-ml-codigo').value.trim();
+      draft.tipoAnuncio = $('#gc-ml-tipo').value || 'Clássico';
+      draft.preco = num($('#gc-ml-preco').value) || 0;
+      draft.desconto = num($('#gc-ml-desconto').value) || 0;
+      draft.comissaoPct = num($('#gc-ml-comissao').value) || 0;
+      draft.custoExtra = num($('#gc-ml-custoextra').value) || 0;
+      draft.peso = num($('#gc-ml-peso').value) || 0;
+      draft.custoManual = num($('#gc-ml-customanual').value) || 0;
+      draft.obs = $('#gc-ml-obs').value.trim();
+    }
+
+    function itensKitHtml() {
+      if (!draft.itensCatalogo.length) return '<span class="gc-hint" style="padding:0">Nenhum produto do catálogo vinculado ainda — usando o custo manual abaixo.</span>';
+      return draft.itensCatalogo.map(function (it, idx) {
+        var ci = custoInfo(keyOf(it.produto, it.tamanho));
+        return '<div class="gc-mat-chip"><span class="gc-mat-chip-l">' + esc(it.produto) + ' ' + esc(it.tamanho) + '</span>' +
+          '<b class="gc-mat-chip-v">' + it.qtd + '×</b>' +
+          '<span class="gc-mat-chip-u">' + fmt((ci.total || 0) * it.qtd) + '</span>' +
+          '<button type="button" class="gc-mat-chip-x" data-ml-item-del="' + idx + '" title="Remover do kit">✕</button></div>';
+      }).join('');
+    }
+
+    function render() {
+      lerCamposSimples();
+      var c = anuncioCalc(draft);
+      var st = anuncioStatus(c);
+      var html =
+        campoTxt('Nome do anúncio', 'gc-ml-nome', draft.nome) +
+        campoTxt('Código do anúncio', 'gc-ml-codigo', draft.codigo, 160) +
+        '<div class="gc-kv"><span class="l">Tipo de anúncio</span><b><select id="gc-ml-tipo" style="border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink)">' +
+          ['Clássico', 'Premium'].map(function (t) { return '<option value="' + t + '"' + (t === draft.tipoAnuncio ? ' selected' : '') + '>' + t + '</option>'; }).join('') +
+        '</select></b></div>' +
+        campoNum('Preço de venda (R$)', 'gc-ml-preco', draft.preco) +
+        campoNum('Desconto (R$)', 'gc-ml-desconto', draft.desconto) +
+        campoNum('Comissão da categoria (%)', 'gc-ml-comissao', draft.comissaoPct) +
+        campoNum('Frete/custo variável assumido (R$)', 'gc-ml-custoextra', draft.custoExtra) +
+        campoNum('Peso (kg)', 'gc-ml-peso', draft.peso) +
+        '<div class="gc-hint" style="margin:10px 0 4px">Produtos do kit <span style="font-weight:400">— some o custo de cada um automaticamente. Se o anúncio é um kit com mais de um produto (ex.: 2 Clean 1L), adicione cada um aqui em vez de digitar o custo na mão.</span></div>' +
+        '<div class="gc-receita-chips" style="margin-bottom:6px">' + itensKitHtml() + '</div>' +
+        '<div class="gc-kv"><span class="l">Adicionar ao kit</span><b>' +
+          '<select id="gc-ml-item-add" style="border:1px solid var(--gcln2);border-radius:7px;padding:4px 6px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink)">' + anuncioProdutoOpcoes('') + '</select> ' +
+          '<input id="gc-ml-item-qtd" type="text" inputmode="numeric" value="1" style="width:44px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 6px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"> ' +
+          '<button type="button" class="gc-lnk" id="gc-ml-item-add-btn">+ adicionar</button>' +
+        '</b></div>' +
+        campoNum('Custo do produto manual (R$) — só se não usar o kit acima', 'gc-ml-customanual', draft.custoManual) +
+        '<div class="gc-hint" style="margin:4px 0 8px">A comissão e o custo de frete/peso não têm como eu adivinhar — copie do simulador oficial do Mercado Livre pra sua categoria.</div>' +
+        campoTxt('Observações', 'gc-ml-obs', draft.obs) +
+        '<div class="gc-kv" style="margin-top:10px;border-top:1px solid var(--gcln);padding-top:10px"><span class="l">Custo do produto (kit)</span><b>' + fmt(c.custoProduto) + '</b></div>' +
+        '<div class="gc-kv"><span class="l">Você recebe (líquido)</span><b>' + fmt(c.recebido) + '</b></div>' +
+        '<div class="gc-kv"><span class="l">Lucro</span><b>' + fmt(c.lucro) + '</b></div>' +
+        '<div class="gc-kv"><span class="l">Margem</span><b><span class="gc-pill ' + st.cls + '">' + (c.margem != null ? c.margem + '% · ' : '') + st.label + '</span></b></div>' +
+        '<div class="gc-row" style="margin-top:10px">' +
+          '<button class="gc-btn dark" id="gc-ml-save">' + (isNovo ? 'Criar anúncio' : 'Salvar alterações') + '</button>' +
+          (isNovo ? '' : '<button class="gc-btn" id="gc-ml-del" style="color:#B0322F">Apagar anúncio</button>') +
+        '</div>';
+      drOpen(isNovo ? 'Novo anúncio' : (draft.nome || 'Anúncio'), html);
+      wire();
+    }
+
+    function wire() {
+      var addBtn = $('#gc-ml-item-add-btn');
+      if (addBtn) addBtn.addEventListener('click', function () {
+        var sel = $('#gc-ml-item-add');
+        var val = sel ? sel.value : '';
+        if (!val) return;
+        var partes = val.split('|');
+        var qtd = num(($('#gc-ml-item-qtd') || {}).value) || 1;
+        var existenteIdx = draft.itensCatalogo.findIndex(function (it) { return it.produto === partes[0] && it.tamanho === partes[1]; });
+        if (existenteIdx >= 0) draft.itensCatalogo[existenteIdx].qtd += qtd;
+        else draft.itensCatalogo.push({ produto: partes[0], tamanho: partes[1], qtd: qtd });
+        render();
+      });
+      $all('[data-ml-item-del]', $('#gc-dr-b')).forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          draft.itensCatalogo.splice(parseInt(btn.dataset.mlItemDel, 10), 1);
+          render();
+        });
+      });
+      var saveBtn = $('#gc-ml-save');
+      if (saveBtn) saveBtn.addEventListener('click', function () {
+        lerCamposSimples();
+        if (!draft.nome) { alert('Dê um nome pro anúncio.'); return; }
+        store.anuncios = store.anuncios || [];
+        var idx = store.anuncios.findIndex(function (x) { return x.id === draft.id; });
+        var paraSalvar = JSON.parse(JSON.stringify(draft));
+        if (idx >= 0) store.anuncios[idx] = paraSalvar; else store.anuncios.push(paraSalvar);
+        save();
+        drClose();
+        renderML();
+      });
+      var delBtn = $('#gc-ml-del');
+      if (delBtn) delBtn.addEventListener('click', function () {
+        if (!confirm('Apagar o anúncio "' + (draft.nome || '') + '"?')) return;
+        store.anuncios = (store.anuncios || []).filter(function (x) { return x.id !== draft.id; });
+        save();
+        drClose();
+        renderML();
+      });
+    }
+
+    render();
+  }
+
   /* ---------- edição inline ---------- */
   function startEdit(td) {
     if (td.querySelector('input')) return;
@@ -24759,6 +24944,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       var mp = t.closest('[data-mp]'); if (mp) { startEditMp(mp); return; }
       var ed = t.closest('td[data-ed]'); if (ed) { startEdit(ed); return; }
       var pov = t.closest('[data-pov]'); if (pov) { startEditParam(pov); return; }
+      var oa = t.closest('[data-open-anuncio]'); if (oa) { abrirAnuncio(oa.dataset.openAnuncio); return; }
+      if (t.id === 'gc-ml-novo') { abrirAnuncio(null); return; }
     });
     root.addEventListener('change', function (e) {
       var t = e.target;
@@ -24816,12 +25003,12 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       var _nav = window.navTo;
       window.navTo = function (v) {
         var out = _nav.apply(this, arguments);
-        try { fixSidebar(); if (v === 'calculadora') { mount(); renderPedido(); renderFormulacao(); renderEstrategia(); } } catch (e) {}
+        try { fixSidebar(); if (v === 'calculadora') { mount(); renderPedido(); renderFormulacao(); renderEstrategia(); renderML(); } } catch (e) {}
         return out;
       };
     }
   }
-  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _params: params, refresh: function () { renderPedido(); renderFormulacao(); renderEstrategia(); } };
+  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _params: params, refresh: function () { renderPedido(); renderFormulacao(); renderEstrategia(); renderML(); } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 0);
 })();
