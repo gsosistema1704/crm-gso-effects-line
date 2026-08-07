@@ -23438,6 +23438,14 @@ function gsoIntelExport() {
   --gcok:#1E6B3A; --gcokbg:#EAF6EE; --gcwa:#8A6410; --gcwabg:#FCF5E3;
   --gcbd:#B0322F; --gcbdbg:#FCECEC; --gcgr:#5E5E5E; --gcgrbg:#F0F1F3; --gczap:#25D366;
   --gcbl:#1D5FA8; --gcblbg:#EAF1FB;
+  --gcmlverde:#1F6B3D; --gcmlverdebg:rgba(31,107,61,.10);
+  --gcmlvermelho:#D93636; --gcmlvermelhobg:rgba(217,54,54,.10);
+  --gcmlroxo:#7C3AED; --gcmlroxobg:rgba(124,58,237,.10);
+  --gcmlamarelo:#B8860B; --gcmlamarelobg:rgba(212,175,55,.16);
+  --gcmlvermelhoescuro:#9C2B2B; --gcmlvermelhoescurobg:rgba(156,43,43,.16);
+  --gcmlazulclaro:#5AA9E6; --gcmlazulclarobg:rgba(90,169,230,.12);
+  --gcmlrosa:#E0559C; --gcmlrosabg:rgba(224,85,156,.12);
+  --gcmltiffany:#0ABAB5; --gcmltiffanybg:rgba(10,186,181,.12);
   font-size:14px; color:var(--gcink); max-width:100%; overflow-x:hidden;
 }
 body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gcmut:#b2b2b2; --gcfnt:#8E8E8E;
@@ -23445,6 +23453,14 @@ body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gc
   --gcok:#7fd39a; --gcokbg:rgba(46,125,74,.22); --gcwa:#e6c469; --gcwabg:rgba(138,100,16,.22);
   --gcbd:#f2a09e; --gcbdbg:rgba(176,50,47,.22); --gcgr:#c9c9c9; --gcgrbg:rgba(255,255,255,.08); --gczap:#25D366;
   --gcbl:#8FB8E8; --gcblbg:rgba(58,110,168,.22);
+  --gcmlverde:#6FBE8C; --gcmlverdebg:rgba(31,107,61,.26);
+  --gcmlvermelho:#F08A8A; --gcmlvermelhobg:rgba(217,54,54,.24);
+  --gcmlroxo:#B794F6; --gcmlroxobg:rgba(124,58,237,.26);
+  --gcmlamarelo:#E6C34A; --gcmlamarelobg:rgba(212,175,55,.24);
+  --gcmlvermelhoescuro:#E0A3A3; --gcmlvermelhoescurobg:rgba(156,43,43,.26);
+  --gcmlazulclaro:#9CCBEF; --gcmlazulclarobg:rgba(90,169,230,.24);
+  --gcmlrosa:#F0A8CC; --gcmlrosabg:rgba(224,85,156,.26);
+  --gcmltiffany:#6FE0DB; --gcmltiffanybg:rgba(10,186,181,.26);
 }
 #gso-calc *{ box-sizing:border-box; }
 #gso-calc .gc-head{ display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:4px; }
@@ -23972,7 +23988,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   }
 
   /* ---------- estado da UI ---------- */
-  var UI = { tab: 'pedido', itens: [], filtros: {}, estrTabela: 'consumidor', estrStatus: '', ordenar: 'menor' };
+  var UI = { tab: 'pedido', itens: [], filtros: {}, estrTabela: 'consumidor', estrStatus: '', ordenar: 'menor', mlEditando: null };
 
   function prodRows() { return catalogo(); }
   function nomesUnicos() { var s = {}; prodRows().forEach(function (r) { s[r.produto] = 1; }); return Object.keys(s); }
@@ -24686,29 +24702,133 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     });
     return out;
   }
-  function anuncioGrupo(a) {
-    var itens = anuncioItens(a);
-    return (itens[0] && itens[0].produto) || '';
+  var ML_SPLIT_POR_TAMANHO = { 'Palco': true };
+  var ML_COR_PRODUTO = {
+    'Palco': 'azul',
+    'Clean': 'branco',
+    'Haze': 'verde',
+    'DJs and Clubs': 'vermelho',
+    'Low Fog': 'cinza',
+    'CO₂ Simulator': 'roxo',
+    'Haze Oil': 'amarelo',
+    'Top Up - Limpeza a Seco': 'vermelho-escuro',
+    'Top Up - Lentes e Telas Cristalinas': 'azul-claro',
+    'Bubble': 'rosa',
+    'Snow': 'tiffany'
+  };
+  var ML_PALETA_CORES = ['azul', 'verde', 'vermelho', 'cinza', 'roxo', 'amarelo', 'vermelho-escuro', 'azul-claro', 'rosa', 'tiffany', 'branco', ''];
+  function blocosDoProdutoPadrao(produto) {
+    if (ML_SPLIT_POR_TAMANHO[produto]) {
+      var vistos = {}; var out = [];
+      prodRows().forEach(function (r) {
+        if (r.produto !== produto || !r.tamanho || vistos[r.tamanho]) return;
+        vistos[r.tamanho] = 1;
+        out.push({ chave: produto + '|' + r.tamanho, nome: produto + ' ' + r.tamanho, produto: produto, tamanho: r.tamanho });
+      });
+      return out;
+    }
+    return [{ chave: produto, nome: produto, produto: produto, tamanho: null }];
   }
-  function anuncioMoverParaGrupo(a, produto) {
-    if (!produto) { a.itensCatalogo = []; return; }
+  function seedBlocosPadrao() {
+    var out = [];
+    catalogoProdutosUnicos().forEach(function (p) {
+      blocosDoProdutoPadrao(p).forEach(function (b) {
+        out.push({ chave: b.chave, nome: b.nome, cor: ML_COR_PRODUTO[p] || '', produto: b.produto, tamanho: b.tamanho, colapsado: false, lembretes: [] });
+      });
+    });
+    out.push({ chave: '', nome: 'Sem produto vinculado', cor: '', produto: null, tamanho: null, colapsado: false, lembretes: [], fixo: true });
+    if (Array.isArray(store.mlBlocosOrdem)) {
+      out.sort(function (a, b) {
+        var ia = store.mlBlocosOrdem.indexOf(a.chave); if (ia === -1) ia = 999;
+        var ib = store.mlBlocosOrdem.indexOf(b.chave); if (ib === -1) ib = 999;
+        return ia - ib;
+      });
+    }
+    return out;
+  }
+  function blocosAtuais() {
+    if (!Array.isArray(store.mlBlocos)) store.mlBlocos = seedBlocosPadrao();
+    return store.mlBlocos;
+  }
+  function blocoPor(chave) { return blocosAtuais().filter(function (b) { return b.chave === chave; })[0]; }
+  function anuncioGrupo(a) {
+    var blocos = blocosAtuais();
+    if (a.blocoChave === '') return '';
+    if (a.blocoChave && blocos.some(function (b) { return b.chave === a.blocoChave; })) return a.blocoChave;
+    var itens = anuncioItens(a);
+    var it = itens[0]; if (!it || !it.produto) return '';
+    if (ML_SPLIT_POR_TAMANHO[it.produto]) return it.produto + '|' + it.tamanho;
+    return it.produto;
+  }
+  function anuncioMoverParaGrupo(a, chaveDestino) {
+    a.blocoChave = chaveDestino;
+    var bloco = blocoPor(chaveDestino);
+    if (!bloco || !bloco.produto) { if (!chaveDestino) a.itensCatalogo = []; return; }
     var itens = anuncioItens(a);
     var atual = itens[0];
-    var tamanhos = prodRows().filter(function (r) { return r.produto === produto; });
-    var tamanhoValido = atual && tamanhos.some(function (r) { return r.tamanho === atual.tamanho; });
-    var tamanho = tamanhoValido ? atual.tamanho : ((tamanhos[0] || {}).tamanho || '');
     var qtd = (atual && num(atual.qtd)) || 1;
-    a.itensCatalogo = [{ produto: produto, tamanho: tamanho, qtd: qtd }];
+    var tamanho = bloco.tamanho;
+    if (!tamanho) {
+      var tamanhos = prodRows().filter(function (r) { return r.produto === bloco.produto; });
+      var tamanhoValido = atual && tamanhos.some(function (r) { return r.tamanho === atual.tamanho; });
+      tamanho = tamanhoValido ? atual.tamanho : ((tamanhos[0] || {}).tamanho || '');
+    }
+    a.itensCatalogo = [{ produto: bloco.produto, tamanho: tamanho, qtd: qtd }];
+  }
+  function blocoNovo() {
+    var blocos = blocosAtuais();
+    var chave = 'blk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    var novo = { chave: chave, nome: 'Novo bloco', cor: '', produto: null, tamanho: null, colapsado: false, lembretes: [] };
+    var idxSemProduto = blocos.findIndex(function (b) { return b.chave === ''; });
+    if (idxSemProduto === -1) blocos.push(novo); else blocos.splice(idxSemProduto, 0, novo);
+    save();
+    UI.mlEditando = chave;
+    renderML();
+  }
+  function blocoApagar(chave) {
+    var blocos = blocosAtuais();
+    var idx = blocos.findIndex(function (b) { return b.chave === chave; });
+    if (idx === -1 || blocos[idx].fixo) return;
+    if (!confirm('Apagar o bloco "' + blocos[idx].nome + '"? Os anúncios dele vão para "Sem produto vinculado".')) return;
+    blocos.splice(idx, 1);
+    (store.anuncios || []).forEach(function (a) { if (a.blocoChave === chave) a.blocoChave = ''; });
+    save();
+    UI.mlEditando = null;
+    renderML();
+  }
+  function blocoMoverAntesDe(origem, destino) {
+    var blocos = blocosAtuais();
+    var i = blocos.findIndex(function (b) { return b.chave === origem; }); if (i === -1) return;
+    var item = blocos.splice(i, 1)[0];
+    var j = blocos.findIndex(function (b) { return b.chave === destino; });
+    if (j === -1) blocos.push(item); else blocos.splice(j, 0, item);
+  }
+  function blocoAddLembrete(chave, texto) {
+    var b = blocoPor(chave); if (!b || !texto) return;
+    b.lembretes = b.lembretes || [];
+    b.lembretes.push({ id: 'lb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5), texto: texto, feito: false });
+    save();
+    renderML();
+  }
+  function blocoToggleLembrete(chave, id) {
+    var b = blocoPor(chave); if (!b) return;
+    var l = (b.lembretes || []).filter(function (x) { return x.id === id; })[0];
+    if (l) { l.feito = !l.feito; save(); renderML(); }
+  }
+  function blocoDelLembrete(chave, id) {
+    var b = blocoPor(chave); if (!b) return;
+    b.lembretes = (b.lembretes || []).filter(function (x) { return x.id !== id; });
+    save();
+    renderML();
   }
   function renderML() {
     var el = $('#gc-ml'); if (!el) return;
     var anuncios = store.anuncios || [];
-    var produtos = catalogoProdutosUnicos();
-    var porGrupo = {}; produtos.forEach(function (p) { porGrupo[p] = []; });
-    var semProduto = [];
+    var blocos = blocosAtuais();
+    var porChave = {}; blocos.forEach(function (b) { porChave[b.chave] = []; });
     anuncios.forEach(function (a) {
       var g = anuncioGrupo(a);
-      if (g && porGrupo[g]) porGrupo[g].push(a); else semProduto.push(a);
+      if (porChave[g]) porChave[g].push(a); else porChave[''].push(a);
     });
     function miniCard(a) {
       var c = anuncioCalc(a);
@@ -24718,18 +24838,50 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
         '<div class="gc-ml-mini-foot">' + fmt(c.precoFinal) + ' · lucro ' + fmt(c.lucro) + (c.margem != null ? ' (' + c.margem + '%)' : '') + '</div>' +
       '</div>';
     }
-    function bloco(nome, lista, chave) {
-      return '<div class="gc-ml-group" data-ml-group="' + esc(chave) + '">' +
-        '<div class="gc-ml-group-head"><b>' + esc(nome) + '</b><span class="gc-pill gray">' + lista.length + '</span></div>' +
-        '<div class="gc-ml-group-list">' + (lista.map(miniCard).join('') || '<div class="gc-hint" style="padding:0">Arraste anúncios pra cá.</div>') + '</div>' +
+    function painelEdicao(b) {
+      if (UI.mlEditando !== b.chave) return '';
+      var swatches = ML_PALETA_CORES.map(function (c) {
+        return '<button type="button" class="gc-ml-swatch' + (c ? ' cor-' + c : ' cor-nenhuma') + (c === (b.cor || '') ? ' on' : '') + '" data-bloco-cor="' + esc(b.chave) + '|' + c + '" title="' + (c || 'Sem cor') + '"></button>';
+      }).join('');
+      return '<div class="gc-ml-edit">' +
+        '<input type="text" class="gc-ml-edit-nome" data-bloco-nome="' + esc(b.chave) + '" value="' + esc(b.nome) + '" placeholder="Nome do bloco">' +
+        '<div class="gc-ml-swatches">' + swatches + '</div>' +
+        (b.fixo ? '' : '<button type="button" class="gc-lnk" style="color:#B0322F" data-bloco-del="' + esc(b.chave) + '">Apagar bloco</button>') +
       '</div>';
     }
-    var blocos = produtos.map(function (p) { return bloco(p, porGrupo[p], p); }).join('') + bloco('Sem produto vinculado', semProduto, '');
+    function painelLembretes(b) {
+      var lembretes = b.lembretes || [];
+      var itens = lembretes.map(function (l) {
+        return '<div class="gc-ml-lembrete' + (l.feito ? ' feito' : '') + '">' +
+          '<label><input type="checkbox" data-lembrete-toggle="' + esc(b.chave) + '|' + esc(l.id) + '"' + (l.feito ? ' checked' : '') + '> ' + esc(l.texto) + '</label>' +
+          '<button type="button" class="gc-mat-chip-x" data-lembrete-del="' + esc(b.chave) + '|' + esc(l.id) + '" title="Remover lembrete">✕</button>' +
+        '</div>';
+      }).join('');
+      return '<div class="gc-ml-lembretes">' + itens +
+        '<input type="text" class="gc-ml-lembrete-add" placeholder="+ lembrete (Enter)" data-lembrete-input="' + esc(b.chave) + '">' +
+      '</div>';
+    }
+    function bloco(b) {
+      var lista = porChave[b.chave] || [];
+      var colapsado = !!b.colapsado;
+      return '<div class="gc-ml-group' + (b.cor ? ' cor-' + b.cor : '') + (colapsado ? ' colapsado' : '') + '" data-ml-group="' + esc(b.chave) + '">' +
+        '<div class="gc-ml-group-head" draggable="true" data-drag-bloco="' + esc(b.chave) + '">' +
+          '<button type="button" class="gc-ml-collapse" data-bloco-colapsar="' + esc(b.chave) + '" title="' + (colapsado ? 'Expandir' : 'Minimizar') + '">' + (colapsado ? '▸' : '▾') + '</button>' +
+          '<b>' + esc(b.nome) + '</b>' +
+          '<span class="gc-pill gray">' + lista.length + '</span>' +
+          '<button type="button" class="gc-ml-gear" data-bloco-editar="' + esc(b.chave) + '" title="Editar nome/cor">✎</button>' +
+        '</div>' +
+        painelEdicao(b) +
+        painelLembretes(b) +
+        (colapsado ? '' : '<div class="gc-ml-group-list">' + (lista.map(miniCard).join('') || '<div class="gc-hint" style="padding:0">Arraste anúncios pra cá.</div>') + '</div>') +
+      '</div>';
+    }
+    var blocosHtml = blocos.map(bloco).join('');
     el.innerHTML =
       '<div class="gc-blk">' +
-        '<h2>Mercado Livre <span>seus anúncios agrupados por produto · arraste um card pra outro bloco pra reclassificar · clique pra editar</span></h2>' +
-        '<div style="margin-bottom:12px"><button type="button" class="gc-btn dark" id="gc-ml-novo">+ Novo anúncio</button></div>' +
-        (anuncios.length ? '<div class="gc-ml-board">' + blocos + '</div>' : '<div class="gc-hint">Nenhum anúncio cadastrado ainda. Clique em "+ Novo anúncio", ou me mande os prints dos seus anúncios que eu cadastro pra você.</div>') +
+        '<h2>Mercado Livre <span>arraste um card pra outro bloco pra reclassificar · arraste o título pra reordenar · ✎ edita nome/cor · ▾ minimiza · clique num anúncio pra editar</span></h2>' +
+        '<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="gc-btn dark" id="gc-ml-novo">+ Novo anúncio</button><button type="button" class="gc-btn" id="gc-ml-bloco-novo">+ Novo bloco</button></div>' +
+        (blocos.length ? '<div class="gc-ml-board">' + blocosHtml + '</div>' : '<div class="gc-hint">Nenhum anúncio cadastrado ainda. Clique em "+ Novo anúncio", ou me mande os prints dos seus anúncios que eu cadastro pra você.</div>') +
       '</div>';
   }
   function abrirAnuncio(id) {
@@ -24988,15 +25140,41 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       var pov = t.closest('[data-pov]'); if (pov) { startEditParam(pov); return; }
       var oa = t.closest('[data-open-anuncio]'); if (oa) { abrirAnuncio(oa.dataset.openAnuncio); return; }
       if (t.id === 'gc-ml-novo') { abrirAnuncio(null); return; }
+      if (t.id === 'gc-ml-bloco-novo') { blocoNovo(); return; }
+      var bc2 = t.closest('[data-bloco-colapsar]'); if (bc2) { var bb1 = blocoPor(bc2.dataset.blocoColapsar); if (bb1) { bb1.colapsado = !bb1.colapsado; save(); renderML(); } return; }
+      var be = t.closest('[data-bloco-editar]'); if (be) { UI.mlEditando = (UI.mlEditando === be.dataset.blocoEditar) ? null : be.dataset.blocoEditar; renderML(); return; }
+      var bd = t.closest('[data-bloco-del]'); if (bd) { blocoApagar(bd.dataset.blocoDel); return; }
+      var bcCor = t.closest('[data-bloco-cor]'); if (bcCor) {
+        var corPartes = bcCor.dataset.blocoCor.split('|');
+        var bb2 = blocoPor(corPartes[0]);
+        if (bb2) { bb2.cor = corPartes[1]; save(); renderML(); }
+        return;
+      }
+      var ldel = t.closest('[data-lembrete-del]'); if (ldel) {
+        var ldParts = ldel.dataset.lembreteDel.split('|');
+        blocoDelLembrete(ldParts[0], ldParts[1]);
+        return;
+      }
     });
     root.addEventListener('dragstart', function (e) {
-      var t = e.target.closest && e.target.closest('[data-drag-anuncio]'); if (!t) return;
-      e.dataTransfer.setData('text/plain', t.dataset.dragAnuncio);
-      e.dataTransfer.effectAllowed = 'move';
-      t.classList.add('dragging');
+      var card = e.target.closest && e.target.closest('[data-drag-anuncio]');
+      if (card) {
+        e.dataTransfer.setData('application/x-ml-anuncio', card.dataset.dragAnuncio);
+        e.dataTransfer.effectAllowed = 'move';
+        card.classList.add('dragging');
+        return;
+      }
+      var head = e.target.closest && e.target.closest('[data-drag-bloco]');
+      if (head) {
+        e.dataTransfer.setData('application/x-ml-bloco', head.dataset.dragBloco);
+        e.dataTransfer.effectAllowed = 'move';
+        var grp = head.closest('[data-ml-group]'); if (grp) grp.classList.add('dragging');
+      }
     });
     root.addEventListener('dragend', function (e) {
-      var t = e.target.closest && e.target.closest('[data-drag-anuncio]'); if (t) t.classList.remove('dragging');
+      var card = e.target.closest && e.target.closest('[data-drag-anuncio]'); if (card) card.classList.remove('dragging');
+      var head = e.target.closest && e.target.closest('[data-drag-bloco]');
+      if (head) { var grp = head.closest('[data-ml-group]'); if (grp) grp.classList.remove('dragging'); }
     });
     root.addEventListener('dragover', function (e) {
       var grp = e.target.closest && e.target.closest('[data-ml-group]'); if (!grp) return;
@@ -25011,12 +25189,24 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       var grp = e.target.closest && e.target.closest('[data-ml-group]'); if (!grp) return;
       e.preventDefault();
       grp.classList.remove('gc-ml-over');
-      var id = e.dataTransfer.getData('text/plain');
-      var a = (store.anuncios || []).find(function (x) { return x.id === id; });
-      if (!a) return;
-      anuncioMoverParaGrupo(a, grp.dataset.mlGroup);
-      save();
-      renderML();
+      var tipos = e.dataTransfer.types || [];
+      if (tipos.indexOf('application/x-ml-anuncio') !== -1) {
+        var id = e.dataTransfer.getData('application/x-ml-anuncio');
+        var a = (store.anuncios || []).find(function (x) { return x.id === id; });
+        if (!a) return;
+        anuncioMoverParaGrupo(a, grp.dataset.mlGroup);
+        save();
+        renderML();
+        return;
+      }
+      if (tipos.indexOf('application/x-ml-bloco') !== -1) {
+        var origem = e.dataTransfer.getData('application/x-ml-bloco');
+        var destino = grp.dataset.mlGroup;
+        if (origem === destino) return;
+        blocoMoverAntesDe(origem, destino);
+        save();
+        renderML();
+      }
     });
     root.addEventListener('change', function (e) {
       var t = e.target;
@@ -25025,6 +25215,16 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       if (t.hasAttribute && t.hasAttribute('data-ord')) { UI.ordenar = t.value; renderEstrategia(); return; }
       if (t.hasAttribute && t.hasAttribute('data-rec-mat-add')) { adicionarMaterialAoProduto(t.dataset.recMatAdd, t.value); return; }
       if (t.hasAttribute && t.hasAttribute('data-receita-produto-add')) { adicionarProdutoFormulacao(t.value); return; }
+      if (t.hasAttribute && t.hasAttribute('data-bloco-nome')) {
+        var bn = blocoPor(t.dataset.blocoNome);
+        if (bn) { bn.nome = t.value.trim() || bn.nome; save(); renderML(); }
+        return;
+      }
+      if (t.hasAttribute && t.hasAttribute('data-lembrete-toggle')) {
+        var ltParts = t.dataset.lembreteToggle.split('|');
+        blocoToggleLembrete(ltParts[0], ltParts[1]);
+        return;
+      }
       if (t.id === 'gc-f-prod') { renderPedido(); return; }
       if (t.id === 'gc-f-frete') { var w = $('#gc-f-fretev-w'); if (w) w.style.display = (t.value === 'Subsidiado' || t.value === 'Grátis') ? '' : 'none'; refreshResultado(); return; }
       if (t.id && t.id.indexOf('gc-f-') === 0) { refreshResultado(); return; }
@@ -25032,6 +25232,15 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     root.addEventListener('input', function (e) {
       var t = e.target;
       if (t.id === 'gc-f-desc' || t.id === 'gc-f-fretev' || t.id === 'gc-f-qtd') refreshResultado();
+    });
+    root.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var t = e.target;
+      if (t.hasAttribute && t.hasAttribute('data-lembrete-input')) {
+        e.preventDefault();
+        var texto = t.value.trim();
+        if (texto) blocoAddLembrete(t.dataset.lembreteInput, texto);
+      }
     });
   }
   function reabrirSim(id) {
@@ -26201,11 +26410,53 @@ body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !impor
 #gso-calc .gc-receita-foot b{ color:var(--gcink); }
 
 /* Mercado Livre: blocos por produto, com anúncios arrastáveis entre blocos */
-#gso-calc .gc-ml-board{ display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:12px; }
-#gso-calc .gc-ml-group{ border:1px solid var(--gcln); border-radius:12px; padding:10px 12px; background:var(--gcbg); min-height:64px; transition:background .12s, border-color .12s; }
+#gso-calc .gc-ml-board{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px; }
+@media(max-width:1080px){ #gso-calc .gc-ml-board{ grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+@media(max-width:680px){ #gso-calc .gc-ml-board{ grid-template-columns:minmax(0, 1fr); } }
+#gso-calc .gc-ml-group{ border:1px solid var(--gcln); border-radius:12px; padding:10px 12px; background:var(--gcbg); min-height:64px; transition:background .12s, border-color .12s, opacity .12s; }
 #gso-calc .gc-ml-group.gc-ml-over{ border-color:var(--gcbl); background:var(--gcblbg); }
-#gso-calc .gc-ml-group-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12.5px; margin-bottom:8px; }
+#gso-calc .gc-ml-group.dragging{ opacity:.4; }
+#gso-calc .gc-ml-group.cor-azul{ border:2px solid var(--gcbl); background:var(--gcblbg); }
+#gso-calc .gc-ml-group.cor-verde{ border:2px solid var(--gcmlverde); background:var(--gcmlverdebg); }
+#gso-calc .gc-ml-group.cor-vermelho{ border:2px solid var(--gcmlvermelho); background:var(--gcmlvermelhobg); }
+#gso-calc .gc-ml-group.cor-cinza{ border:2px solid var(--gcgr); background:var(--gcgrbg); }
+#gso-calc .gc-ml-group.cor-roxo{ border:2px solid var(--gcmlroxo); background:var(--gcmlroxobg); }
+#gso-calc .gc-ml-group.cor-amarelo{ border:2px solid var(--gcmlamarelo); background:var(--gcmlamarelobg); }
+#gso-calc .gc-ml-group.cor-vermelho-escuro{ border:2px solid var(--gcmlvermelhoescuro); background:var(--gcmlvermelhoescurobg); }
+#gso-calc .gc-ml-group.cor-azul-claro{ border:2px solid var(--gcmlazulclaro); background:var(--gcmlazulclarobg); }
+#gso-calc .gc-ml-group.cor-rosa{ border:2px solid var(--gcmlrosa); background:var(--gcmlrosabg); }
+#gso-calc .gc-ml-group.cor-tiffany{ border:2px solid var(--gcmltiffany); background:var(--gcmltiffanybg); }
+#gso-calc .gc-ml-group.cor-branco{ border:2px solid #D0D0D0; background:#FFFFFF; --gcink:#191B1E; --gcmut:#6F6F6F; --gcsf:#F7F7F8; --gcln2:#E2E2E2; }
+#gso-calc .gc-ml-group-head{ display:flex; align-items:center; gap:6px; font-size:12.5px; margin-bottom:8px; cursor:grab; }
+#gso-calc .gc-ml-group-head:active{ cursor:grabbing; }
+#gso-calc .gc-ml-group-head b{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#gso-calc .gc-ml-collapse, #gso-calc .gc-ml-gear{ border:0 !important; background:none !important; box-shadow:none !important; min-height:0 !important; padding:0 !important; width:20px; height:20px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; border-radius:6px !important; color:var(--gcmut) !important; cursor:pointer; font-size:12px; }
+#gso-calc .gc-ml-collapse:hover, #gso-calc .gc-ml-gear:hover{ background:rgba(0,0,0,.06) !important; }
+body.theme-dark #gso-calc .gc-ml-collapse:hover, body.theme-dark #gso-calc .gc-ml-gear:hover{ background:rgba(255,255,255,.09) !important; }
+#gso-calc .gc-ml-group.colapsado{ min-height:0; }
 #gso-calc .gc-ml-group-list{ display:flex; flex-direction:column; gap:6px; min-height:22px; }
+#gso-calc .gc-ml-edit{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; padding:8px; border:1px dashed var(--gcln2); border-radius:9px; }
+#gso-calc .gc-ml-edit-nome{ width:100%; border:1px solid var(--gcln2); border-radius:7px; padding:5px 8px; font:600 12.5px inherit; font-family:inherit; background:var(--gcsf); color:var(--gcink); }
+#gso-calc .gc-ml-swatches{ display:flex; flex-wrap:wrap; gap:6px; }
+#gso-calc .gc-ml-swatch{ width:20px; height:20px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:0; background:var(--gcln2); }
+#gso-calc .gc-ml-swatch.on{ border-color:var(--gcac); }
+#gso-calc .gc-ml-swatch.cor-nenhuma{ background:repeating-linear-gradient(45deg, var(--gcln2), var(--gcln2) 3px, var(--gcsf) 3px, var(--gcsf) 6px); }
+#gso-calc .gc-ml-swatch.cor-azul{ background:var(--gcbl); }
+#gso-calc .gc-ml-swatch.cor-verde{ background:var(--gcmlverde); }
+#gso-calc .gc-ml-swatch.cor-vermelho{ background:var(--gcmlvermelho); }
+#gso-calc .gc-ml-swatch.cor-cinza{ background:var(--gcgr); }
+#gso-calc .gc-ml-swatch.cor-roxo{ background:var(--gcmlroxo); }
+#gso-calc .gc-ml-swatch.cor-amarelo{ background:var(--gcmlamarelo); }
+#gso-calc .gc-ml-swatch.cor-vermelho-escuro{ background:var(--gcmlvermelhoescuro); }
+#gso-calc .gc-ml-swatch.cor-azul-claro{ background:var(--gcmlazulclaro); }
+#gso-calc .gc-ml-swatch.cor-rosa{ background:var(--gcmlrosa); }
+#gso-calc .gc-ml-swatch.cor-tiffany{ background:var(--gcmltiffany); }
+#gso-calc .gc-ml-swatch.cor-branco{ background:#FFFFFF; border-color:#D0D0D0; }
+#gso-calc .gc-ml-lembretes{ display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+#gso-calc .gc-ml-lembrete{ display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11.5px; }
+#gso-calc .gc-ml-lembrete label{ display:flex; align-items:center; gap:5px; cursor:pointer; }
+#gso-calc .gc-ml-lembrete.feito label{ text-decoration:line-through; color:var(--gcmut); }
+#gso-calc .gc-ml-lembrete-add{ width:100%; border:0; border-bottom:1px dotted var(--gcln2); background:none; padding:2px 0; font:500 11.5px inherit; font-family:inherit; color:var(--gcink); }
 #gso-calc .gc-ml-mini{ border:1px solid var(--gcln2); border-radius:9px; padding:8px 10px; background:var(--gcsf); cursor:grab; }
 #gso-calc .gc-ml-mini:active{ cursor:grabbing; }
 #gso-calc .gc-ml-mini.dragging{ opacity:.4; }
