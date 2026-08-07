@@ -24796,12 +24796,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     UI.mlEditando = null;
     renderML();
   }
-  function blocoMoverAntesDe(origem, destino) {
+  function blocoMoverAntesDe(origem, destino, depois) {
     var blocos = blocosAtuais();
     var i = blocos.findIndex(function (b) { return b.chave === origem; }); if (i === -1) return;
     var item = blocos.splice(i, 1)[0];
     var j = blocos.findIndex(function (b) { return b.chave === destino; });
-    if (j === -1) blocos.push(item); else blocos.splice(j, 0, item);
+    if (j === -1) { blocos.push(item); return; }
+    blocos.splice(depois ? j + 1 : j, 0, item);
   }
   function blocoAddLembrete(chave, texto) {
     var b = blocoPor(chave); if (!b || !texto) return;
@@ -24865,7 +24866,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       var lista = porChave[b.chave] || [];
       var colapsado = !!b.colapsado;
       return '<div class="gc-ml-group' + (b.cor ? ' cor-' + b.cor : '') + (colapsado ? ' colapsado' : '') + '" data-ml-group="' + esc(b.chave) + '">' +
-        '<div class="gc-ml-group-head" draggable="true" data-drag-bloco="' + esc(b.chave) + '">' +
+        '<div class="gc-ml-group-head">' +
+          '<span class="gc-ml-drag-handle" draggable="true" data-drag-bloco="' + esc(b.chave) + '" title="Arrastar pra reordenar">⠿</span>' +
           '<button type="button" class="gc-ml-collapse" data-bloco-colapsar="' + esc(b.chave) + '" title="' + (colapsado ? 'Expandir' : 'Minimizar') + '">' + (colapsado ? '▸' : '▾') + '</button>' +
           '<b>' + esc(b.nome) + '</b>' +
           '<span class="gc-pill gray">' + lista.length + '</span>' +
@@ -25180,15 +25182,25 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       var grp = e.target.closest && e.target.closest('[data-ml-group]'); if (!grp) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
-      grp.classList.add('gc-ml-over');
+      var tipos = e.dataTransfer.types || [];
+      if (tipos.indexOf('application/x-ml-bloco') !== -1) {
+        var rect = grp.getBoundingClientRect();
+        var depois = (e.clientX - rect.left) > rect.width / 2;
+        grp.classList.remove('gc-ml-over');
+        grp.classList.toggle('gc-ml-over-antes', !depois);
+        grp.classList.toggle('gc-ml-over-depois', depois);
+      } else {
+        grp.classList.add('gc-ml-over');
+      }
     });
     root.addEventListener('dragleave', function (e) {
-      var grp = e.target.closest && e.target.closest('[data-ml-group]'); if (grp) grp.classList.remove('gc-ml-over');
+      var grp = e.target.closest && e.target.closest('[data-ml-group]');
+      if (grp) grp.classList.remove('gc-ml-over', 'gc-ml-over-antes', 'gc-ml-over-depois');
     });
     root.addEventListener('drop', function (e) {
       var grp = e.target.closest && e.target.closest('[data-ml-group]'); if (!grp) return;
       e.preventDefault();
-      grp.classList.remove('gc-ml-over');
+      grp.classList.remove('gc-ml-over', 'gc-ml-over-antes', 'gc-ml-over-depois');
       var tipos = e.dataTransfer.types || [];
       if (tipos.indexOf('application/x-ml-anuncio') !== -1) {
         var id = e.dataTransfer.getData('application/x-ml-anuncio');
@@ -25203,7 +25215,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
         var origem = e.dataTransfer.getData('application/x-ml-bloco');
         var destino = grp.dataset.mlGroup;
         if (origem === destino) return;
-        blocoMoverAntesDe(origem, destino);
+        var rect2 = grp.getBoundingClientRect();
+        var depois2 = (e.clientX - rect2.left) > rect2.width / 2;
+        blocoMoverAntesDe(origem, destino, depois2);
         save();
         renderML();
       }
@@ -26416,6 +26430,8 @@ body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !impor
 @media(max-width:680px){ #gso-calc .gc-ml-board{ grid-template-columns:minmax(0, 1fr); } }
 #gso-calc .gc-ml-group{ border:1px solid var(--gcln); border-radius:12px; padding:10px 12px; background:var(--gcbg); min-height:64px; transition:background .12s, border-color .12s, opacity .12s; }
 #gso-calc .gc-ml-group.gc-ml-over{ border-color:var(--gcbl); background:var(--gcblbg); }
+#gso-calc .gc-ml-group.gc-ml-over-antes{ box-shadow:inset 4px 0 0 var(--gcmlroxo); background:var(--gcmlroxobg); }
+#gso-calc .gc-ml-group.gc-ml-over-depois{ box-shadow:inset -4px 0 0 var(--gcmlroxo); background:var(--gcmlroxobg); }
 #gso-calc .gc-ml-group.dragging{ opacity:.4; }
 #gso-calc .gc-ml-group.cor-azul{ border:2px solid var(--gcbl); background:var(--gcblbg); }
 #gso-calc .gc-ml-group.cor-verde{ border:2px solid var(--gcmlverde); background:var(--gcmlverdebg); }
@@ -26428,8 +26444,11 @@ body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !impor
 #gso-calc .gc-ml-group.cor-rosa{ border:2px solid var(--gcmlrosa); background:var(--gcmlrosabg); }
 #gso-calc .gc-ml-group.cor-tiffany{ border:2px solid var(--gcmltiffany); background:var(--gcmltiffanybg); }
 #gso-calc .gc-ml-group.cor-branco{ border:2px solid #D0D0D0; background:#FFFFFF; --gcink:#191B1E; --gcmut:#6F6F6F; --gcsf:#F7F7F8; --gcln2:#E2E2E2; }
-#gso-calc .gc-ml-group-head{ display:flex; align-items:center; gap:6px; font-size:12.5px; margin-bottom:8px; cursor:grab; }
-#gso-calc .gc-ml-group-head:active{ cursor:grabbing; }
+#gso-calc .gc-ml-group-head{ display:flex; align-items:center; gap:6px; font-size:12.5px; margin-bottom:8px; }
+#gso-calc .gc-ml-drag-handle{ cursor:grab; font-size:14px; line-height:1; color:var(--gcfnt); flex:0 0 auto; padding:2px 3px; user-select:none; border-radius:5px; }
+#gso-calc .gc-ml-drag-handle:hover{ background:rgba(0,0,0,.06); color:var(--gcink); }
+body.theme-dark #gso-calc .gc-ml-drag-handle:hover{ background:rgba(255,255,255,.1); }
+#gso-calc .gc-ml-drag-handle:active{ cursor:grabbing; }
 #gso-calc .gc-ml-group-head b{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #gso-calc .gc-ml-collapse, #gso-calc .gc-ml-gear{ border:0 !important; background:none !important; box-shadow:none !important; min-height:0 !important; padding:0 !important; width:20px; height:20px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; border-radius:6px !important; color:var(--gcmut) !important; cursor:pointer; font-size:12px; }
 #gso-calc .gc-ml-collapse:hover, #gso-calc .gc-ml-gear:hover{ background:rgba(0,0,0,.06) !important; }
