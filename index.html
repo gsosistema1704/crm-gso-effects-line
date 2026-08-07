@@ -26410,7 +26410,8 @@ body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !impor
 #gso-calc .gc-receita-foot b{ color:var(--gcink); }
 
 /* Mercado Livre: blocos por produto, com anúncios arrastáveis entre blocos */
-#gso-calc .gc-ml-board{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px; }
+#gso-calc .gc-ml-board{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; }
+@media(max-width:1320px){ #gso-calc .gc-ml-board{ grid-template-columns:repeat(3, minmax(0, 1fr)); } }
 @media(max-width:1080px){ #gso-calc .gc-ml-board{ grid-template-columns:repeat(2, minmax(0, 1fr)); } }
 @media(max-width:680px){ #gso-calc .gc-ml-board{ grid-template-columns:minmax(0, 1fr); } }
 #gso-calc .gc-ml-group{ border:1px solid var(--gcln); border-radius:12px; padding:10px 12px; background:var(--gcbg); min-height:64px; transition:background .12s, border-color .12s, opacity .12s; }
