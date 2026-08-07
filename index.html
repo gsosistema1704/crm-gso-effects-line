@@ -24048,7 +24048,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     renderPedido(); renderFormulacao(); renderEstrategia(); renderML();
   }
   function drOpen(t, html) { $('#gc-dr-t').textContent = t; $('#gc-dr-b').innerHTML = html; document.body.classList.add('gc-dro'); }
-  function drClose() { document.body.classList.remove('gc-dro'); var b = $('#gc-dr-b'); if (b) b.innerHTML = ''; }
+  function drClose() { document.body.classList.remove('gc-dro', 'gc-dr-flutuante'); var b = $('#gc-dr-b'); if (b) b.innerHTML = ''; }
   function moOpen(txt, titulo) { $('#gc-mo-t').textContent = titulo || 'Orçamento para WhatsApp'; $('#gc-mo-tx').value = txt; document.body.classList.add('gc-mo'); }
   function moClose() { document.body.classList.remove('gc-mo'); }
 
@@ -24904,6 +24904,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       '</div>';
   }
   function abrirAnuncio(id) {
+    document.body.classList.add('gc-dr-flutuante');
     var existente = id ? (store.anuncios || []).filter(function (x) { return x.id === id; })[0] : null;
     var base = existente || { id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), codigo: '', nome: '', itensCatalogo: [], tipoAnuncio: 'Clássico', preco: 0, comissaoPct: 0, custoExtraVendedor: 0, custoExtraComprador: 0, freteVendedorCobre: true, peso: 0, desconto: 0, custoManual: 0, obs: '' };
     var isNovo = !existente;
@@ -26600,6 +26601,21 @@ body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !impor
 
 /* ---------- FICHA LATERAL (drawer) — design limpo ---------- */
 #gso-calc-dr{ width:min(420px,94vw) !important; }
+
+/* modo "flutuante": abre centralizado na tela, por cima do conteúdo, em vez de deslizar
+   pela lateral — usado pela gaveta de anúncio do Mercado Livre. */
+body.gc-dr-flutuante #gso-calc-dr{
+  top:50% !important; left:50% !important; right:auto !important; bottom:auto !important;
+  width:min(560px, 92vw) !important; height:auto !important; max-height:88vh !important;
+  border-radius:18px !important; border:1px solid var(--gcln,#ECEEF0) !important;
+  box-shadow:0 24px 64px rgba(0,0,0,.32) !important;
+  transform:translate(-50%, -50%) scale(.97);
+  opacity:0; pointer-events:none;
+  transition:opacity .16s ease, transform .16s ease;
+}
+body.gc-dro.gc-dr-flutuante #gso-calc-dr{ opacity:1; pointer-events:auto; transform:translate(-50%, -50%) scale(1); }
+body.gc-dr-flutuante #gso-calc-dr .b{ min-height:0; }
+body.gc-dr-flutuante #gso-calc-dr header{ border-radius:18px 18px 0 0 !important; }
 #gso-calc-dr header{ padding:18px 20px !important; font-size:14px !important; }
 #gso-calc-dr .b{ padding:18px 20px 26px !important; }
 #gso-calc-dr .b > div[style*="letter-spacing"]{
