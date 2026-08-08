@@ -26732,6 +26732,55 @@ body.theme-dark #gso-calc #gc-te td:last-child .gc-lnk:hover{
   setTimeout(function(){ setTheme(saved()); }, 1200);
 })();
 </script>
+<style id="gso-modo-anonimo-style">
+/* ============ MODO ANÔNIMO: borra os dados da tela (uso ao compartilhar tela) ============ */
+body.modo-anonimo .main {
+  filter: blur(7px) !important;
+  transition: filter .15s ease;
+}
+#gso-anon-fab.is-active {
+  color: var(--gso-accent) !important;
+  border-color: var(--gso-accent) !important;
+}
+@media (max-width: 900px) {
+  #gso-anon-fab { display: none !important; }
+}
+</style>
+<script id="gso-modo-anonimo">
+(function(){
+  var KEY='gso_modo_anonimo';
+  function isOn(){ return document.body && document.body.classList.contains('modo-anonimo'); }
+  function saved(){ try{ return localStorage.getItem(KEY)==='1'; }catch(e){ return false; } }
+  var EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var EYE_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 7 11 7a20.3 20.3 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
+  function paint(){ var fab=document.getElementById('gso-anon-fab'); if(!fab) return; var on=isOn();
+      var ic=fab.querySelector('.gso-ic'); var lb=fab.querySelector('.gso-lb');
+      if(ic) ic.innerHTML = on?EYE_OFF:EYE;
+      if(lb) lb.textContent = on?'Modo anônimo ativo':'Modo anônimo';
+      fab.classList.toggle('is-active', on);
+      fab.setAttribute('aria-pressed', on?'true':'false');
+      var label = on?'Desativar modo anônimo':'Ativar modo anônimo';
+      fab.title = label; fab.setAttribute('aria-label', label);
+  }
+  function setMode(on){ if(document.body) document.body.classList.toggle('modo-anonimo', !!on);
+      try{ localStorage.setItem(KEY, on?'1':'0'); }catch(e){}
+      paint();
+  }
+  function toggle(){ setMode(!isOn()); }
+  function build(){ if(!document.body || document.getElementById('gso-anon-fab')) return;
+      var b=document.createElement('button'); b.id='gso-anon-fab'; b.className='gso-theme-fab'; b.type='button';
+      b.setAttribute('aria-label','Ativar modo anônimo');
+      b.innerHTML='<span class="gso-ic" aria-hidden="true"></span><span class="gso-lb">Modo anônimo</span>';
+      b.addEventListener('click', toggle);
+      var row=document.getElementById('gso-fab-row');
+      if(!row){ row=document.createElement('div'); row.id='gso-fab-row'; document.body.appendChild(row); }
+      row.appendChild(b);
+      setMode(saved());
+  }
+  if(document.readyState==="loading"){ document.addEventListener("DOMContentLoaded", build); } else { build(); }
+  setTimeout(build, 600);
+})();
+</script>
 <script id="gso-mensagens-simples">
 (function(){
   function noop(){}
