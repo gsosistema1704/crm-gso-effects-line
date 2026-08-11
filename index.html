@@ -25087,7 +25087,6 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       draft.preco = num($('#gc-ml-preco').value) || 0;
       draft.tarifaVenda = num($('#gc-ml-tarifa').value) || 0;
       draft.custoEnvio = num($('#gc-ml-envio').value) || 0;
-      draft.peso = num($('#gc-ml-peso').value) || 0;
       draft.custoManual = num($('#gc-ml-customanual').value) || 0;
       draft.obs = $('#gc-ml-obs').value.trim();
     }
@@ -25127,16 +25126,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var P = params();
       var html =
         campoTxtFull('Nome do anúncio', 'gc-ml-nome', draft.nome) +
-        campoTxtFull('Código do anúncio', 'gc-ml-codigo', draft.codigo) +
+        campoTxt('Código do anúncio', 'gc-ml-codigo', draft.codigo) +
+        campoMoeda('Preço de venda (R$)', 'gc-ml-preco', draft.preco) +
+        campoMoeda('Tarifa de venda (R$)', 'gc-ml-tarifa', draft.tarifaVenda) +
+        campoMoeda('Envios (R$)', 'gc-ml-envio', draft.custoEnvio) +
         seg('Tipo de anúncio',
           segOpt('tipo-anuncio', 'Clássico', 'Clássico', draft.tipoAnuncio === 'Clássico') +
           segOpt('tipo-anuncio', 'Premium', 'Premium', draft.tipoAnuncio === 'Premium')
         ) +
-        seg('Situação',
-          segOpt('status-anuncio', 'Ativo', 'Ativo', draft.statusAnuncio === 'Ativo') +
-          segOpt('status-anuncio', 'Pausado', 'Pausado', draft.statusAnuncio === 'Pausado')
-        ) +
-        campoMoeda('Preço de venda (R$)', 'gc-ml-preco', draft.preco) +
         seg('Tem desconto/promoção?',
           segOpt('tem-desconto', 'sim', 'Sim', draft.temDesconto) +
           segOpt('tem-desconto', 'nao', 'Não', !draft.temDesconto)
@@ -25152,17 +25149,16 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
             '</div>' +
           '</div>'
         : '') +
-        campoMoeda('Tarifa de venda (R$)', 'gc-ml-tarifa', draft.tarifaVenda) +
-        campoMoeda('Envios (R$)', 'gc-ml-envio', draft.custoEnvio) +
-        '<div class="gc-hint" style="margin:4px 0 10px">Copie os dois valores acima do "Simulador de custos" (ou do "Pagamento aprovado" de uma venda real) no próprio Mercado Livre — já vêm certos pro tipo de anúncio e forma de envio que você escolheu lá.</div>' +
-        campoNum('Peso (kg)', 'gc-ml-peso', draft.peso) +
+        seg('Situação',
+          segOpt('status-anuncio', 'Ativo', 'Ativo', draft.statusAnuncio === 'Ativo') +
+          segOpt('status-anuncio', 'Pausado', 'Pausado', draft.statusAnuncio === 'Pausado')
+        ) +
         seg('Incluir fiscal (' + P.fiscal + '%)?',
           segOpt('incluir-fiscal', 'sim', 'Sim', draft.incluirFiscal) +
           segOpt('incluir-fiscal', 'nao', 'Não', !draft.incluirFiscal)
         ) +
         '<div class="gc-ml-kitbox">' +
           '<div class="gc-ml-edit-label">Produtos do kit</div>' +
-          '<div class="gc-hint" style="margin:0 0 8px;padding:0">Some o custo de cada um automaticamente. Se o anúncio é um kit com mais de um produto (ex.: 2 Clean 1L), adicione cada um aqui em vez de digitar o custo na mão.</div>' +
           '<div class="gc-receita-chips" style="margin-bottom:8px">' + itensKitHtml() + '</div>' +
           '<div class="gc-ml-kit-add">' +
             '<select id="gc-ml-item-add">' + anuncioProdutoOpcoes('') + '</select>' +
@@ -25171,7 +25167,6 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           '</div>' +
         '</div>' +
         campoMoeda('Custo do produto manual (R$) — só se não usar o kit acima', 'gc-ml-customanual', draft.custoManual) +
-        '<div class="gc-hint" style="margin:4px 0 8px">O custo do produto vem da Formulação (ou do campo manual acima); o resto eu não tenho como adivinhar.</div>' +
         campoTxtFull('Observações', 'gc-ml-obs', draft.obs) +
         '<div class="gc-kv" style="margin-top:10px;border-top:1px solid var(--gcln);padding-top:10px"><span class="l">Preço</span><b>' + fmt(draft.preco) + '</b></div>' +
         '<div class="gc-kv"><span class="l">Tarifa de venda</span><b>−' + fmt(c.tarifaVenda) + '</b></div>' +
@@ -26911,7 +26906,7 @@ body.gc-dr-flutuante #gso-calc-dr header{ border-radius:18px 18px 0 0 !important
   padding:7px 10px !important; font:600 13px inherit !important; font-family:inherit !important;
   text-align:right !important; background:var(--crm-surface,#FFFFFF) !important; color:var(--crm-text,#282828) !important;
 }
-#gso-calc-dr #gc-ml-nome, #gso-calc-dr #gc-ml-codigo, #gso-calc-dr #gc-ml-obs{ width:100% !important; text-align:left !important; }
+#gso-calc-dr #gc-ml-nome, #gso-calc-dr #gc-ml-obs{ width:100% !important; text-align:left !important; }
 #gso-calc-dr #gc-ml-item-qtd{ width:52px !important; text-align:right !important; }
 #gso-calc-dr #gc-ml-desconto-nome{ width:auto !important; flex:1 1 140px !important; text-align:left !important; }
 #gso-calc-dr #gc-ml-desconto-valor{ width:80px !important; text-align:right !important; }
