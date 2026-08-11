@@ -25114,6 +25114,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     }
 
     var primeiraRenderizacao = true;
+    var custoAberto = false;
+    function custoBreakdownHtml() {
+      if (!draft.itensCatalogo.length) return 'Custo manual · ' + fmt(draft.custoManual);
+      return draft.itensCatalogo.map(function (it) {
+        var ci = custoInfo(keyOf(it.produto, it.tamanho));
+        return esc(it.produto) + ' ' + esc(it.tamanho) + ' · ' + it.qtd + '× ' + fmt(ci.total || 0) + ' = ' + fmt((ci.total || 0) * it.qtd);
+      }).join('<br>');
+    }
     function render() {
       // Na primeira renderização, o draft já veio pronto do anúncio clicado — não ler os
       // campos do formulário aqui, porque #gc-dr-b ainda tem o HTML do anúncio ANTERIOR
@@ -25172,7 +25180,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<div class="gc-kv"><span class="l">Tarifa de venda</span><b>−' + fmt(c.tarifaVenda) + '</b></div>' +
         '<div class="gc-kv"><span class="l">Envios</span><b>−' + fmt(c.custoExtra) + '</b></div>' +
         '<div class="gc-kv"><span class="l">Eu recebo na conta</span><b>' + fmt(c.recebido) + '</b></div>' +
-        '<div class="gc-kv"><span class="l">Custo</span><b>−' + fmt(c.custoProduto) + '</b></div>' +
+        '<div class="gc-kv" data-custo-toggle style="cursor:pointer"><span class="l">Custo' + (custoAberto ? ' ▾' : ' ▸') + '</span><b>−' + fmt(c.custoProduto) + '</b></div>' +
+        (custoAberto ? '<div class="gc-hint" style="margin:-4px 0 8px;padding:0">' + custoBreakdownHtml() + '</div>' : '') +
         '<div class="gc-kv"><span class="l">Fiscal' + (draft.incluirFiscal ? ' (' + P.fiscal + '%)' : ' (desativado)') + '</span><b>−' + fmt(c.fiscalValor) + '</b></div>' +
         (draft.temDesconto && draft.descontos.length ?
           '<div class="gc-hint" style="margin:10px 0 4px">Comparação: quanto sobra com e sem cada desconto cadastrado acima <span style="font-weight:400">— o destacado é o que está "usado no cálculo" agora.</span></div>' +
@@ -25193,6 +25202,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     }
 
     function wire() {
+      var custoToggle = $('[data-custo-toggle]', $('#gc-dr-b'));
+      if (custoToggle) custoToggle.addEventListener('click', function () { custoAberto = !custoAberto; render(); });
       $all('[data-tipo-anuncio]', $('#gc-dr-b')).forEach(function (btn) {
         btn.addEventListener('click', function () { draft.tipoAnuncio = btn.dataset.tipoAnuncio; render(); });
       });
