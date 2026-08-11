@@ -20827,14 +20827,17 @@ function updateAvatars() {
   const elProf = document.getElementById('profile-avatar');
   const elSb = document.getElementById('sb-avatar');
   if (state.user.foto) {
-    elProf.style.backgroundImage = `url(${state.user.foto})`;
+    // usa setProperty com 'important' porque o tema escuro força um gradiente cinza
+    // no background-image de .avatar/.profile-avatar via !important, o que escondia
+    // a foto de perfil real assim que o usuário ativava o modo escuro.
+    elProf.style.setProperty('background-image', `url(${state.user.foto})`, 'important');
     elProf.textContent = '';
-    elSb.style.backgroundImage = `url(${state.user.foto})`;
+    elSb.style.setProperty('background-image', `url(${state.user.foto})`, 'important');
     elSb.textContent = '';
   } else {
-    elProf.style.backgroundImage = '';
+    elProf.style.removeProperty('background-image');
     elProf.textContent = initial;
-    elSb.style.backgroundImage = '';
+    elSb.style.removeProperty('background-image');
     elSb.textContent = initial;
   }
   document.getElementById('sb-name').textContent = (state.user.nome || '').split(' ')[0] || 'Usuário';
@@ -23446,6 +23449,11 @@ function gsoIntelExport() {
   --gcmlazulclaro:#5AA9E6; --gcmlazulclarobg:rgba(90,169,230,.12);
   --gcmlrosa:#E0559C; --gcmlrosabg:rgba(224,85,156,.12);
   --gcmltiffany:#0ABAB5; --gcmltiffanybg:rgba(10,186,181,.12);
+  --gcmllaranja:#D9720C; --gcmllaranjabg:rgba(217,114,12,.14);
+  --gcmlmarrom:#6B4226; --gcmlmarrombg:rgba(107,66,38,.14);
+  --gcmllima:#6B8E23; --gcmllimabg:rgba(107,142,35,.14);
+  --gcmlmarinho:#1B2A4A; --gcmlmarinhobg:rgba(27,42,74,.14);
+  --gcmldourado:#A6790A; --gcmldouradobg:rgba(166,121,10,.16);
   font-size:14px; color:var(--gcink); max-width:100%; overflow-x:hidden;
 }
 body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gcmut:#b2b2b2; --gcfnt:#8E8E8E;
@@ -23461,6 +23469,11 @@ body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gc
   --gcmlazulclaro:#9CCBEF; --gcmlazulclarobg:rgba(90,169,230,.24);
   --gcmlrosa:#F0A8CC; --gcmlrosabg:rgba(224,85,156,.26);
   --gcmltiffany:#6FE0DB; --gcmltiffanybg:rgba(10,186,181,.26);
+  --gcmllaranja:#F0A855; --gcmllaranjabg:rgba(217,114,12,.26);
+  --gcmlmarrom:#C79B7B; --gcmlmarrombg:rgba(107,66,38,.28);
+  --gcmllima:#B4D66B; --gcmllimabg:rgba(107,142,35,.26);
+  --gcmlmarinho:#7C93C4; --gcmlmarinhobg:rgba(27,42,74,.30);
+  --gcmldourado:#E0B84A; --gcmldouradobg:rgba(166,121,10,.26);
 }
 #gso-calc *{ box-sizing:border-box; }
 #gso-calc .gc-head{ display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:4px; }
@@ -23561,17 +23574,57 @@ body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gc
 #gso-calc .gc-sum.ok .n{ color:var(--gcok); } #gso-calc .gc-sum.warn .n{ color:var(--gcwa); } #gso-calc .gc-sum.bad .n{ color:var(--gcbd); }
 
 /* drawer + modal do módulo */
-#gso-calc-ovl{ position:fixed; inset:0; background:rgba(0,0,0,.32); opacity:0; pointer-events:none; transition:.2s; z-index:1200; }
-#gso-calc-dr{ position:fixed; top:0; right:-420px; width:min(400px,92vw); height:100vh; background:var(--gcsf,#fff); border-left:1px solid var(--gcln,#ECEEF0); z-index:1201; transition:right .22s ease; display:flex; flex-direction:column; color:var(--gcink,#191B1E); }
+#gso-calc-ovl{ position:fixed; inset:0; background:rgba(0,0,0,.32); opacity:0; pointer-events:none; transition:.2s; z-index:10050; }
+#gso-calc-dr{ position:fixed; top:0; right:-420px; width:min(400px,92vw); height:100vh; background:var(--gcsf,#fff); border-left:1px solid var(--gcln,#ECEEF0); z-index:10051; transition:right .22s ease; display:flex; flex-direction:column; color:var(--gcink,#191B1E); }
 body.gc-dro #gso-calc-ovl{ opacity:1; pointer-events:auto; }
 body.gc-dro #gso-calc-dr{ right:0; }
 #gso-calc-dr header{ padding:16px 18px; border-bottom:1px solid var(--gcln,#ECEEF0); display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:13px; gap:10px; }
 #gso-calc-dr .b{ padding:14px 18px; overflow-y:auto; font-size:13px; }
-#gso-calc-mbg{ position:fixed; inset:0; background:rgba(0,0,0,.38); display:none; align-items:center; justify-content:center; z-index:1210; padding:16px; }
+#gso-calc-mbg{ position:fixed; inset:0; background:rgba(0,0,0,.38); display:none; align-items:center; justify-content:center; z-index:10052; padding:16px; }
 body.gc-mo #gso-calc-mbg{ display:flex; }
 #gso-calc-mbg .mod{ background:var(--gcsf,#fff); border-radius:14px; width:min(520px,100%); padding:20px; color:var(--gcink,#191B1E); border:1px solid var(--gcln,#ECEEF0); }
 #gso-calc-mbg textarea{ width:100%; min-height:220px; border:1px solid var(--gcln2,#DFE2E6); border-radius:10px; padding:12px; font:500 13px/1.5 inherit; font-family:inherit; margin-top:10px; color:var(--gcink); background:var(--gcsf); }
 body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727; --gcln:#3c3c3c; --gcln2:#4a4a4a; --gcink:#F4F4F4; --gcmut:#b2b2b2; --gcfnt:#8E8E8E; --gcgrbg:rgba(255,255,255,.08); --gcokbg:rgba(46,125,74,.22); --gcok:#7fd39a; --gcwabg:rgba(138,100,16,.22); --gcwa:#e6c469; --gcbdbg:rgba(176,50,47,.22); --gcbd:#f2a09e; }
+/* #gso-calc-dr fica fora do #gso-calc no DOM (é anexado direto no body), então não herda
+   as variáveis --gc* de lá — sem isto, qualquer var(--gcXXX) sem fallback explícito dentro
+   da gaveta ficava "inválida" (initial/transparente), o que apagava cores como o estado
+   "selecionado" dos botões segmentados (--gcac) mesmo com !important no valor certo. */
+#gso-calc-dr, #gso-calc-mbg .mod{
+  --gcbg:#FAFAFB; --gcsf:#FFFFFF; --gcink:#191B1E; --gcmut:#6F6F6F; --gcfnt:#9F9F9F;
+  --gcln:#ECEEF0; --gcln2:#DFE2E6; --gcac:#1C1F23; --gcaci:#FFFFFF;
+  --gcok:#1E6B3A; --gcokbg:#EAF6EE; --gcwa:#8A6410; --gcwabg:#FCF5E3;
+  --gcbd:#B0322F; --gcbdbg:#FCECEC; --gcgr:#5E5E5E; --gcgrbg:#F0F1F3;
+  --gcbl:#1D5FA8; --gcblbg:#EAF1FB;
+  --gcmlverde:#1F6B3D; --gcmlverdebg:rgba(31,107,61,.10);
+  --gcmlvermelho:#D93636; --gcmlvermelhobg:rgba(217,54,54,.10);
+  --gcmlroxo:#7C3AED; --gcmlroxobg:rgba(124,58,237,.10);
+  --gcmlamarelo:#B8860B; --gcmlamarelobg:rgba(212,175,55,.16);
+  --gcmlvermelhoescuro:#9C2B2B; --gcmlvermelhoescurobg:rgba(156,43,43,.16);
+  --gcmlazulclaro:#5AA9E6; --gcmlazulclarobg:rgba(90,169,230,.12);
+  --gcmlrosa:#E0559C; --gcmlrosabg:rgba(224,85,156,.12);
+  --gcmltiffany:#0ABAB5; --gcmltiffanybg:rgba(10,186,181,.12);
+  --gcmllaranja:#D9720C; --gcmllaranjabg:rgba(217,114,12,.14);
+  --gcmlmarrom:#6B4226; --gcmlmarrombg:rgba(107,66,38,.14);
+  --gcmllima:#6B8E23; --gcmllimabg:rgba(107,142,35,.14);
+  --gcmlmarinho:#1B2A4A; --gcmlmarinhobg:rgba(27,42,74,.14);
+  --gcmldourado:#A6790A; --gcmldouradobg:rgba(166,121,10,.16);
+}
+body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
+  --gcbg:#1f1f1f; --gcac:#e8e8e8; --gcaci:#171717; --gcbl:#8FB8E8; --gcblbg:rgba(58,110,168,.22);
+  --gcmlverde:#6FBE8C; --gcmlverdebg:rgba(31,107,61,.26);
+  --gcmlvermelho:#F08A8A; --gcmlvermelhobg:rgba(217,54,54,.24);
+  --gcmlroxo:#B794F6; --gcmlroxobg:rgba(124,58,237,.26);
+  --gcmlamarelo:#E6C34A; --gcmlamarelobg:rgba(212,175,55,.24);
+  --gcmlvermelhoescuro:#E0A3A3; --gcmlvermelhoescurobg:rgba(156,43,43,.26);
+  --gcmlazulclaro:#9CCBEF; --gcmlazulclarobg:rgba(90,169,230,.24);
+  --gcmlrosa:#F0A8CC; --gcmlrosabg:rgba(224,85,156,.26);
+  --gcmltiffany:#6FE0DB; --gcmltiffanybg:rgba(10,186,181,.26);
+  --gcmllaranja:#F0A855; --gcmllaranjabg:rgba(217,114,12,.26);
+  --gcmlmarrom:#C79B7B; --gcmlmarrombg:rgba(107,66,38,.28);
+  --gcmllima:#B4D66B; --gcmllimabg:rgba(107,142,35,.26);
+  --gcmlmarinho:#7C93C4; --gcmlmarinhobg:rgba(27,42,74,.30);
+  --gcmldourado:#E0B84A; --gcmldouradobg:rgba(166,121,10,.26);
+}
 
 </style>
 <script id="gso-calc-js">
@@ -23585,10 +23638,15 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   function $(s, r) { return (r || document).querySelector(s); }
   function $all(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  // separa pelo ÚLTIMO '|' — necessário porque a chave de um bloco dividido por tamanho
+  // (ex.: "Palco|1L") já contém um '|', então um split('|') ingênuo quebraria os
+  // data-attributes que juntam "chave|id"/"chave|cor" (cor do bloco, lembretes, etc.).
+  function splitUltimoPipe(s) { var i = s.lastIndexOf('|'); return i === -1 ? [s, ''] : [s.slice(0, i), s.slice(i + 1)]; }
   function round2(n) { return Math.round(n * 100) / 100; }
   function fmt(n) { if (n == null || isNaN(n)) return '—'; return 'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function fmtPct(n) { if (n == null || isNaN(n)) return '—'; return (Math.round(n * 10) / 10).toLocaleString('pt-BR') + '%'; }
   function inVal(n) { if (n == null || isNaN(n)) return ''; return String(n).replace('.', ','); }
+  function inValMoeda(n) { if (n == null || isNaN(n)) return ''; return Number(n).toFixed(2).replace('.', ','); }
   function num(v) {
     if (v == null) return null;
     var s = String(v).trim(); if (s === '') return null;
@@ -24683,24 +24741,46 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     var cobre = (a.freteVendedorCobre != null) ? !!a.freteVendedorCobre : true;
     return { vendedor: vendedor, comprador: comprador, cobre: cobre };
   }
+  function anuncioDescontos(a) {
+    return Array.isArray(a.descontos) ? a.descontos.map(function (d) {
+      return { id: d.id, nome: d.nome || 'Desconto', valor: num(d.valor) || 0 };
+    }) : [];
+  }
   function anuncioCalc(a) {
-    var precoFinal = round2(Math.max(0, (num(a.preco) || 0) - (num(a.desconto) || 0)));
-    var comissaoValor = round2(precoFinal * (num(a.comissaoPct) || 0) / 100);
+    var precoBase = num(a.preco) || 0;
+    var comissaoPct = num(a.comissaoPct) || 0;
     var custoProduto = anuncioCustoProduto(a);
-    var fiscalValor = round2(precoFinal * (num(params().fiscal) || 0) / 100);
+    var incluirFiscal = a.incluirFiscal !== false;
+    var fiscalPct = num(params().fiscal) || 0;
+    var flexValor = (a.flexPermitido && num(a.flexValor)) ? round2(num(a.flexValor)) : 0;
     var frete = anuncioFrete(a);
-    function calcularCenario(custoFrete) {
-      var recebido = round2(precoFinal - comissaoValor - custoFrete - fiscalValor);
+    function calcular(descontoValor, custoFrete) {
+      var precoFinal = round2(Math.max(0, precoBase - descontoValor));
+      var comissaoValor = round2(precoFinal * comissaoPct / 100);
+      var fiscalValor = incluirFiscal ? round2(precoFinal * fiscalPct / 100) : 0;
+      var recebido = round2(precoFinal - comissaoValor - custoFrete - fiscalValor + flexValor);
       var lucro = round2(recebido - custoProduto);
       var margem = precoFinal > 0 ? round2((lucro / precoFinal) * 100) : null;
-      return { custoExtra: custoFrete, recebido: recebido, lucro: lucro, margem: margem };
+      return { precoFinal: precoFinal, comissaoValor: comissaoValor, fiscalValor: fiscalValor, custoExtra: custoFrete, recebido: recebido, lucro: lucro, margem: margem };
     }
-    var freteCobrindo = calcularCenario(frete.vendedor);
-    var freteNaoCobrindo = calcularCenario(frete.comprador);
-    var ativo = frete.cobre ? freteCobrindo : freteNaoCobrindo;
+    var temDesconto = !!a.temDesconto;
+    var descontos = anuncioDescontos(a);
+    var descontoAtivo = temDesconto ? (descontos.filter(function (d) { return d.id === a.descontoAtivoId; })[0] || descontos[0]) : null;
+    var descontoValorAtivo = descontoAtivo ? descontoAtivo.valor : 0;
+    var custoFreteAtivo = frete.cobre ? frete.vendedor : frete.comprador;
+    var ativo = calcular(descontoValorAtivo, custoFreteAtivo);
+    var freteCobrindo = calcular(descontoValorAtivo, frete.vendedor);
+    var freteNaoCobrindo = calcular(descontoValorAtivo, frete.comprador);
+    var semDesconto = calcular(0, custoFreteAtivo);
+    var cenariosDesconto = descontos.map(function (d) {
+      var c = calcular(d.valor, custoFreteAtivo);
+      c.id = d.id; c.nome = d.nome; c.valor = d.valor;
+      return c;
+    });
     return {
-      precoFinal: precoFinal, comissaoValor: comissaoValor, fiscalValor: fiscalValor, custoProduto: custoProduto,
+      precoFinal: ativo.precoFinal, comissaoValor: ativo.comissaoValor, incluirFiscal: incluirFiscal, fiscalValor: ativo.fiscalValor, flexValor: flexValor, custoProduto: custoProduto,
       freteVendedorCobre: frete.cobre, freteCobrindo: freteCobrindo, freteNaoCobrindo: freteNaoCobrindo,
+      temDesconto: temDesconto, descontoAtivoId: descontoAtivo ? descontoAtivo.id : null, semDesconto: semDesconto, cenariosDesconto: cenariosDesconto,
       custoExtra: ativo.custoExtra, recebido: ativo.recebido, lucro: ativo.lucro, margem: ativo.margem
     };
   }
@@ -24733,7 +24813,12 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     'Bubble': 'rosa',
     'Snow': 'tiffany'
   };
-  var ML_PALETA_CORES = ['azul', 'verde', 'vermelho', 'cinza', 'roxo', 'amarelo', 'vermelho-escuro', 'azul-claro', 'rosa', 'tiffany', 'branco', ''];
+  var ML_PALETA_CORES = ['azul', 'verde', 'vermelho', 'cinza', 'roxo', 'amarelo', 'vermelho-escuro', 'azul-claro', 'rosa', 'tiffany', 'branco', 'laranja', 'marrom', 'lima', 'marinho', 'preto', 'dourado', ''];
+  var ML_NOME_COR = {
+    'azul': 'Azul', 'verde': 'Verde', 'vermelho': 'Vermelho', 'cinza': 'Cinza', 'roxo': 'Roxo', 'amarelo': 'Amarelo',
+    'vermelho-escuro': 'Vermelho escuro', 'azul-claro': 'Azul clarinho', 'rosa': 'Rosa', 'tiffany': 'Tiffany', 'branco': 'Branco',
+    'laranja': 'Laranja', 'marrom': 'Marrom', 'lima': 'Verde-limão', 'marinho': 'Azul-marinho', 'preto': 'Preto', 'dourado': 'Dourado', '': 'Sem cor'
+  };
   function blocosDoProdutoPadrao(produto) {
     if (ML_SPLIT_POR_TAMANHO[produto]) {
       var vistos = {}; var out = [];
@@ -24824,7 +24909,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   function blocoAddLembrete(chave, texto) {
     var b = blocoPor(chave); if (!b || !texto) return;
     b.lembretes = b.lembretes || [];
-    b.lembretes.push({ id: 'lb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5), texto: texto, feito: false });
+    b.lembretes.push({ id: 'lb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5), texto: texto, feito: false, urgente: false });
     save();
     renderML();
   }
@@ -24832,6 +24917,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     var b = blocoPor(chave); if (!b) return;
     var l = (b.lembretes || []).filter(function (x) { return x.id === id; })[0];
     if (l) { l.feito = !l.feito; save(); renderML(); }
+  }
+  function blocoToggleUrgente(chave, id) {
+    var b = blocoPor(chave); if (!b) return;
+    var l = (b.lembretes || []).filter(function (x) { return x.id === id; })[0];
+    if (l) { l.urgente = !l.urgente; save(); renderML(); }
   }
   function blocoDelLembrete(chave, id) {
     var b = blocoPor(chave); if (!b) return;
@@ -24851,27 +24941,33 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     function miniCard(a) {
       var c = anuncioCalc(a);
       var st = anuncioStatus(c);
+      var pausado = a.statusAnuncio === 'Pausado';
       return '<div class="gc-ml-mini" draggable="true" data-open-anuncio="' + esc(a.id) + '" data-drag-anuncio="' + esc(a.id) + '">' +
         '<div class="gc-ml-mini-head"><b>' + esc(a.nome || 'Sem nome') + '</b><span class="gc-pill ' + st.cls + '">' + st.label + '</span></div>' +
+        (pausado ? '<span class="gc-pill gray" style="margin-top:4px;display:inline-block">Pausado</span>' : '') +
         '<div class="gc-ml-mini-foot">' + fmt(c.precoFinal) + ' · lucro ' + fmt(c.lucro) + (c.margem != null ? ' (' + c.margem + '%)' : '') + '</div>' +
       '</div>';
     }
     function painelEdicao(b) {
       if (UI.mlEditando !== b.chave) return '';
       var swatches = ML_PALETA_CORES.map(function (c) {
-        return '<button type="button" class="gc-ml-swatch' + (c ? ' cor-' + c : ' cor-nenhuma') + (c === (b.cor || '') ? ' on' : '') + '" data-bloco-cor="' + esc(b.chave) + '|' + c + '" title="' + (c || 'Sem cor') + '"></button>';
+        var nome = ML_NOME_COR[c] || 'Sem cor';
+        return '<button type="button" class="gc-ml-swatch' + (c ? ' cor-' + c : ' cor-nenhuma') + (c === (b.cor || '') ? ' on' : '') + '" data-bloco-cor="' + esc(b.chave) + '|' + c + '" title="' + nome + '"></button>';
       }).join('');
       return '<div class="gc-ml-edit">' +
+        '<div class="gc-ml-edit-label">Nome do bloco</div>' +
         '<input type="text" class="gc-ml-edit-nome" data-bloco-nome="' + esc(b.chave) + '" value="' + esc(b.nome) + '" placeholder="Nome do bloco">' +
+        '<div class="gc-ml-edit-label">Cor do bloco</div>' +
         '<div class="gc-ml-swatches">' + swatches + '</div>' +
-        (b.fixo ? '' : '<button type="button" class="gc-lnk" style="color:#B0322F" data-bloco-del="' + esc(b.chave) + '">Apagar bloco</button>') +
+        (b.fixo ? '' : '<button type="button" class="gc-btn" style="color:#B0322F;border-color:#E3B3B1;margin-top:2px" data-bloco-del="' + esc(b.chave) + '">Apagar bloco</button>') +
       '</div>';
     }
     function painelLembretes(b) {
       var lembretes = b.lembretes || [];
       var itens = lembretes.map(function (l) {
-        return '<div class="gc-ml-lembrete' + (l.feito ? ' feito' : '') + '">' +
+        return '<div class="gc-ml-lembrete' + (l.feito ? ' feito' : '') + (l.urgente ? ' urgente' : '') + '">' +
           '<label><input type="checkbox" data-lembrete-toggle="' + esc(b.chave) + '|' + esc(l.id) + '"' + (l.feito ? ' checked' : '') + '> ' + esc(l.texto) + '</label>' +
+          '<button type="button" class="gc-ml-lembrete-flag' + (l.urgente ? ' on' : '') + '" data-lembrete-flag="' + esc(b.chave) + '|' + esc(l.id) + '" title="' + (l.urgente ? 'Remover urgência' : 'Marcar como importante/urgente') + '">🚩</button>' +
           '<button type="button" class="gc-mat-chip-x" data-lembrete-del="' + esc(b.chave) + '|' + esc(l.id) + '" title="Remover lembrete">✕</button>' +
         '</div>';
       }).join('');
@@ -24906,7 +25002,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   function abrirAnuncio(id) {
     document.body.classList.add('gc-dr-flutuante');
     var existente = id ? (store.anuncios || []).filter(function (x) { return x.id === id; })[0] : null;
-    var base = existente || { id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), codigo: '', nome: '', itensCatalogo: [], tipoAnuncio: 'Clássico', preco: 0, comissaoPct: 0, custoExtraVendedor: 0, custoExtraComprador: 0, freteVendedorCobre: true, peso: 0, desconto: 0, custoManual: 0, obs: '' };
+    var base = existente || { id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), codigo: '', nome: '', itensCatalogo: [], tipoAnuncio: 'Clássico', statusAnuncio: 'Ativo', incluirFiscal: true, flexPermitido: false, flexValor: 0, preco: 0, comissaoPct: 0, custoExtraVendedor: 0, custoExtraComprador: 0, freteVendedorCobre: true, peso: 0, desconto: 0, custoManual: 0, obs: '' };
     var isNovo = !existente;
     // rascunho mutável — só grava em store.anuncios quando clicar em Salvar.
     var draft = JSON.parse(JSON.stringify(base));
@@ -24915,27 +25011,55 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
     draft.custoExtraVendedor = freteBase.vendedor;
     draft.custoExtraComprador = freteBase.comprador;
     draft.freteVendedorCobre = freteBase.cobre;
-    delete draft.produtoCatalogo; delete draft.tamanhoCatalogo; delete draft.custoExtra;
+    draft.tipoAnuncio = base.tipoAnuncio || 'Clássico';
+    draft.statusAnuncio = base.statusAnuncio || 'Ativo';
+    draft.incluirFiscal = base.incluirFiscal !== false;
+    draft.flexPermitido = !!base.flexPermitido;
+    draft.flexValor = num(base.flexValor) || 0;
+    draft.temDesconto = !!base.temDesconto;
+    draft.descontos = anuncioDescontos(base);
+    draft.descontoAtivoId = base.descontoAtivoId || (draft.descontos[0] && draft.descontos[0].id) || null;
+    // migração do campo antigo "desconto" (um valor único em R$) pra a lista nova —
+    // preserva o mesmo resultado que já estava salvo em vez de zerar o desconto dela.
+    if (!draft.descontos.length && num(base.desconto)) {
+      var idMigrado = 'ds_migrado';
+      draft.descontos.push({ id: idMigrado, nome: 'Desconto', valor: num(base.desconto) });
+      draft.temDesconto = true;
+      draft.descontoAtivoId = idMigrado;
+    }
+    delete draft.produtoCatalogo; delete draft.tamanhoCatalogo; delete draft.custoExtra; delete draft.desconto;
 
     var campoNum = function (label, id2, val) {
       return '<div class="gc-kv"><span class="l">' + label + '</span><b><input id="' + id2 + '" type="text" inputmode="decimal" value="' + esc(String(val == null ? '' : val)) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>';
     };
+    var campoMoeda = function (label, id2, val) {
+      return '<div class="gc-kv"><span class="l">' + label + '</span><b><input id="' + id2 + '" type="text" inputmode="decimal" value="' + esc(inValMoeda(val)) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>';
+    };
     var campoTxt = function (label, id2, val, largura) {
       return '<div class="gc-kv"><span class="l">' + label + '</span><b><input id="' + id2 + '" type="text" value="' + esc(val || '') + '" style="width:' + (largura || 200) + 'px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink)"></b></div>';
+    };
+    var campoTxtFull = function (label, id2, val) {
+      return '<div class="gc-ml-edit-label" style="margin-top:10px">' + label + '</div>' +
+        '<input id="' + id2 + '" type="text" value="' + esc(val || '') + '" style="width:100%;border:1px solid var(--gcln2);border-radius:7px;padding:8px 10px;font:600 13px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink)">';
+    };
+    var seg = function (label, botoes) {
+      return '<div class="gc-kv"><span class="l">' + label + '</span><b><div class="gc-ml-seg">' + botoes + '</div></b></div>';
+    };
+    var segOpt = function (attr, valor, texto, ativo) {
+      return '<button type="button" class="gc-ml-seg-opt' + (ativo ? ' on' : '') + '" data-' + attr + '="' + esc(valor) + '">' + esc(texto) + '</button>';
     };
 
     function lerCamposSimples() {
       if (!$('#gc-ml-nome')) return;
       draft.nome = $('#gc-ml-nome').value.trim();
       draft.codigo = $('#gc-ml-codigo').value.trim();
-      draft.tipoAnuncio = $('#gc-ml-tipo').value || 'Clássico';
       draft.preco = num($('#gc-ml-preco').value) || 0;
-      draft.desconto = num($('#gc-ml-desconto').value) || 0;
       draft.comissaoPct = num($('#gc-ml-comissao').value) || 0;
       draft.custoExtraVendedor = num($('#gc-ml-frete-vendedor').value) || 0;
       draft.custoExtraComprador = num($('#gc-ml-frete-comprador').value) || 0;
       draft.peso = num($('#gc-ml-peso').value) || 0;
       draft.custoManual = num($('#gc-ml-customanual').value) || 0;
+      var flexInput = $('#gc-ml-flex-valor'); if (flexInput) draft.flexValor = num(flexInput.value) || 0;
       draft.obs = $('#gc-ml-obs').value.trim();
     }
 
@@ -24943,10 +25067,21 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       if (!draft.itensCatalogo.length) return '<span class="gc-hint" style="padding:0">Nenhum produto do catálogo vinculado ainda — usando o custo manual abaixo.</span>';
       return draft.itensCatalogo.map(function (it, idx) {
         var ci = custoInfo(keyOf(it.produto, it.tamanho));
-        return '<div class="gc-mat-chip"><span class="gc-mat-chip-l">' + esc(it.produto) + ' ' + esc(it.tamanho) + '</span>' +
+        return '<div class="gc-mat-chip gc-ml-kit-chip"><span class="gc-mat-chip-l">' + esc(it.produto) + ' ' + esc(it.tamanho) + '</span>' +
+          '<span class="gc-ml-kit-chip-sep">·</span>' +
           '<b class="gc-mat-chip-v">' + it.qtd + '×</b>' +
           '<span class="gc-mat-chip-u">' + fmt((ci.total || 0) * it.qtd) + '</span>' +
           '<button type="button" class="gc-mat-chip-x" data-ml-item-del="' + idx + '" title="Remover do kit">✕</button></div>';
+      }).join('');
+    }
+    function descontosHtml() {
+      if (!draft.descontos.length) return '<span class="gc-hint" style="padding:0">Nenhum desconto cadastrado ainda.</span>';
+      return draft.descontos.map(function (d) {
+        var ativo = d.id === draft.descontoAtivoId;
+        return '<div class="gc-mat-chip gc-ml-kit-chip' + (ativo ? ' ativo' : '') + '">' +
+          '<span class="gc-mat-chip-l" data-desconto-usar="' + esc(d.id) + '" style="cursor:pointer' + (ativo ? ';font-weight:800' : '') + '">' + esc(d.nome) + (ativo ? ' ✓' : '') + '</span>' +
+          '<b class="gc-mat-chip-v">-' + fmt(d.valor) + '</b>' +
+          '<button type="button" class="gc-mat-chip-x" data-desconto-del="' + esc(d.id) + '" title="Remover desconto">✕</button></div>';
       }).join('');
     }
 
@@ -24962,36 +25097,74 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       var st = anuncioStatus(c);
       var P = params();
       var html =
-        campoTxt('Nome do anúncio', 'gc-ml-nome', draft.nome) +
-        campoTxt('Código do anúncio', 'gc-ml-codigo', draft.codigo, 160) +
-        '<div class="gc-kv"><span class="l">Tipo de anúncio</span><b><select id="gc-ml-tipo" style="border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink)">' +
-          ['Clássico', 'Premium'].map(function (t) { return '<option value="' + t + '"' + (t === draft.tipoAnuncio ? ' selected' : '') + '>' + t + '</option>'; }).join('') +
-        '</select></b></div>' +
-        campoNum('Preço de venda (R$)', 'gc-ml-preco', draft.preco) +
-        campoNum('Desconto (R$)', 'gc-ml-desconto', draft.desconto) +
+        campoTxtFull('Nome do anúncio', 'gc-ml-nome', draft.nome) +
+        campoTxtFull('Código do anúncio', 'gc-ml-codigo', draft.codigo) +
+        seg('Tipo de anúncio',
+          segOpt('tipo-anuncio', 'Clássico', 'Clássico', draft.tipoAnuncio === 'Clássico') +
+          segOpt('tipo-anuncio', 'Premium', 'Premium', draft.tipoAnuncio === 'Premium')
+        ) +
+        seg('Situação',
+          segOpt('status-anuncio', 'Ativo', 'Ativo', draft.statusAnuncio === 'Ativo') +
+          segOpt('status-anuncio', 'Pausado', 'Pausado', draft.statusAnuncio === 'Pausado')
+        ) +
+        campoMoeda('Preço de venda (R$)', 'gc-ml-preco', draft.preco) +
+        seg('Tem desconto/promoção?',
+          segOpt('tem-desconto', 'sim', 'Sim', draft.temDesconto) +
+          segOpt('tem-desconto', 'nao', 'Não', !draft.temDesconto)
+        ) +
+        (draft.temDesconto ?
+          '<div class="gc-ml-kitbox">' +
+            '<div class="gc-ml-edit-label">Descontos cadastrados <span style="font-weight:400;text-transform:none;letter-spacing:0">— clique no nome pra usar no cálculo</span></div>' +
+            '<div class="gc-receita-chips" style="margin-bottom:8px">' + descontosHtml() + '</div>' +
+            '<div class="gc-ml-desconto-add">' +
+              '<input id="gc-ml-desconto-nome" type="text" placeholder="Nome (ex.: Cupom 10%)">' +
+              '<input id="gc-ml-desconto-valor" type="text" inputmode="decimal" placeholder="0,00">' +
+              '<button type="button" class="gc-btn dark" id="gc-ml-desconto-add-btn">+ adicionar</button>' +
+            '</div>' +
+          '</div>'
+        : '') +
         campoNum('Comissão da categoria (%)', 'gc-ml-comissao', draft.comissaoPct) +
         campoNum('Peso (kg)', 'gc-ml-peso', draft.peso) +
-        '<div class="gc-hint" style="margin:10px 0 4px">Quem paga o frete? <span style="font-weight:400">— guarde os dois valores; o ativo é o que entra na conta de lucro/margem.</span></div>' +
-        '<div class="gc-row" style="margin-bottom:8px">' +
-          '<button type="button" class="gc-btn' + (draft.freteVendedorCobre ? ' dark' : '') + '" data-frete-modo="vendedor" style="padding:5px 12px;font-size:11.5px">Eu cubro o frete</button>' +
-          '<button type="button" class="gc-btn' + (!draft.freteVendedorCobre ? ' dark' : '') + '" data-frete-modo="comprador" style="padding:5px 12px;font-size:11.5px">Comprador cobre</button>' +
+        seg('Incluir fiscal (' + P.fiscal + '%)?',
+          segOpt('incluir-fiscal', 'sim', 'Sim', draft.incluirFiscal) +
+          segOpt('incluir-fiscal', 'nao', 'Não', !draft.incluirFiscal)
+        ) +
+        seg('Quem paga o frete?',
+          segOpt('frete-modo', 'vendedor', 'Eu cubro', draft.freteVendedorCobre) +
+          segOpt('frete-modo', 'comprador', 'Comprador', !draft.freteVendedorCobre)
+        ) +
+        campoMoeda('Custo do frete se EU cobrir (R$)', 'gc-ml-frete-vendedor', draft.custoExtraVendedor) +
+        campoMoeda('Custo do frete se o COMPRADOR cobrir (R$)', 'gc-ml-frete-comprador', draft.custoExtraComprador) +
+        seg('Permite Flex?',
+          segOpt('flex-permitido', 'sim', 'Sim', draft.flexPermitido) +
+          segOpt('flex-permitido', 'nao', 'Não', !draft.flexPermitido)
+        ) +
+        (draft.flexPermitido ? campoMoeda('Valor do bônus Flex (R$)', 'gc-ml-flex-valor', draft.flexValor) : '') +
+        '<div class="gc-ml-kitbox">' +
+          '<div class="gc-ml-edit-label">Produtos do kit</div>' +
+          '<div class="gc-hint" style="margin:0 0 8px;padding:0">Some o custo de cada um automaticamente. Se o anúncio é um kit com mais de um produto (ex.: 2 Clean 1L), adicione cada um aqui em vez de digitar o custo na mão.</div>' +
+          '<div class="gc-receita-chips" style="margin-bottom:8px">' + itensKitHtml() + '</div>' +
+          '<div class="gc-ml-kit-add">' +
+            '<select id="gc-ml-item-add">' + anuncioProdutoOpcoes('') + '</select>' +
+            '<input id="gc-ml-item-qtd" type="text" inputmode="numeric" value="1">' +
+            '<button type="button" class="gc-btn dark" id="gc-ml-item-add-btn">+ adicionar</button>' +
+          '</div>' +
         '</div>' +
-        campoNum('Custo do frete se EU cobrir (R$)', 'gc-ml-frete-vendedor', draft.custoExtraVendedor) +
-        campoNum('Custo do frete se o COMPRADOR cobrir (R$)', 'gc-ml-frete-comprador', draft.custoExtraComprador) +
-        '<div class="gc-hint" style="margin:10px 0 4px">Produtos do kit <span style="font-weight:400">— some o custo de cada um automaticamente. Se o anúncio é um kit com mais de um produto (ex.: 2 Clean 1L), adicione cada um aqui em vez de digitar o custo na mão.</span></div>' +
-        '<div class="gc-receita-chips" style="margin-bottom:6px">' + itensKitHtml() + '</div>' +
-        '<div class="gc-kv"><span class="l">Adicionar ao kit</span><b>' +
-          '<select id="gc-ml-item-add" style="border:1px solid var(--gcln2);border-radius:7px;padding:4px 6px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink)">' + anuncioProdutoOpcoes('') + '</select> ' +
-          '<input id="gc-ml-item-qtd" type="text" inputmode="numeric" value="1" style="width:44px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 6px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"> ' +
-          '<button type="button" class="gc-lnk" id="gc-ml-item-add-btn">+ adicionar</button>' +
-        '</b></div>' +
-        campoNum('Custo do produto manual (R$) — só se não usar o kit acima', 'gc-ml-customanual', draft.custoManual) +
+        campoMoeda('Custo do produto manual (R$) — só se não usar o kit acima', 'gc-ml-customanual', draft.custoManual) +
         '<div class="gc-hint" style="margin:4px 0 8px">A comissão e o custo de frete/peso não têm como eu adivinhar — copie do simulador oficial do Mercado Livre pra sua categoria.</div>' +
-        campoTxt('Observações', 'gc-ml-obs', draft.obs) +
+        campoTxtFull('Observações', 'gc-ml-obs', draft.obs) +
         '<div class="gc-kv" style="margin-top:10px;border-top:1px solid var(--gcln);padding-top:10px"><span class="l">Custo do produto (kit)</span><b>' + fmt(c.custoProduto) + '</b></div>' +
-        '<div class="gc-kv"><span class="l">Fiscal (' + P.fiscal + '%)</span><b>' + fmt(c.fiscalValor) + '</b></div>' +
+        '<div class="gc-kv"><span class="l">Fiscal' + (draft.incluirFiscal ? ' (' + P.fiscal + '%)' : ' (desativado)') + '</span><b>' + fmt(c.fiscalValor) + '</b></div>' +
+        (draft.flexPermitido ? '<div class="gc-kv"><span class="l">Bônus Flex</span><b>+' + fmt(c.flexValor) + '</b></div>' : '') +
         '<div class="gc-kv"><span class="l">Se eu cobrir o frete</span><b' + (draft.freteVendedorCobre ? ' style="color:var(--gcac)"' : '') + '>' + fmt(c.freteCobrindo.lucro) + (c.freteCobrindo.margem != null ? ' · ' + c.freteCobrindo.margem + '%' : '') + '</b></div>' +
         '<div class="gc-kv"><span class="l">Se o comprador cobrir</span><b' + (!draft.freteVendedorCobre ? ' style="color:var(--gcac)"' : '') + '>' + fmt(c.freteNaoCobrindo.lucro) + (c.freteNaoCobrindo.margem != null ? ' · ' + c.freteNaoCobrindo.margem + '%' : '') + '</b></div>' +
+        (draft.temDesconto ?
+          '<div class="gc-kv"><span class="l">Sem desconto</span><b' + (!c.descontoAtivoId ? ' style="color:var(--gcac)"' : '') + '>' + fmt(c.semDesconto.lucro) + (c.semDesconto.margem != null ? ' · ' + c.semDesconto.margem + '%' : '') + '</b></div>' +
+          c.cenariosDesconto.map(function (cd) {
+            var ativoCd = cd.id === c.descontoAtivoId;
+            return '<div class="gc-kv"><span class="l">' + esc(cd.nome) + '</span><b' + (ativoCd ? ' style="color:var(--gcac)"' : '') + '>' + fmt(cd.lucro) + (cd.margem != null ? ' · ' + cd.margem + '%' : '') + '</b></div>';
+          }).join('')
+        : '') +
         '<div class="gc-kv"><span class="l">Você recebe (líquido, cenário ativo)</span><b>' + fmt(c.recebido) + '</b></div>' +
         '<div class="gc-kv"><span class="l">Lucro (cenário ativo)</span><b>' + fmt(c.lucro) + '</b></div>' +
         '<div class="gc-kv"><span class="l">Margem (cenário ativo)</span><b><span class="gc-pill ' + st.cls + '">' + (c.margem != null ? c.margem + '% · ' : '') + st.label + '</span></b></div>' +
@@ -25007,6 +25180,44 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       $all('[data-frete-modo]', $('#gc-dr-b')).forEach(function (btn) {
         btn.addEventListener('click', function () {
           draft.freteVendedorCobre = (btn.dataset.freteModo === 'vendedor');
+          render();
+        });
+      });
+      $all('[data-tipo-anuncio]', $('#gc-dr-b')).forEach(function (btn) {
+        btn.addEventListener('click', function () { draft.tipoAnuncio = btn.dataset.tipoAnuncio; render(); });
+      });
+      $all('[data-status-anuncio]', $('#gc-dr-b')).forEach(function (btn) {
+        btn.addEventListener('click', function () { draft.statusAnuncio = btn.dataset.statusAnuncio; render(); });
+      });
+      $all('[data-incluir-fiscal]', $('#gc-dr-b')).forEach(function (btn) {
+        btn.addEventListener('click', function () { draft.incluirFiscal = (btn.dataset.incluirFiscal === 'sim'); render(); });
+      });
+      $all('[data-flex-permitido]', $('#gc-dr-b')).forEach(function (btn) {
+        btn.addEventListener('click', function () { draft.flexPermitido = (btn.dataset.flexPermitido === 'sim'); render(); });
+      });
+      $all('[data-tem-desconto]', $('#gc-dr-b')).forEach(function (btn) {
+        btn.addEventListener('click', function () { draft.temDesconto = (btn.dataset.temDesconto === 'sim'); render(); });
+      });
+      var descAddBtn = $('#gc-ml-desconto-add-btn');
+      if (descAddBtn) descAddBtn.addEventListener('click', function () {
+        var nomeInput = $('#gc-ml-desconto-nome');
+        var valorInput = $('#gc-ml-desconto-valor');
+        var nome = (nomeInput.value || '').trim() || ('Desconto ' + (draft.descontos.length + 1));
+        var valor = num(valorInput.value) || 0;
+        if (!valor) return;
+        var id = 'ds_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5);
+        draft.descontos.push({ id: id, nome: nome, valor: valor });
+        if (!draft.descontoAtivoId) draft.descontoAtivoId = id;
+        render();
+      });
+      $all('[data-desconto-usar]', $('#gc-dr-b')).forEach(function (el) {
+        el.addEventListener('click', function () { draft.descontoAtivoId = el.dataset.descontoUsar; render(); });
+      });
+      $all('[data-desconto-del]', $('#gc-dr-b')).forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.dataset.descontoDel;
+          draft.descontos = draft.descontos.filter(function (d) { return d.id !== id; });
+          if (draft.descontoAtivoId === id) draft.descontoAtivoId = draft.descontos.length ? draft.descontos[0].id : null;
           render();
         });
       });
@@ -25186,14 +25397,19 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
       var be = t.closest('[data-bloco-editar]'); if (be) { UI.mlEditando = (UI.mlEditando === be.dataset.blocoEditar) ? null : be.dataset.blocoEditar; renderML(); return; }
       var bd = t.closest('[data-bloco-del]'); if (bd) { blocoApagar(bd.dataset.blocoDel); return; }
       var bcCor = t.closest('[data-bloco-cor]'); if (bcCor) {
-        var corPartes = bcCor.dataset.blocoCor.split('|');
+        var corPartes = splitUltimoPipe(bcCor.dataset.blocoCor);
         var bb2 = blocoPor(corPartes[0]);
         if (bb2) { bb2.cor = corPartes[1]; save(); renderML(); }
         return;
       }
       var ldel = t.closest('[data-lembrete-del]'); if (ldel) {
-        var ldParts = ldel.dataset.lembreteDel.split('|');
+        var ldParts = splitUltimoPipe(ldel.dataset.lembreteDel);
         blocoDelLembrete(ldParts[0], ldParts[1]);
+        return;
+      }
+      var lflag = t.closest('[data-lembrete-flag]'); if (lflag) {
+        var lfParts = splitUltimoPipe(lflag.dataset.lembreteFlag);
+        blocoToggleUrgente(lfParts[0], lfParts[1]);
         return;
       }
     });
@@ -25274,7 +25490,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
         return;
       }
       if (t.hasAttribute && t.hasAttribute('data-lembrete-toggle')) {
-        var ltParts = t.dataset.lembreteToggle.split('|');
+        var ltParts = splitUltimoPipe(t.dataset.lembreteToggle);
         blocoToggleLembrete(ltParts[0], ltParts[1]);
         return;
       }
@@ -26482,7 +26698,13 @@ body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !impor
 #gso-calc .gc-ml-group.cor-azul-claro{ border:2px solid var(--gcmlazulclaro); background:var(--gcmlazulclarobg); }
 #gso-calc .gc-ml-group.cor-rosa{ border:2px solid var(--gcmlrosa); background:var(--gcmlrosabg); }
 #gso-calc .gc-ml-group.cor-tiffany{ border:2px solid var(--gcmltiffany); background:var(--gcmltiffanybg); }
-#gso-calc .gc-ml-group.cor-branco{ border:2px solid #D0D0D0; background:#FFFFFF; --gcink:#191B1E; --gcmut:#6F6F6F; --gcsf:#F7F7F8; --gcln2:#E2E2E2; }
+#gso-calc .gc-ml-group.cor-branco{ border:2px solid #D0D0D0; background:#FFFFFF; --gcink:#191B1E; --gcmut:#6F6F6F; --gcsf:#F7F7F8; --gcln2:#E2E2E2; color:var(--gcink); }
+#gso-calc .gc-ml-group.cor-laranja{ border:2px solid var(--gcmllaranja); background:var(--gcmllaranjabg); }
+#gso-calc .gc-ml-group.cor-marrom{ border:2px solid var(--gcmlmarrom); background:var(--gcmlmarrombg); }
+#gso-calc .gc-ml-group.cor-lima{ border:2px solid var(--gcmllima); background:var(--gcmllimabg); }
+#gso-calc .gc-ml-group.cor-marinho{ border:2px solid var(--gcmlmarinho); background:var(--gcmlmarinhobg); }
+#gso-calc .gc-ml-group.cor-dourado{ border:2px solid var(--gcmldourado); background:var(--gcmldouradobg); }
+#gso-calc .gc-ml-group.cor-preto{ border:2px solid #000; background:#1A1A1A; --gcink:#F4F4F4; --gcmut:#B2B2B2; --gcsf:#2A2A2A; --gcln2:#3E3E3E; color:var(--gcink); }
 #gso-calc .gc-ml-group-head{ display:flex; align-items:center; gap:6px; font-size:12.5px; margin-bottom:8px; }
 #gso-calc .gc-ml-drag-handle{ cursor:grab; font-size:14px; line-height:1; color:var(--gcfnt); flex:0 0 auto; padding:2px 3px; user-select:none; border-radius:5px; }
 #gso-calc .gc-ml-drag-handle:hover{ background:rgba(0,0,0,.06); color:var(--gcink); }
@@ -26494,27 +26716,52 @@ body.theme-dark #gso-calc .gc-ml-drag-handle:hover{ background:rgba(255,255,255,
 body.theme-dark #gso-calc .gc-ml-collapse:hover, body.theme-dark #gso-calc .gc-ml-gear:hover{ background:rgba(255,255,255,.09) !important; }
 #gso-calc .gc-ml-group.colapsado{ min-height:0; }
 #gso-calc .gc-ml-group-list{ display:flex; flex-direction:column; gap:6px; min-height:22px; }
-#gso-calc .gc-ml-edit{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; padding:8px; border:1px dashed var(--gcln2); border-radius:9px; }
+#gso-calc .gc-ml-edit{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; padding:10px; border:1px dashed var(--gcln2); border-radius:9px; }
+#gso-calc .gc-ml-edit-label{ font:700 10px inherit; letter-spacing:.1em; text-transform:uppercase; color:var(--gcfnt); margin-top:4px; }
+#gso-calc .gc-ml-edit-label:first-child{ margin-top:0; }
+#gso-calc-dr .gc-ml-kitbox{ margin:10px 0 4px; padding:12px; border:1px dashed var(--gcln2); border-radius:9px; }
+#gso-calc-dr .gc-ml-kit-chip{ background:var(--gcsf); border:1px solid var(--gcln2); border-radius:8px; padding:5px 8px !important; }
+#gso-calc-dr .gc-ml-kit-chip-sep{ color:var(--gcfnt); }
+#gso-calc-dr .gc-ml-kit-add{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+#gso-calc-dr .gc-ml-kit-add select{ flex:1 1 150px; min-width:130px; border:1px solid var(--gcln2); border-radius:7px; padding:6px 8px; font:600 12px inherit; font-family:inherit; background:var(--gcsf); color:var(--gcink); }
+#gso-calc-dr .gc-ml-kit-add input{ width:52px; flex:0 0 auto; border:1px solid var(--gcln2); border-radius:7px; padding:6px 8px; font:600 12px inherit; font-family:inherit; background:var(--gcsf); color:var(--gcink); text-align:right; }
+#gso-calc-dr .gc-ml-kit-add button{ flex:0 0 auto; padding:6px 14px !important; font-size:11.5px !important; min-height:0 !important; }
+#gso-calc-dr .gc-ml-kit-chip.ativo{ border-color:var(--gcac); background:var(--gcbg); }
+#gso-calc-dr .gc-ml-desconto-add{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+#gso-calc-dr .gc-ml-desconto-add input{ border:1px solid var(--gcln2); border-radius:7px; padding:6px 8px; font:600 12px inherit; font-family:inherit; background:var(--gcsf); color:var(--gcink); }
+#gso-calc-dr .gc-ml-desconto-add input#gc-ml-desconto-nome{ flex:1 1 140px; min-width:120px; }
+#gso-calc-dr .gc-ml-desconto-add input#gc-ml-desconto-valor{ width:80px; flex:0 0 auto; text-align:right; }
+#gso-calc-dr .gc-ml-desconto-add button{ flex:0 0 auto; padding:6px 14px !important; font-size:11.5px !important; min-height:0 !important; }
 #gso-calc .gc-ml-edit-nome{ width:100%; border:1px solid var(--gcln2); border-radius:7px; padding:5px 8px; font:600 12.5px inherit; font-family:inherit; background:var(--gcsf); color:var(--gcink); }
 #gso-calc .gc-ml-swatches{ display:flex; flex-wrap:wrap; gap:6px; }
-#gso-calc .gc-ml-swatch{ width:20px; height:20px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:0; background:var(--gcln2); }
-#gso-calc .gc-ml-swatch.on{ border-color:var(--gcac); }
-#gso-calc .gc-ml-swatch.cor-nenhuma{ background:repeating-linear-gradient(45deg, var(--gcln2), var(--gcln2) 3px, var(--gcsf) 3px, var(--gcsf) 6px); }
-#gso-calc .gc-ml-swatch.cor-azul{ background:var(--gcbl); }
-#gso-calc .gc-ml-swatch.cor-verde{ background:var(--gcmlverde); }
-#gso-calc .gc-ml-swatch.cor-vermelho{ background:var(--gcmlvermelho); }
-#gso-calc .gc-ml-swatch.cor-cinza{ background:var(--gcgr); }
-#gso-calc .gc-ml-swatch.cor-roxo{ background:var(--gcmlroxo); }
-#gso-calc .gc-ml-swatch.cor-amarelo{ background:var(--gcmlamarelo); }
-#gso-calc .gc-ml-swatch.cor-vermelho-escuro{ background:var(--gcmlvermelhoescuro); }
-#gso-calc .gc-ml-swatch.cor-azul-claro{ background:var(--gcmlazulclaro); }
-#gso-calc .gc-ml-swatch.cor-rosa{ background:var(--gcmlrosa); }
-#gso-calc .gc-ml-swatch.cor-tiffany{ background:var(--gcmltiffany); }
-#gso-calc .gc-ml-swatch.cor-branco{ background:#FFFFFF; border-color:#D0D0D0; }
+#gso-calc .gc-ml-swatch{ width:20px !important; height:20px !important; min-height:0 !important; padding:0 !important; border:2px solid transparent !important; border-radius:50% !important; background:var(--gcln2) !important; background-image:none !important; box-shadow:none !important; cursor:pointer; }
+#gso-calc .gc-ml-swatch.on{ border-color:var(--gcac) !important; }
+#gso-calc .gc-ml-swatch.cor-nenhuma{ background:repeating-linear-gradient(45deg, var(--gcln2), var(--gcln2) 2px, var(--gcsf) 2px, var(--gcsf) 4px) !important; }
+#gso-calc .gc-ml-swatch.cor-azul{ background:var(--gcbl) !important; }
+#gso-calc .gc-ml-swatch.cor-verde{ background:var(--gcmlverde) !important; }
+#gso-calc .gc-ml-swatch.cor-vermelho{ background:var(--gcmlvermelho) !important; }
+#gso-calc .gc-ml-swatch.cor-cinza{ background:var(--gcgr) !important; }
+#gso-calc .gc-ml-swatch.cor-roxo{ background:var(--gcmlroxo) !important; }
+#gso-calc .gc-ml-swatch.cor-amarelo{ background:var(--gcmlamarelo) !important; }
+#gso-calc .gc-ml-swatch.cor-vermelho-escuro{ background:var(--gcmlvermelhoescuro) !important; }
+#gso-calc .gc-ml-swatch.cor-azul-claro{ background:var(--gcmlazulclaro) !important; }
+#gso-calc .gc-ml-swatch.cor-rosa{ background:var(--gcmlrosa) !important; }
+#gso-calc .gc-ml-swatch.cor-tiffany{ background:var(--gcmltiffany) !important; }
+#gso-calc .gc-ml-swatch.cor-branco{ background:#FFFFFF !important; border-color:#D0D0D0 !important; }
+#gso-calc .gc-ml-swatch.cor-laranja{ background:var(--gcmllaranja) !important; }
+#gso-calc .gc-ml-swatch.cor-marrom{ background:var(--gcmlmarrom) !important; }
+#gso-calc .gc-ml-swatch.cor-lima{ background:var(--gcmllima) !important; }
+#gso-calc .gc-ml-swatch.cor-marinho{ background:var(--gcmlmarinho) !important; }
+#gso-calc .gc-ml-swatch.cor-dourado{ background:var(--gcmldourado) !important; }
+#gso-calc .gc-ml-swatch.cor-preto{ background:#1A1A1A !important; }
 #gso-calc .gc-ml-lembretes{ display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
-#gso-calc .gc-ml-lembrete{ display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11.5px; }
-#gso-calc .gc-ml-lembrete label{ display:flex; align-items:center; gap:5px; cursor:pointer; }
+#gso-calc .gc-ml-lembrete{ display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11.5px; padding:2px 4px; border-radius:5px; }
+#gso-calc .gc-ml-lembrete label{ display:flex; align-items:center; gap:5px; cursor:pointer; flex:1; min-width:0; }
 #gso-calc .gc-ml-lembrete.feito label{ text-decoration:line-through; color:var(--gcmut); }
+#gso-calc .gc-ml-lembrete.urgente{ background:var(--gcbdbg); }
+#gso-calc .gc-ml-lembrete.urgente label{ font-weight:700; }
+#gso-calc .gc-ml-lembrete-flag{ border:0 !important; background:none !important; box-shadow:none !important; min-height:0 !important; padding:0 2px !important; flex:0 0 auto; cursor:pointer; font-size:12px; opacity:.35; filter:grayscale(1); }
+#gso-calc .gc-ml-lembrete-flag.on{ opacity:1; filter:none; }
 #gso-calc .gc-ml-lembrete-add{ width:100%; border:0; border-bottom:1px dotted var(--gcln2); background:none; padding:2px 0; font:500 11.5px inherit; font-family:inherit; color:var(--gcink); }
 #gso-calc .gc-ml-mini{ border:1px solid var(--gcln2); border-radius:9px; padding:8px 10px; background:var(--gcsf); cursor:grab; }
 #gso-calc .gc-ml-mini:active{ cursor:grabbing; }
@@ -26614,6 +26861,10 @@ body.gc-dr-flutuante #gso-calc-dr{
   transition:opacity .16s ease, transform .16s ease;
 }
 body.gc-dro.gc-dr-flutuante #gso-calc-dr{ opacity:1; pointer-events:auto; transform:translate(-50%, -50%) scale(1); }
+@media(max-width:680px){
+  body.gc-dr-flutuante #gso-calc-dr{ width:94vw !important; max-height:82vh !important; border-radius:14px !important; }
+  body.gc-dro.gc-dr-flutuante #gso-calc-dr{ transform:translate(-50%, -50%) scale(1); }
+}
 body.gc-dr-flutuante #gso-calc-dr .b{ min-height:0; }
 body.gc-dr-flutuante #gso-calc-dr header{ border-radius:18px 18px 0 0 !important; }
 #gso-calc-dr header{ padding:18px 20px !important; font-size:14px !important; }
@@ -26638,6 +26889,10 @@ body.gc-dr-flutuante #gso-calc-dr header{ border-radius:18px 18px 0 0 !important
   padding:7px 10px !important; font:600 13px inherit !important; font-family:inherit !important;
   text-align:right !important; background:var(--crm-surface,#FFFFFF) !important; color:var(--crm-text,#282828) !important;
 }
+#gso-calc-dr #gc-ml-nome, #gso-calc-dr #gc-ml-codigo, #gso-calc-dr #gc-ml-obs{ width:100% !important; text-align:left !important; }
+#gso-calc-dr #gc-ml-item-qtd{ width:52px !important; text-align:right !important; }
+#gso-calc-dr #gc-ml-desconto-nome{ width:auto !important; flex:1 1 140px !important; text-align:left !important; }
+#gso-calc-dr #gc-ml-desconto-valor{ width:80px !important; text-align:right !important; }
 #gso-calc-dr input[type="checkbox"]{ width:16px; height:16px; accent-color:#8E8E8E; margin-right:2px; }
 #gso-calc-dr label{ display:inline-flex; align-items:center; gap:6px; }
 #gso-calc-dr .gc-row{ display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 4px !important; }
@@ -26647,6 +26902,9 @@ body.gc-dr-flutuante #gso-calc-dr header{ border-radius:18px 18px 0 0 !important
 }
 #gso-calc-dr .gc-btn.dark, #gso-calc-mbg .gc-btn.dark{ background:#1C1F23; border-color:#1C1F23; color:#fff; }
 body.theme-dark #gso-calc-dr .gc-btn.dark, body.theme-dark #gso-calc-mbg .gc-btn.dark{ background:#E8E8E8; border-color:#E8E8E8; color:#161616; }
+#gso-calc-dr .gc-ml-seg{ display:inline-flex; border:1px solid var(--gcln2); border-radius:999px; padding:2px; background:var(--gcbg); gap:1px; }
+#gso-calc-dr .gc-ml-seg-opt{ border:0 !important; background:none !important; padding:4px 10px !important; min-height:0 !important; height:auto !important; font-size:10.5px !important; font-weight:600 !important; font-family:inherit; border-radius:999px !important; cursor:pointer; color:var(--gcmut) !important; white-space:nowrap; box-shadow:none !important; }
+#gso-calc-dr .gc-ml-seg-opt.on{ background:var(--gcac) !important; color:var(--gcaci) !important; }
 #gso-calc-dr .gc-pill{ display:inline-block; padding:2px 9px; border-radius:999px; font:600 10.5px inherit; font-family:inherit; white-space:nowrap; }
 #gso-calc-dr .gc-pill.ok{ background:#EAF6EE; color:#1E6B3A; } body.theme-dark #gso-calc-dr .gc-pill.ok{ background:rgba(46,125,74,.22); color:#7fd39a; }
 #gso-calc-dr .gc-pill.warn{ background:#FCF5E3; color:#8A6410; } body.theme-dark #gso-calc-dr .gc-pill.warn{ background:rgba(138,100,16,.22); color:#e6c469; }
