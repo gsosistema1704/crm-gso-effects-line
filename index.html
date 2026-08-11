@@ -23454,6 +23454,11 @@ function gsoIntelExport() {
   --gcmllima:#6B8E23; --gcmllimabg:rgba(107,142,35,.14);
   --gcmlmarinho:#1B2A4A; --gcmlmarinhobg:rgba(27,42,74,.14);
   --gcmldourado:#A6790A; --gcmldouradobg:rgba(166,121,10,.16);
+  --gcmlciano:#0E7C9E; --gcmlcianobg:rgba(14,124,158,.12);
+  --gcmlmagenta:#B8309E; --gcmlmagentabg:rgba(184,48,158,.12);
+  --gcmlcoral:#D9604A; --gcmlcoralbg:rgba(217,96,74,.14);
+  --gcmlmenta:#2F9E7A; --gcmlmentabg:rgba(47,158,122,.12);
+  --gcmlgrafite:#3A3F44; --gcmlgrafitebg:rgba(58,63,68,.12);
   font-size:14px; color:var(--gcink); max-width:100%; overflow-x:hidden;
 }
 body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gcmut:#b2b2b2; --gcfnt:#8E8E8E;
@@ -23474,6 +23479,11 @@ body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gc
   --gcmllima:#B4D66B; --gcmllimabg:rgba(107,142,35,.26);
   --gcmlmarinho:#7C93C4; --gcmlmarinhobg:rgba(27,42,74,.30);
   --gcmldourado:#E0B84A; --gcmldouradobg:rgba(166,121,10,.26);
+  --gcmlciano:#6FC7E0; --gcmlcianobg:rgba(14,124,158,.24);
+  --gcmlmagenta:#E08AD1; --gcmlmagentabg:rgba(184,48,158,.26);
+  --gcmlcoral:#F0A08C; --gcmlcoralbg:rgba(217,96,74,.26);
+  --gcmlmenta:#7ED9BC; --gcmlmentabg:rgba(47,158,122,.24);
+  --gcmlgrafite:#A8AFB6; --gcmlgrafitebg:rgba(168,175,182,.20);
 }
 #gso-calc *{ box-sizing:border-box; }
 #gso-calc .gc-head{ display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:4px; }
@@ -23608,6 +23618,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727
   --gcmllima:#6B8E23; --gcmllimabg:rgba(107,142,35,.14);
   --gcmlmarinho:#1B2A4A; --gcmlmarinhobg:rgba(27,42,74,.14);
   --gcmldourado:#A6790A; --gcmldouradobg:rgba(166,121,10,.16);
+  --gcmlciano:#0E7C9E; --gcmlcianobg:rgba(14,124,158,.12);
+  --gcmlmagenta:#B8309E; --gcmlmagentabg:rgba(184,48,158,.12);
+  --gcmlcoral:#D9604A; --gcmlcoralbg:rgba(217,96,74,.14);
+  --gcmlmenta:#2F9E7A; --gcmlmentabg:rgba(47,158,122,.12);
+  --gcmlgrafite:#3A3F44; --gcmlgrafitebg:rgba(58,63,68,.12);
 }
 body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   --gcbg:#1f1f1f; --gcac:#e8e8e8; --gcaci:#171717; --gcbl:#8FB8E8; --gcblbg:rgba(58,110,168,.22);
@@ -23624,6 +23639,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   --gcmllima:#B4D66B; --gcmllimabg:rgba(107,142,35,.26);
   --gcmlmarinho:#7C93C4; --gcmlmarinhobg:rgba(27,42,74,.30);
   --gcmldourado:#E0B84A; --gcmldouradobg:rgba(166,121,10,.26);
+  --gcmlciano:#6FC7E0; --gcmlcianobg:rgba(14,124,158,.24);
+  --gcmlmagenta:#E08AD1; --gcmlmagentabg:rgba(184,48,158,.26);
+  --gcmlcoral:#F0A08C; --gcmlcoralbg:rgba(217,96,74,.26);
+  --gcmlmenta:#7ED9BC; --gcmlmentabg:rgba(47,158,122,.24);
+  --gcmlgrafite:#A8AFB6; --gcmlgrafitebg:rgba(168,175,182,.20);
 }
 
 </style>
@@ -24813,11 +24833,12 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     'Bubble': 'rosa',
     'Snow': 'tiffany'
   };
-  var ML_PALETA_CORES = ['azul', 'verde', 'vermelho', 'cinza', 'roxo', 'amarelo', 'vermelho-escuro', 'azul-claro', 'rosa', 'tiffany', 'branco', 'laranja', 'marrom', 'lima', 'marinho', 'preto', 'dourado', ''];
+  var ML_PALETA_CORES = ['azul', 'verde', 'vermelho', 'cinza', 'roxo', 'amarelo', 'vermelho-escuro', 'azul-claro', 'rosa', 'tiffany', 'branco', 'laranja', 'marrom', 'lima', 'marinho', 'preto', 'dourado', 'ciano', 'magenta', 'coral', 'menta', 'grafite', ''];
   var ML_NOME_COR = {
     'azul': 'Azul', 'verde': 'Verde', 'vermelho': 'Vermelho', 'cinza': 'Cinza', 'roxo': 'Roxo', 'amarelo': 'Amarelo',
     'vermelho-escuro': 'Vermelho escuro', 'azul-claro': 'Azul clarinho', 'rosa': 'Rosa', 'tiffany': 'Tiffany', 'branco': 'Branco',
-    'laranja': 'Laranja', 'marrom': 'Marrom', 'lima': 'Verde-limão', 'marinho': 'Azul-marinho', 'preto': 'Preto', 'dourado': 'Dourado', '': 'Sem cor'
+    'laranja': 'Laranja', 'marrom': 'Marrom', 'lima': 'Verde-limão', 'marinho': 'Azul-marinho', 'preto': 'Preto', 'dourado': 'Dourado',
+    'ciano': 'Ciano', 'magenta': 'Magenta', 'coral': 'Coral', 'menta': 'Menta', 'grafite': 'Grafite', '': 'Sem cor'
   };
   function blocosDoProdutoPadrao(produto) {
     if (ML_SPLIT_POR_TAMANHO[produto]) {
@@ -26705,6 +26726,11 @@ body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !impor
 #gso-calc .gc-ml-group.cor-marinho{ border:2px solid var(--gcmlmarinho); background:var(--gcmlmarinhobg); }
 #gso-calc .gc-ml-group.cor-dourado{ border:2px solid var(--gcmldourado); background:var(--gcmldouradobg); }
 #gso-calc .gc-ml-group.cor-preto{ border:2px solid #000; background:#1A1A1A; --gcink:#F4F4F4; --gcmut:#B2B2B2; --gcsf:#2A2A2A; --gcln2:#3E3E3E; color:var(--gcink); }
+#gso-calc .gc-ml-group.cor-ciano{ border:2px solid var(--gcmlciano); background:var(--gcmlcianobg); }
+#gso-calc .gc-ml-group.cor-magenta{ border:2px solid var(--gcmlmagenta); background:var(--gcmlmagentabg); }
+#gso-calc .gc-ml-group.cor-coral{ border:2px solid var(--gcmlcoral); background:var(--gcmlcoralbg); }
+#gso-calc .gc-ml-group.cor-menta{ border:2px solid var(--gcmlmenta); background:var(--gcmlmentabg); }
+#gso-calc .gc-ml-group.cor-grafite{ border:2px solid var(--gcmlgrafite); background:var(--gcmlgrafitebg); }
 #gso-calc .gc-ml-group-head{ display:flex; align-items:center; gap:6px; font-size:12.5px; margin-bottom:8px; }
 #gso-calc .gc-ml-drag-handle{ cursor:grab; font-size:14px; line-height:1; color:var(--gcfnt); flex:0 0 auto; padding:2px 3px; user-select:none; border-radius:5px; }
 #gso-calc .gc-ml-drag-handle:hover{ background:rgba(0,0,0,.06); color:var(--gcink); }
@@ -26754,6 +26780,11 @@ body.theme-dark #gso-calc .gc-ml-collapse:hover, body.theme-dark #gso-calc .gc-m
 #gso-calc .gc-ml-swatch.cor-marinho{ background:var(--gcmlmarinho) !important; }
 #gso-calc .gc-ml-swatch.cor-dourado{ background:var(--gcmldourado) !important; }
 #gso-calc .gc-ml-swatch.cor-preto{ background:#1A1A1A !important; }
+#gso-calc .gc-ml-swatch.cor-ciano{ background:var(--gcmlciano) !important; }
+#gso-calc .gc-ml-swatch.cor-magenta{ background:var(--gcmlmagenta) !important; }
+#gso-calc .gc-ml-swatch.cor-coral{ background:var(--gcmlcoral) !important; }
+#gso-calc .gc-ml-swatch.cor-menta{ background:var(--gcmlmenta) !important; }
+#gso-calc .gc-ml-swatch.cor-grafite{ background:var(--gcmlgrafite) !important; }
 #gso-calc .gc-ml-lembretes{ display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
 #gso-calc .gc-ml-lembrete{ display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11.5px; padding:2px 4px; border-radius:5px; }
 #gso-calc .gc-ml-lembrete label{ display:flex; align-items:center; gap:5px; cursor:pointer; flex:1; min-width:0; }
