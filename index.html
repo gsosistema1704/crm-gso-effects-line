@@ -24755,11 +24755,24 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       return sum + (ci.total || 0) * (num(it.qtd) || 0);
     }, 0));
   }
-  function anuncioFrete(a) {
-    var vendedor = (a.custoExtraVendedor != null) ? (num(a.custoExtraVendedor) || 0) : (num(a.custoExtra) || 0);
-    var comprador = (a.custoExtraComprador != null) ? (num(a.custoExtraComprador) || 0) : 0;
-    var cobre = (a.freteVendedorCobre != null) ? !!a.freteVendedorCobre : true;
-    return { vendedor: vendedor, comprador: comprador, cobre: cobre };
+  // Tarifa de venda e Envios agora são digitados como valor fixo em R$, direto do
+  // "Simulador de custos" ou do "Pagamento aprovado" do próprio Mercado Livre — a
+  // usuária só copia os dois números de lá, sem precisar que o sistema tente adivinhar
+  // percentuais ou custos de frete por tipo de anúncio/modalidade de envio.
+  function anuncioTarifaVenda(a) {
+    if (a.tarifaVenda != null) return num(a.tarifaVenda) || 0;
+    // migração: anúncios antigos guardavam uma comissão em %, calculada sobre o preço.
+    if (a.comissaoPct != null) return round2((num(a.preco) || 0) * (num(a.comissaoPct) || 0) / 100);
+    return 0;
+  }
+  function anuncioEnvio(a) {
+    if (a.custoEnvio != null) return num(a.custoEnvio) || 0;
+    // migração: anúncios antigos guardavam frete separado por "quem cobre".
+    if (a.custoExtraVendedor != null || a.custoExtraComprador != null || a.custoExtra != null) {
+      var cobre = (a.freteVendedorCobre != null) ? !!a.freteVendedorCobre : true;
+      return cobre ? (num(a.custoExtraVendedor != null ? a.custoExtraVendedor : a.custoExtra) || 0) : (num(a.custoExtraComprador) || 0);
+    }
+    return 0;
   }
   function anuncioDescontos(a) {
     return Array.isArray(a.descontos) ? a.descontos.map(function (d) {
@@ -24768,38 +24781,35 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function anuncioCalc(a) {
     var precoBase = num(a.preco) || 0;
-    var comissaoPct = num(a.comissaoPct) || 0;
+    var tarifaVenda = anuncioTarifaVenda(a);
+    var custoEnvio = anuncioEnvio(a);
     var custoProduto = anuncioCustoProduto(a);
     var incluirFiscal = a.incluirFiscal !== false;
     var fiscalPct = num(params().fiscal) || 0;
-    var flexValor = (a.flexPermitido && num(a.flexValor)) ? round2(num(a.flexValor)) : 0;
-    var frete = anuncioFrete(a);
-    function calcular(descontoValor, custoFrete) {
+    function calcular(descontoValor) {
       var precoFinal = round2(Math.max(0, precoBase - descontoValor));
-      var comissaoValor = round2(precoFinal * comissaoPct / 100);
+      // "recebido" = o que cai na conta vinda do Mercado Livre (preço − tarifa − envio),
+      // igual ao "Total" do Pagamento aprovado de lá — o fiscal é conta da própria
+      // usuária, o Mercado Livre nem sabe que ele existe, por isso só entra depois.
+      var recebido = round2(precoFinal - tarifaVenda - custoEnvio);
       var fiscalValor = incluirFiscal ? round2(precoFinal * fiscalPct / 100) : 0;
-      var recebido = round2(precoFinal - comissaoValor - custoFrete - fiscalValor + flexValor);
-      var lucro = round2(recebido - custoProduto);
+      var lucro = round2(recebido - fiscalValor - custoProduto);
       var margem = precoFinal > 0 ? round2((lucro / precoFinal) * 100) : null;
-      return { precoFinal: precoFinal, comissaoValor: comissaoValor, fiscalValor: fiscalValor, custoExtra: custoFrete, recebido: recebido, lucro: lucro, margem: margem };
+      return { precoFinal: precoFinal, tarifaVenda: tarifaVenda, fiscalValor: fiscalValor, custoExtra: custoEnvio, recebido: recebido, lucro: lucro, margem: margem };
     }
     var temDesconto = !!a.temDesconto;
     var descontos = anuncioDescontos(a);
     var descontoAtivo = temDesconto ? (descontos.filter(function (d) { return d.id === a.descontoAtivoId; })[0] || descontos[0]) : null;
     var descontoValorAtivo = descontoAtivo ? descontoAtivo.valor : 0;
-    var custoFreteAtivo = frete.cobre ? frete.vendedor : frete.comprador;
-    var ativo = calcular(descontoValorAtivo, custoFreteAtivo);
-    var freteCobrindo = calcular(descontoValorAtivo, frete.vendedor);
-    var freteNaoCobrindo = calcular(descontoValorAtivo, frete.comprador);
-    var semDesconto = calcular(0, custoFreteAtivo);
+    var ativo = calcular(descontoValorAtivo);
+    var semDesconto = calcular(0);
     var cenariosDesconto = descontos.map(function (d) {
-      var c = calcular(d.valor, custoFreteAtivo);
+      var c = calcular(d.valor);
       c.id = d.id; c.nome = d.nome; c.valor = d.valor;
       return c;
     });
     return {
-      precoFinal: ativo.precoFinal, comissaoValor: ativo.comissaoValor, incluirFiscal: incluirFiscal, fiscalValor: ativo.fiscalValor, flexValor: flexValor, custoProduto: custoProduto,
-      freteVendedorCobre: frete.cobre, freteCobrindo: freteCobrindo, freteNaoCobrindo: freteNaoCobrindo,
+      precoFinal: ativo.precoFinal, tarifaVenda: tarifaVenda, incluirFiscal: incluirFiscal, fiscalValor: ativo.fiscalValor, custoProduto: custoProduto,
       temDesconto: temDesconto, descontoAtivoId: descontoAtivo ? descontoAtivo.id : null, semDesconto: semDesconto, cenariosDesconto: cenariosDesconto,
       custoExtra: ativo.custoExtra, recebido: ativo.recebido, lucro: ativo.lucro, margem: ativo.margem
     };
@@ -25023,20 +25033,18 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function abrirAnuncio(id) {
     document.body.classList.add('gc-dr-flutuante');
     var existente = id ? (store.anuncios || []).filter(function (x) { return x.id === id; })[0] : null;
-    var base = existente || { id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), codigo: '', nome: '', itensCatalogo: [], tipoAnuncio: 'Clássico', statusAnuncio: 'Ativo', incluirFiscal: true, flexPermitido: false, flexValor: 0, preco: 0, comissaoPct: 0, custoExtraVendedor: 0, custoExtraComprador: 0, freteVendedorCobre: true, peso: 0, desconto: 0, custoManual: 0, obs: '' };
+    var base = existente || { id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), codigo: '', nome: '', itensCatalogo: [], tipoAnuncio: 'Clássico', statusAnuncio: 'Ativo', incluirFiscal: true, preco: 0, tarifaVenda: 0, custoEnvio: 0, peso: 0, desconto: 0, custoManual: 0, obs: '' };
     var isNovo = !existente;
     // rascunho mutável — só grava em store.anuncios quando clicar em Salvar.
     var draft = JSON.parse(JSON.stringify(base));
     draft.itensCatalogo = anuncioItens(base).map(function (it) { return { produto: it.produto, tamanho: it.tamanho, qtd: it.qtd }; });
-    var freteBase = anuncioFrete(base);
-    draft.custoExtraVendedor = freteBase.vendedor;
-    draft.custoExtraComprador = freteBase.comprador;
-    draft.freteVendedorCobre = freteBase.cobre;
+    // Tarifa de venda e Envios: valores fixos em R$ copiados direto do Mercado Livre
+    // (simulador de custos ou pagamento aprovado), sem tentar recalcular por conta própria.
+    draft.tarifaVenda = anuncioTarifaVenda(base);
+    draft.custoEnvio = anuncioEnvio(base);
     draft.tipoAnuncio = base.tipoAnuncio || 'Clássico';
     draft.statusAnuncio = base.statusAnuncio || 'Ativo';
     draft.incluirFiscal = base.incluirFiscal !== false;
-    draft.flexPermitido = !!base.flexPermitido;
-    draft.flexValor = num(base.flexValor) || 0;
     draft.temDesconto = !!base.temDesconto;
     draft.descontos = anuncioDescontos(base);
     draft.descontoAtivoId = base.descontoAtivoId || (draft.descontos[0] && draft.descontos[0].id) || null;
@@ -25049,6 +25057,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       draft.descontoAtivoId = idMigrado;
     }
     delete draft.produtoCatalogo; delete draft.tamanhoCatalogo; delete draft.custoExtra; delete draft.desconto;
+    delete draft.comissaoPct; delete draft.custoExtraVendedor; delete draft.custoExtraComprador; delete draft.freteVendedorCobre;
+    delete draft.flexPermitido; delete draft.flexValor;
 
     var campoNum = function (label, id2, val) {
       return '<div class="gc-kv"><span class="l">' + label + '</span><b><input id="' + id2 + '" type="text" inputmode="decimal" value="' + esc(String(val == null ? '' : val)) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>';
@@ -25075,12 +25085,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       draft.nome = $('#gc-ml-nome').value.trim();
       draft.codigo = $('#gc-ml-codigo').value.trim();
       draft.preco = num($('#gc-ml-preco').value) || 0;
-      draft.comissaoPct = num($('#gc-ml-comissao').value) || 0;
-      draft.custoExtraVendedor = num($('#gc-ml-frete-vendedor').value) || 0;
-      draft.custoExtraComprador = num($('#gc-ml-frete-comprador').value) || 0;
+      draft.tarifaVenda = num($('#gc-ml-tarifa').value) || 0;
+      draft.custoEnvio = num($('#gc-ml-envio').value) || 0;
       draft.peso = num($('#gc-ml-peso').value) || 0;
       draft.custoManual = num($('#gc-ml-customanual').value) || 0;
-      var flexInput = $('#gc-ml-flex-valor'); if (flexInput) draft.flexValor = num(flexInput.value) || 0;
       draft.obs = $('#gc-ml-obs').value.trim();
     }
 
@@ -25144,23 +25152,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
             '</div>' +
           '</div>'
         : '') +
-        campoNum('Comissão da categoria (%)', 'gc-ml-comissao', draft.comissaoPct) +
+        campoMoeda('Tarifa de venda (R$)', 'gc-ml-tarifa', draft.tarifaVenda) +
+        campoMoeda('Envios (R$)', 'gc-ml-envio', draft.custoEnvio) +
+        '<div class="gc-hint" style="margin:4px 0 10px">Copie os dois valores acima do "Simulador de custos" (ou do "Pagamento aprovado" de uma venda real) no próprio Mercado Livre — já vêm certos pro tipo de anúncio e forma de envio que você escolheu lá.</div>' +
         campoNum('Peso (kg)', 'gc-ml-peso', draft.peso) +
         seg('Incluir fiscal (' + P.fiscal + '%)?',
           segOpt('incluir-fiscal', 'sim', 'Sim', draft.incluirFiscal) +
           segOpt('incluir-fiscal', 'nao', 'Não', !draft.incluirFiscal)
         ) +
-        seg('Quem paga o frete?',
-          segOpt('frete-modo', 'vendedor', 'Eu cubro', draft.freteVendedorCobre) +
-          segOpt('frete-modo', 'comprador', 'Comprador', !draft.freteVendedorCobre)
-        ) +
-        campoMoeda('Custo do frete se EU cobrir (R$)', 'gc-ml-frete-vendedor', draft.custoExtraVendedor) +
-        campoMoeda('Custo do frete se o COMPRADOR cobrir (R$)', 'gc-ml-frete-comprador', draft.custoExtraComprador) +
-        seg('Permite Flex?',
-          segOpt('flex-permitido', 'sim', 'Sim', draft.flexPermitido) +
-          segOpt('flex-permitido', 'nao', 'Não', !draft.flexPermitido)
-        ) +
-        (draft.flexPermitido ? campoMoeda('Valor do bônus Flex (R$)', 'gc-ml-flex-valor', draft.flexValor) : '') +
         '<div class="gc-ml-kitbox">' +
           '<div class="gc-ml-edit-label">Produtos do kit</div>' +
           '<div class="gc-hint" style="margin:0 0 8px;padding:0">Some o custo de cada um automaticamente. Se o anúncio é um kit com mais de um produto (ex.: 2 Clean 1L), adicione cada um aqui em vez de digitar o custo na mão.</div>' +
@@ -25172,23 +25171,24 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           '</div>' +
         '</div>' +
         campoMoeda('Custo do produto manual (R$) — só se não usar o kit acima', 'gc-ml-customanual', draft.custoManual) +
-        '<div class="gc-hint" style="margin:4px 0 8px">A comissão e o custo de frete/peso não têm como eu adivinhar — copie do simulador oficial do Mercado Livre pra sua categoria.</div>' +
+        '<div class="gc-hint" style="margin:4px 0 8px">O custo do produto vem da Formulação (ou do campo manual acima); o resto eu não tenho como adivinhar.</div>' +
         campoTxtFull('Observações', 'gc-ml-obs', draft.obs) +
-        '<div class="gc-kv" style="margin-top:10px;border-top:1px solid var(--gcln);padding-top:10px"><span class="l">Custo do produto (kit)</span><b>' + fmt(c.custoProduto) + '</b></div>' +
-        '<div class="gc-kv"><span class="l">Fiscal' + (draft.incluirFiscal ? ' (' + P.fiscal + '%)' : ' (desativado)') + '</span><b>' + fmt(c.fiscalValor) + '</b></div>' +
-        (draft.flexPermitido ? '<div class="gc-kv"><span class="l">Bônus Flex</span><b>+' + fmt(c.flexValor) + '</b></div>' : '') +
-        '<div class="gc-kv"><span class="l">Se eu cobrir o frete</span><b' + (draft.freteVendedorCobre ? ' style="color:var(--gcac)"' : '') + '>' + fmt(c.freteCobrindo.lucro) + (c.freteCobrindo.margem != null ? ' · ' + c.freteCobrindo.margem + '%' : '') + '</b></div>' +
-        '<div class="gc-kv"><span class="l">Se o comprador cobrir</span><b' + (!draft.freteVendedorCobre ? ' style="color:var(--gcac)"' : '') + '>' + fmt(c.freteNaoCobrindo.lucro) + (c.freteNaoCobrindo.margem != null ? ' · ' + c.freteNaoCobrindo.margem + '%' : '') + '</b></div>' +
-        (draft.temDesconto ?
-          '<div class="gc-kv"><span class="l">Sem desconto</span><b' + (!c.descontoAtivoId ? ' style="color:var(--gcac)"' : '') + '>' + fmt(c.semDesconto.lucro) + (c.semDesconto.margem != null ? ' · ' + c.semDesconto.margem + '%' : '') + '</b></div>' +
+        '<div class="gc-kv" style="margin-top:10px;border-top:1px solid var(--gcln);padding-top:10px"><span class="l">Preço</span><b>' + fmt(draft.preco) + '</b></div>' +
+        '<div class="gc-kv"><span class="l">Tarifa de venda</span><b>−' + fmt(c.tarifaVenda) + '</b></div>' +
+        '<div class="gc-kv"><span class="l">Envios</span><b>−' + fmt(c.custoExtra) + '</b></div>' +
+        '<div class="gc-kv"><span class="l">Eu recebo na conta</span><b>' + fmt(c.recebido) + '</b></div>' +
+        '<div class="gc-kv"><span class="l">Custo</span><b>−' + fmt(c.custoProduto) + '</b></div>' +
+        '<div class="gc-kv"><span class="l">Fiscal' + (draft.incluirFiscal ? ' (' + P.fiscal + '%)' : ' (desativado)') + '</span><b>−' + fmt(c.fiscalValor) + '</b></div>' +
+        (draft.temDesconto && draft.descontos.length ?
+          '<div class="gc-hint" style="margin:10px 0 4px">Comparação: quanto sobra com e sem cada desconto cadastrado acima <span style="font-weight:400">— o destacado é o que está "usado no cálculo" agora.</span></div>' +
+          '<div class="gc-kv"><span class="l">Preço cheio, sem desconto</span><b' + (!c.descontoAtivoId ? ' style="color:var(--gcac)"' : '') + '>' + fmt(c.semDesconto.lucro) + (c.semDesconto.margem != null ? ' · ' + c.semDesconto.margem + '%' : '') + '</b></div>' +
           c.cenariosDesconto.map(function (cd) {
             var ativoCd = cd.id === c.descontoAtivoId;
-            return '<div class="gc-kv"><span class="l">' + esc(cd.nome) + '</span><b' + (ativoCd ? ' style="color:var(--gcac)"' : '') + '>' + fmt(cd.lucro) + (cd.margem != null ? ' · ' + cd.margem + '%' : '') + '</b></div>';
+            return '<div class="gc-kv"><span class="l">' + esc(cd.nome) + ' (−' + fmt(cd.valor) + ')</span><b' + (ativoCd ? ' style="color:var(--gcac)"' : '') + '>' + fmt(cd.lucro) + (cd.margem != null ? ' · ' + cd.margem + '%' : '') + '</b></div>';
           }).join('')
         : '') +
-        '<div class="gc-kv"><span class="l">Você recebe (líquido, cenário ativo)</span><b>' + fmt(c.recebido) + '</b></div>' +
-        '<div class="gc-kv"><span class="l">Lucro (cenário ativo)</span><b>' + fmt(c.lucro) + '</b></div>' +
-        '<div class="gc-kv"><span class="l">Margem (cenário ativo)</span><b><span class="gc-pill ' + st.cls + '">' + (c.margem != null ? c.margem + '% · ' : '') + st.label + '</span></b></div>' +
+        '<div class="gc-kv"><span class="l">Lucro final</span><b>' + fmt(c.lucro) + '</b></div>' +
+        '<div class="gc-kv"><span class="l">Margem</span><b><span class="gc-pill ' + st.cls + '">' + (c.margem != null ? c.margem + '% · ' : '') + st.label + '</span></b></div>' +
         '<div class="gc-row" style="margin-top:10px">' +
           '<button class="gc-btn dark" id="gc-ml-save">' + (isNovo ? 'Criar anúncio' : 'Salvar alterações') + '</button>' +
           (isNovo ? '' : '<button class="gc-btn" id="gc-ml-del" style="color:#B0322F">Apagar anúncio</button>') +
@@ -25198,12 +25198,6 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     }
 
     function wire() {
-      $all('[data-frete-modo]', $('#gc-dr-b')).forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          draft.freteVendedorCobre = (btn.dataset.freteModo === 'vendedor');
-          render();
-        });
-      });
       $all('[data-tipo-anuncio]', $('#gc-dr-b')).forEach(function (btn) {
         btn.addEventListener('click', function () { draft.tipoAnuncio = btn.dataset.tipoAnuncio; render(); });
       });
@@ -25212,9 +25206,6 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       });
       $all('[data-incluir-fiscal]', $('#gc-dr-b')).forEach(function (btn) {
         btn.addEventListener('click', function () { draft.incluirFiscal = (btn.dataset.incluirFiscal === 'sim'); render(); });
-      });
-      $all('[data-flex-permitido]', $('#gc-dr-b')).forEach(function (btn) {
-        btn.addEventListener('click', function () { draft.flexPermitido = (btn.dataset.flexPermitido === 'sim'); render(); });
       });
       $all('[data-tem-desconto]', $('#gc-dr-b')).forEach(function (btn) {
         btn.addEventListener('click', function () { draft.temDesconto = (btn.dataset.temDesconto === 'sim'); render(); });
