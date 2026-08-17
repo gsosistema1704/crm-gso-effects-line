@@ -11654,6 +11654,180 @@ th,
   }
 </style>
 
+<style id="gso-lab-css">
+/* ================== GSO LABORATÓRIO — portado do app standalone "GSO Insumos & Lotes" ==================
+   Todo seletor fica escopado dentro de #view-laboratorio (não vaza pro resto do CRM), e usa
+   !important porque as classes genéricas (.btn, .card, .modal-bg...) têm o mesmo nome das do
+   CRM, que já usam !important nas suas próprias regras. */
+#view-laboratorio {
+    --bg: #F2F6FB !important;
+    --card: #FFFFFF !important;
+    --border: #E3E8F0 !important;
+    --glass-border: #E3E8F0 !important;
+    --glass-hairline: #ECF1F7 !important;
+    --silver-border: #D6DDE6 !important;
+    --text: #12151A !important;
+    --text-2: #64707D !important;
+    --brand-blue: #3A3F45 !important;
+    --brand-blue-dark: #23262A !important;
+    --brand-red: #C21A22 !important;
+    --primary: #3A3F45 !important;
+    --primary-dark: #23262A !important;
+    --primary-soft: #ECEDEE !important;
+    --green-bg: #DFF6E5 !important;
+    --green-text: #1C7A3F !important;
+    --amber-bg: #FFF3C4 !important;
+    --amber-text: #8A5A00 !important;
+    --red-bg: #FDE5E5 !important;
+    --red-text: #A81820 !important;
+    --blue-bg: #ECEDEE !important;
+    --blue-text: #33373C !important;
+    --blue-gradient: linear-gradient(135deg, #494E55, #3A3F45 55%, #23262A) !important;
+    --blue-gradient-hover: linear-gradient(135deg, #565B62, #494E55 55%, #3A3F45) !important;
+    --navy: #1B1D20 !important;
+    --navy-2: #26282B !important;
+    --navy-3: #2F3236 !important;
+    --navy-border: #35383C !important;
+    --navy-text: #CACBCD !important;
+    --navy-text-2: #8D9094 !important;
+    --shadow-soft: 0 20px 48px rgba(15,17,19,.20), 0 2px 10px rgba(15,23,42,.07) !important;
+    --shadow-tight: 0 10px 26px rgba(15,23,42,.08), 0 1px 4px rgba(15,23,42,.04) !important;}
+#view-laboratorio .hidden.hidden { display: none !important;}
+#view-laboratorio button, #view-laboratorio .btn, #view-laboratorio .nav-item, #view-laboratorio .icon-btn { -webkit-tap-highlight-color: transparent !important;}
+#view-laboratorio .btn-login { width: 100% !important; margin-top: 24px !important; padding: 14px !important; background: var(--blue-gradient) !important; color: #fff !important; border: none !important; border-radius: 6px !important; font-size: 14.5px !important; font-weight: 700 !important; cursor: pointer !important; font-family: inherit !important; box-shadow: 0 14px 26px rgba(35,38,42,.30) !important; transition: transform .15s ease, box-shadow .15s ease !important;}
+#view-laboratorio .btn-login:hover { background: var(--blue-gradient-hover) !important; transform: translateY(-1px) !important; box-shadow: 0 18px 32px rgba(35,38,42,.36) !important;}
+#view-laboratorio .btn-login:active { transform: translateY(0) !important;}
+#view-laboratorio .btn-login:disabled { opacity: .6 !important; cursor: wait !important; transform: none !important;}
+#view-laboratorio .main { flex: 1 !important; margin-left: 224px !important; padding: 28px 32px !important; max-width: 1280px !important;}
+#view-laboratorio .header { display: flex !important; justify-content: space-between !important; align-items: flex-end !important; margin-bottom: 22px !important; gap: 16px !important; flex-wrap: wrap !important;}
+#view-laboratorio .h-title { font-size: 22px !important; font-weight: 700 !important;}
+#view-laboratorio .h-sub { font-size: 13px !important; color: var(--text-2) !important; margin-top: 4px !important;}
+#view-laboratorio .h-actions { display: flex !important; gap: 8px !important; align-items: center !important;}
+#view-laboratorio .card { background: var(--card) !important; border: 1px solid var(--glass-border) !important; border-radius: 8px !important; padding: 18px 20px !important; margin-bottom: 16px !important; box-shadow: var(--shadow-tight) !important;}
+#view-laboratorio .table-card { padding: 0 !important; overflow: auto !important; border-radius: 8px !important;}
+#view-laboratorio .btn { padding: 9px 16px !important; border-radius: 5px !important; border: 1px solid var(--glass-border) !important; background: var(--card) !important; font-size: 13px !important; cursor: pointer !important; font-family: inherit !important; font-weight: 500 !important; color: var(--text) !important; transition: all .15s !important;}
+#view-laboratorio .btn:hover { background: var(--primary-soft) !important; transform: translateY(-1px) !important;}
+#view-laboratorio .btn-primary { background: var(--blue-gradient) !important; color: #fff !important; border-color: transparent !important;}
+#view-laboratorio .btn-primary:hover { background: var(--blue-gradient-hover) !important;}
+#view-laboratorio .btn-soft { color: var(--blue-text) !important; background: var(--blue-bg) !important; border-color: var(--border) !important;}
+#view-laboratorio .btn-danger { color: var(--red-text) !important; border-color: #EFB4B4 !important; background: rgba(255,248,248,.7) !important;}
+#view-laboratorio .btn-danger:hover { background: var(--red-bg) !important;}
+#view-laboratorio .btn-small { padding: 5px 10px !important; font-size: 11px !important; border-radius: 4px !important;}
+#view-laboratorio .btn:disabled { opacity: .55 !important; cursor: wait !important; transform: none !important;}
+#view-laboratorio .row-actions { display: flex !important; gap: 6px !important; flex-wrap: wrap !important; align-items: center !important;}
+#view-laboratorio table { width: 100% !important; border-collapse: separate !important; border-spacing: 0 !important; font-size: 13px !important;}
+#view-laboratorio th { text-align: left !important; padding: 12px !important; font-weight: 700 !important; font-size: 11px !important; color: var(--primary-dark) !important; text-transform: uppercase !important; letter-spacing: .5px !important; border-bottom: 1px solid var(--border) !important; background: var(--primary-soft) !important;}
+#view-laboratorio td { padding: 11px 12px !important; border-bottom: 1px solid var(--border) !important; vertical-align: middle !important;}
+#view-laboratorio tr:last-child td { border-bottom: none !important;}
+#view-laboratorio tr:hover td { background: rgba(0,0,0,.02) !important;}
+#view-laboratorio .num { text-align: right !important; font-variant-numeric: tabular-nums !important;}
+#view-laboratorio .table-empty { text-align: center !important; padding: 36px 20px !important; color: var(--text-2) !important; font-size: 13px !important;}
+#view-laboratorio .pill { display: inline-block !important; padding: 3px 10px !important; border-radius: 4px !important; font-size: 11px !important; font-weight: 600 !important;}
+#view-laboratorio .pill-green { background: var(--green-bg) !important; color: var(--green-text) !important;}
+#view-laboratorio .pill-amber { background: var(--amber-bg) !important; color: var(--amber-text) !important;}
+#view-laboratorio .pill-red { background: var(--red-bg) !important; color: var(--red-text) !important;}
+#view-laboratorio .pill-blue { background: var(--blue-bg) !important; color: var(--blue-text) !important;}
+#view-laboratorio .search { display: flex !important; gap: 8px !important; margin-bottom: 14px !important; flex-wrap: wrap !important; align-items: center !important;}
+#view-laboratorio .input, #view-laboratorio select.input { padding: 9px 12px !important; border: 1px solid var(--glass-border) !important; border-radius: 5px !important; font-size: 13px !important; font-family: inherit !important; background: var(--card) !important; color: var(--text) !important;}
+#view-laboratorio .input:focus, #view-laboratorio select.input:focus { outline: none !important; border-color: var(--primary) !important;}
+#view-laboratorio .search input.input { flex: 1 !important; min-width: 180px !important;}
+#view-laboratorio .form-row { display: grid !important; gap: 12px !important; margin-bottom: 14px !important;}
+#view-laboratorio .form-r2 { grid-template-columns: 1fr 1fr !important;}
+#view-laboratorio .form-r3 { grid-template-columns: 1fr 1fr 1fr !important;}
+#view-laboratorio .form-r4 { grid-template-columns: 1fr 1fr 1fr 1fr !important;}
+@media (max-width: 720px) {#view-laboratorio .form-r2, #view-laboratorio .form-r3, #view-laboratorio .form-r4 { grid-template-columns: 1fr !important;}
+ }
+#view-laboratorio .form-label { font-size: 11px !important; color: var(--text-2) !important; display: block !important; margin-bottom: 5px !important; text-transform: uppercase !important; letter-spacing: .4px !important; font-weight: 600 !important;}
+#view-laboratorio .form-input { width: 100% !important; padding: 10px 12px !important; border: 1px solid var(--glass-border) !important; border-radius: 5px !important; font-size: 13px !important; font-family: inherit !important; background: var(--card) !important; color: var(--text) !important;}
+#view-laboratorio .form-input:focus { outline: none !important; border-color: var(--primary) !important;}
+#view-laboratorio .form-help { margin-top: 6px !important; font-size: 12px !important; color: var(--text-2) !important;}
+#view-laboratorio .form-actions { display: flex !important; gap: 8px !important; justify-content: flex-end !important; margin-top: 8px !important; padding-top: 16px !important; border-top: 1px solid var(--border) !important;}
+#view-laboratorio .export-choice { display: flex !important; flex-direction: column !important; align-items: flex-start !important; gap: 3px !important; width: 100% !important; padding: 14px 16px !important; margin-bottom: 10px !important; text-align: left !important;}
+#view-laboratorio .export-choice-title { font-size: 14px !important; font-weight: 700 !important;}
+#view-laboratorio .export-choice-sub { font-size: 12px !important; color: var(--text-2) !important; font-weight: 400 !important;}
+#view-laboratorio .btn-primary.export-choice .export-choice-sub { color: rgba(255,255,255,.82) !important;}
+#view-laboratorio .modal-bg { position: fixed !important; inset: 0 !important; background: rgba(23,23,23,.4) !important; display: none !important; align-items: center !important; justify-content: center !important; z-index: 1000 !important; padding: 20px !important;}
+#view-laboratorio .modal-bg.show { display: flex !important;}
+#view-laboratorio .modal { background: var(--card) !important; border: 1px solid var(--border) !important; border-radius: 8px !important; padding: 22px !important; max-width: 480px !important; width: 100% !important; max-height: 90vh !important; overflow-y: auto !important; box-shadow: var(--shadow-soft) !important;}
+#view-laboratorio .modal.modal-wide { max-width: 720px !important;}
+#view-laboratorio .modal-title { font-size: 17px !important; font-weight: 700 !important; margin-bottom: 16px !important;}
+#view-laboratorio .batelada-block { border: 1px solid var(--border) !important; border-radius: 6px !important; padding: 14px 16px !important; margin-bottom: 14px !important; background: rgba(0,0,0,.012) !important;}
+#view-laboratorio .item-row { display: grid !important; grid-template-columns: 2fr 1fr auto !important; gap: 8px !important; margin-bottom: 8px !important; align-items: center !important;}
+@media (max-width: 640px) {#view-laboratorio .item-row { grid-template-columns: 1fr !important;}
+ }
+#view-laboratorio .icon-btn { width: 30px !important; height: 30px !important; border-radius: 5px !important; border: 1px solid var(--glass-border) !important; background: var(--card) !important; color: var(--text-2) !important; cursor: pointer !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; font-size: 15px !important; transition: all .15s ease !important;}
+#view-laboratorio .icon-btn:hover { background: var(--red-bg) !important; color: var(--red-text) !important; border-color: #F4C4C4 !important;}
+#view-laboratorio .icon-btn-in:hover { background: var(--green-bg) !important; color: var(--green-text) !important; border-color: #BFE7CC !important;}
+#view-laboratorio .icon-btn-out:hover { background: var(--blue-bg) !important; color: var(--blue-text) !important; border-color: #BFDCEF !important;}
+#view-laboratorio .preview-box { border: 1px solid var(--glass-border) !important; border-radius: 6px !important; padding: 14px 16px !important; background: var(--primary-soft) !important; margin-top: 12px !important;}
+#view-laboratorio .preview-line { display: flex !important; justify-content: space-between !important; font-size: 13px !important; padding: 4px 0 !important;}
+#view-laboratorio .preview-line strong { font-variant-numeric: tabular-nums !important;}
+#view-laboratorio .preview-warn { color: var(--red-text) !important; font-weight: 700 !important;}
+#view-laboratorio .category-header { display: flex !important; align-items: center !important; gap: 10px !important; padding: 16px 18px 14px !important;}
+#view-laboratorio .category-header .dot { width: 9px !important; height: 9px !important; border-radius: 50% !important; background: var(--blue-gradient) !important; flex-shrink: 0 !important; box-shadow: 0 0 0 3px var(--primary-soft) !important;}
+#view-laboratorio .category-header .name { font-size: 12.5px !important; font-weight: 800 !important; color: var(--text) !important; text-transform: uppercase !important; letter-spacing: .6px !important;}
+#view-laboratorio .category-header .count { font-size: 11px !important; font-weight: 700 !important; color: var(--primary) !important; background: var(--primary-soft) !important; padding: 2px 10px !important; border-radius: 4px !important;}
+#view-laboratorio .pagination { display: flex !important; align-items: center !important; justify-content: center !important; gap: 14px !important; padding: 12px 16px !important; border-top: 1px solid var(--border) !important;}
+#view-laboratorio .pagination-info { font-size: 12px !important; color: var(--text-2) !important; font-weight: 600 !important;}
+#view-laboratorio .stats-bar { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 12px !important; margin-bottom: 16px !important;}
+#view-laboratorio .stat-card { background: var(--card) !important; border: 1px solid var(--glass-border) !important; border-radius: 6px !important; padding: 15px 18px !important; box-shadow: var(--shadow-tight) !important;}
+#view-laboratorio .stat-card .stat-label { font-size: 11px !important; color: var(--text-2) !important; text-transform: uppercase !important; letter-spacing: .4px !important; font-weight: 700 !important; margin-bottom: 6px !important;}
+#view-laboratorio .stat-card .stat-value { font-size: 22px !important; font-weight: 800 !important; letter-spacing: -.3px !important; font-variant-numeric: tabular-nums !important;}
+#view-laboratorio .stat-card.stat-warn .stat-value { color: var(--red-text) !important;}
+@media (max-width: 640px) {#view-laboratorio .stats-bar { grid-template-columns: 1fr 1fr !important;}
+#view-laboratorio .stat-card:first-child { grid-column: 1 / -1 !important;}
+ }
+#view-laboratorio .indic-section-title { font-size: 13px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: .5px !important; color: var(--text-2) !important; margin: 26px 0 12px !important;}
+#view-laboratorio .indic-section-title:first-child { margin-top: 0 !important;}
+#view-laboratorio .indic-grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 12px !important;}
+#view-laboratorio .highlight-card { background: var(--card) !important; border: 1px solid var(--glass-border) !important; border-radius: 6px !important; padding: 16px 18px !important; box-shadow: var(--shadow-tight) !important; display: flex !important; gap: 13px !important; align-items: flex-start !important;}
+#view-laboratorio .highlight-card .icon { width: 38px !important; height: 38px !important; border-radius: 5px !important; background: var(--primary-soft) !important; color: var(--primary) !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important;}
+#view-laboratorio .highlight-card .icon svg { width: 19px !important; height: 19px !important;}
+#view-laboratorio .highlight-card .label { font-size: 10.5px !important; text-transform: uppercase !important; letter-spacing: .4px !important; color: var(--text-2) !important; font-weight: 700 !important; margin-bottom: 4px !important;}
+#view-laboratorio .highlight-card .value { font-size: 15.5px !important; font-weight: 800 !important; line-height: 1.3 !important;}
+#view-laboratorio .highlight-card .sub { font-size: 11.5px !important; color: var(--text-2) !important; margin-top: 3px !important;}
+#view-laboratorio .qc-grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 12px !important;}
+#view-laboratorio .qc-card .qc-title { font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: .4px !important; color: var(--text-2) !important; margin-bottom: 10px !important;}
+#view-laboratorio .qc-row { display: flex !important; justify-content: space-between !important; font-size: 12.5px !important; padding: 5px 0 !important; border-bottom: 1px solid var(--glass-hairline) !important;}
+#view-laboratorio .qc-row:last-child { border-bottom: none !important;}
+#view-laboratorio .qc-row strong { font-variant-numeric: tabular-nums !important;}
+#view-laboratorio .chart-card { padding: 20px 22px !important;}
+@media (max-width: 900px) {#view-laboratorio .indic-grid, #view-laboratorio .qc-grid { grid-template-columns: 1fr 1fr !important;}
+ }
+@media (max-width: 560px) {#view-laboratorio .indic-grid, #view-laboratorio .qc-grid { grid-template-columns: 1fr !important;}
+ }
+@media (max-width: 900px) {#view-laboratorio .main { margin-left: 0 !important; padding: 16px 14px calc(env(safe-area-inset-bottom, 0px) + 84px) !important; width: 100% !important; max-width: 100% !important;}
+#view-laboratorio .header { align-items: flex-start !important;}
+#view-laboratorio .h-title { font-size: 19px !important;}
+#view-laboratorio .modal { border-radius: 8px 8px 0 0 !important; max-height: 88vh !important;}
+#view-laboratorio .modal-bg { align-items: flex-end !important; padding: 0 !important;}
+#view-laboratorio .modal-bg .modal-wide { max-width: 100% !important;}
+#view-laboratorio .form-input, #view-laboratorio .input, #view-laboratorio select.input, #view-laboratorio .login-form input { font-size: 16px !important;}
+#view-laboratorio table { font-size: 12.5px !important;}
+#view-laboratorio th, #view-laboratorio td { padding: 9px 8px !important;}
+#view-laboratorio .form-actions { flex-direction: column !important; align-items: stretch !important;}
+#view-laboratorio .form-actions .btn { width: 100% !important; padding: 12px 16px !important;}
+#view-laboratorio .form-actions .form-help { text-align: center !important; order: 99 !important; margin-top: 4px !important;}
+#view-laboratorio .table-card { overflow: visible !important;}
+#view-laboratorio .stack-table { border: none !important;}
+#view-laboratorio .stack-table thead { display: none !important;}
+#view-laboratorio .stack-table, #view-laboratorio .stack-table tbody, #view-laboratorio .stack-table tr, #view-laboratorio .stack-table td { display: block !important; width: 100% !important;}
+#view-laboratorio .stack-table tbody { display: flex !important; flex-direction: column !important; gap: 10px !important; padding: 10px !important;}
+#view-laboratorio .stack-table tr { border: 1px solid var(--border) !important; border-radius: 6px !important; padding: 4px 14px !important; background: var(--card) !important;}
+#view-laboratorio .stack-table td { border-bottom: 1px solid var(--border) !important; padding: 9px 0 !important; display: flex !important; justify-content: space-between !important; align-items: center !important; gap: 12px !important; text-align: right !important;}
+#view-laboratorio .stack-table td:last-child { border-bottom: none !important;}
+#view-laboratorio .stack-table td::before { content: attr(data-label) !important; font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: .4px !important; color: var(--text-2) !important; text-align: left !important; flex-shrink: 0 !important;}
+#view-laboratorio .stack-table td.stack-title { display: block !important; font-size: 15px !important; font-weight: 700 !important; text-align: left !important; padding: 12px 0 9px !important;}
+#view-laboratorio .stack-table td.stack-title::before { content: none !important;}
+#view-laboratorio .stack-table td.stack-block { display: block !important; text-align: left !important;}
+#view-laboratorio .stack-table td.stack-block::before { content: attr(data-label) !important; display: block !important; margin-bottom: 6px !important;}
+#view-laboratorio .stack-table td.stack-block select, #view-laboratorio .stack-table td.stack-block .form-input { width: 100% !important;}
+#view-laboratorio .stack-table td.stack-actions { display: block !important; text-align: left !important; padding-bottom: 12px !important;}
+#view-laboratorio .stack-table td.stack-actions::before { content: none !important;}
+#view-laboratorio .stack-table td.stack-actions .row-actions { justify-content: flex-start !important;}
+ }
+</style>
+
 </head>
 <body>
 
@@ -11740,6 +11914,10 @@ th,
     <div class="nav-item" data-view="calculadora" data-label="Calculadora" onclick="navTo('calculadora')">
       <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M5 5h6M5 8h1.5M8 8h1.5M11 8h.5M5 11h1.5M8 11h1.5M11 11h.5"/></svg>
       Calculadora
+    </div>
+    <div class="nav-item" data-view="laboratorio" data-label="Laboratório" onclick="navTo('laboratorio')">
+      <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 1.5h4M6.7 1.5v4.2L2.9 12a1.3 1.3 0 0 0 1.1 2h8a1.3 1.3 0 0 0 1.1-2L9.3 5.7V1.5"/><path d="M5 9.5h6"/></svg>
+      Laboratório
     </div>
 
     <div class="sb-section">SISTEMA</div>
@@ -11841,9 +12019,38 @@ th,
           <div class="h-sub"><span id="lojista-count">0</span> vendas para lojistas/revendedores</div>
         </div>
         <div class="h-actions">
+          <button class="btn btn-soft" onclick="openLojistaCadastroModal()">+ Novo lojista</button>
           <button class="btn btn-primary" onclick="openVendaLojistaModal()">+ Nova venda lojista</button>
         </div>
       </div>
+
+      <div class="card table-card" style="margin-bottom:16px">
+        <div class="header" style="margin-bottom:10px">
+          <div>
+            <div class="h-title" style="font-size:16px">Lojistas cadastrados</div>
+            <div class="h-sub"><span id="lojistas-count">0</span> lojistas/revendedores cadastrados</div>
+          </div>
+        </div>
+        <div class="filter-panel lojista" style="margin-bottom:10px">
+          <input type="text" class="input" id="searchLojistasCadastro" placeholder="Buscar por nome, telefone, CPF/CNPJ..." oninput="renderLojistasCadastro()">
+          <button class="btn btn-soft" onclick="document.getElementById('searchLojistasCadastro').value='';renderLojistasCadastro();">Limpar</button>
+        </div>
+        <table class="sales-table mobile-card-table">
+          <colgroup><col style="width:25%"><col style="width:18%"><col style="width:20%"><col style="width:22%"><col style="width:15%"></colgroup>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Telefone</th>
+              <th>CPF/CNPJ</th>
+              <th>Cidade</th>
+              <th class="col-acoes">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="lojistasCadastroTable"></tbody>
+        </table>
+      </div>
+
+      <datalist id="lojistas-datalist"></datalist>
 
       <div class="filter-panel lojista">
         <input type="text" class="input" id="searchLojista" placeholder="Buscar lojista, produto..." oninput="renderVendasLojista()">
@@ -12368,6 +12575,311 @@ th,
 
     <!-- ============ CALCULADORA ============ -->
     <div id="view-calculadora" class="hidden">
+    </div>
+
+    <!-- ============ LABORATÓRIO (Insumos / Receitas / Lotes / Indicadores) ============ -->
+    <div id="view-laboratorio" class="hidden">
+      <div class="header">
+        <div>
+          <div class="h-title">Laboratório</div>
+          <div class="h-sub">Estoque de insumos, receitas de produto e controle de lote de produção</div>
+        </div>
+      </div>
+      <div class="subtabs">
+        <div class="subtab active" data-subtab="insumos" onclick="Lab.navTo('insumos')">Estoque de Insumos</div>
+        <div class="subtab" data-subtab="receitas" onclick="Lab.navTo('receitas')">Receitas / Produtos</div>
+        <div class="subtab" data-subtab="lotes" onclick="Lab.navTo('lotes')">Controle de Lote</div>
+        <div class="subtab" data-subtab="indicadores" onclick="Lab.navTo('indicadores')">Indicadores</div>
+      </div>
+
+    <div id="view-insumos">
+      <div class="header">
+        <div>
+          <div class="h-title">Estoque de Insumos</div>
+          <div class="h-sub">Garrafas, tampas, rótulos e todo o restante do estoque — separado por categoria</div>
+        </div>
+        <div class="h-actions">
+          <button class="btn btn-soft" onclick="Lab.abrirEscolhaExport('excel')">Exportar Excel</button>
+          <button class="btn btn-soft" onclick="Lab.abrirEscolhaExport('pdf')">Exportar PDF</button>
+          <button class="btn btn-soft" onclick="Lab.openImportInsumosModal()">+ Importar em lote</button>
+          <button class="btn btn-primary" onclick="Lab.openInsumoModal()">+ Adicionar insumo</button>
+        </div>
+      </div>
+      <div class="stats-bar" id="insumosStats"></div>
+      <div class="search">
+        <input class="input" id="insumo-busca" placeholder="Buscar por título, código ou fornecedor..." oninput="Lab.onInsumoFiltroChange()">
+        <select class="input" id="insumo-filtro-tipo" onchange="Lab.onInsumoFiltroChange()">
+          <option value="">Todos os tipos</option>
+          <option value="garrafa">Garrafa</option>
+          <option value="tampa">Tampa</option>
+          <option value="rotulo">Rótulo</option>
+          <option value="essencia">Essência</option>
+          <option value="produto">Produto</option>
+          <option value="materia_prima">Matéria-prima</option>
+          <option value="caixa">Caixa de papelão</option>
+          <option value="deionizador">Deionizador</option>
+          <option value="outro">Outro</option>
+        </select>
+        <select class="input" id="insumo-filtro-baixo" onchange="Lab.onInsumoFiltroChange()">
+          <option value="">Todos os estoques</option>
+          <option value="sim">Só baixo estoque</option>
+        </select>
+      </div>
+      <div id="insumosGroups"></div>
+    </div>
+
+    <!-- ===== VIEW: RECEITAS ===== -->
+    <div id="view-receitas" class="hidden">
+      <div class="header">
+        <div>
+          <div class="h-title">Receitas / Produtos</div>
+          <div class="h-sub">Para cada produto envasado, escolha a garrafa, tampa e rótulo consumidos por unidade</div>
+        </div>
+        <div class="h-actions"><button class="btn btn-primary" onclick="Lab.openLabProdutoModal()">+ Adicionar produto</button></div>
+      </div>
+      <div class="card table-card">
+        <table class="stack-table">
+          <thead><tr><th>Produto</th><th>Garrafa</th><th>Tampa</th><th>Rótulo</th><th>Ativo</th><th>Ações</th></tr></thead>
+          <tbody id="receitasTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: LOTES ===== -->
+    <div id="view-lotes" class="hidden">
+      <div id="lotes-list-view">
+        <div class="header">
+          <div>
+            <div class="h-title">Controle de Lote</div>
+            <div class="h-sub">Cada batelada é registrada com seu próprio número, como no formulário em papel</div>
+          </div>
+          <div class="h-actions"><button class="btn btn-primary" onclick="Lab.openLoteForm()">+ Novo lote</button></div>
+        </div>
+        <div class="card table-card">
+          <table class="stack-table">
+            <thead><tr><th>Número</th><th>Data</th><th>Batelada</th><th>Status</th><th>Envasado por</th><th>Itens</th><th>Ações</th></tr></thead>
+            <tbody id="lotesTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="lote-form-view" class="hidden">
+        <div class="header">
+          <div>
+            <div class="h-title" id="lote-form-title">Novo lote</div>
+            <div class="h-sub">Preencha como no formulário de controle de lote</div>
+          </div>
+          <div class="h-actions"><button class="btn" onclick="Lab.closeLoteForm()">← Voltar</button></div>
+        </div>
+
+        <div class="card">
+          <div class="form-row form-r3">
+            <div><label class="form-label">Número do lote</label><input class="form-input" id="lote-numero" placeholder="ex: 1736"></div>
+            <div><label class="form-label">Data do envase</label><input class="form-input" type="date" id="lote-data"></div>
+            <div><label class="form-label">Batelada</label>
+              <select class="form-input" id="lote-batelada" onchange="Lab.toggleOutro('lote-batelada','lote-batelada-outro-wrap')">
+                <option value="B1">B1</option><option value="B2">B2</option><option value="Outro">Outro</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row form-r2 hidden" id="lote-batelada-outro-wrap">
+            <div><label class="form-label">Qual "outro" (batelada)?</label><input class="form-input" id="lote-batelada-outro"></div>
+          </div>
+          <div class="form-row form-r2">
+            <div><label class="form-label">Medida</label>
+              <select class="form-input" id="lote-medida" onchange="Lab.toggleOutro('lote-medida','lote-medida-outro-wrap')">
+                <option value="Meia - 100L">Meia - 100L</option>
+                <option value="Inteira - 200L">Inteira - 200L</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div class="hidden" id="lote-medida-outro-wrap"><label class="form-label">Qual "outro" (medida)?</label><input class="form-input" id="lote-medida-outro"></div>
+          </div>
+          <div class="form-row form-r2">
+            <div><label class="form-label">pH</label><input class="form-input" type="number" step="0.01" id="lote-ph"></div>
+            <div><label class="form-label">Densidade</label><input class="form-input" type="number" step="0.0001" id="lote-densidade"></div>
+          </div>
+          <div class="form-row form-r3">
+            <div><label class="form-label">Água — PPM</label><input class="form-input" type="number" step="0.01" id="lote-agua-ppm"></div>
+            <div><label class="form-label">Água — Condutividade</label><input class="form-input" type="number" step="0.01" id="lote-agua-cond"></div>
+            <div><label class="form-label">Água — Temperatura</label><input class="form-input" type="number" step="0.01" id="lote-agua-temp"></div>
+          </div>
+          <div class="form-row form-r3">
+            <div><label class="form-label">Produto — PPM</label><input class="form-input" type="number" step="0.01" id="lote-produto-ppm"></div>
+            <div><label class="form-label">Produto — Condutividade</label><input class="form-input" type="number" step="0.01" id="lote-produto-cond"></div>
+            <div><label class="form-label">Produto — Temperatura</label><input class="form-input" type="number" step="0.01" id="lote-produto-temp"></div>
+          </div>
+          <div class="form-row form-r2">
+            <div><label class="form-label">Envasado por</label>
+              <select class="form-input" id="lote-envasado-por" onchange="Lab.toggleOutro('lote-envasado-por','lote-envasado-outro-wrap')">
+                <option value="Bianca Sost Lara">Bianca Sost Lara</option>
+                <option value="Luísa Silva de Oliveira">Luísa Silva de Oliveira</option>
+                <option value="Guilherme Silva de Oliveira">Guilherme Silva de Oliveira</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div class="hidden" id="lote-envasado-outro-wrap"><label class="form-label">Quem (outro)?</label><input class="form-input" id="lote-envasado-outro"></div>
+          </div>
+          <div class="form-row">
+            <div><label class="form-label">Observação</label><input class="form-input" id="lote-observacao" placeholder="opcional"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="h-actions" style="margin-bottom:12px;"><strong style="font-size:14px;">Produtos envasados</strong></div>
+          <div id="lote-itens-list"></div>
+          <button class="btn btn-soft" onclick="Lab.addLoteItemRow()">+ Adicionar produto</button>
+
+          <div class="preview-box" id="lote-preview"></div>
+        </div>
+
+        <div class="form-actions">
+          <span id="lote-status-note" class="form-help"></span>
+          <button class="btn btn-danger" id="btn-excluir-lote" onclick="Lab.excluirLoteFromForm()" style="display:none;">Excluir lote</button>
+          <button class="btn btn-soft" onclick="Lab.exportLotePdf()">Salvar em PDF</button>
+          <button class="btn" onclick="Lab.salvarLoteRascunho()">Salvar rascunho</button>
+          <button class="btn btn-primary" id="btn-finalizar-lote" onclick="Lab.finalizarLoteAtual()">Finalizar lote</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: INDICADORES ===== -->
+    <div id="view-indicadores" class="hidden">
+      <div class="header">
+        <div>
+          <div class="h-title">Indicadores</div>
+          <div class="h-sub">Leituras sobre os lotes registrados — produção, qualidade e tendências</div>
+        </div>
+      </div>
+      <div id="indicadoresContent"><div class="card table-empty">Carregando indicadores…</div></div>
+    </div>
+
+<div class="modal-bg" id="modal-insumo">
+  <div class="modal">
+    <div class="modal-title" id="modal-insumo-title">Novo insumo</div>
+    <input type="hidden" id="insumo-id">
+    <div class="form-row form-r2">
+      <div><label class="form-label">Título</label><input class="form-input" id="insumo-titulo" placeholder="ex: Rótulo - Palco Tropical 5L"></div>
+      <div><label class="form-label">Tipo</label>
+        <select class="form-input" id="insumo-tipo">
+          <option value="garrafa">Garrafa</option><option value="tampa">Tampa</option><option value="rotulo">Rótulo</option>
+          <option value="essencia">Essência</option><option value="produto">Produto</option>
+          <option value="materia_prima">Matéria-prima</option><option value="caixa">Caixa de papelão</option>
+          <option value="deionizador">Deionizador</option><option value="outro">Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row form-r2">
+      <div><label class="form-label">Código de barras</label><input class="form-input" id="insumo-codigo"></div>
+      <div><label class="form-label">Custo (R$)</label><input class="form-input" type="number" step="0.0001" id="insumo-custo" value="0"></div>
+    </div>
+    <div class="form-row form-r2">
+      <div><label class="form-label">Categoria</label><input class="form-input" id="insumo-categoria" list="categoria-list" placeholder="ex: RÓTULO, ou digite uma categoria nova"></div>
+      <div><label class="form-label">Fornecedor</label><input class="form-input" id="insumo-fornecedor"></div>
+    </div>
+    <datalist id="categoria-list"></datalist>
+    <div class="form-row form-r2">
+      <div><label class="form-label">Estoque mínimo</label><input class="form-input" type="number" step="0.001" id="insumo-minimo" value="0"></div>
+      <div><label class="form-label">Unidade</label><input class="form-input" id="insumo-unidade" value="un"></div>
+    </div>
+    <div class="form-row">
+      <div><label class="form-label">Observação</label><input class="form-input" id="insumo-observacao" placeholder="opcional — ex: 4 caixas, 1 fechado / 1 aberto..."></div>
+    </div>
+    <div class="form-help" id="insumo-estoque-note"></div>
+    <div class="form-actions">
+      <button class="btn" onclick="Lab.closeModal('modal-insumo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Lab.salvarInsumo()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: AJUSTE RÁPIDO ===== -->
+<div class="modal-bg" id="modal-ajuste">
+  <div class="modal">
+    <div class="modal-title" id="modal-ajuste-title">Movimentar estoque</div>
+    <input type="hidden" id="ajuste-insumo-id">
+    <input type="hidden" id="ajuste-tipo">
+    <div class="form-row">
+      <div><label class="form-label" id="ajuste-label">Quantidade</label><input class="form-input" type="number" step="0.001" id="ajuste-quantidade" value="0"></div>
+    </div>
+    <div class="form-row">
+      <div><label class="form-label">Origem / motivo</label><input class="form-input" id="ajuste-origem" placeholder="ex: Compra, contagem, correção..."></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="Lab.closeModal('modal-ajuste')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Lab.confirmarAjuste()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: HISTÓRICO ===== -->
+<div class="modal-bg" id="modal-historico">
+  <div class="modal modal-wide">
+    <div class="modal-title" id="modal-historico-title">Histórico de movimentações</div>
+    <div class="table-card" style="border:1px solid var(--border);">
+      <table class="stack-table">
+        <thead><tr><th>Data</th><th>Tipo</th><th class="num">Qtd</th><th class="num">Antes</th><th class="num">Depois</th><th>Origem</th></tr></thead>
+        <tbody id="historicoTable"></tbody>
+      </table>
+    </div>
+    <div class="form-actions"><button class="btn" onclick="Lab.closeModal('modal-historico')">Fechar</button></div>
+  </div>
+</div>
+
+<!-- ===== MODAL: IMPORTAR INSUMOS ===== -->
+<div class="modal-bg" id="modal-import">
+  <div class="modal modal-wide">
+    <div class="modal-title">Importar insumos em lote</div>
+    <p class="form-help">Cole uma linha por insumo, campos separados por ponto e vírgula (;):<br>
+      <strong>Título; Código de barras; Custo; Categoria; Fornecedor; Estoque; Estoque mínimo; Tipo (garrafa/tampa/rotulo/essencia/produto/materia_prima/caixa/deionizador/outro)</strong></p>
+    <textarea class="form-input" id="import-textarea" rows="8" style="margin-top:10px;font-family:monospace;" placeholder="Rótulo - Clean;7892253000592;0,80;RÓTULO;Centeno;135;50;rotulo"></textarea>
+    <div class="form-actions" style="justify-content:flex-start;">
+      <button class="btn btn-soft" onclick="Lab.previewImportInsumos()">Pré-visualizar</button>
+    </div>
+    <div id="import-preview"></div>
+    <div class="form-actions">
+      <button class="btn" onclick="Lab.closeModal('modal-import')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-confirmar-import" onclick="Lab.confirmarImportInsumos()" disabled>Confirmar importação</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: FORMATO DE EXPORTAÇÃO ===== -->
+<div class="modal-bg" id="modal-export-formato">
+  <div class="modal">
+    <div class="modal-title">Exportar estoque</div>
+    <p class="form-help" style="margin-bottom:14px;">Escolha o formato do relatório.</p>
+    <button type="button" class="btn export-choice" onclick="Lab.confirmarExportFormato('simples')">
+      <span class="export-choice-title">Simples</span>
+      <span class="export-choice-sub">Só Título, Estoque e Caixas possíveis</span>
+    </button>
+    <button type="button" class="btn btn-primary export-choice" onclick="Lab.confirmarExportFormato('completo')">
+      <span class="export-choice-title">Completo</span>
+      <span class="export-choice-sub">Todos os campos, como é hoje</span>
+    </button>
+    <div class="form-actions">
+      <button class="btn" onclick="Lab.closeModal('modal-export-formato')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: PRODUTO / RECEITA ===== -->
+<div class="modal-bg" id="modal-lab-produto">
+  <div class="modal">
+    <div class="modal-title" id="modal-lab-produto-title">Novo produto envasado</div>
+    <input type="hidden" id="produto-id">
+    <div class="form-row"><div><label class="form-label">Nome</label><input class="form-input" id="produto-nome" placeholder="ex: Palco - 5 litros - Tropical"></div></div>
+    <div class="form-row form-r3">
+      <div><label class="form-label">Linha</label><input class="form-input" id="produto-linha"></div>
+      <div><label class="form-label">Tamanho</label><input class="form-input" id="produto-tamanho"></div>
+      <div><label class="form-label">Aroma</label><input class="form-input" id="produto-aroma"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="Lab.closeModal('modal-lab-produto')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Lab.salvarProduto()">Salvar</button>
+    </div>
+  </div>
+</div>
     </div>
 
     <!-- ============ CONFIGURACOES ============ -->
@@ -13150,7 +13662,7 @@ th,
       </div>
       <div>
         <label class="form-label">Lojista / Revendedor</label>
-        <input type="text" class="form-input" id="ml-cliente" placeholder="Nome do lojista">
+        <input type="text" class="form-input" id="ml-cliente" placeholder="Nome do lojista" list="lojistas-datalist">
       </div>
     </div>
     <div class="sale-item-builder">
@@ -13248,6 +13760,80 @@ th,
     <div class="form-actions">
       <button class="btn" onclick="document.getElementById('modal-lojista').classList.remove('show')">Cancelar</button>
       <button class="btn btn-primary" id="ml-save-btn" onclick="salvarVendaLojista()">Salvar venda</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL CADASTRO LOJISTA ============ -->
+<div class="modal-bg" id="modal-lojista-cadastro">
+  <div class="modal modal-wide">
+    <div class="modal-title" id="modal-lojista-cadastro-title">Novo Lojista</div>
+    <input type="hidden" id="mlj-original-nome">
+    <div class="form-row form-r2">
+      <div>
+        <label class="form-label">Nome</label>
+        <input type="text" class="form-input" id="mlj-nome" placeholder="Nome do lojista/revendedor">
+      </div>
+      <div>
+        <label class="form-label">Telefone/Celular</label>
+        <input type="text" class="form-input" id="mlj-tel" placeholder="(51) 99999-9999">
+      </div>
+    </div>
+    <div class="form-row form-r2">
+      <div>
+        <label class="form-label">CPF</label>
+        <input type="text" class="form-input" id="mlj-cpf" placeholder="000.000.000-00">
+      </div>
+      <div>
+        <label class="form-label">CNPJ</label>
+        <input type="text" class="form-input" id="mlj-cnpj" placeholder="00.000.000/0000-00">
+      </div>
+    </div>
+    <div class="form-row form-r2">
+      <div>
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="mlj-email" placeholder="email@exemplo.com">
+      </div>
+      <div>
+        <label class="form-label">CEP</label>
+        <input type="text" class="form-input" id="mlj-cep" placeholder="00000-000">
+      </div>
+    </div>
+    <div class="form-row form-r3">
+      <div>
+        <label class="form-label">Rua</label>
+        <input type="text" class="form-input" id="mlj-rua" placeholder="Rua / Avenida">
+      </div>
+      <div>
+        <label class="form-label">Número</label>
+        <input type="text" class="form-input" id="mlj-numero" placeholder="Nº">
+      </div>
+      <div>
+        <label class="form-label">Bairro</label>
+        <input type="text" class="form-input" id="mlj-bairro" placeholder="Bairro">
+      </div>
+    </div>
+    <div class="form-row form-r4">
+      <div>
+        <label class="form-label">Cidade</label>
+        <input type="text" class="form-input" id="mlj-cidade" placeholder="Cidade">
+      </div>
+      <div>
+        <label class="form-label">Estado</label>
+        <input type="text" class="form-input" id="mlj-estado" placeholder="UF">
+      </div>
+      <div>
+        <label class="form-label">Dia nascimento</label>
+        <input type="number" class="form-input" id="mlj-nasc-dia" min="1" max="31" placeholder="Dia">
+      </div>
+      <div>
+        <label class="form-label">Mês nascimento</label>
+        <input type="number" class="form-input" id="mlj-nasc-mes" min="1" max="12" placeholder="Mês">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="document.getElementById('modal-lojista-cadastro').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-green" id="mlj-save-btn" onclick="salvarLojistaCadastro()">Salvar</button>
     </div>
   </div>
 </div>
@@ -13777,6 +14363,37 @@ function rowToCliente(r) {
   return { id: r.id, nome: r.nome, telefone: r.telefone || '', email: r.email || '', inativoManual: Boolean(meta.inativoManual), metadata: meta };
 }
 
+function lojistaToRow(l) {
+  return {
+    id: l.id,
+    nome: l.nome || '',
+    telefone: l.telefone || null,
+    email: l.email || null,
+    metadata: {
+      cpf: l.cpf || '',
+      cnpj: l.cnpj || '',
+      cep: l.cep || '',
+      rua: l.rua || '',
+      numero: l.numero || '',
+      bairro: l.bairro || '',
+      cidade: l.cidade || '',
+      estado: l.estado || '',
+      nascimentoDia: l.nascimentoDia || '',
+      nascimentoMes: l.nascimentoMes || ''
+    }
+  };
+}
+
+function rowToLojista(r) {
+  const meta = r.metadata || {};
+  return {
+    id: r.id, nome: r.nome, telefone: r.telefone || '', email: r.email || '',
+    cpf: meta.cpf || '', cnpj: meta.cnpj || '', cep: meta.cep || '', rua: meta.rua || '',
+    numero: meta.numero || '', bairro: meta.bairro || '', cidade: meta.cidade || '', estado: meta.estado || '',
+    nascimentoDia: meta.nascimentoDia || '', nascimentoMes: meta.nascimentoMes || ''
+  };
+}
+
 function fiscalToRow(f) {
   return {
     id: f.id,
@@ -13991,6 +14608,7 @@ async function syncCollectionToSupabase(key, data) {
   ensureLocalIds();
   if (key === 'vendas') await upsertChunks('crm_vendas', data.map(saleToRow));
   if (key === 'vendasLojista') await upsertChunks('crm_vendas_lojista', data.map(saleToRow));
+  if (key === 'lojistas') await upsertChunks('crm_lojistas', data.map(lojistaToRow));
   if (key === 'clientes') await upsertChunks('crm_clientes', data.map(clienteToRow));
   if (key === 'fiscais') await upsertChunks('crm_fiscais', data.map(fiscalToRow));
   if (key === 'produtos') {
@@ -14002,7 +14620,7 @@ async function syncCollectionToSupabase(key, data) {
 }
 
 function queueRemoteSave(key, data) {
-  if (!['vendas','vendasLojista','clientes','fiscais','produtos'].includes(key)) return;
+  if (!['vendas','vendasLojista','lojistas','clientes','fiscais','produtos'].includes(key)) return;
   if (remoteHydrating) { setTimeout(() => queueRemoteSave(key, data), 450); return; }
   activeSaveKeys.add(key);
   remoteSavePending[key] = data;
@@ -14038,6 +14656,7 @@ async function syncAllToSupabase(showAlert = false) {
     await upsertChunks('crm_fiscais', state.fiscais.map(fiscalToRow));
     await upsertChunks('crm_vendas', state.vendas.map(saleToRow));
     if (isAdminUser()) await upsertChunks('crm_vendas_lojista', state.vendasLojista.map(saleToRow));
+    if (isAdminUser()) await upsertChunks('crm_lojistas', state.lojistas.map(lojistaToRow));
     STORE.saveAll(state);
     setSyncStatus('online', 'Sincronizado');
     updateImportStatus('Dados locais sincronizados com o Supabase.');
@@ -14055,16 +14674,17 @@ async function loadRemoteState() {
   if (!client || !session) return;
   try {
     setSyncStatus('syncing', 'Carregando Supabase...');
-    const [vendasRes, vendasLojistaRes, clientesRes, fiscaisRes, produtosRes, profileRes, aliasesRes] = await Promise.all([
+    const [vendasRes, vendasLojistaRes, lojistasRes, clientesRes, fiscaisRes, produtosRes, profileRes, aliasesRes] = await Promise.all([
       client.from('crm_vendas').select('*').order('data', { ascending: false }),
       isAdminUser() ? client.from('crm_vendas_lojista').select('*').order('data', { ascending: false }) : Promise.resolve({ data: [] }),
+      isAdminUser() ? client.from('crm_lojistas').select('*').order('nome', { ascending: true }) : Promise.resolve({ data: [] }),
       client.from('crm_clientes').select('*').order('nome', { ascending: true }),
       client.from('crm_fiscais').select('*').order('nome', { ascending: true }),
       client.from('crm_produtos').select('*').order('produto', { ascending: true }),
       client.from('crm_profiles').select('*').eq('id', session.user.id).maybeSingle(),
       client.from('crm_client_aliases').select('alias_normalizado,cliente_nome,doc')
     ]);
-    [vendasRes, vendasLojistaRes, clientesRes, fiscaisRes, produtosRes, profileRes, aliasesRes].forEach(res => {
+    [vendasRes, vendasLojistaRes, lojistasRes, clientesRes, fiscaisRes, produtosRes, profileRes, aliasesRes].forEach(res => {
       if (res.error) throw res.error;
     });
 
@@ -14083,6 +14703,7 @@ async function loadRemoteState() {
     }
     if (vendasRes.data.length) state.vendas = vendasRes.data.map(rowToSale);
     if (vendasLojistaRes.data.length) state.vendasLojista = vendasLojistaRes.data.map(rowToSale);
+    if (lojistasRes.data.length) state.lojistas = lojistasRes.data.map(rowToLojista);
     if (clientesRes.data.length) state.clientes = clientesRes.data.map(rowToCliente);
     if (fiscaisRes.data.length) state.fiscais = fiscaisRes.data.map(rowToFiscal);
     if (produtosRes.data.length) state.produtos = produtosRes.data.map(rowToProduto);
@@ -14092,7 +14713,7 @@ async function loadRemoteState() {
     remoteHydrating = false;
     if (catalogChanged) await cleanupCatalogProductsInSupabase();
 
-    if (!vendasRes.data.length && (state.vendas.length || state.vendasLojista.length || state.clientes.length || state.fiscais.length || state.produtos.length)) {
+    if (!vendasRes.data.length && (state.vendas.length || state.vendasLojista.length || state.lojistas.length || state.clientes.length || state.fiscais.length || state.produtos.length)) {
       await syncAllToSupabase(false);
     }
     setSyncStatus('online', 'Online');
@@ -14119,6 +14740,7 @@ function setupRealtime() {
     .channel('gso-crm-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_vendas' }, scheduleRemoteRefresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_vendas_lojista' }, scheduleRemoteRefresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_lojistas' }, scheduleRemoteRefresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_clientes' }, scheduleRemoteRefresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_produtos' }, scheduleRemoteRefresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_fiscais' }, scheduleRemoteRefresh)
@@ -15295,6 +15917,7 @@ const STORE = {
       })),
 	      vendas: JSON.parse(localStorage.getItem('gso_vendas') || '[]'),
 	      vendasLojista: JSON.parse(localStorage.getItem('gso_vendasLojista') || '[]'),
+	      lojistas: JSON.parse(localStorage.getItem('gso_lojistas') || '[]'),
 	      clientes: JSON.parse(localStorage.getItem('gso_clientes') || '[]'),
 	      fiscais: JSON.parse(localStorage.getItem('gso_fiscais') || '[]'),
 	      clienteAliases: JSON.parse(localStorage.getItem('gso_clienteAliases') || '[]'),
@@ -16171,7 +16794,7 @@ function showApp() {
 }
 
 // ============ NAVEGAÇÃO ============
-const VIEWS = ['vendas','lojista','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','calculadora','inteligencia','config','perfil','nova'];
+const VIEWS = ['vendas','lojista','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','calculadora','laboratorio','inteligencia','config','perfil','nova'];
 function applySidebarPreference() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
@@ -16206,7 +16829,7 @@ function navTo(view) {
   updateMobileChrome(view);
 
   if (view === 'vendas') renderVendas();
-  if (view === 'lojista') renderVendasLojista();
+  if (view === 'lojista') { renderVendasLojista(); renderLojistasCadastro(); }
   if (view === 'boletos') renderBoletos();
   if (view === 'notas') renderNotasFiscais();
   if (view === 'clientes') {
@@ -16216,6 +16839,7 @@ function navTo(view) {
   }
   if (view === 'estoque') renderEstoque();
   if (view === 'produtos') renderProdutos();
+  if (view === 'laboratorio' && typeof Lab !== 'undefined') Lab.abrir();
   if (view === 'transmissao') {
     renderTransmissao();
     const activeTransTab = document.querySelector('#view-transmissao .subtab.active')?.dataset.transTab;
@@ -17278,6 +17902,124 @@ async function excluirVendaLojista(id) {
   const session = await getSupabaseSession();
   if (client && session) await client.from('crm_vendas_lojista').delete().eq('id', id);
   renderVendasLojista();
+}
+
+function renderLojistasDatalist() {
+  const dl = document.getElementById('lojistas-datalist');
+  if (!dl) return;
+  dl.innerHTML = state.lojistas.slice().sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'))
+    .map(l => '<option value="' + escapeHtml(l.nome || '') + '">').join('');
+}
+
+function renderLojistasCadastro() {
+  renderLojistasDatalist();
+  const countEl = document.getElementById('lojistas-count');
+  if (countEl) countEl.textContent = state.lojistas.length.toLocaleString('pt-BR');
+  const term = (document.getElementById('searchLojistasCadastro')?.value || '').toLowerCase();
+  let rows = state.lojistas.slice();
+  if (term) {
+    rows = rows.filter(l =>
+      String(l.nome || '').toLowerCase().includes(term) ||
+      String(l.telefone || '').toLowerCase().includes(term) ||
+      String(l.cpf || '').toLowerCase().includes(term) ||
+      String(l.cnpj || '').toLowerCase().includes(term)
+    );
+  }
+  rows.sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+  const tbody = document.getElementById('lojistasCadastroTable');
+  if (!tbody) return;
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Nenhum lojista cadastrado ainda</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(l => '<tr>' +
+    '<td data-label="Nome"><strong>' + escapeHtml(l.nome || '—') + '</strong></td>' +
+    '<td data-label="Telefone">' + escapeHtml(l.telefone || '—') + '</td>' +
+    '<td data-label="CPF/CNPJ">' + escapeHtml([l.cpf, l.cnpj].filter(Boolean).join(' / ') || '—') + '</td>' +
+    '<td data-label="Cidade">' + escapeHtml([l.cidade, l.estado].filter(Boolean).join('/') || '—') + '</td>' +
+    '<td data-label="Ações"><div class="row-actions">' +
+    '<button class="btn btn-small" onclick="openLojistaCadastroModal(' + attrJsString(l.nome || '') + ')">Editar</button>' +
+    '<button class="btn btn-small btn-danger" onclick="excluirLojistaCadastro(' + attrJsString(l.nome || '') + ')">Apagar</button>' +
+    '</div></td></tr>').join('');
+}
+
+function openLojistaCadastroModal(nome = '') {
+  const originalInput = document.getElementById('mlj-original-nome');
+  const title = document.getElementById('modal-lojista-cadastro-title');
+  const saveBtn = document.getElementById('mlj-save-btn');
+  const existing = nome ? state.lojistas.find(l => nameKey(l.nome) === nameKey(nome)) : null;
+
+  if (originalInput) originalInput.value = existing?.nome || '';
+  if (title) title.textContent = existing ? 'Editar lojista' : 'Novo Lojista';
+  if (saveBtn) saveBtn.textContent = existing ? 'Salvar alterações' : 'Salvar';
+
+  document.getElementById('mlj-nome').value = existing?.nome || '';
+  document.getElementById('mlj-tel').value = existing?.telefone || '';
+  document.getElementById('mlj-email').value = existing?.email || '';
+  document.getElementById('mlj-cpf').value = existing?.cpf || '';
+  document.getElementById('mlj-cnpj').value = existing?.cnpj || '';
+  document.getElementById('mlj-cep').value = existing?.cep || '';
+  document.getElementById('mlj-rua').value = existing?.rua || '';
+  document.getElementById('mlj-numero').value = existing?.numero || '';
+  document.getElementById('mlj-bairro').value = existing?.bairro || '';
+  document.getElementById('mlj-cidade').value = existing?.cidade || '';
+  document.getElementById('mlj-estado').value = existing?.estado || '';
+  document.getElementById('mlj-nasc-dia').value = existing?.nascimentoDia || '';
+  document.getElementById('mlj-nasc-mes').value = existing?.nascimentoMes || '';
+  document.getElementById('modal-lojista-cadastro').classList.add('show');
+}
+
+function salvarLojistaCadastro() {
+  const originalNome = document.getElementById('mlj-original-nome')?.value.trim() || '';
+  const nomeInformado = document.getElementById('mlj-nome').value.trim();
+  if (!nomeInformado) { alert('Informe o nome do lojista.'); return; }
+  const duplicate = state.lojistas.find(l => nameKey(l.nome) === nameKey(nomeInformado) && nameKey(l.nome) !== nameKey(originalNome));
+  if (duplicate) { alert('Já existe outro lojista cadastrado com esse nome. Use Editar naquele cadastro, ou escolha um nome diferente.'); return; }
+
+  const payload = {
+    nome: nomeInformado,
+    telefone: document.getElementById('mlj-tel').value.trim(),
+    email: document.getElementById('mlj-email').value.trim(),
+    cpf: document.getElementById('mlj-cpf').value.trim(),
+    cnpj: document.getElementById('mlj-cnpj').value.trim(),
+    cep: document.getElementById('mlj-cep').value.trim(),
+    rua: document.getElementById('mlj-rua').value.trim(),
+    numero: document.getElementById('mlj-numero').value.trim(),
+    bairro: document.getElementById('mlj-bairro').value.trim(),
+    cidade: document.getElementById('mlj-cidade').value.trim(),
+    estado: document.getElementById('mlj-estado').value.trim(),
+    nascimentoDia: document.getElementById('mlj-nasc-dia').value.trim(),
+    nascimentoMes: document.getElementById('mlj-nasc-mes').value.trim()
+  };
+
+  const index = originalNome ? state.lojistas.findIndex(l => nameKey(l.nome) === nameKey(originalNome)) : -1;
+  if (index >= 0) {
+    payload.id = state.lojistas[index].id || safeId('lj', [originalNome, payload.telefone, payload.email]);
+    state.lojistas[index] = { ...state.lojistas[index], ...payload };
+  } else {
+    payload.id = safeId('lj', [payload.nome, payload.telefone, payload.email]);
+    state.lojistas.push(payload);
+  }
+
+  if (originalNome && nameKey(originalNome) !== nameKey(nomeInformado)) {
+    state.vendasLojista.forEach(v => { if (nameKey(v.cliente) === nameKey(originalNome)) v.cliente = nomeInformado; });
+    STORE.save('vendasLojista', state.vendasLojista);
+  }
+
+  STORE.save('lojistas', state.lojistas);
+  document.getElementById('modal-lojista-cadastro').classList.remove('show');
+  renderLojistasCadastro();
+}
+
+async function excluirLojistaCadastro(nome) {
+  if (!confirm(`Apagar o cadastro de "${nome}"? As vendas já lançadas pra esse lojista não são apagadas.`)) return;
+  const removido = state.lojistas.find(l => nameKey(l.nome) === nameKey(nome));
+  state.lojistas = state.lojistas.filter(l => nameKey(l.nome) !== nameKey(nome));
+  STORE.save('lojistas', state.lojistas);
+  const client = getSupabaseClient();
+  const session = await getSupabaseSession();
+  if (client && session && removido?.id) await client.from('crm_lojistas').delete().eq('id', removido.id);
+  renderLojistasCadastro();
 }
 
 function updateSidebarForRole() {
@@ -25578,6 +26320,1342 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _params: params, refresh: function () { renderPedido(); renderFormulacao(); renderEstrategia(); renderML(); } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 0);
+})();
+
+</script>
+<script id="gso-lab-js">
+/* ================== GSO LABORATÓRIO — Estoque de Insumos / Receitas / Lotes / Indicadores ==================
+   Portado do app standalone "GSO Insumos & Lotes" (mesmo projeto Supabase, tabelas gso_*,
+   RPCs gso_ajustar_insumo/gso_finalizar_lote/gso_reabrir_lote/gso_excluir_lote já existentes).
+   Reaproveita a sessão/login do CRM — getSupabaseClient() e isAdminUser() vêm do escopo global. */
+(function () {
+  'use strict';
+
+let state = {
+  session: null,
+  isAdmin: false,
+  insumos: [],
+  produtos: [],
+  lotes: [],
+  loteItens: {}, // loteId -> [itens]
+  loteAtual: null, // draft in-memory: { id, ...campos, itens: [{produto_envasado_id, produto_outro_texto, quantidade}] }
+};
+
+
+// ============ HELPERS ============
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function fmtBR(v) {
+  const n = Number(v || 0);
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtNum(v) {
+  const n = Number(v || 0);
+  return n % 1 === 0 ? n.toLocaleString('pt-BR') : n.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y, m, day] = String(d).slice(0, 10).split('-');
+  return `${day}/${m}/${y}`;
+}
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function toggleOutro(selectId, wrapId) {
+  const isOutro = document.getElementById(selectId).value === 'Outro';
+  document.getElementById(wrapId).classList.toggle('hidden', !isOutro);
+}
+
+
+const VIEW_TITLES = { insumos: 'Estoque de Insumos', receitas: 'Receitas / Produtos', lotes: 'Controle de Lote', indicadores: 'Indicadores' };
+function navTo(view) {
+  ['insumos', 'receitas', 'lotes', 'indicadores'].forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== view));
+  document.querySelectorAll('#view-laboratorio .subtab').forEach(el => el.classList.toggle('active', el.dataset.subtab === view));
+  if (view === 'insumos') renderInsumos();
+  if (view === 'receitas') renderReceitas();
+  if (view === 'lotes') { showLotesList(); renderLotesList(); }
+  if (view === 'indicadores') renderIndicadores();
+}
+
+// ============ DATA LOADING ============
+async function loadInsumos() {
+  const client = getSupabaseClient();
+  const { data, error } = await client.from('gso_insumos').select('*').order('titulo', { ascending: true });
+  if (error) { console.error(error); return; }
+  state.insumos = data || [];
+}
+async function loadProdutos() {
+  const client = getSupabaseClient();
+  const { data, error } = await client.from('gso_produtos_envasados').select('*').order('ordem', { ascending: true });
+  if (error) { console.error(error); return; }
+  state.produtos = data || [];
+}
+async function loadLotes() {
+  const client = getSupabaseClient();
+  const { data, error } = await client.from('gso_lotes').select('*').order('criado_em', { ascending: false });
+  if (error) { console.error(error); return; }
+  state.lotes = data || [];
+}
+async function loadItensDoLote(loteId) {
+  const client = getSupabaseClient();
+  const { data, error } = await client.from('gso_lote_itens').select('*').eq('lote_id', loteId);
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+// ============ ESTOQUE DE INSUMOS ============
+function insumoIsLow(item) {
+  return Number(item.estoque) <= Number(item.estoque_minimo);
+}
+function tipoLabel(tipo) {
+  return {
+    garrafa: 'Garrafa', tampa: 'Tampa', rotulo: 'Rótulo', essencia: 'Essência',
+    produto: 'Produto', materia_prima: 'Matéria-prima', caixa: 'Caixa de papelão',
+    deionizador: 'Deionizador', outro: 'Outro'
+  }[tipo] || tipo;
+}
+
+const CATEGORIA_ORDEM = ['PRODUTO', 'RÓTULO', 'ESSÊNCIA', 'GARRAFAS', 'TAMPAS', 'DEIONIZADOR', 'MATÉRIA PRIMA', 'CAIXA DE PAPELÃO'];
+const CATEGORIA_COR = {
+  'PRODUTO': 'DCE6F0', 'RÓTULO': 'FDE9D9', 'ESSÊNCIA': 'E3DFEC', 'GARRAFAS': 'D9D9D9',
+  'TAMPAS': 'D9D9D9', 'DEIONIZADOR': 'DDD9C4', 'MATÉRIA PRIMA': 'EAF0DD', 'CAIXA DE PAPELÃO': 'F2DCDA'
+};
+function categoriaCor(cat) { return '#' + (CATEGORIA_COR[cat] || 'EFEFEF'); }
+
+// Caixa grande: 4 galões de 5L. Caixa pequena: 6 garrafas de 1L.
+function caixaInfo(item) {
+  if (item.tipo !== 'produto') return null;
+  const titulo = item.titulo || '';
+  let porCaixa = null, singular = null, plural = null;
+  if (/\b5\s?l\b/i.test(titulo)) { porCaixa = 4; singular = 'caixa grande'; plural = 'caixas grandes'; }
+  else if (/\b1\s?l\b/i.test(titulo)) { porCaixa = 6; singular = 'caixa pequena'; plural = 'caixas pequenas'; }
+  if (!porCaixa) return null;
+  const estoque = Number(item.estoque || 0);
+  return { caixas: Math.floor(estoque / porCaixa), sobra: estoque % porCaixa, porCaixa, singular, plural };
+}
+
+function caixaLabel(item) {
+  const c = caixaInfo(item);
+  if (!c) return '';
+  const rotulo = c.caixas === 1 ? c.singular : c.plural;
+  return `${c.caixas} ${rotulo}${c.sobra ? ` + ${fmtNum(c.sobra)} avulsa${c.sobra === 1 ? '' : 's'}` : ''}`;
+}
+
+function groupInsumosByCategoria(rows) {
+  const groups = new Map();
+  for (const i of rows) {
+    const key = i.categoria || tipoLabel(i.tipo).toUpperCase();
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(i);
+  }
+  const keys = [...groups.keys()].sort((a, b) => {
+    const ia = CATEGORIA_ORDEM.indexOf(a), ib = CATEGORIA_ORDEM.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+  return keys.map(cat => ({ cat, items: groups.get(cat).sort((a, b) => a.titulo.localeCompare(b.titulo)) }));
+}
+
+const INSUMOS_PAGE_SIZE = 10;
+let insumosPaginaPorCategoria = {};
+
+function insumoGroupsHtml(rows) {
+  return groupInsumosByCategoria(rows).map(({ cat, items }) => {
+    const totalPaginas = Math.max(1, Math.ceil(items.length / INSUMOS_PAGE_SIZE));
+    let pagina = insumosPaginaPorCategoria[cat] || 1;
+    if (pagina > totalPaginas) pagina = totalPaginas;
+    const inicio = (pagina - 1) * INSUMOS_PAGE_SIZE;
+    const pageItems = items.slice(inicio, inicio + INSUMOS_PAGE_SIZE);
+    return `
+      <div class="card table-card">
+        <div class="category-header"><span class="dot"></span><span class="name">${escapeHtml(cat)}</span><span class="count">${items.length}</span></div>
+        <table class="stack-table">
+          <thead><tr>
+            <th>Título</th><th>Tipo</th><th>Obs</th><th>Fornecedor</th>
+            <th class="num">Custo</th><th class="num">Estoque</th><th>Baixo estoque</th><th>Ações</th>
+          </tr></thead>
+          <tbody>${pageItems.map(insumoRowHtml).join('')}</tbody>
+        </table>
+        ${totalPaginas > 1 ? paginacaoInsumosHtml(cat, pagina, totalPaginas) : ''}
+      </div>`;
+  }).join('');
+}
+
+function paginacaoInsumosHtml(cat, pagina, total) {
+  const catAttr = escapeHtml(cat).replace(/'/g, "\\'");
+  return `
+    <div class="pagination">
+      <button class="btn btn-small" ${pagina <= 1 ? 'disabled' : ''} onclick="Lab.mudarPaginaCategoria('${catAttr}', ${pagina - 1})">‹ Anterior</button>
+      <span class="pagination-info">Página ${pagina} de ${total}</span>
+      <button class="btn btn-small" ${pagina >= total ? 'disabled' : ''} onclick="Lab.mudarPaginaCategoria('${catAttr}', ${pagina + 1})">Próxima ›</button>
+    </div>`;
+}
+
+function mudarPaginaCategoria(cat, pagina) {
+  insumosPaginaPorCategoria[cat] = pagina;
+  renderInsumos();
+}
+
+function insumoRowHtml(i) {
+  return `
+    <tr>
+      <td class="stack-title">${escapeHtml(i.titulo)}</td>
+      <td data-label="Tipo">${tipoLabel(i.tipo)}</td>
+      <td data-label="Obs">${escapeHtml(i.observacao || '—')}</td>
+      <td data-label="Fornecedor">${escapeHtml(i.fornecedor || '—')}</td>
+      <td class="num" data-label="Custo">R$ ${fmtBR(i.custo)}</td>
+      <td class="num" data-label="Estoque">${fmtNum(i.estoque)} ${escapeHtml(i.unidade || 'un')}${caixaInfo(i) ? `<div class="form-help" style="margin-top:2px;">${escapeHtml(caixaLabel(i))}</div>` : ''}</td>
+      <td data-label="Baixo estoque">${insumoIsLow(i) ? '<span class="pill pill-red">Sim</span>' : '<span class="pill pill-blue">Não</span>'}</td>
+      <td class="stack-actions">
+        <div class="row-actions">
+          <button class="icon-btn icon-btn-in" title="Entrada" onclick="Lab.openAjusteModal('${i.id}','entrada')">↑</button>
+          <button class="icon-btn icon-btn-out" title="Saída" onclick="Lab.openAjusteModal('${i.id}','saida')">↓</button>
+          <button class="btn btn-small" onclick="Lab.openInsumoHistorico('${i.id}')">Histórico</button>
+          <button class="btn btn-small" onclick="Lab.openInsumoModal('${i.id}')">Editar</button>
+          <button class="btn btn-small btn-danger" onclick="Lab.removerInsumo('${i.id}')">Remover</button>
+        </div>
+      </td>
+    </tr>`;
+}
+
+function renderInsumosStats() {
+  const container = document.getElementById('insumosStats');
+  if (!container) return;
+  const rows = state.insumos.filter(i => i.ativo !== false);
+  const baixoCount = rows.filter(insumoIsLow).length;
+  const valorTotal = rows.reduce((s, i) => s + Number(i.custo || 0) * Number(i.estoque || 0), 0);
+  container.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Itens cadastrados</div>
+      <div class="stat-value">${rows.length}</div>
+    </div>
+    <div class="stat-card${baixoCount ? ' stat-warn' : ''}">
+      <div class="stat-label">Baixo estoque</div>
+      <div class="stat-value">${baixoCount}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Valor total em estoque</div>
+      <div class="stat-value">R$ ${fmtBR(valorTotal)}</div>
+    </div>`;
+}
+
+function onInsumoFiltroChange() {
+  insumosPaginaPorCategoria = {};
+  renderInsumos();
+}
+
+function renderInsumos() {
+  renderInsumosStats();
+  const busca = (document.getElementById('insumo-busca')?.value || '').toLowerCase();
+  const filtroTipo = document.getElementById('insumo-filtro-tipo')?.value || '';
+  const filtroBaixo = document.getElementById('insumo-filtro-baixo')?.value || '';
+  let rows = state.insumos.filter(i => i.ativo !== false);
+  if (busca) rows = rows.filter(i => [i.titulo, i.codigo_barras, i.fornecedor, i.observacao].some(v => String(v || '').toLowerCase().includes(busca)));
+  if (filtroTipo) rows = rows.filter(i => i.tipo === filtroTipo);
+  if (filtroBaixo === 'sim') rows = rows.filter(insumoIsLow);
+
+  const container = document.getElementById('insumosGroups');
+  if (!rows.length) {
+    container.innerHTML = `<div class="card table-empty">Nenhum insumo cadastrado ainda. Use "+ Adicionar insumo" ou "+ Importar em lote".</div>`;
+    return;
+  }
+  container.innerHTML = insumoGroupsHtml(rows);
+}
+
+let pendingExportTipo = null;
+function abrirEscolhaExport(tipo) {
+  const rows = state.insumos.filter(i => i.ativo !== false);
+  if (!rows.length) { alert('Não há insumos para exportar.'); return; }
+  pendingExportTipo = tipo;
+  openModal('modal-export-formato');
+}
+function confirmarExportFormato(modo) {
+  closeModal('modal-export-formato');
+  if (pendingExportTipo === 'excel') exportInsumosExcel(modo);
+  else if (pendingExportTipo === 'pdf') exportInsumosPdf(modo);
+  pendingExportTipo = null;
+}
+
+function exportInsumosExcel(modo = 'completo') {
+  const rows = state.insumos.filter(i => i.ativo !== false);
+  if (!rows.length) { alert('Não há insumos para exportar.'); return; }
+  if (modo === 'simples') { exportInsumosExcelSimples(rows); return; }
+
+  const sheetRows = [];
+  groupInsumosByCategoria(rows).forEach(({ cat, items }) => {
+    items.forEach(i => sheetRows.push({
+      Categoria: cat,
+      Título: i.titulo,
+      Tipo: tipoLabel(i.tipo),
+      Obs: i.observacao || '',
+      'Código de barras': i.codigo_barras || '',
+      Fornecedor: i.fornecedor || '',
+      'Custo (R$)': Number(i.custo || 0),
+      Estoque: Number(i.estoque || 0),
+      'Estoque mínimo': Number(i.estoque_minimo || 0),
+      Unidade: i.unidade || 'un',
+      'Baixo estoque': insumoIsLow(i) ? 'Sim' : 'Não',
+      'Caixas possíveis': caixaLabel(i)
+    }));
+  });
+  const ws = XLSX.utils.json_to_sheet(sheetRows);
+  ws['!cols'] = [{ wch: 16 }, { wch: 34 }, { wch: 14 }, { wch: 28 }, { wch: 16 }, { wch: 18 }, { wch: 11 }, { wch: 10 }, { wch: 14 }, { wch: 9 }, { wch: 13 }, { wch: 22 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Estoque');
+  XLSX.writeFile(wb, `estoque-gso-completo-${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+// Excel "Simples" precisa de cor de fundo por categoria — a lib xlsx (community/free)
+// não escreve estilos de célula em .xlsx, então geramos uma tabela HTML e salvamos
+// como .xls (o Excel abre HTML normalmente e preserva as cores exatamente).
+function exportInsumosExcelSimples(rows) {
+  let bodyRows = '';
+  groupInsumosByCategoria(rows).forEach(({ cat, items }) => {
+    const cor = categoriaCor(cat);
+    items.forEach(i => {
+      bodyRows += `<tr style="background:${cor};">
+        <td>${escapeHtml(cat)}</td>
+        <td>${escapeHtml(i.titulo)}</td>
+        <td align="center">${fmtNum(i.estoque)}</td>
+        <td>${escapeHtml(caixaLabel(i))}</td>
+      </tr>`;
+    });
+    bodyRows += `<tr><td colspan="4" style="height:12px;border:none;line-height:12px;">&nbsp;</td></tr>`;
+  });
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Estoque</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>
+<body>
+<table border="0" cellspacing="0" cellpadding="6" style="font-family:Calibri,Arial,sans-serif;font-size:12px;border-collapse:collapse;">
+  <thead>
+    <tr style="background:#404040;color:#FFFFFF;font-weight:bold;">
+      <th align="left">Categoria</th><th align="left">Título</th><th align="center">Estoque</th><th align="left">Caixas possíveis</th>
+    </tr>
+  </thead>
+  <tbody>${bodyRows}</tbody>
+</table>
+</body></html>`;
+
+  const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `estoque-gso-simples-${new Date().toISOString().slice(0, 10)}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function simplesTableRowsHtml(grouped) {
+  let rows = '';
+  grouped.forEach(({ cat, items }) => {
+    const cor = categoriaCor(cat);
+    items.forEach(i => {
+      rows += `<tr style="background:${cor};">
+        <td>${escapeHtml(cat)}</td>
+        <td>${escapeHtml(i.titulo)}</td>
+        <td class="num">${fmtNum(i.estoque)}</td>
+        <td>${escapeHtml(caixaLabel(i))}</td>
+      </tr>`;
+    });
+    rows += `<tr class="gap"><td colspan="4"></td></tr>`;
+  });
+  return rows;
+}
+
+function exportInsumosPdf(modo = 'completo') {
+  const rows = state.insumos.filter(i => i.ativo !== false);
+  if (!rows.length) { alert('Não há insumos para exportar.'); return; }
+  const grouped = groupInsumosByCategoria(rows);
+  const dataStr = new Date().toLocaleString('pt-BR');
+
+  const bodyHtml = modo === 'simples' ? `
+    <table class="simples-table">
+      <thead><tr><th>Categoria</th><th>Título</th><th class="num">Estoque</th><th>Caixas possíveis</th></tr></thead>
+      <tbody>${simplesTableRowsHtml(grouped)}</tbody>
+    </table>` : grouped.map(({ cat, items }) => `
+    <h2>${escapeHtml(cat)} (${items.length})</h2>
+    <table>
+      <thead><tr><th>Título</th><th>Tipo</th><th>Obs</th><th>Fornecedor</th><th class="num">Custo</th><th class="num">Estoque</th><th>Caixas possíveis</th></tr></thead>
+      <tbody>${items.map(i => `
+        <tr>
+          <td>${escapeHtml(i.titulo)}</td>
+          <td>${tipoLabel(i.tipo)}</td>
+          <td>${escapeHtml(i.observacao || '—')}</td>
+          <td>${escapeHtml(i.fornecedor || '—')}</td>
+          <td class="num">R$ ${fmtBR(i.custo)}</td>
+          <td class="num">${fmtNum(i.estoque)} ${escapeHtml(i.unidade || 'un')}</td>
+          <td>${escapeHtml(caixaLabel(i) || '—')}</td>
+        </tr>`).join('')}</tbody>
+    </table>`).join('');
+
+  const html = `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<base href="${escapeHtml(new URL('.', window.location.href).href)}">
+<title>Estoque de Insumos — GSO Effects Line</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #171717; padding: 32px 36px; }
+  .head { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #171717; padding-bottom: 14px; margin-bottom: 18px; }
+  .head img { height: 42px; }
+  .head h1 { font-size: 17px; font-weight: 700; }
+  .head p { font-size: 11.5px; color: #6F6F6F; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: #6F6F6F; margin: 20px 0 6px; break-after: avoid; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 4px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #E1E1E1; vertical-align: middle; }
+  th { font-size: 10px; text-transform: uppercase; letter-spacing: .4px; color: #6F6F6F; background: #F4F4F4; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr { break-inside: avoid; }
+  .foot { margin-top: 24px; padding-top: 10px; border-top: 1px solid #E1E1E1; font-size: 10px; color: #6F6F6F; display: flex; justify-content: space-between; }
+  .simples-table th { background: #404040; color: #FFFFFF; text-transform: none; letter-spacing: 0; font-size: 11.5px; font-weight: 700; }
+  .simples-table td { border-bottom: none; }
+  .simples-table td.num { text-align: center; }
+  .simples-table tr.gap td { padding: 0; height: 12px; background: #FFFFFF !important; border: none; }
+  @media print { body { padding: 12px 16px; } }
+</style>
+</head><body>
+  <div class="head">
+    <img src="assets/gso-logo-light.png" alt="GSO Effects Line">
+    <div>
+      <h1>Estoque de Insumos ${modo === 'simples' ? '(Simples)' : '(Completo)'}</h1>
+      <p>${rows.length} itens · gerado em ${dataStr}</p>
+    </div>
+  </div>
+  ${bodyHtml}
+  <div class="foot">
+    <span>GSO Effects Line</span>
+    <span>insumos-lotes</span>
+  </div>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) { alert('Não consegui abrir a janela de impressão. Verifique se o navegador bloqueou pop-ups.'); return; }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => { win.focus(); win.print(); };
+}
+
+function openInsumoModal(id = '') {
+  const item = id ? state.insumos.find(i => i.id === id) : null;
+  const categorias = [...new Set(state.insumos.map(i => i.categoria).filter(Boolean))].sort();
+  document.getElementById('categoria-list').innerHTML = categorias.map(c => `<option value="${escapeHtml(c)}">`).join('');
+  document.getElementById('modal-insumo-title').textContent = item ? 'Editar insumo' : 'Novo insumo';
+  document.getElementById('insumo-id').value = id || '';
+  document.getElementById('insumo-titulo').value = item?.titulo || '';
+  document.getElementById('insumo-tipo').value = item?.tipo || 'garrafa';
+  document.getElementById('insumo-codigo').value = item?.codigo_barras || '';
+  document.getElementById('insumo-custo').value = item?.custo ?? 0;
+  document.getElementById('insumo-categoria').value = item?.categoria || '';
+  document.getElementById('insumo-fornecedor').value = item?.fornecedor || '';
+  document.getElementById('insumo-minimo').value = item?.estoque_minimo ?? 0;
+  document.getElementById('insumo-unidade').value = item?.unidade || 'un';
+  document.getElementById('insumo-observacao').value = item?.observacao || '';
+  document.getElementById('insumo-estoque-note').textContent = item
+    ? `Estoque atual: ${fmtNum(item.estoque)} ${item.unidade || 'un'}. Para mudar a quantidade, use os botões ↑/↓ na lista.`
+    : 'O estoque inicial começa em 0 — use ↑ (entrada) depois de salvar para registrar a quantidade que você já tem.';
+  openModal('modal-insumo');
+}
+
+async function salvarInsumo() {
+  const id = document.getElementById('insumo-id').value;
+  const titulo = document.getElementById('insumo-titulo').value.trim();
+  if (!titulo) { alert('Preencha o título do insumo.'); return; }
+  const payload = {
+    titulo,
+    tipo: document.getElementById('insumo-tipo').value,
+    codigo_barras: document.getElementById('insumo-codigo').value.trim() || null,
+    custo: Number(document.getElementById('insumo-custo').value || 0),
+    categoria: document.getElementById('insumo-categoria').value.trim() || null,
+    fornecedor: document.getElementById('insumo-fornecedor').value.trim() || null,
+    estoque_minimo: Number(document.getElementById('insumo-minimo').value || 0),
+    unidade: document.getElementById('insumo-unidade').value.trim() || 'un',
+    observacao: document.getElementById('insumo-observacao').value.trim() || null,
+    atualizado_em: new Date().toISOString()
+  };
+
+  const client = getSupabaseClient();
+  const { error } = id
+    ? await client.from('gso_insumos').update(payload).eq('id', id)
+    : await client.from('gso_insumos').insert(payload);
+  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+
+  closeModal('modal-insumo');
+  await loadInsumos();
+  renderInsumos();
+}
+
+async function removerInsumo(id) {
+  if (!confirm('Remover este insumo do cadastro? O histórico de movimentações é mantido.')) return;
+  const client = getSupabaseClient();
+  const { error } = await client.from('gso_insumos').update({ ativo: false }).eq('id', id);
+  if (error) { alert('Erro ao remover: ' + error.message); return; }
+  await loadInsumos();
+  renderInsumos();
+}
+
+function openAjusteModal(insumoId, tipo) {
+  const item = state.insumos.find(i => i.id === insumoId);
+  document.getElementById('ajuste-insumo-id').value = insumoId;
+  document.getElementById('ajuste-tipo').value = tipo;
+  document.getElementById('modal-ajuste-title').textContent = (tipo === 'entrada' ? 'Entrada de estoque — ' : 'Saída de estoque — ') + (item?.titulo || '');
+  document.getElementById('ajuste-label').textContent = 'Quantidade a ' + (tipo === 'entrada' ? 'somar' : 'subtrair');
+  document.getElementById('ajuste-quantidade').value = 0;
+  document.getElementById('ajuste-origem').value = tipo === 'entrada' ? 'Entrada manual' : 'Saída manual';
+  openModal('modal-ajuste');
+}
+
+async function confirmarAjuste() {
+  const insumoId = document.getElementById('ajuste-insumo-id').value;
+  const tipo = document.getElementById('ajuste-tipo').value;
+  const quantidade = Number(document.getElementById('ajuste-quantidade').value || 0);
+  if (quantidade <= 0) { alert('Informe uma quantidade maior que zero.'); return; }
+  const origem = document.getElementById('ajuste-origem').value.trim() || 'Manual';
+  const client = getSupabaseClient();
+  const { error } = await client.rpc('gso_ajustar_insumo', { p_insumo_id: insumoId, p_tipo: tipo, p_quantidade: quantidade, p_origem: origem });
+  if (error) { alert('Erro ao ajustar estoque: ' + error.message); return; }
+  closeModal('modal-ajuste');
+  await loadInsumos();
+  renderInsumos();
+}
+
+async function openInsumoHistorico(insumoId) {
+  const item = state.insumos.find(i => i.id === insumoId);
+  document.getElementById('modal-historico-title').textContent = 'Histórico — ' + (item?.titulo || '');
+  const client = getSupabaseClient();
+  const { data, error } = await client.from('gso_insumo_movimentacoes').select('*').eq('insumo_id', insumoId).order('criado_em', { ascending: false }).limit(200);
+  const tbody = document.getElementById('historicoTable');
+  if (error || !data?.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Nenhuma movimentação registrada ainda.</td></tr>`;
+  } else {
+    const tipoPill = { entrada: 'pill-green', saida: 'pill-red', definir: 'pill-blue', consumo_lote: 'pill-amber', estorno: 'pill-blue' };
+    tbody.innerHTML = data.map(m => `
+      <tr>
+        <td class="stack-title">${new Date(m.criado_em).toLocaleString('pt-BR')}</td>
+        <td data-label="Tipo"><span class="pill ${tipoPill[m.tipo] || 'pill-blue'}">${m.tipo}${m.estornado ? ' (estornado)' : ''}</span></td>
+        <td class="num" data-label="Qtd">${fmtNum(m.quantidade)}</td>
+        <td class="num" data-label="Antes">${fmtNum(m.antes)}</td>
+        <td class="num" data-label="Depois">${fmtNum(m.depois)}</td>
+        <td data-label="Origem">${escapeHtml(m.origem || '—')}</td>
+      </tr>
+    `).join('');
+  }
+  openModal('modal-historico');
+}
+
+// ============ IMPORTAÇÃO EM LOTE ============
+let parsedImportRows = [];
+function openImportInsumosModal() {
+  document.getElementById('import-textarea').value = '';
+  document.getElementById('import-preview').innerHTML = '';
+  document.getElementById('btn-confirmar-import').disabled = true;
+  parsedImportRows = [];
+  openModal('modal-import');
+}
+
+function parseNumBR(v) {
+  if (v === undefined || v === null || v === '') return 0;
+  return Number(String(v).replace(/\./g, '').replace(',', '.')) || 0;
+}
+
+function previewImportInsumos() {
+  const text = document.getElementById('import-textarea').value.trim();
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const tiposValidos = ['garrafa', 'tampa', 'rotulo', 'essencia', 'produto', 'materia_prima', 'caixa', 'deionizador', 'outro'];
+  parsedImportRows = lines.map(line => {
+    const parts = line.split(';').map(p => p.trim());
+    const [titulo, codigo, custo, categoria, fornecedor, estoque, minimo, tipo] = parts;
+    const erros = [];
+    if (!titulo) erros.push('sem título');
+    const tipoNorm = (tipo || 'outro').toLowerCase();
+    if (!tiposValidos.includes(tipoNorm)) erros.push('tipo inválido');
+    return {
+      titulo, codigo_barras: codigo || null,
+      custo: parseNumBR(custo), categoria: categoria || null, fornecedor: fornecedor || null,
+      estoque: parseNumBR(estoque), estoque_minimo: parseNumBR(minimo), tipo: tipoNorm,
+      erros
+    };
+  });
+  const tbody = parsedImportRows.map(r => `
+    <tr style="${r.erros.length ? 'color:var(--red-text);' : ''}">
+      <td class="stack-title">${escapeHtml(r.titulo || '(vazio)')}</td><td data-label="Código">${escapeHtml(r.codigo_barras || '—')}</td>
+      <td class="num" data-label="Custo">R$ ${fmtBR(r.custo)}</td><td data-label="Categoria">${escapeHtml(r.categoria || '—')}</td>
+      <td data-label="Fornecedor">${escapeHtml(r.fornecedor || '—')}</td><td class="num" data-label="Estoque">${fmtNum(r.estoque)}</td>
+      <td data-label="Tipo">${tipoLabel(r.tipo)}</td><td data-label="Status">${r.erros.length ? '<span class="pill pill-red">' + escapeHtml(r.erros.join(', ')) + '</span>' : '<span class="pill pill-green">OK</span>'}</td>
+    </tr>`).join('');
+  document.getElementById('import-preview').innerHTML = parsedImportRows.length
+    ? `<div class="table-card" style="border:1px solid var(--border);margin-top:12px;"><table class="stack-table"><thead><tr><th>Título</th><th>Código</th><th>Custo</th><th>Categoria</th><th>Fornecedor</th><th>Estoque</th><th>Tipo</th><th>Status</th></tr></thead><tbody>${tbody}</tbody></table></div>`
+    : '<p class="form-help">Cole ao menos uma linha e clique em Pré-visualizar.</p>';
+  const validCount = parsedImportRows.filter(r => !r.erros.length).length;
+  document.getElementById('btn-confirmar-import').disabled = validCount === 0;
+}
+
+async function confirmarImportInsumos() {
+  const validRows = parsedImportRows.filter(r => !r.erros.length);
+  if (!validRows.length) return;
+  const client = getSupabaseClient();
+  const chunkSize = 200;
+  for (let i = 0; i < validRows.length; i += chunkSize) {
+    const chunk = validRows.slice(i, i + chunkSize).map(({ erros, estoque, ...rest }) => rest);
+    const { error } = await client.from('gso_insumos').upsert(chunk, { onConflict: 'codigo_barras', ignoreDuplicates: false });
+    if (error) { alert('Erro ao importar: ' + error.message); return; }
+  }
+  // registra a movimentação de entrada inicial para cada linha importada com estoque > 0
+  const { data: fresh } = await client.from('gso_insumos').select('id,titulo,codigo_barras,estoque').in('codigo_barras', validRows.map(r => r.codigo_barras).filter(Boolean));
+  for (const r of validRows) {
+    if (r.estoque <= 0) continue;
+    const match = fresh?.find(f => f.codigo_barras === r.codigo_barras) || (fresh?.find(f => f.titulo === r.titulo));
+    if (!match) continue;
+    await client.rpc('gso_ajustar_insumo', { p_insumo_id: match.id, p_tipo: 'definir', p_quantidade: r.estoque, p_origem: 'Importação em lote' });
+  }
+  closeModal('modal-import');
+  await loadInsumos();
+  renderInsumos();
+  alert(`${validRows.length} insumo(s) importado(s) com sucesso.`);
+}
+
+// ============ RECEITAS / PRODUTOS ============
+function insumoOptionsHtml(tipo, selectedId) {
+  const options = state.insumos.filter(i => i.tipo === tipo && i.ativo !== false);
+  return `<option value="">— nenhum —</option>` + options.map(i =>
+    `<option value="${i.id}" ${i.id === selectedId ? 'selected' : ''}>${escapeHtml(i.titulo)}</option>`
+  ).join('');
+}
+
+function renderReceitas() {
+  const tbody = document.getElementById('receitasTable');
+  if (!state.produtos.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Nenhum produto cadastrado.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.produtos.map(p => `
+    <tr>
+      <td class="stack-title">${escapeHtml(p.nome)}</td>
+      <td class="stack-block" data-label="Garrafa"><select class="input" onchange="Lab.salvarReceita('${p.id}','garrafa_insumo_id',this.value)">${insumoOptionsHtml('garrafa', p.garrafa_insumo_id)}</select></td>
+      <td class="stack-block" data-label="Tampa"><select class="input" onchange="Lab.salvarReceita('${p.id}','tampa_insumo_id',this.value)">${insumoOptionsHtml('tampa', p.tampa_insumo_id)}</select></td>
+      <td class="stack-block" data-label="Rótulo"><select class="input" onchange="Lab.salvarReceita('${p.id}','rotulo_insumo_id',this.value)">${insumoOptionsHtml('rotulo', p.rotulo_insumo_id)}</select></td>
+      <td data-label="Ativo">${p.ativo !== false ? '<span class="pill pill-green">Sim</span>' : '<span class="pill pill-red">Não</span>'}</td>
+      <td class="stack-actions"><button class="btn btn-small" onclick="Lab.toggleProdutoAtivo('${p.id}', ${p.ativo === false})">${p.ativo === false ? 'Reativar' : 'Desativar'}</button></td>
+    </tr>
+  `).join('');
+}
+
+async function salvarReceita(produtoId, campo, insumoId) {
+  const client = getSupabaseClient();
+  const { error } = await client.from('gso_produtos_envasados').update({ [campo]: insumoId || null, atualizado_em: new Date().toISOString() }).eq('id', produtoId);
+  if (error) { alert('Erro ao salvar receita: ' + error.message); return; }
+  await loadProdutos();
+}
+
+async function toggleProdutoAtivo(id, novoAtivo) {
+  const client = getSupabaseClient();
+  await client.from('gso_produtos_envasados').update({ ativo: novoAtivo }).eq('id', id);
+  await loadProdutos();
+  renderReceitas();
+}
+
+function openLabProdutoModal() {
+  document.getElementById('produto-id').value = '';
+  document.getElementById('produto-nome').value = '';
+  document.getElementById('produto-linha').value = '';
+  document.getElementById('produto-tamanho').value = '';
+  document.getElementById('produto-aroma').value = '';
+  openModal('modal-lab-produto');
+}
+
+async function salvarProduto() {
+  const nome = document.getElementById('produto-nome').value.trim();
+  if (!nome) { alert('Preencha o nome do produto.'); return; }
+  const client = getSupabaseClient();
+  const { error } = await client.from('gso_produtos_envasados').insert({
+    nome,
+    linha: document.getElementById('produto-linha').value.trim() || null,
+    tamanho: document.getElementById('produto-tamanho').value.trim() || null,
+    aroma: document.getElementById('produto-aroma').value.trim() || null,
+    ordem: state.produtos.length + 1
+  });
+  if (error) { alert('Erro ao salvar produto: ' + error.message); return; }
+  closeModal('modal-lab-produto');
+  await loadProdutos();
+  renderReceitas();
+}
+
+// ============ CONTROLE DE LOTE ============
+function showLotesList() {
+  document.getElementById('lotes-list-view').classList.remove('hidden');
+  document.getElementById('lote-form-view').classList.add('hidden');
+}
+function showLoteForm() {
+  document.getElementById('lotes-list-view').classList.add('hidden');
+  document.getElementById('lote-form-view').classList.remove('hidden');
+}
+
+function statusPill(status) {
+  return status === 'finalizado' ? '<span class="pill pill-green">Finalizado</span>' : '<span class="pill pill-amber">Rascunho</span>';
+}
+
+function renderLotesList() {
+  const tbody = document.getElementById('lotesTable');
+  if (!state.lotes.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Nenhum lote registrado ainda. Clique em "+ Novo lote".</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.lotes.map(l => `
+    <tr>
+      <td class="stack-title">${escapeHtml(l.numero_lote)}</td>
+      <td data-label="Data">${fmtDate(l.data_envase)}</td>
+      <td data-label="Batelada">${escapeHtml(l.rotulo_batelada === 'Outro' ? (l.rotulo_batelada_outro || 'Outro') : (l.rotulo_batelada || '—'))}</td>
+      <td data-label="Status">${statusPill(l.status)}</td>
+      <td data-label="Envasado por">${escapeHtml(l.envasado_por === 'Outro' ? (l.envasado_por_outro || 'Outro') : (l.envasado_por || '—'))}</td>
+      <td data-label="Itens" id="lote-itens-count-${l.id}">…</td>
+      <td class="stack-actions">
+        <div class="row-actions">
+          <button class="btn btn-small" onclick="Lab.openLoteForm('${l.id}')">${l.status === 'finalizado' ? 'Ver' : 'Editar'}</button>
+          ${l.status === 'finalizado' && isAdminUser() ? `<button class="btn btn-small btn-danger" onclick="Lab.reabrirLoteAtual('${l.id}')">Reabrir</button>` : ''}
+          ${l.status === 'rascunho' || isAdminUser() ? `<button class="btn btn-small btn-danger" onclick="Lab.excluirLoteAtual('${l.id}','${l.status}')">Excluir</button>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+  state.lotes.forEach(async l => {
+    const itens = await loadItensDoLote(l.id);
+    const cell = document.getElementById(`lote-itens-count-${l.id}`);
+    if (cell) cell.textContent = itens.reduce((s, i) => s + Number(i.quantidade), 0) + ' un.';
+  });
+}
+
+function produtoOptionsHtml(selectedId) {
+  return `<option value="">Selecione...</option>` +
+    state.produtos.filter(p => p.ativo !== false).map(p => `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${escapeHtml(p.nome)}</option>`).join('') +
+    `<option value="__outro__">Outro (texto livre)</option>`;
+}
+
+function itemRowHtml(item, idx) {
+  const isOutro = !item.produto_envasado_id;
+  return `
+    <div class="item-row" data-idx="${idx}">
+      <div>
+        <select class="form-input" onchange="Lab.onItemProdutoChange(${idx}, this.value)">
+          ${produtoOptionsHtml(item.produto_envasado_id)}
+        </select>
+        ${isOutro ? `<input class="form-input" style="margin-top:6px;" placeholder="Descreva o produto" value="${escapeHtml(item.produto_outro_texto || '')}" oninput="Lab.state.loteAtual.itens[${idx}].produto_outro_texto=this.value">` : ''}
+      </div>
+      <input class="form-input" type="number" min="1" placeholder="Quantidade" value="${item.quantidade || ''}" oninput="Lab.onItemQtyChange(${idx}, this.value)">
+      <button class="icon-btn" title="Remover" onclick="Lab.removeLoteItemRow(${idx})">×</button>
+    </div>`;
+}
+
+function renderLoteItens() {
+  const list = document.getElementById('lote-itens-list');
+  const readOnly = state.loteAtual?.status === 'finalizado';
+  list.innerHTML = state.loteAtual.itens.map((item, idx) => itemRowHtml(item, idx)).join('') || '<p class="form-help">Nenhum produto adicionado ainda.</p>';
+  if (readOnly) {
+    list.querySelectorAll('input,select,button').forEach(el => el.disabled = true);
+  }
+  renderConsumoPreview();
+}
+
+function addLoteItemRow() {
+  state.loteAtual.itens.push({ produto_envasado_id: '', produto_outro_texto: '', quantidade: '' });
+  renderLoteItens();
+}
+function removeLoteItemRow(idx) {
+  state.loteAtual.itens.splice(idx, 1);
+  renderLoteItens();
+}
+function onItemProdutoChange(idx, value) {
+  if (value === '__outro__') {
+    state.loteAtual.itens[idx].produto_envasado_id = '';
+    state.loteAtual.itens[idx].produto_outro_texto = state.loteAtual.itens[idx].produto_outro_texto || '';
+  } else {
+    state.loteAtual.itens[idx].produto_envasado_id = value || '';
+    state.loteAtual.itens[idx].produto_outro_texto = '';
+  }
+  renderLoteItens();
+}
+function onItemQtyChange(idx, value) {
+  state.loteAtual.itens[idx].quantidade = Number(value || 0);
+  renderConsumoPreview();
+}
+
+function renderConsumoPreview() {
+  const consumo = {}; // insumoId -> qty
+  for (const item of state.loteAtual.itens) {
+    if (!item.produto_envasado_id || !item.quantidade) continue;
+    const produto = state.produtos.find(p => p.id === item.produto_envasado_id);
+    if (!produto) continue;
+    ['garrafa_insumo_id', 'tampa_insumo_id', 'rotulo_insumo_id'].forEach(campo => {
+      const insumoId = produto[campo];
+      if (!insumoId) return;
+      consumo[insumoId] = (consumo[insumoId] || 0) + Number(item.quantidade);
+    });
+  }
+  const box = document.getElementById('lote-preview');
+  const ids = Object.keys(consumo);
+  if (!ids.length) {
+    box.innerHTML = '<p class="form-help">Adicione produtos com quantidade para ver o consumo previsto de insumos.</p>';
+    return;
+  }
+  box.innerHTML = ids.map(insumoId => {
+    const insumo = state.insumos.find(i => i.id === insumoId);
+    if (!insumo) return '';
+    const restante = Number(insumo.estoque) - consumo[insumoId];
+    const negativo = restante < 0;
+    return `<div class="preview-line">
+      <span>${escapeHtml(insumo.titulo)} (${tipoLabel(insumo.tipo)})</span>
+      <strong class="${negativo ? 'preview-warn' : ''}">−${fmtNum(consumo[insumoId])} ${negativo ? `→ estoque ficaria ${fmtNum(restante)}` : `(sobra ${fmtNum(restante)})`}</strong>
+    </div>`;
+  }).join('');
+}
+
+async function openLoteForm(id = '') {
+  if (id) {
+    const lote = state.lotes.find(l => l.id === id);
+    const itens = await loadItensDoLote(id);
+    state.loteAtual = { ...lote, itens: itens.map(i => ({ id: i.id, produto_envasado_id: i.produto_envasado_id || '', produto_outro_texto: i.produto_outro_texto || '', quantidade: i.quantidade })) };
+    document.getElementById('lote-form-title').textContent = 'Lote ' + lote.numero_lote;
+  } else {
+    state.loteAtual = {
+      id: null, numero_lote: '', data_envase: new Date().toISOString().slice(0, 10),
+      rotulo_batelada: 'B1', rotulo_batelada_outro: '', medida: 'Meia - 100L', medida_outro: '',
+      ph: '', densidade: '', agua_ppm: '', agua_condutividade: '', agua_temperatura: '',
+      produto_ppm: '', produto_condutividade: '', produto_temperatura: '',
+      envasado_por: 'Luísa Silva de Oliveira', envasado_por_outro: '', observacao: '',
+      status: 'rascunho', itens: []
+    };
+    document.getElementById('lote-form-title').textContent = 'Novo lote';
+  }
+  fillLoteForm(state.loteAtual);
+  renderLoteItens();
+  const readOnly = state.loteAtual.status === 'finalizado';
+  document.querySelectorAll('#lote-form-view .form-input').forEach(el => el.disabled = readOnly);
+  document.getElementById('btn-finalizar-lote').classList.toggle('hidden', readOnly);
+  document.getElementById('lote-status-note').textContent = readOnly ? 'Lote finalizado — somente leitura.' : '';
+  const podeExcluir = !!state.loteAtual.id && (state.loteAtual.status === 'rascunho' || isAdminUser());
+  document.getElementById('btn-excluir-lote').style.display = podeExcluir ? '' : 'none';
+  showLoteForm();
+}
+
+async function excluirLoteFromForm() {
+  if (!state.loteAtual?.id) return;
+  await excluirLoteAtual(state.loteAtual.id, state.loteAtual.status);
+  if (!state.lotes.find(l => l.id === state.loteAtual.id)) closeLoteForm();
+}
+
+function fillLoteForm(l) {
+  document.getElementById('lote-numero').value = l.numero_lote || '';
+  document.getElementById('lote-data').value = l.data_envase || '';
+  document.getElementById('lote-batelada').value = l.rotulo_batelada || 'B1';
+  document.getElementById('lote-batelada-outro').value = l.rotulo_batelada_outro || '';
+  document.getElementById('lote-batelada-outro-wrap').classList.toggle('hidden', l.rotulo_batelada !== 'Outro');
+  document.getElementById('lote-medida').value = l.medida || 'Meia - 100L';
+  document.getElementById('lote-medida-outro').value = l.medida_outro || '';
+  document.getElementById('lote-medida-outro-wrap').classList.toggle('hidden', l.medida !== 'Outro');
+  document.getElementById('lote-ph').value = l.ph ?? '';
+  document.getElementById('lote-densidade').value = l.densidade ?? '';
+  document.getElementById('lote-agua-ppm').value = l.agua_ppm ?? '';
+  document.getElementById('lote-agua-cond').value = l.agua_condutividade ?? '';
+  document.getElementById('lote-agua-temp').value = l.agua_temperatura ?? '';
+  document.getElementById('lote-produto-ppm').value = l.produto_ppm ?? '';
+  document.getElementById('lote-produto-cond').value = l.produto_condutividade ?? '';
+  document.getElementById('lote-produto-temp').value = l.produto_temperatura ?? '';
+  document.getElementById('lote-envasado-por').value = l.envasado_por || 'Luísa Silva de Oliveira';
+  document.getElementById('lote-envasado-outro').value = l.envasado_por_outro || '';
+  document.getElementById('lote-envasado-outro-wrap').classList.toggle('hidden', l.envasado_por !== 'Outro');
+  document.getElementById('lote-observacao').value = l.observacao || '';
+}
+
+function readLoteFormIntoState() {
+  const l = state.loteAtual;
+  l.numero_lote = document.getElementById('lote-numero').value.trim();
+  l.data_envase = document.getElementById('lote-data').value;
+  l.rotulo_batelada = document.getElementById('lote-batelada').value;
+  l.rotulo_batelada_outro = document.getElementById('lote-batelada-outro').value.trim();
+  l.medida = document.getElementById('lote-medida').value;
+  l.medida_outro = document.getElementById('lote-medida-outro').value.trim();
+  l.ph = document.getElementById('lote-ph').value || null;
+  l.densidade = document.getElementById('lote-densidade').value || null;
+  l.agua_ppm = document.getElementById('lote-agua-ppm').value || null;
+  l.agua_condutividade = document.getElementById('lote-agua-cond').value || null;
+  l.agua_temperatura = document.getElementById('lote-agua-temp').value || null;
+  l.produto_ppm = document.getElementById('lote-produto-ppm').value || null;
+  l.produto_condutividade = document.getElementById('lote-produto-cond').value || null;
+  l.produto_temperatura = document.getElementById('lote-produto-temp').value || null;
+  l.envasado_por = document.getElementById('lote-envasado-por').value;
+  l.envasado_por_outro = document.getElementById('lote-envasado-outro').value.trim();
+  l.observacao = document.getElementById('lote-observacao').value.trim();
+}
+
+function closeLoteForm() {
+  state.loteAtual = null;
+  showLotesList();
+  renderLotesList();
+}
+
+async function persistLoteDraft() {
+  readLoteFormIntoState();
+  const l = state.loteAtual;
+  if (!l.numero_lote) { alert('Informe o número do lote.'); return null; }
+  if (!l.data_envase) { alert('Informe a data do envase.'); return null; }
+  const client = getSupabaseClient();
+  const payload = {
+    numero_lote: l.numero_lote, data_envase: l.data_envase,
+    rotulo_batelada: l.rotulo_batelada, rotulo_batelada_outro: l.rotulo_batelada_outro || null,
+    medida: l.medida, medida_outro: l.medida_outro || null,
+    ph: l.ph, densidade: l.densidade,
+    agua_ppm: l.agua_ppm, agua_condutividade: l.agua_condutividade, agua_temperatura: l.agua_temperatura,
+    produto_ppm: l.produto_ppm, produto_condutividade: l.produto_condutividade, produto_temperatura: l.produto_temperatura,
+    envasado_por: l.envasado_por, envasado_por_outro: l.envasado_por_outro || null,
+    observacao: l.observacao || null, atualizado_em: new Date().toISOString()
+  };
+  let loteId = l.id;
+  if (loteId) {
+    const { error } = await client.from('gso_lotes').update(payload).eq('id', loteId);
+    if (error) { alert('Erro ao salvar lote: ' + error.message); return null; }
+  } else {
+    const { data, error } = await client.from('gso_lotes').insert(payload).select('id').single();
+    if (error) { alert('Erro ao salvar lote: ' + error.message); return null; }
+    loteId = data.id;
+    l.id = loteId;
+  }
+  // sincroniza itens: apaga os que existiam e reinsere (lote é pequeno, sem custo real)
+  await client.from('gso_lote_itens').delete().eq('lote_id', loteId);
+  const itensValidos = l.itens.filter(i => (i.produto_envasado_id || i.produto_outro_texto) && Number(i.quantidade) > 0);
+  if (itensValidos.length) {
+    const { error: itensError } = await client.from('gso_lote_itens').insert(itensValidos.map(i => ({
+      lote_id: loteId,
+      produto_envasado_id: i.produto_envasado_id || null,
+      produto_outro_texto: i.produto_envasado_id ? null : (i.produto_outro_texto || null),
+      quantidade: Number(i.quantidade)
+    })));
+    if (itensError) { alert('Erro ao salvar itens: ' + itensError.message); return null; }
+  }
+  return loteId;
+}
+
+function loteItemLabel(item) {
+  if (item.produto_envasado_id) {
+    const p = state.produtos.find(p => p.id === item.produto_envasado_id);
+    return p ? p.nome : '(produto removido)';
+  }
+  return item.produto_outro_texto || '(sem descrição)';
+}
+
+function loteConsumoRows(l) {
+  const consumo = {};
+  for (const item of l.itens) {
+    if (!item.produto_envasado_id || !item.quantidade) continue;
+    const produto = state.produtos.find(p => p.id === item.produto_envasado_id);
+    if (!produto) continue;
+    [['garrafa_insumo_id', 'Garrafa'], ['tampa_insumo_id', 'Tampa'], ['rotulo_insumo_id', 'Rótulo']].forEach(([campo]) => {
+      const insumoId = produto[campo];
+      if (!insumoId) return;
+      consumo[insumoId] = (consumo[insumoId] || 0) + Number(item.quantidade);
+    });
+  }
+  return Object.entries(consumo).map(([insumoId, qtd]) => {
+    const insumo = state.insumos.find(i => i.id === insumoId);
+    return { titulo: insumo ? insumo.titulo : '(insumo removido)', tipo: insumo ? tipoLabel(insumo.tipo) : '', qtd };
+  });
+}
+
+function exportLotePdf() {
+  readLoteFormIntoState();
+  const l = state.loteAtual;
+  if (!l.numero_lote) { alert('Informe ao menos o número do lote antes de salvar em PDF.'); return; }
+
+  const batelada = l.rotulo_batelada === 'Outro' ? (l.rotulo_batelada_outro || 'Outro') : (l.rotulo_batelada || '—');
+  const medida = l.medida === 'Outro' ? (l.medida_outro || 'Outro') : (l.medida || '—');
+  const envasadoPor = l.envasado_por === 'Outro' ? (l.envasado_por_outro || 'Outro') : (l.envasado_por || '—');
+  const itens = l.itens.filter(i => (i.produto_envasado_id || i.produto_outro_texto) && Number(i.quantidade) > 0);
+  const consumoRows = loteConsumoRows(l);
+
+  const campo = (label, valor) => `<div class="f"><span>${escapeHtml(label)}</span><strong>${valor === null || valor === undefined || valor === '' ? '—' : escapeHtml(String(valor))}</strong></div>`;
+
+  const html = `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<base href="${escapeHtml(new URL('.', window.location.href).href)}">
+<title>Lote ${escapeHtml(l.numero_lote)} — GSO Effects Line</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #171717; padding: 36px 40px; }
+  .head { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #171717; padding-bottom: 14px; margin-bottom: 20px; }
+  .head img { height: 44px; }
+  .head h1 { font-size: 18px; font-weight: 700; }
+  .head p { font-size: 12px; color: #6F6F6F; }
+  .status { margin-left: auto; font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 5px 12px; border-radius: 4px; background: ${l.status === 'finalizado' ? '#DFF6E5' : '#FFF3C4'}; color: ${l.status === 'finalizado' ? '#226B3F' : '#8A5A00'}; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: #6F6F6F; margin: 22px 0 8px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 20px; }
+  .f { font-size: 12.5px; padding: 8px 0; border-bottom: 1px solid #E1E1E1; }
+  .f span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .4px; color: #6F6F6F; margin-bottom: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 4px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #E1E1E1; }
+  th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; color: #6F6F6F; background: #F4F4F4; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .obs { font-size: 12.5px; padding: 10px 0; }
+  .foot { margin-top: 32px; padding-top: 12px; border-top: 1px solid #E1E1E1; font-size: 10.5px; color: #6F6F6F; display: flex; justify-content: space-between; }
+  @media print { body { padding: 14px 18px; } }
+</style>
+</head><body>
+  <div class="head">
+    <img src="assets/gso-logo-light.png" alt="GSO Effects Line">
+    <div>
+      <h1>Controle de lote — Produtos envasados</h1>
+      <p>Lote ${escapeHtml(l.numero_lote)} · Batelada ${escapeHtml(batelada)}</p>
+    </div>
+    <div class="status">${l.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}</div>
+  </div>
+
+  <h2>Dados do envase</h2>
+  <div class="grid">
+    ${campo('Data do envase', fmtDate(l.data_envase))}
+    ${campo('Batelada', batelada)}
+    ${campo('Medida', medida)}
+    ${campo('pH', l.ph)}
+    ${campo('Densidade', l.densidade)}
+    ${campo('Envasado por', envasadoPor)}
+    ${campo('Água — PPM', l.agua_ppm)}
+    ${campo('Água — Condutividade', l.agua_condutividade)}
+    ${campo('Água — Temperatura', l.agua_temperatura)}
+    ${campo('Produto — PPM', l.produto_ppm)}
+    ${campo('Produto — Condutividade', l.produto_condutividade)}
+    ${campo('Produto — Temperatura', l.produto_temperatura)}
+  </div>
+
+  <h2>Produtos envasados</h2>
+  <table>
+    <thead><tr><th>Produto</th><th class="num">Quantidade</th></tr></thead>
+    <tbody>${itens.length ? itens.map(i => `<tr><td>${escapeHtml(loteItemLabel(i))}</td><td class="num">${fmtNum(i.quantidade)}</td></tr>`).join('') : '<tr><td colspan="2">Nenhum produto adicionado.</td></tr>'}</tbody>
+  </table>
+
+  <h2>Consumo de insumos ${l.status === 'finalizado' ? '(abatido do estoque)' : '(previsto — lote ainda em rascunho)'}</h2>
+  <table>
+    <thead><tr><th>Insumo</th><th>Tipo</th><th class="num">Quantidade</th></tr></thead>
+    <tbody>${consumoRows.length ? consumoRows.map(r => `<tr><td>${escapeHtml(r.titulo)}</td><td>${escapeHtml(r.tipo)}</td><td class="num">${fmtNum(r.qtd)}</td></tr>`).join('') : '<tr><td colspan="3">Sem receita cadastrada para os produtos deste lote.</td></tr>'}</tbody>
+  </table>
+
+  ${l.observacao ? `<h2>Observação</h2><div class="obs">${escapeHtml(l.observacao)}</div>` : ''}
+
+  <div class="foot">
+    <span>GSO Effects Line — gerado em ${new Date().toLocaleString('pt-BR')}</span>
+    <span>insumos-lotes</span>
+  </div>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) { alert('Não consegui abrir a janela de impressão. Verifique se o navegador bloqueou pop-ups.'); return; }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => { win.focus(); win.print(); };
+}
+
+async function salvarLoteRascunho() {
+  const loteId = await persistLoteDraft();
+  if (!loteId) return;
+  await loadLotes();
+  alert('Rascunho salvo.');
+}
+
+async function finalizarLoteAtual() {
+  if (!state.loteAtual.itens.some(i => (i.produto_envasado_id || i.produto_outro_texto) && Number(i.quantidade) > 0)) {
+    alert('Adicione ao menos um produto com quantidade antes de finalizar.');
+    return;
+  }
+  if (!confirm('Finalizar este lote vai abater garrafas, tampas e rótulos do estoque conforme a receita de cada produto. Confirmar?')) return;
+  const loteId = await persistLoteDraft();
+  if (!loteId) return;
+  const client = getSupabaseClient();
+  const { error } = await client.rpc('gso_finalizar_lote', { p_lote_id: loteId });
+  if (error) { alert('Erro ao finalizar lote: ' + error.message); return; }
+  await Promise.all([loadLotes(), loadInsumos()]);
+  closeLoteForm();
+  alert('Lote finalizado e estoque atualizado.');
+}
+
+async function reabrirLoteAtual(loteId) {
+  if (!confirm('Reabrir este lote vai devolver ao estoque as garrafas, tampas e rótulos consumidos. Confirmar?')) return;
+  const client = getSupabaseClient();
+  const { error } = await client.rpc('gso_reabrir_lote', { p_lote_id: loteId });
+  if (error) { alert('Erro ao reabrir lote: ' + error.message); return; }
+  await Promise.all([loadLotes(), loadInsumos()]);
+  renderLotesList();
+  alert('Lote reaberto e estoque devolvido.');
+}
+
+async function excluirLoteAtual(loteId, status) {
+  const aviso = status === 'finalizado'
+    ? 'Este lote já foi finalizado — excluir vai devolver ao estoque as garrafas, tampas e rótulos consumidos antes de apagar o registro. Confirmar exclusão?'
+    : 'Excluir este lote (rascunho) apaga o registro definitivamente. Confirmar?';
+  if (!confirm(aviso)) return;
+  const client = getSupabaseClient();
+  const { error } = await client.rpc('gso_excluir_lote', { p_lote_id: loteId });
+  if (error) { alert('Erro ao excluir lote: ' + error.message); return; }
+  await Promise.all([loadLotes(), loadInsumos()]);
+  renderLotesList();
+}
+
+// ============ INDICADORES ============
+const MES_NOMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const MES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+async function loadTodosItens() {
+  const client = getSupabaseClient();
+  const { data, error } = await client.from('gso_lote_itens').select('*');
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+function mesLabel(key) {
+  if (!key) return '—';
+  const [y, m] = key.split('-');
+  return `${MES_NOMES[Number(m) - 1]} de ${y}`;
+}
+
+function computeIndicadoresStats(lotes, itens) {
+  const qtdPorLote = {};
+  itens.forEach(i => { qtdPorLote[i.lote_id] = (qtdPorLote[i.lote_id] || 0) + Number(i.quantidade || 0); });
+  const totalUnidades = Object.values(qtdPorLote).reduce((s, v) => s + v, 0);
+
+  const porProduto = new Map();
+  itens.forEach(i => {
+    const nome = i.produto_envasado_id
+      ? (state.produtos.find(p => p.id === i.produto_envasado_id)?.nome || '(produto removido)')
+      : (i.produto_outro_texto || 'Outro');
+    porProduto.set(nome, (porProduto.get(nome) || 0) + Number(i.quantidade || 0));
+  });
+  const rankingProdutos = [...porProduto.entries()].map(([nome, qtd]) => ({ nome, qtd })).sort((a, b) => b.qtd - a.qtd);
+
+  let maiorLote = null, maiorQtd = -1;
+  Object.entries(qtdPorLote).forEach(([loteId, qtd]) => {
+    if (qtd > maiorQtd) { maiorQtd = qtd; maiorLote = lotes.find(l => l.id === loteId); }
+  });
+
+  const porMes = new Map();
+  lotes.forEach(l => {
+    if (!l.data_envase) return;
+    const key = l.data_envase.slice(0, 7);
+    porMes.set(key, (porMes.get(key) || 0) + 1);
+  });
+  const mesesOrdenados = [...porMes.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  let mesTop = null;
+  porMes.forEach((count, key) => { if (!mesTop || count > mesTop.count) mesTop = { key, count }; });
+
+  const porResponsavel = new Map();
+  lotes.forEach(l => {
+    const nome = l.envasado_por === 'Outro' ? (l.envasado_por_outro || 'Outro') : (l.envasado_por || '—');
+    porResponsavel.set(nome, (porResponsavel.get(nome) || 0) + (qtdPorLote[l.id] || 0));
+  });
+  const rankingResponsaveis = [...porResponsavel.entries()].map(([nome, qtd]) => ({ nome, qtd })).sort((a, b) => b.qtd - a.qtd);
+
+  const phVals = [], densVals = [];
+  let aguaPpmMax = null, produtoPpmMax = null;
+  lotes.forEach(l => {
+    if (l.ph !== null && l.ph !== undefined && l.ph !== '') phVals.push({ v: Number(l.ph), lote: l });
+    if (l.densidade !== null && l.densidade !== undefined && l.densidade !== '') densVals.push({ v: Number(l.densidade), lote: l });
+    if (l.agua_ppm !== null && l.agua_ppm !== undefined && l.agua_ppm !== '') {
+      const v = Number(l.agua_ppm);
+      if (!aguaPpmMax || v > aguaPpmMax.v) aguaPpmMax = { v, lote: l };
+    }
+    if (l.produto_ppm !== null && l.produto_ppm !== undefined && l.produto_ppm !== '') {
+      const v = Number(l.produto_ppm);
+      if (!produtoPpmMax || v > produtoPpmMax.v) produtoPpmMax = { v, lote: l };
+    }
+  });
+  const avg = arr => arr.length ? arr.reduce((s, x) => s + x.v, 0) / arr.length : null;
+  const minOf = arr => arr.length ? arr.reduce((a, b) => a.v <= b.v ? a : b) : null;
+  const maxOf = arr => arr.length ? arr.reduce((a, b) => a.v >= b.v ? a : b) : null;
+
+  return {
+    totalLotes: lotes.length,
+    finalizados: lotes.filter(l => l.status === 'finalizado').length,
+    rascunhos: lotes.filter(l => l.status !== 'finalizado').length,
+    totalUnidades, rankingProdutos, maiorLote, maiorQtd, mesTop, mesesOrdenados, rankingResponsaveis,
+    ph: { min: minOf(phVals), max: maxOf(phVals), avg: avg(phVals), n: phVals.length },
+    densidade: { min: minOf(densVals), max: maxOf(densVals), avg: avg(densVals), n: densVals.length },
+    aguaPpmMax, produtoPpmMax
+  };
+}
+
+function monthsChartSvg(mesesOrdenados) {
+  if (!mesesOrdenados.length) return '<p class="form-help">Sem dados suficientes ainda.</p>';
+  const max = Math.max(...mesesOrdenados.map(([, c]) => c));
+  const w = 760, h = 190, padBottom = 26, padTop = 22;
+  const barGap = 10;
+  const barW = Math.min(46, (w - barGap * (mesesOrdenados.length - 1)) / mesesOrdenados.length);
+  const totalW = mesesOrdenados.length * barW + (mesesOrdenados.length - 1) * barGap;
+  const startX = Math.max(0, (w - totalW) / 2);
+  const bars = mesesOrdenados.map(([key, count], idx) => {
+    const x = startX + idx * (barW + barGap);
+    const barH = max ? Math.round((count / max) * (h - padBottom - padTop)) : 0;
+    const y = h - padBottom - barH;
+    const [yy, mm] = key.split('-');
+    const label = `${MES_ABREV[Number(mm) - 1]}/${yy.slice(2)}`;
+    return `<g>
+      <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(barH, 3)}" rx="4" fill="url(#barGrad)"></rect>
+      <text x="${x + barW / 2}" y="${h - 8}" text-anchor="middle" font-size="10" fill="#64707D">${label}</text>
+      <text x="${x + barW / 2}" y="${y - 7}" text-anchor="middle" font-size="11" font-weight="700" fill="#12151A">${count}</text>
+    </g>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;max-height:220px;display:block;">
+    <defs><linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4A4F55"/><stop offset="100%" stop-color="#23262A"/>
+    </linearGradient></defs>
+    ${bars}
+  </svg>`;
+}
+
+const ICON_TROFEU = '<path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 5H4a3 3 0 0 0 3 4"/><path d="M17 5h3a3 3 0 0 1-3 4"/>';
+const ICON_CAIXA = '<path d="M3 8l9-5 9 5-9 5-9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>';
+const ICON_CALENDARIO = '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/>';
+const ICON_PESSOA = '<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>';
+function iconSvg(paths) {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+}
+
+function indicadoresHtml(s) {
+  if (!s.totalLotes) {
+    return `<div class="card table-empty">Ainda não há lotes registrados. Assim que você criar o primeiro em "Controle de Lote", os indicadores aparecem aqui.</div>`;
+  }
+  const top = s.rankingProdutos[0];
+  const rankingProdutosRows = s.rankingProdutos.slice(0, 5).map((p, idx) => `
+    <tr><td class="stack-title">${idx + 1}º · ${escapeHtml(p.nome)}</td><td class="num" data-label="Unidades envasadas">${fmtNum(p.qtd)}</td></tr>
+  `).join('');
+  const rankingResponsaveisRows = s.rankingResponsaveis.slice(0, 5).map((r, idx) => `
+    <tr><td class="stack-title">${idx + 1}º · ${escapeHtml(r.nome)}</td><td class="num" data-label="Unidades envasadas">${fmtNum(r.qtd)}</td></tr>
+  `).join('');
+
+  return `
+    <div class="stats-bar">
+      <div class="stat-card"><div class="stat-label">Total de lotes</div><div class="stat-value">${s.totalLotes}</div></div>
+      <div class="stat-card"><div class="stat-label">Unidades envasadas</div><div class="stat-value">${fmtNum(s.totalUnidades)}</div></div>
+      <div class="stat-card"><div class="stat-label">Finalizados / rascunho</div><div class="stat-value">${s.finalizados} / ${s.rascunhos}</div></div>
+    </div>
+
+    <div class="indic-section-title">Destaques</div>
+    <div class="indic-grid">
+      <div class="highlight-card">
+        <div class="icon">${iconSvg(ICON_TROFEU)}</div>
+        <div><div class="label">Produto mais produzido</div><div class="value">${top ? escapeHtml(top.nome) : '—'}</div><div class="sub">${top ? fmtNum(top.qtd) + ' unidades no total' : ''}</div></div>
+      </div>
+      <div class="highlight-card">
+        <div class="icon">${iconSvg(ICON_CAIXA)}</div>
+        <div><div class="label">Maior batelada registrada</div><div class="value">${s.maiorLote ? escapeHtml(s.maiorLote.numero_lote) : '—'}</div><div class="sub">${s.maiorLote ? fmtNum(s.maiorQtd) + ' un · ' + fmtDate(s.maiorLote.data_envase) : ''}</div></div>
+      </div>
+      <div class="highlight-card">
+        <div class="icon">${iconSvg(ICON_CALENDARIO)}</div>
+        <div><div class="label">Mês com mais produções</div><div class="value">${s.mesTop ? mesLabel(s.mesTop.key) : '—'}</div><div class="sub">${s.mesTop ? s.mesTop.count + ' lote(s) registrados' : ''}</div></div>
+      </div>
+      <div class="highlight-card">
+        <div class="icon">${iconSvg(ICON_PESSOA)}</div>
+        <div><div class="label">Quem mais envasou</div><div class="value">${s.rankingResponsaveis[0] ? escapeHtml(s.rankingResponsaveis[0].nome) : '—'}</div><div class="sub">${s.rankingResponsaveis[0] ? fmtNum(s.rankingResponsaveis[0].qtd) + ' unidades' : ''}</div></div>
+      </div>
+    </div>
+
+    <div class="indic-section-title">Produções por mês</div>
+    <div class="card chart-card">${monthsChartSvg(s.mesesOrdenados)}</div>
+
+    <div class="indic-section-title">Ranking de produtos</div>
+    <div class="card table-card">
+      <table class="stack-table">
+        <thead><tr><th>Produto</th><th class="num">Unidades envasadas</th></tr></thead>
+        <tbody>${rankingProdutosRows || '<tr><td class="table-empty" colspan="2">Sem itens registrados ainda.</td></tr>'}</tbody>
+      </table>
+    </div>
+
+    <div class="indic-section-title">Ranking por responsável</div>
+    <div class="card table-card">
+      <table class="stack-table">
+        <thead><tr><th>Envasado por</th><th class="num">Unidades envasadas</th></tr></thead>
+        <tbody>${rankingResponsaveisRows || '<tr><td class="table-empty" colspan="2">Sem dados ainda.</td></tr>'}</tbody>
+      </table>
+    </div>
+
+    <div class="indic-section-title">Parâmetros de qualidade registrados</div>
+    <div class="qc-grid">
+      <div class="card qc-card">
+        <div class="qc-title">pH (${s.ph.n} lote${s.ph.n === 1 ? '' : 's'})</div>
+        <div class="qc-row"><span>Mínimo</span><strong>${s.ph.min ? s.ph.min.v.toFixed(2) : '—'}</strong></div>
+        <div class="qc-row"><span>Médio</span><strong>${s.ph.avg !== null ? s.ph.avg.toFixed(2) : '—'}</strong></div>
+        <div class="qc-row"><span>Máximo</span><strong>${s.ph.max ? s.ph.max.v.toFixed(2) : '—'}</strong></div>
+      </div>
+      <div class="card qc-card">
+        <div class="qc-title">Densidade (${s.densidade.n} lote${s.densidade.n === 1 ? '' : 's'})</div>
+        <div class="qc-row"><span>Mínima</span><strong>${s.densidade.min ? fmtNum(s.densidade.min.v) : '—'}</strong></div>
+        <div class="qc-row"><span>Média</span><strong>${s.densidade.avg !== null ? fmtNum(Math.round(s.densidade.avg * 100) / 100) : '—'}</strong></div>
+        <div class="qc-row"><span>Máxima</span><strong>${s.densidade.max ? fmtNum(s.densidade.max.v) : '—'}</strong></div>
+      </div>
+      <div class="card qc-card">
+        <div class="qc-title">PPM água — maior já registrado</div>
+        <div class="qc-row"><span>Valor</span><strong>${s.aguaPpmMax ? fmtNum(s.aguaPpmMax.v) : '—'}</strong></div>
+        <div class="qc-row"><span>Lote</span><strong>${s.aguaPpmMax ? escapeHtml(s.aguaPpmMax.lote.numero_lote) : '—'}</strong></div>
+        <div class="qc-row"><span>Data</span><strong>${s.aguaPpmMax ? fmtDate(s.aguaPpmMax.lote.data_envase) : '—'}</strong></div>
+      </div>
+      <div class="card qc-card">
+        <div class="qc-title">PPM produto — maior já registrado</div>
+        <div class="qc-row"><span>Valor</span><strong>${s.produtoPpmMax ? fmtNum(s.produtoPpmMax.v) : '—'}</strong></div>
+        <div class="qc-row"><span>Lote</span><strong>${s.produtoPpmMax ? escapeHtml(s.produtoPpmMax.lote.numero_lote) : '—'}</strong></div>
+        <div class="qc-row"><span>Data</span><strong>${s.produtoPpmMax ? fmtDate(s.produtoPpmMax.lote.data_envase) : '—'}</strong></div>
+      </div>
+    </div>
+  `;
+}
+
+async function renderIndicadores() {
+  const container = document.getElementById('indicadoresContent');
+  container.innerHTML = '<div class="card table-empty">Carregando indicadores…</div>';
+  await loadLotes();
+  const itens = await loadTodosItens();
+  const stats = computeIndicadoresStats(state.lotes, itens);
+  container.innerHTML = indicadoresHtml(stats);
+}
+
+
+  function abrir() {
+    Promise.all([loadInsumos(), loadProdutos(), loadLotes()]).then(function () {
+      navTo('insumos');
+    });
+  }
+
+  window.Lab = {
+    state: state,
+    abrir: abrir,
+    abrirEscolhaExport: abrirEscolhaExport,
+    addLoteItemRow: addLoteItemRow,
+    closeLoteForm: closeLoteForm,
+    closeModal: closeModal,
+    confirmarAjuste: confirmarAjuste,
+    confirmarExportFormato: confirmarExportFormato,
+    confirmarImportInsumos: confirmarImportInsumos,
+    excluirLoteAtual: excluirLoteAtual,
+    excluirLoteFromForm: excluirLoteFromForm,
+    exportLotePdf: exportLotePdf,
+    finalizarLoteAtual: finalizarLoteAtual,
+    mudarPaginaCategoria: mudarPaginaCategoria,
+    navTo: navTo,
+    openAjusteModal: openAjusteModal,
+    openImportInsumosModal: openImportInsumosModal,
+    openInsumoHistorico: openInsumoHistorico,
+    openInsumoModal: openInsumoModal,
+    openLoteForm: openLoteForm,
+    openLabProdutoModal: openLabProdutoModal,
+    previewImportInsumos: previewImportInsumos,
+    reabrirLoteAtual: reabrirLoteAtual,
+    removeLoteItemRow: removeLoteItemRow,
+    removerInsumo: removerInsumo,
+    salvarInsumo: salvarInsumo,
+    salvarLoteRascunho: salvarLoteRascunho,
+    salvarProduto: salvarProduto,
+    toggleProdutoAtivo: toggleProdutoAtivo,
+    onInsumoFiltroChange: onInsumoFiltroChange,
+    onItemProdutoChange: onItemProdutoChange,
+    onItemQtyChange: onItemQtyChange,
+    salvarReceita: salvarReceita,
+    toggleOutro: toggleOutro
+  };
 })();
 
 </script>
