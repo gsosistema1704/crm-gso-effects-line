@@ -840,6 +840,11 @@
 	  }
   .form-input:focus { outline: none; border-color: var(--primary); }
   .form-help { margin-top: 6px; font-size: 12px; color: var(--text-2); line-height: 1.35; }
+  #lojista-restrito-conteudo.lojista-blur { filter: blur(6px); pointer-events: none; user-select: none; }
+  .gso-blur-restrito { position: relative; }
+  .gso-blur-restrito > *:not(.gso-restrito-overlay) { filter: blur(6px) !important; pointer-events: none !important; user-select: none !important; }
+  .gso-restrito-overlay { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .gso-restrito-box { background: var(--card); border: 1px solid var(--glass-border, var(--border)); border-radius: 12px; padding: 16px 26px; box-shadow: var(--shadow-soft); max-width: 360px; text-align: center; pointer-events: auto; }
   .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--border); }
 
 		  .preview { background: rgba(244, 244, 244, 0.72); border: 1px solid var(--glass-rim); border-radius: 16px; padding: 14px 16px; margin: 14px 0; font-size: 13px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 0 0 1px var(--glass-hairline), inset 0 1px 0 rgba(255,255,255,0.94); backdrop-filter: blur(18px) saturate(140%); }
@@ -11810,7 +11815,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <span class="nav-label">Vendas</span>
       <span class="client-alert-badge hidden" id="saleReviewBadge" onclick="event.stopPropagation(); abrirRevisaoVendas();">0</span>
     </div>
-    <div class="nav-item hidden" data-view="lojista" data-label="Lojista" id="nav-item-lojista" onclick="navTo('lojista')">
+    <div class="nav-item" data-view="lojista" data-label="Lojista" id="nav-item-lojista" onclick="navTo('lojista')">
       <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6l1-3.5h10L14 6"/><path d="M2.5 6h11v7.5h-11z"/><path d="M6 9v2.5M10 9v2.5"/></svg>
       <span class="nav-label">Lojista</span>
     </div>
@@ -11944,30 +11949,40 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
       <datalist id="lojistas-datalist"></datalist>
 
-      <div class="filter-panel lojista">
-        <input type="text" class="input" id="searchLojista" placeholder="Buscar lojista, produto..." oninput="renderVendasLojista()">
-        <input type="date" class="input" id="filterDataLojista" title="Filtrar por dia" aria-label="Filtrar por dia" onchange="renderVendasLojista()">
-        <button class="btn btn-soft" onclick="document.getElementById('searchLojista').value='';document.getElementById('filterDataLojista').value='';renderVendasLojista();">Limpar</button>
-      </div>
+      <div id="lojista-restrito-wrap" style="position:relative">
+        <div id="lojista-restrito-aviso" class="hidden" style="position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px">
+          <div style="background:var(--card);border:1px solid var(--glass-border,var(--border));border-radius:12px;padding:14px 20px;box-shadow:var(--shadow-soft);max-width:320px">
+            <strong>Disponível só para administradores</strong>
+            <div class="form-help" style="margin-top:4px">Você pode lançar uma nova venda lojista pelo botão acima — o histórico fica visível só pra admins.</div>
+          </div>
+        </div>
+        <div id="lojista-restrito-conteudo">
+          <div class="filter-panel lojista">
+            <input type="text" class="input" id="searchLojista" placeholder="Buscar lojista, produto..." oninput="renderVendasLojista()">
+            <input type="date" class="input" id="filterDataLojista" title="Filtrar por dia" aria-label="Filtrar por dia" onchange="renderVendasLojista()">
+            <button class="btn btn-soft" onclick="document.getElementById('searchLojista').value='';document.getElementById('filterDataLojista').value='';renderVendasLojista();">Limpar</button>
+          </div>
 
-      <div class="card table-card">
-        <table class="sales-table mobile-card-table">
-          <colgroup><col style="width:10%"><col style="width:20%"><col style="width:20%"><col style="width:9%"><col style="width:6%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:5%"></colgroup>
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>Lojista</th>
-              <th>Produto</th>
-              <th>Aroma</th>
-              <th class="num">Qtd</th>
-              <th class="num">Valor</th>
-              <th>Pagamento</th>
-              <th>Vendedor</th>
-              <th class="col-acoes">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="lojistaTable"></tbody>
-        </table>
+          <div class="card table-card">
+            <table class="sales-table mobile-card-table">
+              <colgroup><col style="width:10%"><col style="width:20%"><col style="width:20%"><col style="width:9%"><col style="width:6%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:5%"></colgroup>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Lojista</th>
+                  <th>Produto</th>
+                  <th>Aroma</th>
+                  <th class="num">Qtd</th>
+                  <th class="num">Valor</th>
+                  <th>Pagamento</th>
+                  <th>Vendedor</th>
+                  <th class="col-acoes">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="lojistaTable"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -16715,14 +16730,34 @@ function toggleSidebarCollapsed() {
   if (btn) btn.textContent = collapsed ? '‹' : '›';
 }
 
-function navTo(view) {
-  if (view === 'lojista' && !isAdminUser()) {
-    alert('Apenas administradores têm acesso à aba Lojista.');
-    view = 'vendas';
+// Abas liberadas por completo pra qualquer usuária aprovada, mesmo sem ser admin.
+// 'lojista' fica de fora de propósito: ela já tem seu próprio esquema de blur mais
+// fino (deixa lançar venda nova, só borra o histórico) — não precisa do genérico aqui.
+const VIEWS_LIBERADAS_SEM_ADMIN = ['vendas', 'nova', 'perfil', 'lojista'];
+function aplicarRestricaoAdmin(view) {
+  const viewEl = document.getElementById('view-' + view);
+  if (!viewEl) return;
+  const liberado = isAdminUser() || VIEWS_LIBERADAS_SEM_ADMIN.includes(view);
+  viewEl.classList.toggle('gso-blur-restrito', !liberado);
+  let overlay = viewEl.querySelector(':scope > .gso-restrito-overlay');
+  if (liberado) {
+    if (overlay) overlay.remove();
+    return;
   }
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'gso-restrito-overlay';
+    overlay.innerHTML = '<div class="gso-restrito-box"><strong>Disponível só para administradores</strong>' +
+      '<div class="form-help" style="margin-top:6px">Use a aba <strong>Vendas</strong> normalmente — o restante fica disponível só pra administradores.</div></div>';
+    viewEl.appendChild(overlay);
+  }
+}
+
+function navTo(view) {
   VIEWS.forEach(v => {
     document.getElementById('view-' + v).classList.toggle('hidden', v !== view);
   });
+  aplicarRestricaoAdmin(view);
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.view === view);
   });
@@ -17757,7 +17792,7 @@ function removerProdutoLojista(index) {
 }
 
 function openVendaLojistaModal(id = '') {
-  if (!isAdminUser()) { alert('Apenas administradores podem lançar vendas para lojistas.'); return; }
+  if (id && !isAdminUser()) { alert('Apenas administradores podem editar vendas de lojistas.'); return; }
   const venda = id ? state.vendasLojista.find(v => v.id === id) : null;
   document.getElementById('ml-id').value = venda ? venda.id : '';
   document.getElementById('ml-data').value = venda ? String(venda.data || '').slice(0, 10) : dashboardDateKey(new Date());
@@ -17786,15 +17821,17 @@ function openVendaLojistaModal(id = '') {
 }
 
 async function salvarVendaLojista() {
-  if (!isAdminUser()) { alert('Apenas administradores podem lançar vendas para lojistas.'); return; }
+  const id = document.getElementById('ml-id').value;
+  const isEditing = Boolean(id);
+  // Qualquer usuária aprovada pode lançar uma venda nova; só administradores podem
+  // editar uma venda já existente (o histórico fica com blur pra quem não é admin).
+  if (isEditing && !isAdminUser()) { alert('Apenas administradores podem editar vendas de lojistas.'); return; }
   const cliente = document.getElementById('ml-cliente').value.trim();
   const valor = parseMoneyValue(document.getElementById('ml-valor').value);
   if (!cliente || currentLojistaItems.length === 0 || isNaN(valor) || valor <= 0) {
     alert('Preencha o lojista, adicione ao menos um produto ao pedido e informe o valor cobrado.');
     return;
   }
-  const id = document.getElementById('ml-id').value;
-  const isEditing = Boolean(id);
   const existing = isEditing ? state.vendasLojista.find(v => v.id === id) : null;
   const numeroVenda = isEditing ? existing.numeroVenda : nextSaleNumberLojista();
   const items = [...currentLojistaItems];
@@ -17975,12 +18012,15 @@ async function excluirLojistaCadastro(nome) {
 }
 
 function updateSidebarForRole() {
-  const navItem = document.getElementById('nav-item-lojista');
-  if (navItem) navItem.classList.toggle('hidden', !isAdminUser());
   const btnNovoLojista = document.getElementById('btn-novo-lojista');
   if (btnNovoLojista) btnNovoLojista.classList.toggle('hidden', !isAdminUser());
   const filterTipoPessoa = document.getElementById('filterTipoPessoa');
   if (filterTipoPessoa) filterTipoPessoa.classList.toggle('hidden', !isAdminUser());
+  const restritoConteudo = document.getElementById('lojista-restrito-conteudo');
+  if (restritoConteudo) restritoConteudo.classList.toggle('lojista-blur', !isAdminUser());
+  const restritoAviso = document.getElementById('lojista-restrito-aviso');
+  if (restritoAviso) restritoAviso.classList.toggle('hidden', isAdminUser());
+  if (typeof aplicarRestricaoAdmin === 'function' && typeof getActiveView === 'function') aplicarRestricaoAdmin(getActiveView());
 }
 
 function validatePdfFile(file) {
