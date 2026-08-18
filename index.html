@@ -12543,14 +12543,14 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <div class="header">
         <div>
           <div class="h-title">Insumos</div>
-          <div class="h-sub">Para cada produto envasado, escolha a garrafa, tampa e rótulo consumidos por unidade</div>
+          <div class="h-sub">Para cada produto envasado, escolha a garrafa, tampa e rótulo consumidos por unidade — e o item de estoque que recebe as unidades produzidas ao finalizar um lote</div>
         </div>
         <div class="h-actions"><button class="btn btn-primary" onclick="Lab.openLabProdutoModal()">+ Adicionar produto</button></div>
       </div>
       <div class="card table-card">
         <table class="stack-table">
-          <colgroup><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:8%"><col style="width:17%"></colgroup>
-          <thead><tr><th>Produto</th><th>Garrafa</th><th>Tampa</th><th>Rótulo</th><th>Rótulo 2</th><th>Ativo</th><th>Ações</th></tr></thead>
+          <colgroup><col style="width:13%"><col style="width:14%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:7%"><col style="width:13%"></colgroup>
+          <thead><tr><th>Produto</th><th>Produto (estoque)</th><th>Garrafa</th><th>Tampa</th><th>Rótulo</th><th>Rótulo 2</th><th>Ativo</th><th>Ações</th></tr></thead>
           <tbody id="receitasTable"></tbody>
         </table>
       </div>
@@ -14222,7 +14222,8 @@ function saleToRow(v) {
       } : null,
       clienteOriginal: v.clienteOriginal || null,
       revisaoCliente: Boolean(v.revisaoCliente),
-      revisaoCandidatos: v.revisaoCandidatos || null
+      revisaoCandidatos: v.revisaoCandidatos || null,
+      estoqueBaixado: v.estoqueBaixado || null
     }
   };
 }
@@ -14256,7 +14257,8 @@ function rowToSale(r) {
     boleto: r.metadata?.boleto?.path ? { name: r.metadata.boleto.name || 'boleto.pdf', path: r.metadata.boleto.path } : null,
     clienteOriginal: r.metadata?.clienteOriginal || null,
     revisaoCliente: Boolean(r.metadata?.revisaoCliente),
-    revisaoCandidatos: Array.isArray(r.metadata?.revisaoCandidatos) ? r.metadata.revisaoCandidatos : null
+    revisaoCandidatos: Array.isArray(r.metadata?.revisaoCandidatos) ? r.metadata.revisaoCandidatos : null,
+    estoqueBaixado: Array.isArray(r.metadata?.estoqueBaixado) ? r.metadata.estoqueBaixado : null
   };
 }
 
@@ -17610,6 +17612,10 @@ async function excluirVenda(id) {
     const session = await getSupabaseSession();
     if (client && session) await client.storage.from(SUPABASE_BUCKET_NF).remove([venda.boleto.path]);
   }
+  if (typeof Lab !== 'undefined' && venda.estoqueBaixado?.length) {
+    try { await Lab.reverterEstoque(venda.estoqueBaixado, 'Exclusão venda nº ' + (venda.numeroVenda || id)); }
+    catch (err) { console.warn('Erro ao estornar estoque do Laboratório:', err); }
+  }
   state.vendas = state.vendas.filter(v => v.id !== id);
   STORE.save('vendas', state.vendas);
   const client = getSupabaseClient();
@@ -17791,15 +17797,21 @@ async function salvarVendaLojista() {
     vendedor: canonicalSellerName(document.getElementById('ml-vend').value),
     obs: document.getElementById('ml-obs').value.trim()
   };
+  const vendaAnteriorLojista = isEditing ? { estoqueBaixado: existing.estoqueBaixado } : null;
+  let vendaLojista;
   if (isEditing) {
     Object.assign(existing, vendaFields);
     existing.editedAt = new Date().toISOString();
+    vendaLojista = existing;
   } else {
-    state.vendasLojista.push({ id: 'vl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), ...vendaFields });
+    vendaLojista = { id: 'vl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), ...vendaFields };
+    state.vendasLojista.push(vendaLojista);
   }
+  const avisoEstoqueLojista = await ajustarEstoqueLaboratorioNaVenda(vendaLojista, vendaAnteriorLojista, 'Venda lojista nº ' + numeroVenda);
   STORE.save('vendasLojista', state.vendasLojista);
   document.getElementById('modal-lojista').classList.remove('show');
   renderVendasLojista();
+  if (avisoEstoqueLojista) alert(avisoEstoqueLojista);
 }
 
 async function excluirVendaLojista(id) {
@@ -17808,6 +17820,10 @@ async function excluirVendaLojista(id) {
   if (!venda) return;
   const label = venda.numeroVenda ? `nº ${venda.numeroVenda}` : venda.cliente;
   if (!confirm(`Excluir a venda lojista ${label}?`)) return;
+  if (typeof Lab !== 'undefined' && venda.estoqueBaixado?.length) {
+    try { await Lab.reverterEstoque(venda.estoqueBaixado, 'Exclusão venda lojista nº ' + (venda.numeroVenda || id)); }
+    catch (err) { console.warn('Erro ao estornar estoque do Laboratório:', err); }
+  }
   state.vendasLojista = state.vendasLojista.filter(v => v.id !== id);
   STORE.save('vendasLojista', state.vendasLojista);
   const client = getSupabaseClient();
@@ -22006,6 +22022,8 @@ async function salvarVenda() {
     return;
   }
 
+  const avisoEstoque = await ajustarEstoqueLaboratorioNaVenda(venda, isEditing ? existingVenda : null, 'Venda nº ' + numeroVenda);
+
   if (isEditing) {
     venda.editedFields = venda.editedFields || {};
     venda.editedAt = new Date().toISOString();
@@ -22013,6 +22031,7 @@ async function salvarVenda() {
     updateSaleReviewBadge();
     editingVendaId = null;
     alert('✅ Venda nº ' + numeroVenda + ' atualizada!');
+    if (avisoEstoque) alert(avisoEstoque);
     navTo('vendas');
     return;
   }
@@ -22023,7 +22042,36 @@ async function salvarVenda() {
   lastVendaDataUsada = venda.data;
   const imprimir = confirm('✅ Venda nº ' + numeroVenda + ' registrada!\n\n' + aliasResolvido.cliente + ' — ' + fmtBR(valor) + '\n\nDeseja imprimir a nota simplificada desta venda agora?');
   if (imprimir) printSaleLabel(venda);
+  if (avisoEstoque) alert(avisoEstoque);
   navTo('inteligencia');
+}
+
+// Casa os itens da venda com os "Produto envasado" cadastrados em Laboratório → Insumos
+// e dá baixa (ou estorna, se for edição) no estoque de produto pronto correspondente.
+// Retorna uma string de aviso (pra alertar a usuária) quando algum item não é encontrado,
+// ou null quando está tudo certo — nunca bloqueia o salvamento da venda.
+async function ajustarEstoqueLaboratorioNaVenda(venda, vendaAnterior, origem) {
+  if (typeof Lab === 'undefined') return null;
+  try {
+    const baixasAnteriores = vendaAnterior ? (vendaAnterior.estoqueBaixado || []) : [];
+    if (baixasAnteriores.length) await Lab.reverterEstoque(baixasAnteriores, 'Edição ' + origem);
+    const itens = (venda.items && venda.items.length ? venda.items : [{ produto: venda.produto, tamanho: venda.tamanho, aroma: venda.aroma, qtd: venda.qtd }])
+      .map(it => ({
+        nomeProduto: it.catalogProduto || it.produto || it.descricao,
+        tamanho: it.tamanho,
+        aroma: it.aroma,
+        qtd: it.qtdUnidades != null ? it.qtdUnidades : it.qtd
+      }));
+    const resultado = await Lab.baixarEstoquePorItens(itens, origem);
+    venda.estoqueBaixado = resultado.baixas;
+    if (resultado.naoEncontrados.length) {
+      return 'Não encontrei no estoque do Laboratório (Insumos → Produto (estoque)) pra dar baixa automática:\n\n' + resultado.naoEncontrados.join('\n') + '\n\nCadastre/linke esse produto em Laboratório → Insumos, se quiser que a baixa seja automática da próxima vez.';
+    }
+    return null;
+  } catch (err) {
+    console.warn('Erro ao ajustar estoque do Laboratório na venda:', err);
+    return null;
+  }
 }
 
 
@@ -26865,12 +26913,13 @@ function insumoOptionsHtml(tipo, selectedId) {
 function renderReceitas() {
   const tbody = document.getElementById('receitasTable');
   if (!state.produtos.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Nenhum produto cadastrado.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="table-empty">Nenhum produto cadastrado.</td></tr>`;
     return;
   }
   tbody.innerHTML = state.produtos.map(p => `
     <tr>
       <td class="stack-title">${escapeHtml(p.nome)}</td>
+      <td class="stack-block" data-label="Produto (estoque)"><select class="input" onchange="Lab.salvarReceita('${p.id}','produto_insumo_id',this.value)">${insumoOptionsHtml('produto', p.produto_insumo_id)}</select></td>
       <td class="stack-block" data-label="Garrafa"><select class="input" onchange="Lab.salvarReceita('${p.id}','garrafa_insumo_id',this.value)">${insumoOptionsHtml('garrafa', p.garrafa_insumo_id)}</select></td>
       <td class="stack-block" data-label="Tampa"><select class="input" onchange="Lab.salvarReceita('${p.id}','tampa_insumo_id',this.value)">${insumoOptionsHtml('tampa', p.tampa_insumo_id)}</select></td>
       <td class="stack-block" data-label="Rótulo"><select class="input" onchange="Lab.salvarReceita('${p.id}','rotulo_insumo_id',this.value)">${insumoOptionsHtml('rotulo', p.rotulo_insumo_id)}</select></td>
@@ -27552,15 +27601,94 @@ async function renderIndicadores() {
 }
 
 
+  // ============ BAIXA DE ESTOQUE POR VENDA ============
+  // Casa o produto de uma venda (nome + tamanho + aroma) com um "Produto envasado"
+  // cadastrado em Insumos (aba Receitas), e usa o produto_insumo_id dele pra
+  // dar entrada/saída no estoque do Laboratório via a mesma RPC gso_ajustar_insumo
+  // que os botões ↑/↓ do Estoque de Insumos já usam.
+  function normalizeTexto(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+  function normalizeTamanhoVenda(s) {
+    var t = String(s || '').toLowerCase().trim();
+    var m = t.match(/([\d.,]+)\s*(litros|litro|l|ml|kg|g)\b/);
+    if (!m) return normalizeTexto(t);
+    var num = m[1].replace(',', '.');
+    var unidade = m[2];
+    if (unidade === 'litro' || unidade === 'litros') unidade = 'l';
+    return num + unidade;
+  }
+  function encontrarProdutoEnvasadoPara(nomeProduto, tamanho, aroma) {
+    var nomeNorm = normalizeTexto(nomeProduto);
+    var tamanhoNorm = normalizeTamanhoVenda(tamanho);
+    var aromaNorm = normalizeTexto(aroma || 'neutro');
+    var candidatos = state.produtos.filter(function (p) {
+      if (p.ativo === false || !p.produto_insumo_id) return false;
+      var linhaNorm = normalizeTexto(p.linha || '');
+      var pTamanhoNorm = normalizeTamanhoVenda(p.tamanho || '');
+      var pAromaNorm = normalizeTexto(p.aroma || 'neutro');
+      if (!linhaNorm || !pTamanhoNorm) return false;
+      var linhaOk = nomeNorm.indexOf(linhaNorm) !== -1 || linhaNorm.indexOf(nomeNorm) !== -1;
+      var tamanhoOk = pTamanhoNorm === tamanhoNorm;
+      var aromaOk = pAromaNorm === aromaNorm;
+      return linhaOk && tamanhoOk && aromaOk;
+    });
+    return candidatos.length === 1 ? candidatos[0] : null;
+  }
+  async function baixarEstoquePorItens(itens, origem) {
+    var client = getSupabaseClient();
+    var baixas = [];
+    var naoEncontrados = [];
+    for (var i = 0; i < itens.length; i++) {
+      var it = itens[i];
+      var qtd = Number(it.qtd) || 0;
+      if (qtd <= 0) continue;
+      var produto = encontrarProdutoEnvasadoPara(it.nomeProduto, it.tamanho, it.aroma);
+      if (!produto) {
+        naoEncontrados.push([it.nomeProduto, it.tamanho, it.aroma].filter(Boolean).join(' '));
+        continue;
+      }
+      var resp = await client.rpc('gso_ajustar_insumo', { p_insumo_id: produto.produto_insumo_id, p_tipo: 'saida', p_quantidade: qtd, p_origem: origem });
+      if (resp.error) { naoEncontrados.push([it.nomeProduto, it.tamanho, it.aroma].filter(Boolean).join(' ') + ' (erro: ' + resp.error.message + ')'); continue; }
+      baixas.push({ produtoInsumoId: produto.produto_insumo_id, quantidade: qtd });
+    }
+    if (baixas.length) loadInsumos();
+    return { baixas: baixas, naoEncontrados: naoEncontrados };
+  }
+  async function reverterEstoque(baixas, origem) {
+    if (!Array.isArray(baixas) || !baixas.length) return;
+    var client = getSupabaseClient();
+    for (var i = 0; i < baixas.length; i++) {
+      var b = baixas[i];
+      if (!b || !b.produtoInsumoId || !b.quantidade) continue;
+      await client.rpc('gso_ajustar_insumo', { p_insumo_id: b.produtoInsumoId, p_tipo: 'entrada', p_quantidade: b.quantidade, p_origem: origem });
+    }
+    loadInsumos();
+  }
+
   function abrir() {
     Promise.all([loadInsumos(), loadProdutos(), loadLotes()]).then(function () {
       navTo('insumos');
     });
   }
 
+  // Mantém a lista de produtos envasados atualizada mesmo sem a usuária nunca ter
+  // aberto a aba Laboratório — a baixa de estoque por venda precisa dela pronta.
+  if (typeof window.loadRemoteState === 'function' && !window.__labRemotePatched) {
+    window.__labRemotePatched = true;
+    var _loadRemoteStateOriginal = window.loadRemoteState;
+    window.loadRemoteState = async function () {
+      var out = await _loadRemoteStateOriginal.apply(this, arguments);
+      try { await loadProdutos(); } catch (e) {}
+      return out;
+    };
+  }
+
   window.Lab = {
     state: state,
     abrir: abrir,
+    baixarEstoquePorItens: baixarEstoquePorItens,
+    reverterEstoque: reverterEstoque,
     abrirEscolhaExport: abrirEscolhaExport,
     addLoteItemRow: addLoteItemRow,
     closeLoteForm: closeLoteForm,
