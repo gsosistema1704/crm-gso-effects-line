@@ -11713,7 +11713,14 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 #view-laboratorio .qc-row:last-child { border-bottom: none !important;}
 #view-laboratorio .qc-row strong { font-variant-numeric: tabular-nums !important;}
 #view-laboratorio .chart-card { padding: 20px 22px !important;}
+#view-laboratorio .rankings-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; align-items: start !important;}
+#view-laboratorio .rankings-grid .indic-section-title { margin-top: 26px !important;}
+#view-laboratorio .rankings-grid .card.table-card { margin-bottom: 0 !important;}
+#view-laboratorio table.rankings-table { min-width: 0 !important;}
+#view-laboratorio table.rankings-table th, #view-laboratorio table.rankings-table td { padding: 8px 10px !important;}
 @media (max-width: 900px) {#view-laboratorio .indic-grid, #view-laboratorio .qc-grid { grid-template-columns: 1fr 1fr !important;}
+ }
+@media (max-width: 700px) {#view-laboratorio .rankings-grid { grid-template-columns: 1fr !important;}
  }
 @media (max-width: 560px) {#view-laboratorio .indic-grid, #view-laboratorio .qc-grid { grid-template-columns: 1fr !important;}
  }
@@ -27545,20 +27552,27 @@ function indicadoresHtml(s) {
     <div class="indic-section-title">Produções por mês</div>
     <div class="card chart-card">${monthsChartSvg(s.mesesOrdenados)}</div>
 
-    <div class="indic-section-title">Ranking de produtos</div>
-    <div class="card table-card">
-      <table class="stack-table">
-        <thead><tr><th>Produto</th><th class="num">Unidades envasadas</th></tr></thead>
-        <tbody>${rankingProdutosRows || '<tr><td class="table-empty" colspan="2">Sem itens registrados ainda.</td></tr>'}</tbody>
-      </table>
-    </div>
-
-    <div class="indic-section-title">Ranking por responsável</div>
-    <div class="card table-card">
-      <table class="stack-table">
-        <thead><tr><th>Envasado por</th><th class="num">Unidades envasadas</th></tr></thead>
-        <tbody>${rankingResponsaveisRows || '<tr><td class="table-empty" colspan="2">Sem dados ainda.</td></tr>'}</tbody>
-      </table>
+    <div class="rankings-grid">
+      <div>
+        <div class="indic-section-title">Ranking de produtos</div>
+        <div class="card table-card">
+          <table class="stack-table rankings-table">
+            <colgroup><col style="width:68%"><col style="width:32%"></colgroup>
+            <thead><tr><th>Produto</th><th class="num">Unidades</th></tr></thead>
+            <tbody>${rankingProdutosRows || '<tr><td class="table-empty" colspan="2">Sem itens registrados ainda.</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="indic-section-title">Ranking por responsável</div>
+        <div class="card table-card">
+          <table class="stack-table rankings-table">
+            <colgroup><col style="width:68%"><col style="width:32%"></colgroup>
+            <thead><tr><th>Envasado por</th><th class="num">Unidades</th></tr></thead>
+            <tbody>${rankingResponsaveisRows || '<tr><td class="table-empty" colspan="2">Sem dados ainda.</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div class="indic-section-title">Parâmetros de qualidade registrados</div>
