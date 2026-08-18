@@ -11656,102 +11656,15 @@ th,
 
 <style id="gso-lab-css">
 /* ================== GSO LABORATÓRIO — portado do app standalone "GSO Insumos & Lotes" ==================
-   Todo seletor fica escopado dentro de #view-laboratorio (não vaza pro resto do CRM), e usa
-   !important porque as classes genéricas (.btn, .card, .modal-bg...) têm o mesmo nome das do
-   CRM, que já usam !important nas suas próprias regras. */
-#view-laboratorio {
-    --bg: #F2F6FB !important;
-    --card: #FFFFFF !important;
-    --border: #E3E8F0 !important;
-    --glass-border: #E3E8F0 !important;
-    --glass-hairline: #ECF1F7 !important;
-    --silver-border: #D6DDE6 !important;
-    --text: #12151A !important;
-    --text-2: #64707D !important;
-    --brand-blue: #3A3F45 !important;
-    --brand-blue-dark: #23262A !important;
-    --brand-red: #C21A22 !important;
-    --primary: #3A3F45 !important;
-    --primary-dark: #23262A !important;
-    --primary-soft: #ECEDEE !important;
-    --green-bg: #DFF6E5 !important;
-    --green-text: #1C7A3F !important;
-    --amber-bg: #FFF3C4 !important;
-    --amber-text: #8A5A00 !important;
-    --red-bg: #FDE5E5 !important;
-    --red-text: #A81820 !important;
-    --blue-bg: #ECEDEE !important;
-    --blue-text: #33373C !important;
-    --blue-gradient: linear-gradient(135deg, #494E55, #3A3F45 55%, #23262A) !important;
-    --blue-gradient-hover: linear-gradient(135deg, #565B62, #494E55 55%, #3A3F45) !important;
-    --navy: #1B1D20 !important;
-    --navy-2: #26282B !important;
-    --navy-3: #2F3236 !important;
-    --navy-border: #35383C !important;
-    --navy-text: #CACBCD !important;
-    --navy-text-2: #8D9094 !important;
-    --shadow-soft: 0 20px 48px rgba(15,17,19,.20), 0 2px 10px rgba(15,23,42,.07) !important;
-    --shadow-tight: 0 10px 26px rgba(15,23,42,.08), 0 1px 4px rgba(15,23,42,.04) !important;}
-#view-laboratorio .hidden.hidden { display: none !important;}
-#view-laboratorio button, #view-laboratorio .btn, #view-laboratorio .nav-item, #view-laboratorio .icon-btn { -webkit-tap-highlight-color: transparent !important;}
-#view-laboratorio .btn-login { width: 100% !important; margin-top: 24px !important; padding: 14px !important; background: var(--blue-gradient) !important; color: #fff !important; border: none !important; border-radius: 6px !important; font-size: 14.5px !important; font-weight: 700 !important; cursor: pointer !important; font-family: inherit !important; box-shadow: 0 14px 26px rgba(35,38,42,.30) !important; transition: transform .15s ease, box-shadow .15s ease !important;}
-#view-laboratorio .btn-login:hover { background: var(--blue-gradient-hover) !important; transform: translateY(-1px) !important; box-shadow: 0 18px 32px rgba(35,38,42,.36) !important;}
-#view-laboratorio .btn-login:active { transform: translateY(0) !important;}
-#view-laboratorio .btn-login:disabled { opacity: .6 !important; cursor: wait !important; transform: none !important;}
-#view-laboratorio .main { flex: 1 !important; margin-left: 224px !important; padding: 28px 32px !important; max-width: 1280px !important;}
-#view-laboratorio .header { display: flex !important; justify-content: space-between !important; align-items: flex-end !important; margin-bottom: 22px !important; gap: 16px !important; flex-wrap: wrap !important;}
-#view-laboratorio .h-title { font-size: 22px !important; font-weight: 700 !important;}
-#view-laboratorio .h-sub { font-size: 13px !important; color: var(--text-2) !important; margin-top: 4px !important;}
-#view-laboratorio .h-actions { display: flex !important; gap: 8px !important; align-items: center !important;}
-#view-laboratorio .card { background: var(--card) !important; border: 1px solid var(--glass-border) !important; border-radius: 8px !important; padding: 18px 20px !important; margin-bottom: 16px !important; box-shadow: var(--shadow-tight) !important;}
-#view-laboratorio .table-card { padding: 0 !important; overflow: auto !important; border-radius: 8px !important;}
-#view-laboratorio .btn { padding: 9px 16px !important; border-radius: 5px !important; border: 1px solid var(--glass-border) !important; background: var(--card) !important; font-size: 13px !important; cursor: pointer !important; font-family: inherit !important; font-weight: 500 !important; color: var(--text) !important; transition: all .15s !important;}
-#view-laboratorio .btn:hover { background: var(--primary-soft) !important; transform: translateY(-1px) !important;}
-#view-laboratorio .btn-primary { background: var(--blue-gradient) !important; color: #fff !important; border-color: transparent !important;}
-#view-laboratorio .btn-primary:hover { background: var(--blue-gradient-hover) !important;}
-#view-laboratorio .btn-soft { color: var(--blue-text) !important; background: var(--blue-bg) !important; border-color: var(--border) !important;}
-#view-laboratorio .btn-danger { color: var(--red-text) !important; border-color: #EFB4B4 !important; background: rgba(255,248,248,.7) !important;}
-#view-laboratorio .btn-danger:hover { background: var(--red-bg) !important;}
-#view-laboratorio .btn-small { padding: 5px 10px !important; font-size: 11px !important; border-radius: 4px !important;}
-#view-laboratorio .btn:disabled { opacity: .55 !important; cursor: wait !important; transform: none !important;}
-#view-laboratorio .row-actions { display: flex !important; gap: 6px !important; flex-wrap: wrap !important; align-items: center !important;}
-#view-laboratorio table { width: 100% !important; border-collapse: separate !important; border-spacing: 0 !important; font-size: 13px !important;}
-#view-laboratorio th { text-align: left !important; padding: 12px !important; font-weight: 700 !important; font-size: 11px !important; color: var(--primary-dark) !important; text-transform: uppercase !important; letter-spacing: .5px !important; border-bottom: 1px solid var(--border) !important; background: var(--primary-soft) !important;}
-#view-laboratorio td { padding: 11px 12px !important; border-bottom: 1px solid var(--border) !important; vertical-align: middle !important;}
-#view-laboratorio tr:last-child td { border-bottom: none !important;}
-#view-laboratorio tr:hover td { background: rgba(0,0,0,.02) !important;}
-#view-laboratorio .num { text-align: right !important; font-variant-numeric: tabular-nums !important;}
-#view-laboratorio .table-empty { text-align: center !important; padding: 36px 20px !important; color: var(--text-2) !important; font-size: 13px !important;}
-#view-laboratorio .pill { display: inline-block !important; padding: 3px 10px !important; border-radius: 4px !important; font-size: 11px !important; font-weight: 600 !important;}
-#view-laboratorio .pill-green { background: var(--green-bg) !important; color: var(--green-text) !important;}
-#view-laboratorio .pill-amber { background: var(--amber-bg) !important; color: var(--amber-text) !important;}
-#view-laboratorio .pill-red { background: var(--red-bg) !important; color: var(--red-text) !important;}
-#view-laboratorio .pill-blue { background: var(--blue-bg) !important; color: var(--blue-text) !important;}
-#view-laboratorio .search { display: flex !important; gap: 8px !important; margin-bottom: 14px !important; flex-wrap: wrap !important; align-items: center !important;}
-#view-laboratorio .input, #view-laboratorio select.input { padding: 9px 12px !important; border: 1px solid var(--glass-border) !important; border-radius: 5px !important; font-size: 13px !important; font-family: inherit !important; background: var(--card) !important; color: var(--text) !important;}
-#view-laboratorio .input:focus, #view-laboratorio select.input:focus { outline: none !important; border-color: var(--primary) !important;}
-#view-laboratorio .search input.input { flex: 1 !important; min-width: 180px !important;}
-#view-laboratorio .form-row { display: grid !important; gap: 12px !important; margin-bottom: 14px !important;}
-#view-laboratorio .form-r2 { grid-template-columns: 1fr 1fr !important;}
-#view-laboratorio .form-r3 { grid-template-columns: 1fr 1fr 1fr !important;}
-#view-laboratorio .form-r4 { grid-template-columns: 1fr 1fr 1fr 1fr !important;}
-@media (max-width: 720px) {#view-laboratorio .form-r2, #view-laboratorio .form-r3, #view-laboratorio .form-r4 { grid-template-columns: 1fr !important;}
- }
-#view-laboratorio .form-label { font-size: 11px !important; color: var(--text-2) !important; display: block !important; margin-bottom: 5px !important; text-transform: uppercase !important; letter-spacing: .4px !important; font-weight: 600 !important;}
-#view-laboratorio .form-input { width: 100% !important; padding: 10px 12px !important; border: 1px solid var(--glass-border) !important; border-radius: 5px !important; font-size: 13px !important; font-family: inherit !important; background: var(--card) !important; color: var(--text) !important;}
-#view-laboratorio .form-input:focus { outline: none !important; border-color: var(--primary) !important;}
-#view-laboratorio .form-help { margin-top: 6px !important; font-size: 12px !important; color: var(--text-2) !important;}
-#view-laboratorio .form-actions { display: flex !important; gap: 8px !important; justify-content: flex-end !important; margin-top: 8px !important; padding-top: 16px !important; border-top: 1px solid var(--border) !important;}
+   As classes compartilhadas com o resto do CRM (.btn, .card, .modal-bg, .pill, .form-input...)
+   NÃO são redefinidas aqui de propósito — usam o mesmo nome nos dois lugares, então herdam
+   o visual real do sistema (cores, raio de borda, sombra, dark mode) automaticamente. Só ficam
+   aqui as classes que são específicas do Laboratório e não existem em mais nenhum lugar do CRM. */
+#view-laboratorio .num { text-align: left !important; font-variant-numeric: tabular-nums !important;}
 #view-laboratorio .export-choice { display: flex !important; flex-direction: column !important; align-items: flex-start !important; gap: 3px !important; width: 100% !important; padding: 14px 16px !important; margin-bottom: 10px !important; text-align: left !important;}
 #view-laboratorio .export-choice-title { font-size: 14px !important; font-weight: 700 !important;}
 #view-laboratorio .export-choice-sub { font-size: 12px !important; color: var(--text-2) !important; font-weight: 400 !important;}
 #view-laboratorio .btn-primary.export-choice .export-choice-sub { color: rgba(255,255,255,.82) !important;}
-#view-laboratorio .modal-bg { position: fixed !important; inset: 0 !important; background: rgba(23,23,23,.4) !important; display: none !important; align-items: center !important; justify-content: center !important; z-index: 1000 !important; padding: 20px !important;}
-#view-laboratorio .modal-bg.show { display: flex !important;}
-#view-laboratorio .modal { background: var(--card) !important; border: 1px solid var(--border) !important; border-radius: 8px !important; padding: 22px !important; max-width: 480px !important; width: 100% !important; max-height: 90vh !important; overflow-y: auto !important; box-shadow: var(--shadow-soft) !important;}
-#view-laboratorio .modal.modal-wide { max-width: 720px !important;}
-#view-laboratorio .modal-title { font-size: 17px !important; font-weight: 700 !important; margin-bottom: 16px !important;}
-#view-laboratorio .batelada-block { border: 1px solid var(--border) !important; border-radius: 6px !important; padding: 14px 16px !important; margin-bottom: 14px !important; background: rgba(0,0,0,.012) !important;}
 #view-laboratorio .item-row { display: grid !important; grid-template-columns: 2fr 1fr auto !important; gap: 8px !important; margin-bottom: 8px !important; align-items: center !important;}
 @media (max-width: 640px) {#view-laboratorio .item-row { grid-template-columns: 1fr !important;}
  }
@@ -11759,20 +11672,21 @@ th,
 #view-laboratorio .icon-btn:hover { background: var(--red-bg) !important; color: var(--red-text) !important; border-color: #F4C4C4 !important;}
 #view-laboratorio .icon-btn-in:hover { background: var(--green-bg) !important; color: var(--green-text) !important; border-color: #BFE7CC !important;}
 #view-laboratorio .icon-btn-out:hover { background: var(--blue-bg) !important; color: var(--blue-text) !important; border-color: #BFDCEF !important;}
-#view-laboratorio .preview-box { border: 1px solid var(--glass-border) !important; border-radius: 6px !important; padding: 14px 16px !important; background: var(--primary-soft) !important; margin-top: 12px !important;}
+#view-laboratorio .preview-box { border: 1px solid var(--glass-border) !important; border-radius: 10px !important; padding: 14px 16px !important; background: var(--primary-soft) !important; margin-top: 12px !important;}
 #view-laboratorio .preview-line { display: flex !important; justify-content: space-between !important; font-size: 13px !important; padding: 4px 0 !important;}
 #view-laboratorio .preview-line strong { font-variant-numeric: tabular-nums !important;}
 #view-laboratorio .preview-warn { color: var(--red-text) !important; font-weight: 700 !important;}
 #view-laboratorio .category-header { display: flex !important; align-items: center !important; gap: 10px !important; padding: 16px 18px 14px !important;}
-#view-laboratorio .category-header .dot { width: 9px !important; height: 9px !important; border-radius: 50% !important; background: var(--blue-gradient) !important; flex-shrink: 0 !important; box-shadow: 0 0 0 3px var(--primary-soft) !important;}
+#view-laboratorio .category-header .dot { width: 9px !important; height: 9px !important; border-radius: 50% !important; background: var(--primary) !important; flex-shrink: 0 !important; box-shadow: 0 0 0 3px var(--primary-soft) !important;}
 #view-laboratorio .category-header .name { font-size: 12.5px !important; font-weight: 800 !important; color: var(--text) !important; text-transform: uppercase !important; letter-spacing: .6px !important;}
 #view-laboratorio .category-header .count { font-size: 11px !important; font-weight: 700 !important; color: var(--primary) !important; background: var(--primary-soft) !important; padding: 2px 10px !important; border-radius: 4px !important;}
-#view-laboratorio .pagination { display: flex !important; align-items: center !important; justify-content: center !important; gap: 14px !important; padding: 12px 16px !important; border-top: 1px solid var(--border) !important;}
-#view-laboratorio .pagination-info { font-size: 12px !important; color: var(--text-2) !important; font-weight: 600 !important;}
-#view-laboratorio .stats-bar { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 12px !important; margin-bottom: 16px !important;}
-#view-laboratorio .stat-card { background: var(--card) !important; border: 1px solid var(--glass-border) !important; border-radius: 6px !important; padding: 15px 18px !important; box-shadow: var(--shadow-tight) !important;}
-#view-laboratorio .stat-card .stat-label { font-size: 11px !important; color: var(--text-2) !important; text-transform: uppercase !important; letter-spacing: .4px !important; font-weight: 700 !important; margin-bottom: 6px !important;}
-#view-laboratorio .stat-card .stat-value { font-size: 22px !important; font-weight: 800 !important; letter-spacing: -.3px !important; font-variant-numeric: tabular-nums !important;}
+#view-laboratorio .category-header-toggle { cursor: pointer !important; user-select: none !important;}
+#view-laboratorio .category-arrow { margin-left: auto !important; font-size: 18px !important; color: var(--text-2) !important; transition: transform .15s ease !important; display: inline-block !important;}
+#view-laboratorio .category-arrow.open { transform: rotate(90deg) !important;}
+#view-laboratorio .stats-bar { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; margin-bottom: 12px !important;}
+#view-laboratorio .stat-card { background: var(--card) !important; border: 1px solid var(--glass-border) !important; border-radius: 14px !important; padding: 8px 12px !important; box-shadow: var(--shadow-tight) !important;}
+#view-laboratorio .stat-card .stat-label { font-size: 10px !important; color: var(--text-2) !important; text-transform: uppercase !important; letter-spacing: .4px !important; font-weight: 700 !important; margin-bottom: 3px !important;}
+#view-laboratorio .stat-card .stat-value { font-size: 16px !important; font-weight: 800 !important; letter-spacing: -.3px !important; font-variant-numeric: tabular-nums !important;}
 #view-laboratorio .stat-card.stat-warn .stat-value { color: var(--red-text) !important;}
 @media (max-width: 640px) {#view-laboratorio .stats-bar { grid-template-columns: 1fr 1fr !important;}
 #view-laboratorio .stat-card:first-child { grid-column: 1 / -1 !important;}
@@ -11780,8 +11694,8 @@ th,
 #view-laboratorio .indic-section-title { font-size: 13px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: .5px !important; color: var(--text-2) !important; margin: 26px 0 12px !important;}
 #view-laboratorio .indic-section-title:first-child { margin-top: 0 !important;}
 #view-laboratorio .indic-grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 12px !important;}
-#view-laboratorio .highlight-card { background: var(--card) !important; border: 1px solid var(--glass-border) !important; border-radius: 6px !important; padding: 16px 18px !important; box-shadow: var(--shadow-tight) !important; display: flex !important; gap: 13px !important; align-items: flex-start !important;}
-#view-laboratorio .highlight-card .icon { width: 38px !important; height: 38px !important; border-radius: 5px !important; background: var(--primary-soft) !important; color: var(--primary) !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important;}
+#view-laboratorio .highlight-card { background: var(--card) !important; border: 1px solid var(--glass-border) !important; border-radius: 14px !important; padding: 16px 18px !important; box-shadow: var(--shadow-tight) !important; display: flex !important; gap: 13px !important; align-items: flex-start !important;}
+#view-laboratorio .highlight-card .icon { width: 38px !important; height: 38px !important; border-radius: 8px !important; background: var(--primary-soft) !important; color: var(--primary) !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important;}
 #view-laboratorio .highlight-card .icon svg { width: 19px !important; height: 19px !important;}
 #view-laboratorio .highlight-card .label { font-size: 10.5px !important; text-transform: uppercase !important; letter-spacing: .4px !important; color: var(--text-2) !important; font-weight: 700 !important; margin-bottom: 4px !important;}
 #view-laboratorio .highlight-card .value { font-size: 15.5px !important; font-weight: 800 !important; line-height: 1.3 !important;}
@@ -11796,24 +11710,13 @@ th,
  }
 @media (max-width: 560px) {#view-laboratorio .indic-grid, #view-laboratorio .qc-grid { grid-template-columns: 1fr !important;}
  }
-@media (max-width: 900px) {#view-laboratorio .main { margin-left: 0 !important; padding: 16px 14px calc(env(safe-area-inset-bottom, 0px) + 84px) !important; width: 100% !important; max-width: 100% !important;}
-#view-laboratorio .header { align-items: flex-start !important;}
-#view-laboratorio .h-title { font-size: 19px !important;}
-#view-laboratorio .modal { border-radius: 8px 8px 0 0 !important; max-height: 88vh !important;}
-#view-laboratorio .modal-bg { align-items: flex-end !important; padding: 0 !important;}
-#view-laboratorio .modal-bg .modal-wide { max-width: 100% !important;}
-#view-laboratorio .form-input, #view-laboratorio .input, #view-laboratorio select.input, #view-laboratorio .login-form input { font-size: 16px !important;}
-#view-laboratorio table { font-size: 12.5px !important;}
-#view-laboratorio th, #view-laboratorio td { padding: 9px 8px !important;}
-#view-laboratorio .form-actions { flex-direction: column !important; align-items: stretch !important;}
-#view-laboratorio .form-actions .btn { width: 100% !important; padding: 12px 16px !important;}
-#view-laboratorio .form-actions .form-help { text-align: center !important; order: 99 !important; margin-top: 4px !important;}
-#view-laboratorio .table-card { overflow: visible !important;}
+@media (max-width: 900px) {
+#view-laboratorio .form-input, #view-laboratorio .input, #view-laboratorio select.input { font-size: 16px !important;}
 #view-laboratorio .stack-table { border: none !important;}
 #view-laboratorio .stack-table thead { display: none !important;}
 #view-laboratorio .stack-table, #view-laboratorio .stack-table tbody, #view-laboratorio .stack-table tr, #view-laboratorio .stack-table td { display: block !important; width: 100% !important;}
 #view-laboratorio .stack-table tbody { display: flex !important; flex-direction: column !important; gap: 10px !important; padding: 10px !important;}
-#view-laboratorio .stack-table tr { border: 1px solid var(--border) !important; border-radius: 6px !important; padding: 4px 14px !important; background: var(--card) !important;}
+#view-laboratorio .stack-table tr { border: 1px solid var(--border) !important; border-radius: 12px !important; padding: 4px 14px !important; background: var(--card) !important;}
 #view-laboratorio .stack-table td { border-bottom: 1px solid var(--border) !important; padding: 9px 0 !important; display: flex !important; justify-content: space-between !important; align-items: center !important; gap: 12px !important; text-align: right !important;}
 #view-laboratorio .stack-table td:last-child { border-bottom: none !important;}
 #view-laboratorio .stack-table td::before { content: attr(data-label) !important; font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: .4px !important; color: var(--text-2) !important; text-align: left !important; flex-shrink: 0 !important;}
@@ -12639,7 +12542,7 @@ th,
       </div>
       <div class="card table-card">
         <table class="stack-table">
-          <thead><tr><th>Produto</th><th>Garrafa</th><th>Tampa</th><th>Rótulo</th><th>Ativo</th><th>Ações</th></tr></thead>
+          <thead><tr><th>Produto</th><th>Garrafa</th><th>Tampa</th><th>Rótulo</th><th>Rótulo 2</th><th>Ativo</th><th>Ações</th></tr></thead>
           <tbody id="receitasTable"></tbody>
         </table>
       </div>
@@ -25556,9 +25459,29 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       custoExtra: ativo.custoExtra, recebido: ativo.recebido, lucro: ativo.lucro, margem: ativo.margem
     };
   }
-  function anuncioStatus(c) {
+  // Detecta 1L/5L pelo título quando a usuária não marca manualmente o tamanho do
+  // anúncio — mesmo padrão de regex já usado no Laboratório (caixaInfo) pra reconhecer
+  // "5L"/"5 l"/"1L" dentro do texto do título.
+  function anuncioTamanhoDetectado(nome) {
+    var s = String(nome || '');
+    if (/\b5\s?l\b/i.test(s)) return '5L';
+    if (/\b1\s?l\b/i.test(s)) return '1L';
+    return 'Outro';
+  }
+  function anuncioTamanho(a) {
+    return a.tamanhoAnuncio || anuncioTamanhoDetectado(a.nome);
+  }
+  function anuncioLucroMinimo(a) {
+    var t = anuncioTamanho(a);
+    if (t === '1L') return 10;
+    if (t === '5L') return 20;
+    return null;
+  }
+  function anuncioStatus(c, a) {
     var P = params();
+    var lucroMin = a ? anuncioLucroMinimo(a) : null;
     if (c.lucro <= 0) return { cls: 'bad', label: 'Prejuízo' };
+    if (lucroMin != null && c.lucro < lucroMin) return { cls: 'warn', label: 'Abaixo do mínimo' };
     if (c.margem != null && c.margem < P.margemMin) return { cls: 'warn', label: 'Abaixo do mínimo' };
     return { cls: 'ok', label: 'Saudável' };
   }
@@ -25713,7 +25636,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     });
     function miniCard(a) {
       var c = anuncioCalc(a);
-      var st = anuncioStatus(c);
+      var st = anuncioStatus(c, a);
       var pausado = a.statusAnuncio === 'Pausado';
       return '<div class="gc-ml-mini" draggable="true" data-open-anuncio="' + esc(a.id) + '" data-drag-anuncio="' + esc(a.id) + '">' +
         '<div class="gc-ml-mini-head"><b>' + esc(a.nome || 'Sem nome') + '</b><span class="gc-pill ' + st.cls + '">' + st.label + '</span></div>' +
@@ -25775,7 +25698,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function abrirAnuncio(id) {
     document.body.classList.add('gc-dr-flutuante');
     var existente = id ? (store.anuncios || []).filter(function (x) { return x.id === id; })[0] : null;
-    var base = existente || { id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), codigo: '', nome: '', itensCatalogo: [], tipoAnuncio: 'Clássico', statusAnuncio: 'Ativo', incluirFiscal: true, preco: 0, tarifaVenda: 0, custoEnvio: 0, peso: 0, desconto: 0, custoManual: 0, obs: '' };
+    var base = existente || { id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), codigo: '', nome: '', itensCatalogo: [], tipoAnuncio: 'Clássico', statusAnuncio: 'Ativo', incluirFiscal: true, preco: 0, tarifaVenda: 0, custoEnvio: 0, peso: 0, desconto: 0, custoManual: 0, tamanhoAnuncio: null, obs: '' };
     var isNovo = !existente;
     // rascunho mutável — só grava em store.anuncios quando clicar em Salvar.
     var draft = JSON.parse(JSON.stringify(base));
@@ -25785,6 +25708,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     draft.tarifaVenda = anuncioTarifaVenda(base);
     draft.custoEnvio = anuncioEnvio(base);
     draft.tipoAnuncio = base.tipoAnuncio || 'Clássico';
+    draft.tamanhoAnuncio = base.tamanhoAnuncio || null;
     draft.statusAnuncio = base.statusAnuncio || 'Ativo';
     draft.incluirFiscal = base.incluirFiscal !== false;
     draft.temDesconto = !!base.temDesconto;
@@ -25872,7 +25796,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (!primeiraRenderizacao) lerCamposSimples();
       primeiraRenderizacao = false;
       var c = anuncioCalc(draft);
-      var st = anuncioStatus(c);
+      var st = anuncioStatus(c, draft);
       var P = params();
       var html =
         campoTxtFull('Nome do anúncio', 'gc-ml-nome', draft.nome) +
@@ -25884,6 +25808,15 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           segOpt('tipo-anuncio', 'Clássico', 'Clássico', draft.tipoAnuncio === 'Clássico') +
           segOpt('tipo-anuncio', 'Premium', 'Premium', draft.tipoAnuncio === 'Premium')
         ) +
+        seg('Tamanho do anúncio (define o lucro mínimo aceitável)',
+          segOpt('tamanho-anuncio', '1L', '1L', draft.tamanhoAnuncio === '1L') +
+          segOpt('tamanho-anuncio', '5L', '5L', draft.tamanhoAnuncio === '5L') +
+          segOpt('tamanho-anuncio', 'Outro', 'Outro', draft.tamanhoAnuncio === 'Outro')
+        ) +
+        '<div class="gc-hint" style="margin:-6px 0 10px">' + (draft.tamanhoAnuncio
+          ? 'Definido manualmente' + (anuncioLucroMinimo(draft) != null ? ' — lucro mínimo R$ ' + anuncioLucroMinimo(draft).toFixed(2).replace('.', ',') : ' — sem lucro mínimo')
+          : 'Clique pra definir manualmente. Sem seleção, detecto pelo título: ' + anuncioTamanhoDetectado(draft.nome) + (anuncioLucroMinimo(draft) != null ? ' (lucro mínimo R$ ' + anuncioLucroMinimo(draft).toFixed(2).replace('.', ',') + ')' : ' (sem lucro mínimo)')
+        ) + '</div>' +
         seg('Tem desconto/promoção?',
           segOpt('tem-desconto', 'sim', 'Sim', draft.temDesconto) +
           segOpt('tem-desconto', 'nao', 'Não', !draft.temDesconto)
@@ -25948,6 +25881,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (custoToggle) custoToggle.addEventListener('click', function () { custoAberto = !custoAberto; render(); });
       $all('[data-tipo-anuncio]', $('#gc-dr-b')).forEach(function (btn) {
         btn.addEventListener('click', function () { draft.tipoAnuncio = btn.dataset.tipoAnuncio; render(); });
+      });
+      $all('[data-tamanho-anuncio]', $('#gc-dr-b')).forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var v = btn.dataset.tamanhoAnuncio;
+          draft.tamanhoAnuncio = (draft.tamanhoAnuncio === v) ? null : v;
+          render();
+        });
       });
       $all('[data-status-anuncio]', $('#gc-dr-b')).forEach(function (btn) {
         btn.addEventListener('click', function () { draft.statusAnuncio = btn.dataset.statusAnuncio; render(); });
@@ -26458,44 +26398,33 @@ function groupInsumosByCategoria(rows) {
   return keys.map(cat => ({ cat, items: groups.get(cat).sort((a, b) => a.titulo.localeCompare(b.titulo)) }));
 }
 
-const INSUMOS_PAGE_SIZE = 10;
-let insumosPaginaPorCategoria = {};
+let categoriasAbertas = {};
+
+function toggleCategoria(cat) {
+  categoriasAbertas[cat] = !categoriasAbertas[cat];
+  renderInsumos();
+}
 
 function insumoGroupsHtml(rows) {
   return groupInsumosByCategoria(rows).map(({ cat, items }) => {
-    const totalPaginas = Math.max(1, Math.ceil(items.length / INSUMOS_PAGE_SIZE));
-    let pagina = insumosPaginaPorCategoria[cat] || 1;
-    if (pagina > totalPaginas) pagina = totalPaginas;
-    const inicio = (pagina - 1) * INSUMOS_PAGE_SIZE;
-    const pageItems = items.slice(inicio, inicio + INSUMOS_PAGE_SIZE);
+    const aberta = !!categoriasAbertas[cat];
+    const catAttr = escapeHtml(cat).replace(/'/g, "\\'");
     return `
       <div class="card table-card">
-        <div class="category-header"><span class="dot"></span><span class="name">${escapeHtml(cat)}</span><span class="count">${items.length}</span></div>
+        <div class="category-header category-header-toggle" onclick="Lab.toggleCategoria('${catAttr}')">
+          <span class="dot"></span><span class="name">${escapeHtml(cat)}</span><span class="count">${items.length}</span>
+          <span class="category-arrow${aberta ? ' open' : ''}">›</span>
+        </div>
+        ${aberta ? `
         <table class="stack-table">
           <thead><tr>
             <th>Título</th><th>Tipo</th><th>Obs</th><th>Fornecedor</th>
             <th class="num">Custo</th><th class="num">Estoque</th><th>Baixo estoque</th><th>Ações</th>
           </tr></thead>
-          <tbody>${pageItems.map(insumoRowHtml).join('')}</tbody>
-        </table>
-        ${totalPaginas > 1 ? paginacaoInsumosHtml(cat, pagina, totalPaginas) : ''}
+          <tbody>${items.map(insumoRowHtml).join('')}</tbody>
+        </table>` : ''}
       </div>`;
   }).join('');
-}
-
-function paginacaoInsumosHtml(cat, pagina, total) {
-  const catAttr = escapeHtml(cat).replace(/'/g, "\\'");
-  return `
-    <div class="pagination">
-      <button class="btn btn-small" ${pagina <= 1 ? 'disabled' : ''} onclick="Lab.mudarPaginaCategoria('${catAttr}', ${pagina - 1})">‹ Anterior</button>
-      <span class="pagination-info">Página ${pagina} de ${total}</span>
-      <button class="btn btn-small" ${pagina >= total ? 'disabled' : ''} onclick="Lab.mudarPaginaCategoria('${catAttr}', ${pagina + 1})">Próxima ›</button>
-    </div>`;
-}
-
-function mudarPaginaCategoria(cat, pagina) {
-  insumosPaginaPorCategoria[cat] = pagina;
-  renderInsumos();
 }
 
 function insumoRowHtml(i) {
@@ -26542,7 +26471,6 @@ function renderInsumosStats() {
 }
 
 function onInsumoFiltroChange() {
-  insumosPaginaPorCategoria = {};
   renderInsumos();
 }
 
@@ -26928,7 +26856,7 @@ function insumoOptionsHtml(tipo, selectedId) {
 function renderReceitas() {
   const tbody = document.getElementById('receitasTable');
   if (!state.produtos.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Nenhum produto cadastrado.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Nenhum produto cadastrado.</td></tr>`;
     return;
   }
   tbody.innerHTML = state.produtos.map(p => `
@@ -26937,6 +26865,7 @@ function renderReceitas() {
       <td class="stack-block" data-label="Garrafa"><select class="input" onchange="Lab.salvarReceita('${p.id}','garrafa_insumo_id',this.value)">${insumoOptionsHtml('garrafa', p.garrafa_insumo_id)}</select></td>
       <td class="stack-block" data-label="Tampa"><select class="input" onchange="Lab.salvarReceita('${p.id}','tampa_insumo_id',this.value)">${insumoOptionsHtml('tampa', p.tampa_insumo_id)}</select></td>
       <td class="stack-block" data-label="Rótulo"><select class="input" onchange="Lab.salvarReceita('${p.id}','rotulo_insumo_id',this.value)">${insumoOptionsHtml('rotulo', p.rotulo_insumo_id)}</select></td>
+      <td class="stack-block" data-label="Rótulo 2"><select class="input" onchange="Lab.salvarReceita('${p.id}','rotulo2_insumo_id',this.value)">${insumoOptionsHtml('rotulo', p.rotulo2_insumo_id)}</select></td>
       <td data-label="Ativo">${p.ativo !== false ? '<span class="pill pill-green">Sim</span>' : '<span class="pill pill-red">Não</span>'}</td>
       <td class="stack-actions"><button class="btn btn-small" onclick="Lab.toggleProdutoAtivo('${p.id}', ${p.ativo === false})">${p.ativo === false ? 'Reativar' : 'Desativar'}</button></td>
     </tr>
@@ -27087,7 +27016,7 @@ function renderConsumoPreview() {
     if (!item.produto_envasado_id || !item.quantidade) continue;
     const produto = state.produtos.find(p => p.id === item.produto_envasado_id);
     if (!produto) continue;
-    ['garrafa_insumo_id', 'tampa_insumo_id', 'rotulo_insumo_id'].forEach(campo => {
+    ['garrafa_insumo_id', 'tampa_insumo_id', 'rotulo_insumo_id', 'rotulo2_insumo_id'].forEach(campo => {
       const insumoId = produto[campo];
       if (!insumoId) return;
       consumo[insumoId] = (consumo[insumoId] || 0) + Number(item.quantidade);
@@ -27250,7 +27179,7 @@ function loteConsumoRows(l) {
     if (!item.produto_envasado_id || !item.quantidade) continue;
     const produto = state.produtos.find(p => p.id === item.produto_envasado_id);
     if (!produto) continue;
-    [['garrafa_insumo_id', 'Garrafa'], ['tampa_insumo_id', 'Tampa'], ['rotulo_insumo_id', 'Rótulo']].forEach(([campo]) => {
+    [['garrafa_insumo_id', 'Garrafa'], ['tampa_insumo_id', 'Tampa'], ['rotulo_insumo_id', 'Rótulo'], ['rotulo2_insumo_id', 'Rótulo 2']].forEach(([campo]) => {
       const insumoId = produto[campo];
       if (!insumoId) return;
       consumo[insumoId] = (consumo[insumoId] || 0) + Number(item.quantidade);
@@ -27634,7 +27563,7 @@ async function renderIndicadores() {
     excluirLoteFromForm: excluirLoteFromForm,
     exportLotePdf: exportLotePdf,
     finalizarLoteAtual: finalizarLoteAtual,
-    mudarPaginaCategoria: mudarPaginaCategoria,
+    toggleCategoria: toggleCategoria,
     navTo: navTo,
     openAjusteModal: openAjusteModal,
     openImportInsumosModal: openImportInsumosModal,
