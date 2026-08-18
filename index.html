@@ -11936,36 +11936,11 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <div class="h-sub"><span id="lojista-count">0</span> vendas para lojistas/revendedores</div>
         </div>
         <div class="h-actions">
-          <button class="btn btn-soft" onclick="openLojistaCadastroModal()">+ Novo lojista</button>
           <button class="btn btn-primary" onclick="openVendaLojistaModal()">+ Nova venda lojista</button>
         </div>
       </div>
 
-      <div class="card table-card" style="margin-bottom:16px">
-        <div class="header" style="margin-bottom:10px">
-          <div>
-            <div class="h-title" style="font-size:16px">Lojistas cadastrados</div>
-            <div class="h-sub"><span id="lojistas-count">0</span> lojistas/revendedores cadastrados</div>
-          </div>
-        </div>
-        <div class="filter-panel lojista" style="margin-bottom:10px">
-          <input type="text" class="input" id="searchLojistasCadastro" placeholder="Buscar por nome, telefone, CPF/CNPJ..." oninput="renderLojistasCadastro()">
-          <button class="btn btn-soft" onclick="document.getElementById('searchLojistasCadastro').value='';renderLojistasCadastro();">Limpar</button>
-        </div>
-        <table class="sales-table mobile-card-table">
-          <colgroup><col style="width:25%"><col style="width:18%"><col style="width:20%"><col style="width:22%"><col style="width:15%"></colgroup>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Telefone</th>
-              <th>CPF/CNPJ</th>
-              <th>Cidade</th>
-              <th class="col-acoes">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="lojistasCadastroTable"></tbody>
-        </table>
-      </div>
+      <div class="form-help" style="margin:0 0 14px;font-size:13px">O cadastro de lojistas (nome, contato, CPF/CNPJ) agora fica em <strong>Clientes</strong> — use o filtro "Só Lojistas" lá pra ver/editar. Aqui fica só o lançamento das vendas.</div>
 
       <datalist id="lojistas-datalist"></datalist>
 
@@ -12056,6 +12031,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <button class="btn hidden" id="btn-inativar-clientes" onclick="inativarClientesSelecionados()">Deixar inativo (<span id="inativar-count">0</span>)</button>
           <button class="btn btn-danger hidden" id="btn-apagar-clientes" onclick="apagarClientesSelecionados()">Apagar (<span id="apagar-count">0</span>)</button>
           <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
+          <button class="btn btn-soft hidden" id="btn-novo-lojista" onclick="openLojistaCadastroModal()">+ Novo Lojista</button>
           <button class="btn btn-primary" onclick="openClienteModal()">+ Novo Cliente</button>
         </div>
       </div>
@@ -12087,6 +12063,11 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
         <div class="filter-panel clients">
           <input type="text" class="input" id="searchClientes" placeholder="Buscar cliente..." oninput="renderClientes()">
+          <select class="input hidden" id="filterTipoPessoa" onchange="renderClientes()">
+            <option value="">Clientes e Lojistas</option>
+            <option value="cliente">Só Clientes</option>
+            <option value="lojista">Só Lojistas</option>
+          </select>
           <select class="input" id="filterStatus" onchange="renderClientes()">
             <option value="">Todos os status</option>
             <option value="Ativo">Ativos</option>
@@ -16863,6 +16844,40 @@ function computeClientes() {
   }).sort((a, b) => b.total - a.total);
 }
 
+// Mesma lógica de status/última compra de computeClientes(), mas pros cadastros de
+// Lojista (aba Lojista → cadastro), agregando por state.vendasLojista — pra poder
+// listar e filtrar Lojistas junto com Clientes na mesma tabela.
+function computeLojistasParaClientes() {
+  const today = new Date();
+  const porNome = {};
+  state.vendasLojista.forEach(v => {
+    const k = nameKey(v.cliente);
+    if (!porNome[k]) porNome[k] = { total: 0, pedidos: 0, ultima: null };
+    porNome[k].total += parseFloat(v.valor) || 0;
+    porNome[k].pedidos += 1;
+    const dt = dashboardDateObj(v.data);
+    if (dt && (!porNome[k].ultima || dt > porNome[k].ultima)) porNome[k].ultima = dt;
+  });
+  return state.lojistas.map(l => {
+    const agg = porNome[nameKey(l.nome)] || { total: 0, pedidos: 0, ultima: null };
+    const dias = agg.ultima ? daysBetween(agg.ultima, today) : 999;
+    return {
+      nome: l.nome,
+      telefone: l.telefone || '',
+      email: l.email || '',
+      cpf: l.cpf || '',
+      cnpj: l.cnpj || '',
+      metadata: { cep: l.cep, rua: l.rua, numero: l.numero, bairro: l.bairro, cidade: l.cidade, estado: l.estado, nascimentoDia: l.nascimentoDia, nascimentoMes: l.nascimentoMes },
+      total: agg.total,
+      pedidos: agg.pedidos,
+      ultima: agg.ultima,
+      dias,
+      status: statusOf(dias),
+      tipoPessoa: 'lojista'
+    };
+  }).sort((a, b) => b.total - a.total);
+}
+
 function computeMensal() {
   const map = {};
   state.vendas.forEach(v => {
@@ -17944,6 +17959,7 @@ function salvarLojistaCadastro() {
   STORE.save('lojistas', state.lojistas);
   document.getElementById('modal-lojista-cadastro').classList.remove('show');
   renderLojistasCadastro();
+  if (!document.getElementById('view-clientes').classList.contains('hidden')) renderClientes();
 }
 
 async function excluirLojistaCadastro(nome) {
@@ -17955,11 +17971,16 @@ async function excluirLojistaCadastro(nome) {
   const session = await getSupabaseSession();
   if (client && session && removido?.id) await client.from('crm_lojistas').delete().eq('id', removido.id);
   renderLojistasCadastro();
+  if (!document.getElementById('view-clientes').classList.contains('hidden')) renderClientes();
 }
 
 function updateSidebarForRole() {
   const navItem = document.getElementById('nav-item-lojista');
   if (navItem) navItem.classList.toggle('hidden', !isAdminUser());
+  const btnNovoLojista = document.getElementById('btn-novo-lojista');
+  if (btnNovoLojista) btnNovoLojista.classList.toggle('hidden', !isAdminUser());
+  const filterTipoPessoa = document.getElementById('filterTipoPessoa');
+  if (filterTipoPessoa) filterTipoPessoa.classList.toggle('hidden', !isAdminUser());
 }
 
 function validatePdfFile(file) {
@@ -18390,7 +18411,7 @@ function verMaisCliente(nome) {
 }
 
 function limparFiltrosClientes() {
-  ['searchClientes','filterStatus','filterClienteCompra','filterClienteValor'].forEach(id => {
+  ['searchClientes','filterTipoPessoa','filterStatus','filterClienteCompra','filterClienteValor'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -18599,7 +18620,7 @@ function atualizarSelecaoUnificar(checkbox, nome) {
 function selecionarTodosClientesFiltrados() {
   const lista = window.__clientesFiltradosAtuais || [];
   if (!lista.length) return;
-  lista.forEach(c => unificarSelecionados.add(nameKey(c.nome)));
+  lista.filter(c => c.tipoPessoa !== 'lojista').forEach(c => unificarSelecionados.add(nameKey(c.nome)));
   atualizarBotoesSelecaoClientes();
   if (typeof renderClientes === 'function') renderClientes();
 }
@@ -22614,24 +22635,28 @@ init();
 
   window.renderClientes = function() {
     ensureClientesFinalSemFavorito();
-    const clis = typeof computeClientes === 'function' ? computeClientes() : [];
+    const podeVerLojistas = isAdminUser();
+    const tipoPessoa = podeVerLojistas ? (document.getElementById('filterTipoPessoa')?.value || '') : 'cliente';
+    const clis = tipoPessoa === 'lojista' ? [] : (typeof computeClientes === 'function' ? computeClientes().map(c => ({ ...c, tipoPessoa: 'cliente' })) : []);
+    const lojistas = (!podeVerLojistas || tipoPessoa === 'cliente') ? [] : (typeof computeLojistasParaClientes === 'function' ? computeLojistasParaClientes() : []);
+    const todos = clis.concat(lojistas);
     const countEl = document.getElementById('clientes-count');
-    if (countEl) countEl.textContent = clis.length.toLocaleString('pt-BR');
+    if (countEl) countEl.textContent = todos.length.toLocaleString('pt-BR');
     const ativoEl = document.getElementById('c-ativo');
     const riscoEl = document.getElementById('c-risco');
     const inativoEl = document.getElementById('c-inativo');
-    if (ativoEl) ativoEl.textContent = clis.filter(c => c.status === 'Ativo').length;
-    if (riscoEl) riscoEl.textContent = clis.filter(c => c.status === 'Em Risco').length;
-    if (inativoEl) inativoEl.textContent = clis.filter(c => c.status === 'Inativo').length;
+    if (ativoEl) ativoEl.textContent = todos.filter(c => c.status === 'Ativo').length;
+    if (riscoEl) riscoEl.textContent = todos.filter(c => c.status === 'Em Risco').length;
+    if (inativoEl) inativoEl.textContent = todos.filter(c => c.status === 'Inativo').length;
 
     const term = (document.getElementById('searchClientes')?.value || '').toLowerCase();
     const status = document.getElementById('filterStatus')?.value || '';
     const compra = document.getElementById('filterClienteCompra')?.value || '';
     const valorMin = parseFloat(document.getElementById('filterClienteValor')?.value || 0) || 0;
-    let rows = clis;
+    let rows = todos;
     if (term) {
       rows = rows.filter(r => {
-        const doc = clienteDocResumoCompleto(r.nome).toLowerCase();
+        const doc = (r.tipoPessoa === 'lojista' ? [r.cpf, r.cnpj].filter(Boolean).join(' ') : clienteDocResumoCompleto(r.nome)).toLowerCase();
         return String(r.nome || '').toLowerCase().includes(term) || String(r.telefone || '').toLowerCase().includes(term) || doc.includes(term);
       });
     }
@@ -22650,7 +22675,7 @@ init();
     // Lista completa já filtrada/ordenada (todas as páginas), pro "Selecionar tudo" usar.
     window.__clientesFiltradosAtuais = rows;
 
-    const pageSignature = typeof gsoPaginationSignature === 'function' ? gsoPaginationSignature([term, status, compra, valorMin, sortMode, rows.length]) : String(rows.length);
+    const pageSignature = typeof gsoPaginationSignature === 'function' ? gsoPaginationSignature([tipoPessoa, term, status, compra, valorMin, sortMode, rows.length]) : String(rows.length);
     const pageInfo = typeof gsoPaginateRows === 'function' ? gsoPaginateRows('clientes', rows, pageSignature) : { rows: rows.slice(0, PER_PAGE), page:1, pages:Math.max(1, Math.ceil(rows.length/PER_PAGE)), total:rows.length, start:0, end:Math.min(rows.length, PER_PAGE) };
     const tbody = document.getElementById('clientesTable');
     if (!tbody) return;
@@ -22660,18 +22685,26 @@ init();
       return;
     }
     if (typeof gsoRenderPagination === 'function') gsoRenderPagination('clientesPagination', 'clientes', pageInfo);
-    tbody.innerHTML = pageInfo.rows.map(c => '<tr>' +
-      '<td data-label="Selecionar"><input type="checkbox" class="chk-unificar-linha" ' + (typeof unificarSelecionados !== 'undefined' && unificarSelecionados.has(nameKey(c.nome)) ? 'checked' : '') + ' onchange="atualizarSelecaoUnificar(this, ' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')"></td>' +
-      '<td data-label="Cliente"><strong>' + esc(c.nome || '—') + '</strong></td>' +
-      '<td data-label="Telefone">' + esc(c.telefone || '—') + '</td>' +
-      '<td data-label="CPF/CNPJ">' + esc(clienteDocResumoCompleto(c.nome)) + '</td>' +
-      '<td data-label="Última compra">' + (c.ultima && typeof fmtDate === 'function' ? fmtDate(c.ultima) : '—') + '</td>' +
-      '<td data-label="Status"><span class="pill ' + (typeof pillClass === 'function' ? pillClass(c.status) : '') + '">' + esc(c.status || '—') + '</span></td>' +
-      '<td data-label="Ações"><div class="row-actions">' +
-      '<button class="btn btn-small" onclick="openClienteModal(' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')">Editar</button>' +
-      '<button class="btn btn-small btn-danger" onclick="excluirCliente(' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')">Apagar</button>' +
-      '<button class="btn btn-small" onclick="verMaisCliente(' + (typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '')) + ')">Ver mais</button>' +
-      '</div></td></tr>').join('');
+    tbody.innerHTML = pageInfo.rows.map(c => {
+      const nomeAttr = typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '');
+      const isLojista = c.tipoPessoa === 'lojista';
+      const doc = isLojista ? [c.cpf, c.cnpj].filter(Boolean).join(' / ') : clienteDocResumoCompleto(c.nome);
+      return '<tr>' +
+        '<td data-label="Selecionar">' + (isLojista ? '' : '<input type="checkbox" class="chk-unificar-linha" ' + (typeof unificarSelecionados !== 'undefined' && unificarSelecionados.has(nameKey(c.nome)) ? 'checked' : '') + ' onchange="atualizarSelecaoUnificar(this, ' + nomeAttr + ')">') + '</td>' +
+        '<td data-label="Cliente"><strong>' + esc(c.nome || '—') + '</strong>' + (isLojista ? ' <span class="pill pill-blue">Lojista</span>' : '') + '</td>' +
+        '<td data-label="Telefone">' + esc(c.telefone || '—') + '</td>' +
+        '<td data-label="CPF/CNPJ">' + esc(doc) + '</td>' +
+        '<td data-label="Última compra">' + (c.ultima && typeof fmtDate === 'function' ? fmtDate(c.ultima) : '—') + '</td>' +
+        '<td data-label="Status"><span class="pill ' + (typeof pillClass === 'function' ? pillClass(c.status) : '') + '">' + esc(c.status || '—') + '</span></td>' +
+        '<td data-label="Ações"><div class="row-actions">' +
+        (isLojista
+          ? '<button class="btn btn-small" onclick="openLojistaCadastroModal(' + nomeAttr + ')">Editar</button>' +
+            '<button class="btn btn-small btn-danger" onclick="excluirLojistaCadastro(' + nomeAttr + ')">Apagar</button>'
+          : '<button class="btn btn-small" onclick="openClienteModal(' + nomeAttr + ')">Editar</button>' +
+            '<button class="btn btn-small btn-danger" onclick="excluirCliente(' + nomeAttr + ')">Apagar</button>' +
+            '<button class="btn btn-small" onclick="verMaisCliente(' + nomeAttr + ')">Ver mais</button>') +
+        '</div></td></tr>';
+    }).join('');
   };
 
   const previousSwitchClienteTab = window.switchClienteTab;
