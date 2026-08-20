@@ -24494,10 +24494,45 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     return map;
   }
 
-  /* ---------- store persistente ---------- */
+  /* ---------- store persistente (local + Supabase, pra não ficar preso a um computador) ---------- */
   var store = { custos: {}, tabelas: {}, aromas: {}, sims: [], revisados: {}, pov: {}, modo: 'simples' };
   function load() { try { var s = JSON.parse(localStorage.getItem(LS) || 'null'); if (s) store = Object.assign(store, s); } catch (e) {} }
-  function save() { try { localStorage.setItem(LS, JSON.stringify(store)); } catch (e) {} }
+  var remoteSaveTimer = null;
+  function save() {
+    try { localStorage.setItem(LS, JSON.stringify(store)); } catch (e) {}
+    clearTimeout(remoteSaveTimer);
+    remoteSaveTimer = setTimeout(pushRemote, 600);
+  }
+  function storeTemDados(s) {
+    if (!s) return false;
+    return !!((s.custos && Object.keys(s.custos).length) || (s.tabelas && Object.keys(s.tabelas).length) ||
+      (s.anuncios && s.anuncios.length) || (s.sims && s.sims.length) || (s.aromas && Object.keys(s.aromas).length));
+  }
+  async function pushRemote() {
+    var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : null;
+    if (!client) return;
+    try {
+      await client.from('gso_calc_store').upsert({ id: 'default', data: store, updated_at: new Date().toISOString() });
+    } catch (e) { console.warn('gso-calc: falha ao salvar no Supabase', e); }
+  }
+  // No load/login: o Supabase (quando já tem dado) é a fonte de verdade entre computadores.
+  // Só empurra o local pra lá se o Supabase ainda não tiver nada — nunca sobrescreve um
+  // Supabase com dado real usando um "store" local vazio (evita apagar matéria-prima cadastrada).
+  async function syncRemote() {
+    var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : null;
+    if (!client) return;
+    try {
+      var res = await client.from('gso_calc_store').select('data').eq('id', 'default').maybeSingle();
+      if (res.error) { console.warn('gso-calc: falha ao ler do Supabase', res.error.message); return; }
+      if (res.data && res.data.data && storeTemDados(res.data.data)) {
+        store = Object.assign({ custos: {}, tabelas: {}, aromas: {}, sims: [], revisados: {}, pov: {}, modo: 'simples' }, res.data.data);
+        try { localStorage.setItem(LS, JSON.stringify(store)); } catch (e) {}
+        if (window.gsoCalc && typeof window.gsoCalc.refresh === 'function') window.gsoCalc.refresh();
+      } else if (storeTemDados(store)) {
+        await pushRemote();
+      }
+    } catch (e) { console.warn('gso-calc: erro ao sincronizar', e); }
+  }
 
   function params() {
     var base = { fiscal: 20, despesas: 15, comissao: 0, taxa: 0, margem: 25, margemMin: 12, margemPremium: 40, fatorConsumidor: 1.6, batelada: BATELADA_L_DEFAULT, descontoMax: 10 };
@@ -26384,6 +26419,16 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function init() {
     load(); ensureInsumosLabels(); fixSidebar(); mount();
+    syncRemote();
+    if (typeof window.showApp === 'function' && !window.__gcShowAppPatched) {
+      window.__gcShowAppPatched = true;
+      var _showApp = window.showApp;
+      window.showApp = function () {
+        var out = _showApp.apply(this, arguments);
+        syncRemote();
+        return out;
+      };
+    }
     if (typeof window.navTo === 'function' && !window.__gcNavPatched) {
       window.__gcNavPatched = true;
       var _nav = window.navTo;
