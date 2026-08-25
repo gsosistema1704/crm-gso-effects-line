@@ -25154,7 +25154,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
 
   /* ---------- estado da UI ---------- */
-  var UI = { tab: 'pedido', itens: [], filtros: {}, estrTabela: 'consumidor', estrStatus: '', ordenar: 'menor', mlEditando: null };
+  var UI = { tab: 'pedido', itens: [], filtros: {}, estrTabela: 'consumidor', estrStatus: '', ordenar: 'menor', mlEditando: null, mlView: 'anuncios' };
 
   function prodRows() { return catalogo(); }
   function nomesUnicos() { var s = {}; prodRows().forEach(function (r) { s[r.produto] = 1; }); return Object.keys(s); }
@@ -26076,8 +26076,177 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     save();
     renderML();
   }
+
+  // ============ MERCADO LIVRE — VENDAS (sub-aba) ============
+  // Tabela própria (gso_ml_vendas), separada da aba "Vendas" do CRM de propósito — aqui
+  // é só pra saber o lucro real por anúncio (preço, tarifa, envio, custo já vêm do bloco
+  // do anúncio via anuncioCalc), não é pra somar com o faturamento oficial da empresa.
+  var mlVendas = [];
+  var mlVendasCarregado = false;
+  async function loadMlVendas() {
+    var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : null;
+    if (!client) return;
+    try {
+      var res = await client.from('gso_ml_vendas').select('*').order('data', { ascending: false }).order('criado_em', { ascending: false });
+      if (res.error) { console.warn('gso-ml-vendas: erro ao carregar', res.error.message); return; }
+      mlVendas = res.data || [];
+      mlVendasCarregado = true;
+    } catch (e) { console.warn('gso-ml-vendas: erro ao carregar', e); }
+  }
+  function hojeISO() { return new Date().toISOString().slice(0, 10); }
+  function mlVendaTotais(v) {
+    var qtd = num(v.qtd) || 1;
+    return {
+      valor: round2(num(v.preco_unitario) * qtd),
+      recebido: round2(num(v.recebido_unitario) * qtd),
+      lucro: round2(num(v.lucro_unitario) * qtd)
+    };
+  }
+  function mlVendasChartSvg() {
+    var dias = [];
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+      dias.push({ key: d.toISOString().slice(0, 10), label: d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''), valor: 0 });
+    }
+    var porDia = {}; dias.forEach(function (d) { porDia[d.key] = d; });
+    mlVendas.forEach(function (v) {
+      var dia = porDia[String(v.data).slice(0, 10)];
+      if (dia) dia.valor += mlVendaTotais(v).valor;
+    });
+    var w = 640, h = 200, padB = 34, padT = 20, gap = 14;
+    var barW = (w - gap * (dias.length - 1)) / dias.length;
+    var maxV = Math.max.apply(null, dias.map(function (d) { return d.valor; }).concat([1]));
+    var bars = dias.map(function (d, idx) {
+      var x = idx * (barW + gap);
+      var barH = Math.round((d.valor / maxV) * (h - padT - padB));
+      var y = h - padB - barH;
+      return '<g>' +
+        '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + Math.max(barH, 2) + '" rx="4" fill="var(--gcac)"></rect>' +
+        '<text x="' + (x + barW / 2) + '" y="' + (h - padB + 16) + '" text-anchor="middle" font-size="10" fill="var(--gcmut)">' + esc(d.label) + '</text>' +
+        (d.valor ? '<text x="' + (x + barW / 2) + '" y="' + (y - 6) + '" text-anchor="middle" font-size="10" font-weight="700" fill="var(--gcink)">' + fmt(d.valor) + '</text>' : '') +
+      '</g>';
+    }).join('');
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:auto;max-height:220px;display:block;">' + bars + '</svg>';
+  }
+  function renderMLVendasHtml() {
+    if (!mlVendasCarregado) { loadMlVendas().then(function () { if (UI.mlView === 'vendas') renderML(); }); }
+    var totais = mlVendas.reduce(function (acc, v) {
+      var t = mlVendaTotais(v);
+      acc.valor += t.valor; acc.recebido += t.recebido; acc.lucro += t.lucro;
+      return acc;
+    }, { valor: 0, recebido: 0, lucro: 0 });
+    var linhas = mlVendas.map(function (v) {
+      var t = mlVendaTotais(v);
+      return '<tr>' +
+        '<td class="stack-title">' + fmtDate(v.data) + '</td>' +
+        '<td data-label="Anúncio">' + esc(v.anuncio_nome) + '</td>' +
+        '<td class="num" data-label="Qtd">' + (v.qtd || 1) + '</td>' +
+        '<td class="num" data-label="Valor">' + fmt(t.valor) + '</td>' +
+        '<td class="num" data-label="Recebido">' + fmt(t.recebido) + '</td>' +
+        '<td class="num" data-label="Lucro">' + fmt(t.lucro) + '</td>' +
+        '<td data-label="Ações"><button type="button" class="gc-btn" style="color:#B0322F" data-venda-ml-del="' + esc(v.id) + '">Excluir</button></td>' +
+      '</tr>';
+    }).join('');
+    return '<div class="gc-blk">' +
+      '<div style="margin-bottom:12px"><button type="button" class="gc-btn dark" id="gc-ml-venda-novo">+ Nova venda</button></div>' +
+      '<div class="gc-ml-venda-stats">' +
+        '<div class="gc-ml-venda-stat"><span class="l">Vendas registradas</span><b>' + mlVendas.length + '</b></div>' +
+        '<div class="gc-ml-venda-stat"><span class="l">Total vendido</span><b>' + fmt(totais.valor) + '</b></div>' +
+        '<div class="gc-ml-venda-stat"><span class="l">Total recebido</span><b>' + fmt(totais.recebido) + '</b></div>' +
+        '<div class="gc-ml-venda-stat"><span class="l">Lucro total</span><b>' + fmt(totais.lucro) + '</b></div>' +
+      '</div>' +
+      '<div class="gc-hint" style="margin:14px 0 8px;padding:0">Vendas nos últimos 7 dias</div>' +
+      mlVendasChartSvg() +
+      (mlVendas.length ? (
+        '<div class="gc-table-wrap gc-ml-venda-table-wrap" style="margin-top:16px"><table class="gct">' +
+        '<thead><tr><th>Data</th><th>Anúncio</th><th class="num">Qtd</th><th class="num">Valor</th><th class="num">Recebido</th><th class="num">Lucro</th><th>Ações</th></tr></thead>' +
+        '<tbody>' + linhas + '</tbody></table></div>'
+      ) : '<div class="gc-hint" style="margin-top:16px">Nenhuma venda registrada ainda. Clique em "+ Nova venda" e escolha o anúncio vendido.</div>') +
+    '</div>';
+  }
+  function abrirVendaMLForm() {
+    document.body.classList.add('gc-dr-flutuante');
+    var anuncios = (store.anuncios || []).slice().sort(function (a, b) { return (a.nome || '').localeCompare(b.nome || ''); });
+    var draft = { anuncioId: (anuncios[0] || {}).id || '', data: hojeISO(), qtd: 1 };
+    function render() {
+      var anuncio = anuncios.filter(function (a) { return a.id === draft.anuncioId; })[0];
+      var c = anuncio ? anuncioCalc(anuncio) : null;
+      var qtd = Math.max(1, parseInt(draft.qtd, 10) || 1);
+      var opcoes = anuncios.length ? anuncios.map(function (a) {
+        return '<option value="' + esc(a.id) + '"' + (a.id === draft.anuncioId ? ' selected' : '') + '>' + esc(a.nome || 'Sem nome') + '</option>';
+      }).join('') : '<option value="">Nenhum anúncio cadastrado</option>';
+      var inputStyle = 'border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink)';
+      var html =
+        '<div class="gc-kv"><span class="l">Anúncio vendido</span><b><select id="gc-vml-anuncio" style="' + inputStyle + '">' + opcoes + '</select></b></div>' +
+        '<div class="gc-kv"><span class="l">Data da venda</span><b><input type="date" id="gc-vml-data" value="' + esc(draft.data) + '" style="' + inputStyle + '"></b></div>' +
+        '<div class="gc-kv"><span class="l">Quantidade</span><b><input type="number" min="1" step="1" id="gc-vml-qtd" value="' + qtd + '" style="' + inputStyle + ';width:70px;text-align:right"></b></div>' +
+        (c ? (
+          '<div class="gc-kv" style="margin-top:10px;border-top:1px solid var(--gcln);padding-top:10px"><span class="l">Valor cobrado (no anúncio)</span><b>' + fmt(c.precoFinal * qtd) + '</b></div>' +
+          '<div class="gc-kv"><span class="l">Tarifa de venda</span><b>−' + fmt(c.tarifaVenda * qtd) + '</b></div>' +
+          '<div class="gc-kv"><span class="l">Envio</span><b>−' + fmt(c.custoExtra * qtd) + '</b></div>' +
+          '<div class="gc-kv"><span class="l">Cai na sua conta</span><b>' + fmt(c.recebido * qtd) + '</b></div>' +
+          '<div class="gc-kv"><span class="l">Custo do produto</span><b>−' + fmt(c.custoProduto * qtd) + '</b></div>' +
+          '<div class="gc-kv"><span class="l">Fiscal</span><b>−' + fmt(c.fiscalValor * qtd) + '</b></div>' +
+          '<div class="gc-kv"><span class="l">Lucro final</span><b>' + fmt(c.lucro * qtd) + '</b></div>'
+        ) : '<div class="gc-hint" style="margin-top:10px">Cadastre um anúncio em "Anúncios" antes de registrar uma venda.</div>') +
+        '<div class="gc-row" style="margin-top:10px">' +
+          '<button class="gc-btn dark" id="gc-vml-save"' + (anuncio ? '' : ' disabled') + '>Salvar venda</button>' +
+        '</div>';
+      drOpen('Nova venda — Mercado Livre', html);
+      wire();
+    }
+    function wire() {
+      var selAnuncio = $('#gc-vml-anuncio'); if (selAnuncio) selAnuncio.addEventListener('change', function () { draft.anuncioId = this.value; render(); });
+      var inpData = $('#gc-vml-data'); if (inpData) inpData.addEventListener('change', function () { draft.data = this.value; });
+      var inpQtd = $('#gc-vml-qtd'); if (inpQtd) inpQtd.addEventListener('input', function () { draft.qtd = this.value; render(); });
+      var btnSave = $('#gc-vml-save'); if (btnSave) btnSave.addEventListener('click', function () { salvarVendaML(draft, anuncios); });
+    }
+    render();
+  }
+  async function salvarVendaML(draft, anuncios) {
+    var anuncio = anuncios.filter(function (a) { return a.id === draft.anuncioId; })[0];
+    if (!anuncio) { alert('Escolha um anúncio.'); return; }
+    var c = anuncioCalc(anuncio);
+    var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : null;
+    if (!client) { alert('Não consegui conectar ao Supabase.'); return; }
+    var payload = {
+      anuncio_id: anuncio.id,
+      anuncio_nome: anuncio.nome || 'Sem nome',
+      data: draft.data || hojeISO(),
+      qtd: Math.max(1, parseInt(draft.qtd, 10) || 1),
+      preco_unitario: c.precoFinal,
+      tarifa_unitario: c.tarifaVenda,
+      envio_unitario: c.custoExtra,
+      custo_unitario: c.custoProduto,
+      fiscal_unitario: c.fiscalValor,
+      recebido_unitario: c.recebido,
+      lucro_unitario: c.lucro
+    };
+    var res = await client.from('gso_ml_vendas').insert(payload);
+    if (res.error) { alert('Erro ao salvar: ' + res.error.message); return; }
+    drClose();
+    await loadMlVendas();
+    renderML();
+  }
+  async function excluirVendaML(id) {
+    if (!confirm('Excluir esta venda? Essa ação não pode ser desfeita.')) return;
+    var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : null;
+    if (!client) return;
+    var res = await client.from('gso_ml_vendas').delete().eq('id', id);
+    if (res.error) { alert('Erro ao excluir: ' + res.error.message); return; }
+    await loadMlVendas();
+    renderML();
+  }
+
+  function mlSubtabsHtml() {
+    return '<div class="gc-ml-subtabs">' +
+      '<button type="button" class="gc-ml-subtab' + (UI.mlView !== 'vendas' ? ' on' : '') + '" data-ml-view="anuncios">Anúncios</button>' +
+      '<button type="button" class="gc-ml-subtab' + (UI.mlView === 'vendas' ? ' on' : '') + '" data-ml-view="vendas">Vendas</button>' +
+    '</div>';
+  }
   function renderML() {
     var el = $('#gc-ml'); if (!el) return;
+    if (UI.mlView === 'vendas') { el.innerHTML = mlSubtabsHtml() + renderMLVendasHtml(); return; }
     var anuncios = store.anuncios || [];
     var blocos = blocosAtuais();
     var porChave = {}; blocos.forEach(function (b) { porChave[b.chave] = []; });
@@ -26139,7 +26308,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '</div>';
     }
     var blocosHtml = blocos.map(bloco).join('');
-    el.innerHTML =
+    el.innerHTML = mlSubtabsHtml() +
       '<div class="gc-blk">' +
         '<h2>Mercado Livre <span>arraste um card pra outro bloco pra reclassificar · arraste o título pra reordenar · ✎ edita nome/cor · ▾ minimiza · clique num anúncio pra editar</span></h2>' +
         '<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="gc-btn dark" id="gc-ml-novo">+ Novo anúncio</button><button type="button" class="gc-btn" id="gc-ml-bloco-novo">+ Novo bloco</button></div>' +
@@ -26543,6 +26712,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var pov = t.closest('[data-pov]'); if (pov) { startEditParam(pov); return; }
       var oa = t.closest('[data-open-anuncio]'); if (oa) { abrirAnuncio(oa.dataset.openAnuncio); return; }
       if (t.id === 'gc-ml-novo') { abrirAnuncio(null); return; }
+      var mlv = t.closest('[data-ml-view]'); if (mlv) { UI.mlView = mlv.dataset.mlView; renderML(); return; }
+      if (t.id === 'gc-ml-venda-novo') { abrirVendaMLForm(); return; }
+      var vmd = t.closest('[data-venda-ml-del]'); if (vmd) { excluirVendaML(vmd.dataset.vendaMlDel); return; }
       if (t.id === 'gc-ml-bloco-novo') { blocoNovo(); return; }
       var bc2 = t.closest('[data-bloco-colapsar]'); if (bc2) { var bb1 = blocoPor(bc2.dataset.blocoColapsar); if (bb1) { bb1.colapsado = !bb1.colapsado; save(); renderML(); } return; }
       var be = t.closest('[data-bloco-editar]'); if (be) { UI.mlEditando = (UI.mlEditando === be.dataset.blocoEditar) ? null : be.dataset.blocoEditar; renderML(); return; }
@@ -30170,6 +30342,19 @@ body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !impor
 #gso-calc .gc-receita-foot b{ color:var(--gcink); }
 
 /* Mercado Livre: blocos por produto, com anúncios arrastáveis entre blocos */
+#gso-calc .gc-ml-subtabs{ display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--gcln); }
+#gso-calc .gc-ml-subtab{ border:0; background:none; padding:8px 4px 10px; margin-right:14px; font:700 13px inherit; font-family:inherit; color:var(--gcmut); cursor:pointer; border-bottom:2px solid transparent; }
+#gso-calc .gc-ml-subtab.on{ color:var(--gcink); border-bottom-color:var(--gcac); }
+#gso-calc .gc-ml-venda-stats{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; }
+@media(max-width:680px){ #gso-calc .gc-ml-venda-stats{ grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+#gso-calc .gc-ml-venda-stat{ border:1px solid var(--gcln); border-radius:12px; padding:10px 14px; background:var(--gcbg); }
+#gso-calc .gc-ml-venda-stat .l{ display:block; font-size:11px; font-weight:700; color:var(--gcmut); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+#gso-calc .gc-ml-venda-stat b{ font-size:18px; font-weight:800; color:var(--gcink); }
+@media(max-width:680px){
+  #gso-calc .gc-ml-venda-table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  #gso-calc .gc-ml-venda-table-wrap table.gct{ table-layout:auto; min-width:600px; }
+  #gso-calc .gc-ml-venda-table-wrap table.gct td{ white-space:nowrap; overflow-wrap:normal; }
+}
 #gso-calc .gc-ml-board{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; }
 @media(max-width:1320px){ #gso-calc .gc-ml-board{ grid-template-columns:repeat(3, minmax(0, 1fr)); } }
 @media(max-width:1080px){ #gso-calc .gc-ml-board{ grid-template-columns:repeat(2, minmax(0, 1fr)); } }
