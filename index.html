@@ -11876,7 +11876,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <div class="h-sub"><span id="vendas-count">0</span> pedidos registrados</div>
         </div>
         <div class="h-actions">
-          <button class="btn" onclick="openProdutoModal()">+ Novo produto</button>
+          <button class="btn" onclick="openClienteModal()">+ Novo cliente</button>
           <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
         </div>
       </div>
@@ -30073,7 +30073,7 @@ body.theme-dark input[type="text"]:focus, body.theme-dark select:focus, body.the
 .sb-section{ letter-spacing:.18em !important; font-size:10px !important; opacity:.75; }
 
 /* -- tabs do módulo Calculadora: underline mais marcado -- */
-#gso-calc .gc-tabs button.on{ border-bottom-width:3px !important; }
+#gso-calc .gc-tabs button.on, #gso-calc .gc-ml-subtab.on{ border-bottom-width:3px !important; }
 #gso-calc .gc-sum{ transition: transform .12s ease, box-shadow .12s ease; }
 #gso-calc .gc-sum:hover{ transform: translateY(-1px); box-shadow:0 6px 16px rgba(15,17,20,.10); }
 body.theme-dark #gso-calc .gc-sum:hover{ box-shadow:0 6px 16px rgba(0,0,0,.45); }
@@ -30144,8 +30144,8 @@ body.theme-dark .sidebar .nav-item.active, body.theme-dark .nav-item.active{
 }
 
 /* ---- Calculadora e controles no ESCURO: slates azulados -> cinza médio ---- */
-body.theme-dark #gso-calc .gc-tabs button{ background:transparent !important; border-radius:0 !important; box-shadow:none !important; }
-body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#E8E8E8 !important; }
+body.theme-dark #gso-calc .gc-tabs button, body.theme-dark #gso-calc .gc-ml-subtab{ background:transparent !important; border-radius:0 !important; box-shadow:none !important; }
+body.theme-dark #gso-calc .gc-tabs button.on, body.theme-dark #gso-calc .gc-ml-subtab.on{ border-bottom-color:#E8E8E8 !important; }
 body.theme-dark #gso-calc .gc-btn:not(.dark):not(.zap):not(.red){
   background:#3F3F3F !important; border-color:#585858 !important; color:#F2F2F2 !important;
 }
@@ -30215,7 +30215,7 @@ body.theme-dark #gso-calc td[data-ed]:hover{ background: rgba(210, 214, 219,.16)
 #gso-calc .gc-msg.warn{ border-left-color: var(--crm-warning, #D9A441); }
 #gso-calc .gc-msg.bad{ border-left-color: var(--crm-danger, #C93C37); }
 /* abas, seletor de modo e segmento com o acento da Produtos */
-#gso-calc .gc-tabs button.on{ color: var(--crm-text, #282828) !important; border-bottom-color: var(--crm-primary, #6F6F6F) !important; }
+#gso-calc .gc-tabs button.on, #gso-calc .gc-ml-subtab.on{ color: var(--crm-text, #282828) !important; border-bottom-color: var(--crm-primary, #6F6F6F) !important; }
 /* botões neutros/filtros = superfícies da Produtos (substitui os cinzas forçados no escuro) */
 body.theme-dark #gso-calc .gc-btn:not(.dark):not(.zap):not(.red){
   background: var(--crm-surface, #262626) !important;
@@ -30284,8 +30284,8 @@ body.theme-dark #gso-calc td[data-ed]{ color:#DBDBDB !important; }
 #gso-calc .gc-status .big, #gso-calc td[data-ed]{ color:#636363 !important; }
 body.theme-dark #gso-calc td[data-ed]:hover{ background: rgba(255,255,255,.08) !important; }
 #gso-calc td[data-ed]:hover{ background: rgba(15,17,20,.06) !important; }
-#gso-calc .gc-tabs button.on{ border-bottom-color:#636363 !important; }
-body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !important; }
+#gso-calc .gc-tabs button.on, #gso-calc .gc-ml-subtab.on{ border-bottom-color:#636363 !important; }
+body.theme-dark #gso-calc .gc-tabs button.on, body.theme-dark #gso-calc .gc-ml-subtab.on{ border-bottom-color:#DBDBDB !important; }
 #gso-calc .gc-sum::before{ background:#9F9F9F !important; }
 #gso-calc .gc-sum.ok::before{ background: var(--crm-success, #2E8B57) !important; }
 #gso-calc .gc-sum.warn::before{ background: var(--crm-warning, #D9A441) !important; }
@@ -30342,9 +30342,10 @@ body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !impor
 #gso-calc .gc-receita-foot b{ color:var(--gcink); }
 
 /* Mercado Livre: blocos por produto, com anúncios arrastáveis entre blocos */
-#gso-calc .gc-ml-subtabs{ display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--gcln); }
-#gso-calc .gc-ml-subtab{ border:0; background:none; padding:8px 4px 10px; margin-right:14px; font:700 13px inherit; font-family:inherit; color:var(--gcmut); cursor:pointer; border-bottom:2px solid transparent; }
-#gso-calc .gc-ml-subtab.on{ color:var(--gcink); border-bottom-color:var(--gcac); }
+/* subabas Anúncios/Vendas: mesmo estilo neutro (sem cara de botão/pílula) das abas da Calculadora */
+#gso-calc .gc-ml-subtabs{ display:flex; gap:22px; border-bottom:1px solid var(--gcln); margin-bottom:22px; flex-wrap:wrap; }
+#gso-calc .gc-ml-subtab{ border:0; background:none; padding:0 2px 12px; font-weight:600; font-size:14px; font-family:inherit; color:var(--gcmut); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
+#gso-calc .gc-ml-subtab.on{ color:var(--gcink); border-color:var(--gcac); }
 #gso-calc .gc-ml-venda-stats{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; }
 @media(max-width:680px){ #gso-calc .gc-ml-venda-stats{ grid-template-columns:repeat(2, minmax(0, 1fr)); } }
 #gso-calc .gc-ml-venda-stat{ border:1px solid var(--gcln); border-radius:12px; padding:10px 14px; background:var(--gcbg); }
@@ -30483,8 +30484,8 @@ body.theme-dark #gso-calc [data-pov]{ color:#E6E6E6 !important; border-bottom-co
 body.theme-dark #gso-calc .gc-status .big,
 body.theme-dark #gso-calc td[data-ed]{ color:#E6E6E6 !important; }
 body.theme-dark #gso-calc td[data-ed]:hover{ background:rgba(255,255,255,.07) !important; }
-body.theme-dark #gso-calc .gc-tabs button{ color:#B3B3B3; }
-body.theme-dark #gso-calc .gc-tabs button.on{ color:#F2F2F2 !important; border-bottom-color:#E6E6E6 !important; }
+body.theme-dark #gso-calc .gc-tabs button, body.theme-dark #gso-calc .gc-ml-subtab{ color:#B3B3B3; }
+body.theme-dark #gso-calc .gc-tabs button.on, body.theme-dark #gso-calc .gc-ml-subtab.on{ color:#F2F2F2 !important; border-bottom-color:#E6E6E6 !important; }
 body.theme-dark #gso-calc .gc-filters select{
   background:#1F1F1F !important; border-color:#4D4D4D !important; color:#EDEDED !important;
 }
@@ -30520,12 +30521,12 @@ body.theme-dark #gso-calc td.gc-edited::after{ background:rgba(217,164,65,.18); 
 
 /* ================= v35: botões neutros + ficha lateral (drawer) limpa ================= */
 /* abas principais da Calculadora: sem cara de botão/pílula */
-#gso-calc .gc-tabs button{
+#gso-calc .gc-tabs button, #gso-calc .gc-ml-subtab{
   background:transparent !important; border:0 !important; border-bottom:2px solid transparent !important;
   border-radius:0 !important; box-shadow:none !important; padding:0 2px 12px !important; transform:none !important;
 }
-#gso-calc .gc-tabs button.on{ border-bottom:3px solid #616161 !important; }
-body.theme-dark #gso-calc .gc-tabs button.on{ border-bottom-color:#DBDBDB !important; }
+#gso-calc .gc-tabs button.on, #gso-calc .gc-ml-subtab.on{ border-bottom:3px solid #616161 !important; }
+body.theme-dark #gso-calc .gc-tabs button.on, body.theme-dark #gso-calc .gc-ml-subtab.on{ border-bottom-color:#DBDBDB !important; }
 /* WhatsApp sempre verde, nos dois temas */
 #gso-calc .gc-btn.zap, body.theme-dark #gso-calc .gc-btn.zap,
 #gso-calc-mbg .gc-btn.zap, body.theme-dark #gso-calc-mbg .gc-btn.zap{
