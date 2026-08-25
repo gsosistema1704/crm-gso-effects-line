@@ -12880,32 +12880,27 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       </div>
 
       <div id="cot-view-cadastro" class="hidden">
-        <div class="rankings-grid">
-          <div>
-            <div class="header">
-              <div><div class="h-title" style="font-size:16px">Produtos</div></div>
-              <div class="h-actions"><button class="btn btn-soft" onclick="Cot.openProdutoModal()">+ Produto</button></div>
-            </div>
-            <div class="card table-card">
-              <table class="stack-table">
-                <thead><tr><th>Código</th><th>Produto</th><th>Unidade</th><th></th></tr></thead>
-                <tbody id="cotProdutosTable"></tbody>
-              </table>
-            </div>
-            <div class="pagination" id="cotProdutosPagination"></div>
-          </div>
-          <div>
-            <div class="header">
-              <div><div class="h-title" style="font-size:16px">Fornecedores</div></div>
-              <div class="h-actions"><button class="btn btn-soft" onclick="Cot.openFornecedorModal()">+ Fornecedor</button></div>
-            </div>
-            <div class="card table-card">
-              <table class="stack-table">
-                <thead><tr><th>Fornecedor</th><th>Contato</th><th>Telefone</th><th></th></tr></thead>
-                <tbody id="cotFornecedoresTable"></tbody>
-              </table>
-            </div>
-          </div>
+        <div class="header">
+          <div><div class="h-title" style="font-size:16px">Produtos</div></div>
+          <div class="h-actions"><input class="input" id="cot-produtos-busca" placeholder="Buscar produto ou código..." oninput="Cot.onProdutosBuscaChange()" style="max-width:220px"><button class="btn btn-soft" onclick="Cot.openProdutoModal()">+ Produto</button></div>
+        </div>
+        <div class="card table-card">
+          <table class="stack-table">
+            <thead><tr><th>Código</th><th>Produto</th><th>Unidade</th><th></th></tr></thead>
+            <tbody id="cotProdutosTable"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="cotProdutosPagination"></div>
+
+        <div class="header" style="margin-top:26px">
+          <div><div class="h-title" style="font-size:16px">Fornecedores</div></div>
+          <div class="h-actions"><input class="input" id="cot-fornecedores-busca" placeholder="Buscar fornecedor..." oninput="Cot.onFornecedoresBuscaChange()" style="max-width:220px"><button class="btn btn-soft" onclick="Cot.openFornecedorModal()">+ Fornecedor</button></div>
+        </div>
+        <div class="card table-card">
+          <table class="stack-table">
+            <thead><tr><th>Fornecedor</th><th>Contato</th><th>Telefone</th><th></th></tr></thead>
+            <tbody id="cotFornecedoresTable"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -28111,7 +28106,9 @@ async function renderIndicadores() {
     cotacoes: [],
     medidasCaixas: [],
     registroPage: 1,
-    produtosPage: 1
+    produtosPage: 1,
+    produtosBusca: '',
+    fornecedoresBusca: ''
   };
   const PAGE_SIZE = 15;
   const PAGE_SIZE_CADASTRO = 10;
@@ -28541,7 +28538,16 @@ async function renderIndicadores() {
     }).join('') : `<tr><td colspan="7" class="table-empty">Nenhum fornecedor tem cotação registrada para este produto ainda.</td></tr>`;
 
     document.getElementById('cotAnaliseMatrix').innerHTML = renderAnaliseMatrixTable(produto);
-    renderEstrategicos();
+    if (ehProdutoCaixa(produto)) renderEstrategicos();
+    else document.getElementById('cotEstrategicosBlock').innerHTML = '';
+  }
+
+  // Cartonagem Nunes só fornece caixa — o comparativo fixo com ela não faz sentido
+  // pra matéria-prima líquida ou outros insumos, então só aparece quando o produto
+  // selecionado pra análise é uma caixa.
+  function ehProdutoCaixa(produto) {
+    const p = (produto || '').toLowerCase();
+    return p.includes('caixa') || /^gso [gp] /.test(p);
   }
 
   // ============ REGISTRO ============
@@ -28664,11 +28670,26 @@ async function renderIndicadores() {
   }
 
   // ============ CADASTRO ============
+  function onProdutosBuscaChange() {
+    state.produtosBusca = document.getElementById('cot-produtos-busca').value;
+    state.produtosPage = 1;
+    renderProdutosCadastro();
+  }
+
+  function onFornecedoresBuscaChange() {
+    state.fornecedoresBusca = document.getElementById('cot-fornecedores-busca').value;
+    renderFornecedoresCadastro();
+  }
+
   function renderProdutosCadastro() {
-    const total = state.produtos.length;
+    const busca = state.produtosBusca.trim().toLowerCase();
+    const filtrados = busca
+      ? state.produtos.filter(p => (p.nome || '').toLowerCase().includes(busca) || (p.codigo || '').toLowerCase().includes(busca))
+      : state.produtos;
+    const total = filtrados.length;
     const pages = Math.max(1, Math.ceil(total / PAGE_SIZE_CADASTRO));
     state.produtosPage = Math.min(Math.max(1, state.produtosPage), pages);
-    const pageItens = state.produtos.slice((state.produtosPage - 1) * PAGE_SIZE_CADASTRO, state.produtosPage * PAGE_SIZE_CADASTRO);
+    const pageItens = filtrados.slice((state.produtosPage - 1) * PAGE_SIZE_CADASTRO, state.produtosPage * PAGE_SIZE_CADASTRO);
     document.getElementById('cotProdutosTable').innerHTML = total
       ? pageItens.map(p => `
         <tr>
@@ -28683,13 +28704,15 @@ async function renderIndicadores() {
           </td>
         </tr>
       `).join('')
-      : `<tr><td colspan="4" class="table-empty">Nenhum produto cadastrado.</td></tr>`;
+      : `<tr><td colspan="4" class="table-empty">${busca ? 'Nenhum produto encontrado.' : 'Nenhum produto cadastrado.'}</td></tr>`;
     document.getElementById('cotProdutosPagination').innerHTML = paginationHtml('cotProdutosPagination', total, state.produtosPage, PAGE_SIZE_CADASTRO, 'goProdutosPage');
   }
 
   function renderFornecedoresCadastro() {
-    document.getElementById('cotFornecedoresTable').innerHTML = state.fornecedores.length
-      ? state.fornecedores.map(f => `
+    const busca = state.fornecedoresBusca.trim().toLowerCase();
+    const filtrados = busca ? state.fornecedores.filter(f => (f.nome || '').toLowerCase().includes(busca)) : state.fornecedores;
+    document.getElementById('cotFornecedoresTable').innerHTML = filtrados.length
+      ? filtrados.map(f => `
         <tr>
           <td class="stack-title" data-label="Fornecedor">${escapeHtml(f.nome)}</td>
           <td data-label="Contato">${escapeHtml(f.contato || '—')}</td>
@@ -28702,7 +28725,7 @@ async function renderIndicadores() {
           </td>
         </tr>
       `).join('')
-      : `<tr><td colspan="4" class="table-empty">Nenhum fornecedor cadastrado.</td></tr>`;
+      : `<tr><td colspan="4" class="table-empty">${busca ? 'Nenhum fornecedor encontrado.' : 'Nenhum fornecedor cadastrado.'}</td></tr>`;
   }
 
   function openProdutoModal(id = '') {
@@ -28813,6 +28836,8 @@ async function renderIndicadores() {
     onRegistroFilterChange: onRegistroFilterChange,
     goRegistroPage: goRegistroPage,
     goProdutosPage: goProdutosPage,
+    onProdutosBuscaChange: onProdutosBuscaChange,
+    onFornecedoresBuscaChange: onFornecedoresBuscaChange,
     recalcTotal: recalcTotal,
     openCotacaoModal: openCotacaoModal,
     salvarCotacao: salvarCotacao,
