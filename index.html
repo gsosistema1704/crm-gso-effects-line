@@ -12888,10 +12888,13 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           </table>
         </div>
 
-        <div class="indic-section-title">Medidas das caixas (referência)</div>
+        <div class="header">
+          <div><div class="indic-section-title" style="margin:0">Medidas das caixas (referência)</div></div>
+          <div class="h-actions"><button class="btn btn-soft" onclick="Cot.openMedidaModal()">+ Medida</button></div>
+        </div>
         <div class="card table-card">
           <table class="stack-table">
-            <thead><tr><th>Código</th><th>Medidas (mm)</th><th>Descrição</th><th class="num">Valor</th></tr></thead>
+            <thead><tr><th>Código</th><th>Medidas (mm)</th><th>Descrição</th><th class="num">Valor</th><th></th></tr></thead>
             <tbody id="cotMedidasCaixasTable"></tbody>
           </table>
         </div>
@@ -13044,6 +13047,24 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="form-actions">
           <button class="btn" onclick="Cot.closeModal('modal-cot-fornecedor')">Cancelar</button>
           <button class="btn btn-primary" onclick="Cot.salvarFornecedor()">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MODAL: MEDIDA DE CAIXA ===== -->
+    <div class="modal-bg" id="modal-cot-medida">
+      <div class="modal">
+        <div class="modal-title" id="modal-cot-medida-title">Nova medida</div>
+        <input type="hidden" id="cot-medida-id">
+        <div class="form-row form-r2">
+          <div><label class="form-label">Código</label><input class="form-input" id="cot-medida-codigo" placeholder="ex: 13212"></div>
+          <div><label class="form-label">Medidas (mm)</label><input class="form-input" id="cot-medida-medidas" placeholder="ex: 390x300x285"></div>
+        </div>
+        <div class="form-row"><div><label class="form-label">Descrição</label><input class="form-input" id="cot-medida-descricao" placeholder="ex: GSO G 4x5L C/Divisórias"></div></div>
+        <div class="form-row"><div><label class="form-label">Valor (R$)</label><input class="form-input" type="number" step="0.01" id="cot-medida-valor" value="0"></div></div>
+        <div class="form-actions">
+          <button class="btn" onclick="Cot.closeModal('modal-cot-medida')">Cancelar</button>
+          <button class="btn btn-primary" onclick="Cot.salvarMedidaCaixa()">Salvar</button>
         </div>
       </div>
     </div>
@@ -28167,6 +28188,7 @@ async function renderIndicadores() {
     produtos: [],
     fornecedores: [],
     cotacoes: [],
+    medidasCaixas: [],
     registroPage: 1,
     produtosPage: 1
   };
@@ -28230,9 +28252,15 @@ async function renderIndicadores() {
     if (error) { console.error(error); return; }
     state.cotacoes = data || [];
   }
+  async function loadMedidasCaixas() {
+    const client = getSupabaseClient();
+    const { data, error } = await client.from('gso_medidas_caixas').select('*').order('ordem', { ascending: true });
+    if (error) { console.error(error); return; }
+    state.medidasCaixas = data || [];
+  }
 
   function abrir() {
-    Promise.all([loadProdutos(), loadFornecedores(), loadCotacoes()]).then(function () {
+    Promise.all([loadProdutos(), loadFornecedores(), loadCotacoes(), loadMedidasCaixas()]).then(function () {
       navTo('painel');
     });
   }
@@ -28363,24 +28391,63 @@ async function renderIndicadores() {
   }
 
   // ============ PAINEL ============
-  // Medidas de referência das caixas, direto da Cotação 26335 da Cartonagem Nunes (19/08/2026)
-  // + a caixa P (código 13213) informada à parte. Fixo aqui porque é dado de especificação
-  // física da caixa, não uma cotação recorrente — só muda se o modelo físico mudar.
-  const MEDIDAS_CAIXAS = [
-    { codigo: '13212', medidas: '390x300x285', descricao: 'GSO G 4x5L C/Divisórias', valor: 8.20 },
-    { codigo: '13213', medidas: '280x190x250', descricao: 'GSO P 6x1L C/Divisórias', valor: 3.61 },
-    { codigo: '17943', medidas: '100x100x250', descricao: 'Caixa Unitária 1L', valor: 1.37 },
-    { codigo: '14206', medidas: '225x155x280', descricao: 'Caixa Unitária 5L', valor: 3.09 }
-  ];
+  // Medidas de referência das caixas — editável (gso_medidas_caixas), não é mais fixo no código.
   function renderMedidasCaixas() {
-    document.getElementById('cotMedidasCaixasTable').innerHTML = MEDIDAS_CAIXAS.map(m => `
+    document.getElementById('cotMedidasCaixasTable').innerHTML = state.medidasCaixas.length ? state.medidasCaixas.map(m => `
       <tr>
-        <td class="stack-title">${escapeHtml(m.codigo)}</td>
-        <td data-label="Medidas (mm)">${escapeHtml(m.medidas)}</td>
+        <td class="stack-title">${escapeHtml(m.codigo || '—')}</td>
+        <td data-label="Medidas (mm)">${escapeHtml(m.medidas || '—')}</td>
         <td data-label="Descrição">${escapeHtml(m.descricao)}</td>
         <td class="num" data-label="Valor">${fmtBR(m.valor)}</td>
+        <td data-label="Ações">
+          <div class="row-actions">
+            <button class="btn btn-small" onclick="Cot.openMedidaModal('${m.id}')">Editar</button>
+            <button class="btn btn-small btn-danger" onclick="Cot.removerMedidaCaixa('${m.id}')">Excluir</button>
+          </div>
+        </td>
       </tr>
-    `).join('');
+    `).join('') : `<tr><td colspan="5" class="table-empty">Nenhuma medida cadastrada.</td></tr>`;
+  }
+
+  function openMedidaModal(id = '') {
+    const item = id ? state.medidasCaixas.find(m => m.id === id) : null;
+    document.getElementById('modal-cot-medida-title').textContent = item ? 'Editar medida' : 'Nova medida';
+    document.getElementById('cot-medida-id').value = id || '';
+    document.getElementById('cot-medida-codigo').value = item?.codigo || '';
+    document.getElementById('cot-medida-medidas').value = item?.medidas || '';
+    document.getElementById('cot-medida-descricao').value = item?.descricao || '';
+    document.getElementById('cot-medida-valor').value = item?.valor ?? 0;
+    openModal('modal-cot-medida');
+  }
+
+  async function salvarMedidaCaixa() {
+    const id = document.getElementById('cot-medida-id').value;
+    const descricao = document.getElementById('cot-medida-descricao').value.trim();
+    if (!descricao) { alert('Preencha a descrição.'); return; }
+    const payload = {
+      codigo: document.getElementById('cot-medida-codigo').value.trim() || null,
+      medidas: document.getElementById('cot-medida-medidas').value.trim() || null,
+      descricao,
+      valor: Number(document.getElementById('cot-medida-valor').value || 0),
+      atualizado_em: new Date().toISOString()
+    };
+    const client = getSupabaseClient();
+    const { error } = id
+      ? await client.from('gso_medidas_caixas').update(payload).eq('id', id)
+      : await client.from('gso_medidas_caixas').insert({ ...payload, ordem: state.medidasCaixas.length });
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    closeModal('modal-cot-medida');
+    await loadMedidasCaixas();
+    renderMedidasCaixas();
+  }
+
+  async function removerMedidaCaixa(id) {
+    if (!confirm('Excluir esta medida? Essa ação não pode ser desfeita.')) return;
+    const client = getSupabaseClient();
+    const { error } = await client.from('gso_medidas_caixas').delete().eq('id', id);
+    if (error) { alert('Erro ao excluir: ' + error.message); return; }
+    await loadMedidasCaixas();
+    renderMedidasCaixas();
   }
 
   function renderPainel() {
@@ -28765,6 +28832,9 @@ async function renderIndicadores() {
     openFornecedorModal: openFornecedorModal,
     salvarFornecedor: salvarFornecedor,
     removerFornecedor: removerFornecedor,
+    openMedidaModal: openMedidaModal,
+    salvarMedidaCaixa: salvarMedidaCaixa,
+    removerMedidaCaixa: removerMedidaCaixa,
     closeModal: closeModal
   };
 })();
