@@ -14496,6 +14496,7 @@ function saleToRow(v) {
         localOnly: Boolean(v.boleto.data && !v.boleto.path)
       } : null,
       boletoPago: Boolean(v.boletoPago),
+      boletoOculto: Boolean(v.boletoOculto),
       clienteOriginal: v.clienteOriginal || null,
       revisaoCliente: Boolean(v.revisaoCliente),
       revisaoCandidatos: v.revisaoCandidatos || null,
@@ -14532,6 +14533,7 @@ function rowToSale(r) {
     nfNumber: r.metadata?.nfNumber || r.metadata?.notaFiscalNumero || r.numero_nota_fiscal || null,
     boleto: r.metadata?.boleto?.path ? { name: r.metadata.boleto.name || 'boleto.pdf', path: r.metadata.boleto.path } : null,
     boletoPago: Boolean(r.metadata?.boletoPago),
+    boletoOculto: Boolean(r.metadata?.boletoOculto),
     clienteOriginal: r.metadata?.clienteOriginal || null,
     revisaoCliente: Boolean(r.metadata?.revisaoCliente),
     revisaoCandidatos: Array.isArray(r.metadata?.revisaoCandidatos) ? r.metadata.revisaoCandidatos : null,
@@ -17290,26 +17292,36 @@ function saleIsBoleto(venda) {
 function saleBoletoPago(venda) {
   return Boolean(venda?.boletoPago);
 }
+function saleBoletoOculto(venda) {
+  return Boolean(venda?.boletoOculto);
+}
 function saleCountsInRevenue(venda) {
   return !saleIsBoleto(venda) || saleBoletoPago(venda);
 }
 
-async function marcarVendaBoletoPago(id) {
+async function atualizarVendaBoletoMeta(id, patch) {
   const client = requireSupabaseSession();
   if (!client) return;
   const venda = state.vendas.find(v => String(v.id) === String(id));
   if (!venda) return;
-  venda.boletoPago = true;
+  const anterior = { boletoPago: venda.boletoPago, boletoOculto: venda.boletoOculto };
+  Object.assign(venda, patch);
   const row = saleToRow(venda);
   const { error } = await client.from('crm_vendas').update({ metadata: row.metadata }).eq('id', id);
   if (error) {
-    venda.boletoPago = false;
-    alert('Não consegui marcar o boleto como pago: ' + error.message);
+    Object.assign(venda, anterior);
+    alert('Não consegui atualizar o boleto: ' + error.message);
     return;
   }
   try { localStorage.setItem('gso_vendas', JSON.stringify(state.vendas)); } catch (e) {}
   if (typeof renderInteligencia === 'function') renderInteligencia();
   if (typeof renderVendas === 'function' && !document.getElementById('view-vendas')?.classList.contains('hidden')) renderVendas();
+}
+function marcarVendaBoletoPago(id) { return atualizarVendaBoletoMeta(id, { boletoPago: true }); }
+function desfazerVendaBoletoPago(id) { return atualizarVendaBoletoMeta(id, { boletoPago: false }); }
+function ocultarVendaBoleto(id) {
+  if (!confirm('Tirar esta venda do bloco de boletos? Ela continua normalmente na aba Vendas.')) return;
+  return atualizarVendaBoletoMeta(id, { boletoOculto: true });
 }
 
 function saleHasNf(venda) {
@@ -23980,7 +23992,7 @@ function intelRenderOverview() {
   const vendasHoje = dashboardSalesInRange(hoje, hoje).filter(saleCountsInRevenue);
   const valorHoje = vendasHoje.reduce((sum, venda) => sum + Number(venda.valor || 0), 0);
   const ticketHoje = vendasHoje.length ? valorHoje / vendasHoje.length : 0;
-  const boletoRows = state.vendas.filter(saleIsBoleto).sort((a, b) => {
+  const boletoRows = state.vendas.filter(v => saleIsBoleto(v) && !saleBoletoOculto(v)).sort((a, b) => {
     const pagoA = saleBoletoPago(a) ? 1 : 0, pagoB = saleBoletoPago(b) ? 1 : 0;
     if (pagoA !== pagoB) return pagoA - pagoB;
     return new Date(b.data) - new Date(a.data);
@@ -23988,12 +24000,15 @@ function intelRenderOverview() {
   const boletosPendentes = boletoRows.filter(v => !saleBoletoPago(v));
   const boletoRowsHtml = boletoRows.map(v => {
     const pago = saleBoletoPago(v);
+    const acaoPrincipal = pago
+      ? `<button class="btn btn-small" onclick="desfazerVendaBoletoPago('${v.id}')" data-tooltip="Voltar para pendente">Desfazer</button>`
+      : `<button class="btn btn-small" onclick="marcarVendaBoletoPago('${v.id}')">Marcar pago</button>`;
     return `<tr>
       <td>${fmtDate(v.data)}</td>
       <td>${escapeHtml(v.cliente || '—')}</td>
       <td class="num">${fmtBR(v.valor)}</td>
       <td>${pago ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>'}</td>
-      <td>${pago ? '—' : `<button class="btn btn-small" onclick="marcarVendaBoletoPago('${v.id}')">Marcar pago</button>`}</td>
+      <td style="display:flex;gap:6px;align-items:center;">${acaoPrincipal}<button class="btn btn-small" onclick="ocultarVendaBoleto('${v.id}')" data-tooltip="Tirar esta venda daqui" aria-label="Tirar esta venda daqui">✕</button></td>
     </tr>`;
   }).join('');
 
