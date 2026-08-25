@@ -12883,7 +12883,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="card chart-card" id="cotPainelChart"></div>
         <div class="card table-card">
           <table class="stack-table">
-            <thead><tr><th>Fornecedor</th><th>Última data</th><th class="num">Preço atual</th><th class="num">Preço inicial</th><th class="num">Variação</th><th>Posição</th></tr></thead>
+            <thead id="cotPainelThead"><tr><th>Fornecedor</th><th>Última data</th><th class="num">Preço atual</th><th class="num">Preço inicial</th><th class="num">Variação</th><th>Posição</th></tr></thead>
             <tbody id="cotPainelTable"></tbody>
           </table>
         </div>
@@ -28228,7 +28228,9 @@ async function renderIndicadores() {
     const painelSel = document.getElementById('cot-painel-produto');
     const analiseSel = document.getElementById('cot-analise-produto');
     if (painelSel && painelSel.value !== value) painelSel.value = value;
-    if (analiseSel && analiseSel.value !== value) analiseSel.value = value;
+    // "Todos" só existe no Painel — a Análise por Produto é sempre de 1 produto por vez,
+    // então mantém o que já estava selecionado lá em vez de tentar sincronizar.
+    if (analiseSel && value !== '__todos__' && analiseSel.value !== value) analiseSel.value = value;
     renderPainel();
     renderAnalise();
   }
@@ -28454,10 +28456,18 @@ async function renderIndicadores() {
     renderMedidasCaixas();
     const sel = document.getElementById('cot-painel-produto');
     if (sel.options.length === 0 || sel.dataset.count != state.produtos.length) {
-      sel.innerHTML = produtoNomes().map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+      const valorAnterior = sel.value;
+      sel.innerHTML = '<option value="__todos__">Todos os produtos</option>' +
+        produtoNomes().map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
       sel.dataset.count = state.produtos.length;
+      if (valorAnterior) sel.value = valorAnterior;
     }
     const produto = sel.value;
+    if (produto === '__todos__') { renderPainelTodos(); return; }
+
+    document.getElementById('cotPainelThead').innerHTML =
+      '<tr><th>Fornecedor</th><th>Última data</th><th class="num">Preço atual</th><th class="num">Preço inicial</th><th class="num">Variação</th><th>Posição</th></tr>';
+
     const comp = comparativoPorProduto(produto);
     const comDados = comp.filter(c => c.temDados);
 
@@ -28495,6 +28505,48 @@ async function renderIndicadores() {
         </tr>
       `;
     }).join('') : `<tr><td colspan="6" class="table-empty">Nenhum fornecedor tem cotação registrada para este produto ainda.</td></tr>`;
+  }
+
+  // Panorama com todos os produtos juntos — cada linha/barra é um produto (não um
+  // fornecedor), pra dar uma visão geral em vez de comparar fornecedor a fornecedor.
+  function resumoTodosProdutos() {
+    return produtoNomes().map(produto => {
+      const comDados = comparativoPorProduto(produto).filter(c => c.temDados);
+      if (!comDados.length) return { produto, temDados: false };
+      const precos = comDados.map(c => c.precoAtual);
+      const menor = Math.min(...precos);
+      const maior = Math.max(...precos);
+      const media = precos.reduce((s, v) => s + v, 0) / precos.length;
+      return { produto, temDados: true, fornecedores: comDados.length, menor, maior, media };
+    });
+  }
+
+  function renderPainelTodos() {
+    const resumo = resumoTodosProdutos();
+    const comDados = resumo.filter(r => r.temDados);
+
+    const stats = document.getElementById('cotPainelStats');
+    stats.innerHTML = `
+      <div class="stat-card"><div class="stat-label">Produtos com cotação</div><div class="stat-value">${comDados.length}</div><div class="form-help">de ${produtoNomes().length} cadastrados</div></div>
+      <div class="stat-card"><div class="stat-label">Fornecedores cadastrados</div><div class="stat-value">${fornecedorNomes().length}</div></div>
+      <div class="stat-card"><div class="stat-label">Cotações registradas</div><div class="stat-value">${state.cotacoes.length}</div></div>
+    `;
+
+    document.getElementById('cotPainelChart').innerHTML = barChartSvg(
+      comDados.map(r => ({ fornecedor: r.produto, precoAtual: r.media }))
+    );
+
+    document.getElementById('cotPainelThead').innerHTML =
+      '<tr><th>Produto</th><th class="num">Fornecedores</th><th class="num">Menor preço</th><th class="num">Maior preço</th><th class="num">Média</th></tr>';
+    document.getElementById('cotPainelTable').innerHTML = comDados.length ? comDados.map(r => `
+      <tr>
+        <td class="stack-title">${escapeHtml(r.produto)}</td>
+        <td class="num" data-label="Fornecedores">${r.fornecedores}</td>
+        <td class="num" data-label="Menor preço">${fmtBR(r.menor)}</td>
+        <td class="num" data-label="Maior preço">${fmtBR(r.maior)}</td>
+        <td class="num" data-label="Média">${fmtBR(r.media)}</td>
+      </tr>
+    `).join('') : `<tr><td colspan="5" class="table-empty">Nenhuma cotação registrada ainda.</td></tr>`;
   }
 
   // ============ ANÁLISE POR PRODUTO ============
