@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sistema-de-os-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "Sistema-de-OS", "run", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "insumos-lotes-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "insumos-lotes", "-l", "4173"],
+      "port": 4173
+    },
+    {
+      "name": "gso-crm-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", ".", "-l", "4180"],
+      "port": 4180
+    }
+  ]
+}

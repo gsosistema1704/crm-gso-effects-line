@@ -6678,6 +6678,13 @@ body.dark-mode .scroll-top-button:hover,
     box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.18);
   }
 
+  /* Com o teclado virtual aberto, a barra fixa "flutua" por cima do teclado e pode
+     cobrir botões no fim de formulários longos (ex: "Finalizar lote"). Escondendo-a
+     enquanto um campo está em foco, o conteúdo fica livre para rolar até o botão. */
+  body.gso-keyboard-open .mobile-bottom-nav {
+    display: none !important;
+  }
+
   .mobile-bottom-nav button {
     min-height: 52px !important;
     height: 52px !important;
@@ -11748,6 +11755,47 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 #view-laboratorio .stack-table td.stack-actions::before { content: none !important;}
 #view-laboratorio .stack-table td.stack-actions .row-actions { justify-content: flex-start !important;}
  }
+
+/* ================== FORNECEDORES / COTAÇÕES — mesma receita de responsividade do Laboratório ================== */
+#view-cotacoes .stats-bar { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; margin-bottom: 16px !important;}
+#view-cotacoes .stat-card { background: var(--card) !important; border: 1px solid var(--glass-border) !important; border-radius: 14px !important; padding: 10px 14px !important; box-shadow: var(--shadow-tight) !important;}
+#view-cotacoes .stat-card .stat-label { font-size: 10px !important; color: var(--text-2) !important; text-transform: uppercase !important; letter-spacing: .4px !important; font-weight: 700 !important; margin-bottom: 3px !important;}
+#view-cotacoes .stat-card .stat-value { font-size: 18px !important; font-weight: 800 !important; letter-spacing: -.3px !important; font-variant-numeric: tabular-nums !important;}
+@media (max-width: 900px) {#view-cotacoes .stats-bar { grid-template-columns: 1fr 1fr !important;}}
+#view-cotacoes .indic-section-title { font-size: 13px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: .5px !important; color: var(--text-2) !important; margin: 26px 0 12px !important;}
+#view-cotacoes .indic-section-title:first-child { margin-top: 0 !important;}
+#view-cotacoes .chart-card { padding: 20px 22px !important; overflow: visible !important;}
+#view-cotacoes .rankings-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; align-items: start !important;}
+@media (max-width: 900px) {#view-cotacoes .rankings-grid { grid-template-columns: 1fr !important;}}
+#view-cotacoes .kpi-card-grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important;}
+@media (max-width: 700px) {#view-cotacoes .kpi-card-grid { grid-template-columns: 1fr !important;}}
+#view-cotacoes .kpi-card { background: var(--card) !important; border: 1px solid var(--glass-border) !important; border-radius: 14px !important; padding: 14px 16px !important; box-shadow: var(--shadow-tight) !important;}
+#view-cotacoes .kpi-card .kpi-title { font-size: 13px !important; font-weight: 800 !important; margin-bottom: 10px !important;}
+#view-cotacoes .kpi-card .kpi-row { display: flex !important; justify-content: space-between !important; gap: 10px !important; font-size: 12.5px !important; padding: 5px 0 !important; border-bottom: 1px solid var(--glass-hairline) !important;}
+#view-cotacoes .kpi-card .kpi-row:last-child { border-bottom: none !important;}
+#view-cotacoes .kpi-card .kpi-row span:first-child { color: var(--text-2) !important;}
+#view-cotacoes .kpi-card .kpi-row strong { font-variant-numeric: tabular-nums !important; text-align: right !important;}
+#view-cotacoes .kpi-card .kpi-note { font-size: 11.5px !important; color: var(--text-2) !important; margin-top: 10px !important; line-height: 1.5 !important;}
+#view-cotacoes table.stack-table { table-layout: fixed !important; width: 100% !important;}
+#view-cotacoes table.stack-table th, #view-cotacoes table.stack-table td { overflow: hidden !important; text-overflow: ellipsis !important;}
+@media (max-width: 900px) {
+#view-cotacoes .stack-table { border: none !important;}
+#view-cotacoes .stack-table thead { display: none !important;}
+#view-cotacoes .stack-table, #view-cotacoes .stack-table tbody, #view-cotacoes .stack-table tr, #view-cotacoes .stack-table td { display: block !important; width: 100% !important;}
+#view-cotacoes .stack-table tbody { display: flex !important; flex-direction: column !important; gap: 10px !important; padding: 10px !important;}
+#view-cotacoes .stack-table tr { border: 1px solid var(--border) !important; border-radius: 12px !important; padding: 4px 14px !important; background: var(--card) !important;}
+#view-cotacoes .stack-table td { border-bottom: 1px solid var(--border) !important; padding: 9px 0 !important; display: flex !important; justify-content: space-between !important; align-items: center !important; gap: 12px !important; text-align: right !important; white-space: normal !important;}
+#view-cotacoes .stack-table td:last-child { border-bottom: none !important;}
+#view-cotacoes .stack-table td::before { content: attr(data-label) !important; font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: .4px !important; color: var(--text-2) !important; text-align: left !important; flex-shrink: 0 !important;}
+#view-cotacoes .stack-table td.stack-title { display: block !important; font-size: 15px !important; font-weight: 700 !important; text-align: left !important; padding: 12px 0 9px !important;}
+#view-cotacoes .stack-table td.stack-title::before { content: none !important;}
+#view-cotacoes .stack-table td.stack-actions { display: block !important; text-align: left !important; padding-bottom: 12px !important;}
+#view-cotacoes .stack-table td.stack-actions::before { content: none !important;}
+#view-cotacoes .stack-table td.stack-actions .row-actions { justify-content: flex-start !important;}
+#view-cotacoes .kpi-card-grid { grid-template-columns: 1fr !important;}
+}
+#view-cotacoes .pagination { display: flex !important; align-items: center !important; justify-content: center !important; gap: 12px !important; padding: 14px 0 4px !important; font-size: 12.5px !important; color: var(--text-2) !important;}
+#view-cotacoes .pagination button:disabled { opacity: .4 !important; cursor: default !important;}
 </style>
 
 </head>
@@ -11837,9 +11885,17 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M5 5h6M5 8h1.5M8 8h1.5M11 8h.5M5 11h1.5M8 11h1.5M11 11h.5"/></svg>
       Calculadora
     </div>
+    <div class="nav-item" data-view="mercadolivre" data-label="Mercado Livre" onclick="navTo('mercadolivre')">
+      <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="8" cy="8" rx="6.6" ry="5.1"/><path d="M2.4 6.3h2.8l2 1.7h1.6l2-1.7h2.8"/><path d="M2.4 6.3v1.9c0 .5.4.9.9.9h1.5"/><path d="M13.6 6.3v1.9c0 .5-.4.9-.9.9h-1.5"/><path d="M6.4 8.3l.9.8.9-.8.9.8"/></svg>
+      Mercado Livre
+    </div>
     <div class="nav-item" data-view="laboratorio" data-label="Laboratório" onclick="navTo('laboratorio')">
       <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 1.5h4M6.7 1.5v4.2L2.9 12a1.3 1.3 0 0 0 1.1 2h8a1.3 1.3 0 0 0 1.1-2L9.3 5.7V1.5"/><path d="M5 9.5h6"/></svg>
       Laboratório
+    </div>
+    <div class="nav-item" data-view="cotacoes" data-label="Fornecedores" onclick="navTo('cotacoes')">
+      <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6l6-4 6 4v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6z"/><path d="M6 14V9h4v5"/></svg>
+      Fornecedores
     </div>
 
     <div class="sb-section">SISTEMA</div>
@@ -12490,6 +12546,11 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div id="view-calculadora" class="hidden">
     </div>
 
+    <!-- ============ MERCADO LIVRE (movido pra fora da Calculadora, aba própria — o conteúdo
+         real é a seção #gc-ml, realocada pra cá em runtime pelo módulo da Calculadora) ============ -->
+    <div id="view-mercadolivre" class="hidden">
+    </div>
+
     <!-- ============ LABORATÓRIO (Insumos / Receitas / Lotes / Indicadores) ============ -->
     <div id="view-laboratorio" class="hidden">
       <div class="header">
@@ -12499,13 +12560,13 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </div>
       </div>
       <div class="subtabs">
-        <div class="subtab active" data-subtab="insumos" onclick="Lab.navTo('insumos')">Estoque de Insumos</div>
+        <div class="subtab active" data-subtab="lotes" onclick="Lab.navTo('lotes')">Controle de Lote</div>
+        <div class="subtab" data-subtab="insumos" onclick="Lab.navTo('insumos')">Estoque de Insumos</div>
         <div class="subtab" data-subtab="receitas" onclick="Lab.navTo('receitas')">Insumos</div>
-        <div class="subtab" data-subtab="lotes" onclick="Lab.navTo('lotes')">Controle de Lote</div>
         <div class="subtab" data-subtab="indicadores" onclick="Lab.navTo('indicadores')">Indicadores</div>
       </div>
 
-    <div id="view-insumos">
+    <div id="view-insumos" class="hidden">
       <div class="header">
         <div>
           <div class="h-title">Estoque de Insumos</div>
@@ -12560,7 +12621,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     </div>
 
     <!-- ===== VIEW: LOTES ===== -->
-    <div id="view-lotes" class="hidden">
+    <div id="view-lotes">
       <div id="lotes-list-view">
         <div class="header">
           <div>
@@ -12795,6 +12856,196 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     </div>
   </div>
 </div>
+    </div>
+
+    <!-- ============ FORNECEDORES / COTAÇÕES ============ -->
+    <div id="view-cotacoes" class="hidden">
+      <div class="header">
+        <div>
+          <div class="h-title">Fornecedores</div>
+          <div class="h-sub">Cotações de matéria-prima e embalagem por fornecedor — compare preços e acompanhe o histórico</div>
+        </div>
+      </div>
+      <div class="subtabs">
+        <div class="subtab active" data-subtab="painel" onclick="Cot.navTo('painel')">Painel</div>
+        <div class="subtab" data-subtab="analise" onclick="Cot.navTo('analise')">Análise por Produto</div>
+        <div class="subtab" data-subtab="registro" onclick="Cot.navTo('registro')">Cotações</div>
+        <div class="subtab" data-subtab="cadastro" onclick="Cot.navTo('cadastro')">Cadastro</div>
+      </div>
+
+      <div id="cot-view-painel">
+        <div class="form-row">
+          <div style="max-width:360px"><label class="form-label">Produto para comparar</label>
+            <select class="form-input" id="cot-painel-produto" onchange="Cot.onProdutoChange(this.value)"></select>
+          </div>
+        </div>
+        <div class="stats-bar" id="cotPainelStats"></div>
+        <div class="card chart-card" id="cotPainelChart"></div>
+        <div class="card table-card">
+          <table class="stack-table">
+            <thead><tr><th>Fornecedor</th><th>Última data</th><th class="num">Preço atual</th><th class="num">Preço inicial</th><th class="num">Variação</th><th>Posição</th></tr></thead>
+            <tbody id="cotPainelTable"></tbody>
+          </table>
+        </div>
+
+        <div class="indic-section-title">Medidas das caixas (referência)</div>
+        <div class="card table-card">
+          <table class="stack-table">
+            <thead><tr><th>Código</th><th>Medidas (mm)</th><th>Descrição</th><th class="num">Valor</th></tr></thead>
+            <tbody id="cotMedidasCaixasTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="cot-view-analise" class="hidden">
+        <div class="form-row">
+          <div style="max-width:360px"><label class="form-label">Produto para analisar</label>
+            <select class="form-input" id="cot-analise-produto" onchange="Cot.onProdutoChange(this.value)"></select>
+          </div>
+        </div>
+        <div class="indic-section-title">Evolução de preço por fornecedor</div>
+        <div class="card chart-card" id="cotAnaliseChart"></div>
+        <div class="indic-section-title">Comparação atual por fornecedor</div>
+        <div class="card table-card">
+          <table class="stack-table">
+            <thead><tr><th>Fornecedor</th><th>Data mais recente</th><th class="num">Preço atual</th><th>Primeira data</th><th class="num">Preço inicial</th><th class="num">Variação</th><th>Posição</th></tr></thead>
+            <tbody id="cotAnaliseTable"></tbody>
+          </table>
+        </div>
+        <div class="indic-section-title">Histórico de cotações por data</div>
+        <div class="card table-card">
+          <table class="stack-table" id="cotAnaliseMatrix"></table>
+        </div>
+        <div id="cotEstrategicosBlock"></div>
+      </div>
+
+      <div id="cot-view-registro" class="hidden">
+        <div class="header">
+          <div><div class="h-title" style="font-size:16px">Registro de cotações</div></div>
+          <div class="h-actions"><button class="btn btn-primary" onclick="Cot.openCotacaoModal()">+ Nova cotação</button></div>
+        </div>
+        <div class="search">
+          <input class="input" id="cot-busca" placeholder="Buscar por produto, fornecedor ou observação..." oninput="Cot.onRegistroFilterChange()">
+          <select class="input" id="cot-filtro-produto" onchange="Cot.onRegistroFilterChange()"><option value="">Todos os produtos</option></select>
+          <select class="input" id="cot-filtro-fornecedor" onchange="Cot.onRegistroFilterChange()"><option value="">Todos os fornecedores</option></select>
+        </div>
+        <div class="card table-card">
+          <table class="stack-table">
+            <thead><tr><th>Data</th><th>Produto</th><th>Fornecedor</th><th class="num">Preço</th><th class="num">Total</th><th>Condição</th><th></th></tr></thead>
+            <tbody id="cotRegistroTable"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="cotRegistroPagination"></div>
+      </div>
+
+      <div id="cot-view-cadastro" class="hidden">
+        <div class="rankings-grid">
+          <div>
+            <div class="header">
+              <div><div class="h-title" style="font-size:16px">Produtos</div></div>
+              <div class="h-actions"><button class="btn btn-soft" onclick="Cot.openProdutoModal()">+ Produto</button></div>
+            </div>
+            <div class="card table-card">
+              <table class="stack-table">
+                <thead><tr><th>Código</th><th>Produto</th><th>Unidade</th><th></th></tr></thead>
+                <tbody id="cotProdutosTable"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="cotProdutosPagination"></div>
+          </div>
+          <div>
+            <div class="header">
+              <div><div class="h-title" style="font-size:16px">Fornecedores</div></div>
+              <div class="h-actions"><button class="btn btn-soft" onclick="Cot.openFornecedorModal()">+ Fornecedor</button></div>
+            </div>
+            <div class="card table-card">
+              <table class="stack-table">
+                <thead><tr><th>Fornecedor</th><th>Contato</th><th>Telefone</th><th></th></tr></thead>
+                <tbody id="cotFornecedoresTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MODAL: NOVA/EDITAR COTAÇÃO ===== -->
+    <div class="modal-bg" id="modal-cotacao">
+      <div class="modal">
+        <div class="modal-title" id="modal-cotacao-title">Nova cotação</div>
+        <input type="hidden" id="cot-id">
+        <div class="form-row form-r2">
+          <div><label class="form-label">Data</label><input class="form-input" type="date" id="cot-data"></div>
+          <div><label class="form-label">Produto</label><input class="form-input" id="cot-produto" list="cot-produto-list" placeholder="ex: Propilenoglicol"></div>
+        </div>
+        <datalist id="cot-produto-list"></datalist>
+        <div class="form-row form-r2">
+          <div><label class="form-label">Fornecedor</label><input class="form-input" id="cot-fornecedor" list="cot-fornecedor-list" placeholder="ex: Nova Quimica do Sul"></div>
+          <div><label class="form-label">Unidade cotada</label>
+            <select class="form-input" id="cot-unidade">
+              <option value="kg">kg</option><option value="L">L</option><option value="unid.">unid.</option>
+            </select>
+          </div>
+        </div>
+        <datalist id="cot-fornecedor-list"></datalist>
+        <div class="form-row form-r3">
+          <div><label class="form-label">Qtd. embalagem</label><input class="form-input" type="number" step="0.001" id="cot-qtd-embalagem" value="1"></div>
+          <div><label class="form-label">Valor do kg/L/un (R$)</label><input class="form-input" type="number" step="0.0001" id="cot-valor" value="0" oninput="Cot.recalcTotal()"></div>
+          <div><label class="form-label">Unidades cotadas</label><input class="form-input" type="number" step="0.001" id="cot-unidades" value="1" oninput="Cot.recalcTotal()"></div>
+        </div>
+        <div class="form-row form-r2">
+          <div><label class="form-label">Total (R$)</label><input class="form-input" type="number" step="0.01" id="cot-total" value="0"></div>
+          <div><label class="form-label">Condição de pagamento</label><input class="form-input" id="cot-condicao" placeholder="ex: 30 DD, Pix à vista..."></div>
+        </div>
+        <div class="form-row">
+          <div><label class="form-label">Observações</label><input class="form-input" id="cot-obs" placeholder="opcional"></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn" onclick="Cot.closeModal('modal-cotacao')">Cancelar</button>
+          <button class="btn btn-primary" onclick="Cot.salvarCotacao()">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MODAL: PRODUTO (COTAÇÕES) ===== -->
+    <div class="modal-bg" id="modal-cot-produto">
+      <div class="modal">
+        <div class="modal-title" id="modal-cot-produto-title">Novo produto</div>
+        <input type="hidden" id="cot-prod-id">
+        <div class="form-row form-r2">
+          <div><label class="form-label">Código</label><input class="form-input" id="cot-prod-codigo" placeholder="ex: P1"></div>
+          <div><label class="form-label">Unidade padrão</label>
+            <select class="form-input" id="cot-prod-unidade">
+              <option value="kg">kg</option><option value="L">L</option><option value="unid.">unid.</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row"><div><label class="form-label">Produto</label><input class="form-input" id="cot-prod-nome" placeholder="ex: Propilenoglicol"></div></div>
+        <div class="form-row"><div><label class="form-label">Categoria</label><input class="form-input" id="cot-prod-categoria" placeholder="ex: Glicol"></div></div>
+        <div class="form-row"><div><label class="form-label">Observação</label><input class="form-input" id="cot-prod-obs" placeholder="opcional"></div></div>
+        <div class="form-actions">
+          <button class="btn" onclick="Cot.closeModal('modal-cot-produto')">Cancelar</button>
+          <button class="btn btn-primary" onclick="Cot.salvarProduto()">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MODAL: FORNECEDOR (COTAÇÕES) ===== -->
+    <div class="modal-bg" id="modal-cot-fornecedor">
+      <div class="modal">
+        <div class="modal-title" id="modal-cot-fornecedor-title">Novo fornecedor</div>
+        <input type="hidden" id="cot-forn-id">
+        <div class="form-row"><div><label class="form-label">Nome</label><input class="form-input" id="cot-forn-nome" placeholder="ex: Nova Quimica do Sul"></div></div>
+        <div class="form-row form-r2">
+          <div><label class="form-label">Contato</label><input class="form-input" id="cot-forn-contato"></div>
+          <div><label class="form-label">Telefone / WhatsApp</label><input class="form-input" id="cot-forn-telefone"></div>
+        </div>
+        <div class="form-row"><div><label class="form-label">Endereço</label><input class="form-input" id="cot-forn-endereco"></div></div>
+        <div class="form-actions">
+          <button class="btn" onclick="Cot.closeModal('modal-cot-fornecedor')">Cancelar</button>
+          <button class="btn btn-primary" onclick="Cot.salvarFornecedor()">Salvar</button>
+        </div>
+      </div>
     </div>
 
     <!-- ============ CONFIGURACOES ============ -->
@@ -16711,7 +16962,7 @@ function showApp() {
 }
 
 // ============ NAVEGAÇÃO ============
-const VIEWS = ['vendas','lojista','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','calculadora','laboratorio','inteligencia','config','perfil','nova'];
+const VIEWS = ['vendas','lojista','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','calculadora','mercadolivre','laboratorio','cotacoes','inteligencia','config','perfil','nova'];
 function applySidebarPreference() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
@@ -16777,6 +17028,7 @@ function navTo(view) {
   if (view === 'estoque') renderEstoque();
   if (view === 'produtos') renderProdutos();
   if (view === 'laboratorio' && typeof Lab !== 'undefined') Lab.abrir();
+  if (view === 'cotacoes' && typeof Cot !== 'undefined') Cot.abrir();
   if (view === 'transmissao') {
     renderTransmissao();
     const activeTransTab = document.querySelector('#view-transmissao .subtab.active')?.dataset.transTab;
@@ -22156,6 +22408,9 @@ const MOBILE_VIEW_LABELS = {
   mensagens: 'Mensagens',
   relatorios: 'Relatórios',
   calculadora: 'Calculadora',
+  mercadolivre: 'Mercado Livre',
+  laboratorio: 'Laboratório',
+  cotacoes: 'Fornecedores',
   config: 'Configurações',
   perfil: 'Meu perfil',
   nova: 'Nova venda'
@@ -22177,6 +22432,26 @@ function updateMobileChrome(view = getActiveView()) {
   const app = document.getElementById('app');
   if (app) app.dataset.currentView = view;
 }
+
+// Some fields (date pickers, checkboxes) don't open a real keyboard — só campos de
+// texto/número/seleção que realmente disparam o teclado virtual entram nessa lista.
+const GSO_KEYBOARD_FIELD_TYPES = ['text', 'search', 'email', 'tel', 'url', 'number', 'password', 'textarea'];
+function gsoFieldOpensKeyboard(el) {
+  if (!el) return false;
+  const tag = el.tagName;
+  if (tag === 'TEXTAREA') return true;
+  if (tag !== 'INPUT') return false;
+  return GSO_KEYBOARD_FIELD_TYPES.includes((el.type || 'text').toLowerCase());
+}
+document.addEventListener('focusin', e => {
+  if (gsoFieldOpensKeyboard(e.target)) document.body.classList.add('gso-keyboard-open');
+});
+document.addEventListener('focusout', e => {
+  if (!gsoFieldOpensKeyboard(e.target)) return;
+  setTimeout(() => {
+    if (!gsoFieldOpensKeyboard(document.activeElement)) document.body.classList.remove('gso-keyboard-open');
+  }, 60);
+});
 
 function openMobileSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -24921,8 +25196,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<div class="gc-tabs">' +
       '<button data-t="pedido" class="on">Pedido</button>' +
       '<button data-t="formulacao">Formulação</button>' +
-      '<button data-t="estrategia">Estratégia</button>' +
-      '<button data-t="ml">Mercado Livre</button></div>' +
+      '<button data-t="estrategia">Estratégia</button></div>' +
       '<section id="gc-pedido"></section><section id="gc-formulacao" style="display:none"></section><section id="gc-estrategia" style="display:none"></section><section id="gc-ml" style="display:none"></section>';
     view.appendChild(root);
     if (!$('#gso-calc-ovl')) {
@@ -24954,6 +25228,15 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     if (t === 'estrategia') renderEstrategia();
     if (t === 'formulacao') renderFormulacao();
     if (t === 'ml') renderML();
+  }
+
+  // Mercado Livre virou aba própria no menu, fora da Calculadora — em vez de duplicar toda
+  // a lógica/delegação de clique do módulo, movemos o mesmo #gso-calc (com sua seção #gc-ml)
+  // pro container da aba que estiver ativa. Mover um nó no DOM preserva os listeners dele.
+  function placeInView(viewId) {
+    var container = document.getElementById(viewId);
+    var el = document.getElementById('gso-calc');
+    if (container && el && el.parentElement !== container) container.appendChild(el);
   }
 
   /* ---------- ABA PEDIDO ---------- */
@@ -26434,7 +26717,24 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var _nav = window.navTo;
       window.navTo = function (v) {
         var out = _nav.apply(this, arguments);
-        try { fixSidebar(); if (v === 'calculadora') { mount(); renderPedido(); renderFormulacao(); renderEstrategia(); renderML(); } } catch (e) {}
+        try {
+          fixSidebar();
+          if (v === 'calculadora') {
+            mount(); placeInView('view-calculadora');
+            var tabsBar = $('#gso-calc .gc-tabs'); if (tabsBar) tabsBar.style.display = '';
+            var head = $('#gso-calc .gc-head h1'); if (head) head.textContent = 'Calculadora';
+            var sub = $('#gso-calc .gc-sub'); if (sub) sub.textContent = 'Monte o pedido e veja na hora se vale a pena fechar.';
+            setTab(UI.tab === 'ml' ? 'pedido' : (UI.tab || 'pedido'));
+            renderPedido(); renderFormulacao(); renderEstrategia();
+          }
+          if (v === 'mercadolivre') {
+            mount(); placeInView('view-mercadolivre');
+            var tabsBar2 = $('#gso-calc .gc-tabs'); if (tabsBar2) tabsBar2.style.display = 'none';
+            var head2 = $('#gso-calc .gc-head h1'); if (head2) head2.textContent = 'Mercado Livre';
+            var sub2 = $('#gso-calc .gc-sub'); if (sub2) sub2.textContent = 'Anúncios, blocos e simulação de lucro por venda.';
+            setTab('ml');
+          }
+        } catch (e) {}
         return out;
       };
     }
@@ -27800,7 +28100,7 @@ async function renderIndicadores() {
 
   function abrir() {
     Promise.all([loadInsumos(), loadProdutos(), loadLotes()]).then(function () {
-      navTo('insumos');
+      navTo('lotes');
     });
   }
 
@@ -27853,6 +28153,639 @@ async function renderIndicadores() {
     onItemQtyChange: onItemQtyChange,
     salvarReceita: salvarReceita,
     toggleOutro: toggleOutro
+  };
+})();
+
+/* ================== GSO FORNECEDORES / COTAÇÕES ==================
+   Compara preços de matéria-prima e embalagem entre fornecedores ao longo do tempo.
+   Tabelas próprias (gso_cotacoes, gso_cotacao_produtos, gso_cotacao_fornecedores),
+   mesma sessão/projeto Supabase do resto do CRM. */
+(function () {
+  'use strict';
+
+  let state = {
+    produtos: [],
+    fornecedores: [],
+    cotacoes: [],
+    registroPage: 1,
+    produtosPage: 1
+  };
+  const PAGE_SIZE = 15;
+  const PAGE_SIZE_CADASTRO = 10;
+
+  function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+  function openModal(id) { document.getElementById(id).classList.add('show'); }
+
+  function paginationHtml(containerId, total, page, pageSize, onPageFn) {
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    page = Math.min(Math.max(1, page), pages);
+    if (pages <= 1) return '';
+    return `
+      <button class="btn btn-small" ${page <= 1 ? 'disabled' : ''} onclick="Cot.${onPageFn}(${page - 1})">‹ Anterior</button>
+      <span>Página ${page} de ${pages}</span>
+      <button class="btn btn-small" ${page >= pages ? 'disabled' : ''} onclick="Cot.${onPageFn}(${page + 1})">Próxima ›</button>
+    `;
+  }
+
+  const COT_VIEWS = ['painel', 'analise', 'registro', 'cadastro'];
+  function navTo(view) {
+    COT_VIEWS.forEach(v => document.getElementById('cot-view-' + v).classList.toggle('hidden', v !== view));
+    document.querySelectorAll('#view-cotacoes .subtab').forEach(el => el.classList.toggle('active', el.dataset.subtab === view));
+    if (view === 'painel') renderPainel();
+    if (view === 'analise') renderAnalise();
+    if (view === 'registro') renderRegistro();
+    if (view === 'cadastro') { renderProdutosCadastro(); renderFornecedoresCadastro(); }
+  }
+
+  function goRegistroPage(page) { state.registroPage = page; renderRegistro(); }
+  function goProdutosPage(page) { state.produtosPage = page; renderProdutosCadastro(); }
+
+  // Mantém os seletores de produto do Painel e da Análise sincronizados —
+  // no arquivo original os dois vinham da mesma célula (Painel!B4).
+  function onProdutoChange(value) {
+    const painelSel = document.getElementById('cot-painel-produto');
+    const analiseSel = document.getElementById('cot-analise-produto');
+    if (painelSel && painelSel.value !== value) painelSel.value = value;
+    if (analiseSel && analiseSel.value !== value) analiseSel.value = value;
+    renderPainel();
+    renderAnalise();
+  }
+
+  // ============ DATA LOADING ============
+  async function loadProdutos() {
+    const client = getSupabaseClient();
+    const { data, error } = await client.from('gso_cotacao_produtos').select('*').eq('ativo', true).order('nome', { ascending: true });
+    if (error) { console.error(error); return; }
+    state.produtos = data || [];
+  }
+  async function loadFornecedores() {
+    const client = getSupabaseClient();
+    const { data, error } = await client.from('gso_cotacao_fornecedores').select('*').eq('ativo', true).order('nome', { ascending: true });
+    if (error) { console.error(error); return; }
+    state.fornecedores = data || [];
+  }
+  async function loadCotacoes() {
+    const client = getSupabaseClient();
+    const { data, error } = await client.from('gso_cotacoes').select('*').order('data', { ascending: true });
+    if (error) { console.error(error); return; }
+    state.cotacoes = data || [];
+  }
+
+  function abrir() {
+    Promise.all([loadProdutos(), loadFornecedores(), loadCotacoes()]).then(function () {
+      navTo('painel');
+    });
+  }
+
+  // ============ HELPERS ============
+  function fmtPct(v) {
+    if (v === null || v === undefined || !isFinite(v)) return '—';
+    return (v * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+  }
+  function produtoNomes() { return state.produtos.map(p => p.nome); }
+  function fornecedorNomes() { return state.fornecedores.map(f => f.nome); }
+
+  // Para um produto, monta a comparação atual x inicial por fornecedor (preço = valor_unitario
+  // da cotação mais recente / mais antiga daquele fornecedor pra aquele produto).
+  function comparativoPorProduto(produto) {
+    const porFornecedor = {};
+    state.cotacoes.filter(c => c.produto === produto).forEach(c => {
+      (porFornecedor[c.fornecedor] = porFornecedor[c.fornecedor] || []).push(c);
+    });
+    return fornecedorNomes().map(nome => {
+      const lista = (porFornecedor[nome] || []).slice().sort((a, b) => a.data.localeCompare(b.data));
+      if (!lista.length) return { fornecedor: nome, temDados: false };
+      const atual = lista[lista.length - 1];
+      const inicial = lista[0];
+      const precoAtual = Number(atual.valor_unitario);
+      const precoInicial = Number(inicial.valor_unitario);
+      const variacao = precoInicial ? (precoAtual / precoInicial - 1) : null;
+      return { fornecedor: nome, temDados: true, dataAtual: atual.data, dataInicial: inicial.data, precoAtual, precoInicial, variacao };
+    });
+  }
+
+  // ============ GRÁFICOS (SVG simples, sem dependência externa) ============
+  const CHART_TXT = '#64707D';
+  const CHART_TXT_STRONG = '#12151A';
+  // Paleta própria da aba Fornecedores — a paleta padrão do CRM começa em cinza,
+  // e como aqui geralmente só tem 1-2 fornecedores por produto, ficava tudo cinza.
+  const COT_PALETTE = ['#3B82F6', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', '#EF4444', '#14B8A6', '#F97316'];
+
+  function barChartSvg(comDados) {
+    if (!comDados.length) return `<div class="table-empty">Sem cotações registradas para este produto ainda.</div>`;
+    const w = 720, h = 220, padB = 40, padT = 24, gap = 18;
+    const barW = Math.min(72, (w - gap * (comDados.length - 1)) / comDados.length);
+    const totalW = comDados.length * barW + (comDados.length - 1) * gap;
+    const startX = Math.max(0, (w - totalW) / 2);
+    const maxV = Math.max(...comDados.map(c => c.precoAtual));
+    const palette = COT_PALETTE;
+    const bars = comDados.map((c, idx) => {
+      const x = startX + idx * (barW + gap);
+      const barH = maxV ? Math.round((c.precoAtual / maxV) * (h - padT - padB)) : 0;
+      const y = h - padB - barH;
+      const label = c.fornecedor.length > 14 ? c.fornecedor.slice(0, 13) + '…' : c.fornecedor;
+      return `<g>
+        <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(barH, 3)}" rx="4" fill="${palette[idx % palette.length]}"></rect>
+        <text x="${x + barW / 2}" y="${h - padB + 16}" text-anchor="middle" font-size="10" fill="${CHART_TXT}">${escapeHtml(label)}</text>
+        <text x="${x + barW / 2}" y="${y - 7}" text-anchor="middle" font-size="11" font-weight="700" fill="${CHART_TXT_STRONG}">${fmtBR(c.precoAtual)}</text>
+      </g>`;
+    }).join('');
+    return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;max-height:240px;display:block;">${bars}</svg>`;
+  }
+
+  // Linha do tempo de preço por fornecedor pra um produto — cada fornecedor uma cor/linha,
+  // posição X pela ordem cronológica das datas em que HOUVE cotação (não calendário linear).
+  // Eixo X proporcional ao tempo real (não por índice de data) — os intervalos entre
+  // cotações ficam visualmente honestos, e cada ponto mostra o preço ao lado.
+  function lineChartSvg(produto) {
+    const cotProduto = state.cotacoes.filter(c => c.produto === produto);
+    if (!cotProduto.length) return `<div class="table-empty">Sem cotações registradas para este produto ainda.</div>`;
+    const porFornecedor = {};
+    cotProduto.forEach(c => { (porFornecedor[c.fornecedor] = porFornecedor[c.fornecedor] || []).push(c); });
+    const fornecedoresComDados = Object.keys(porFornecedor);
+    const parseDia = d => new Date(d + 'T00:00:00').getTime();
+    const allDatesMs = cotProduto.map(c => parseDia(c.data));
+    const minMs = Math.min(...allDatesMs), maxMs = Math.max(...allDatesMs);
+    const spanMs = (maxMs - minMs) || 1;
+
+    const w = 720, h = 300, padL = 64, padR = 20, padT = 20, padB = 40;
+    const xOf = d => minMs === maxMs ? (padL + w - padR) / 2 : padL + ((parseDia(d) - minMs) / spanMs) * (w - padL - padR);
+
+    const valores = cotProduto.map(c => Number(c.valor_unitario));
+    const minV = Math.min(...valores), maxV = Math.max(...valores);
+    const rangeV = (maxV - minV) || Math.max(1, minV * 0.15);
+    const folga = rangeV * 0.18;
+    const yMin = minV - folga, yMax = maxV + folga;
+    const yOf = v => h - padB - ((v - yMin) / (yMax - yMin)) * (h - padT - padB);
+
+    const palette = COT_PALETTE;
+    const strokeSurface = chartSurfaceStroke();
+
+    const linesAndDots = fornecedoresComDados.map((nome, idx) => {
+      const color = palette[idx % palette.length];
+      const pontos = porFornecedor[nome].slice().sort((a, b) => a.data.localeCompare(b.data));
+      const pts = pontos.map(c => `${xOf(c.data).toFixed(1)},${yOf(Number(c.valor_unitario)).toFixed(1)}`).join(' ');
+      const linha = pontos.length > 1 ? `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"></polyline>` : '';
+      const dots = pontos.map((c, i) => {
+        const x = xOf(c.data), y = yOf(Number(c.valor_unitario));
+        const acimaAbaixo = i % 2 === 0 ? -10 : 16;
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="${color}" stroke="${strokeSurface}" stroke-width="1.5"></circle>
+          <text x="${x.toFixed(1)}" y="${(y + acimaAbaixo).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${CHART_TXT_STRONG}">${fmtBR(Number(c.valor_unitario))}</text>`;
+      }).join('');
+      return linha + dots;
+    }).join('');
+
+    const yTicks = [minV, (minV + maxV) / 2, maxV];
+    const yLabels = yTicks.map(v => `<text x="${padL - 8}" y="${yOf(v).toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="${CHART_TXT}">${fmtBR(v)}</text>`).join('');
+    const yGrid = yTicks.map(v => `<line x1="${padL}" y1="${yOf(v).toFixed(1)}" x2="${w - padR}" y2="${yOf(v).toFixed(1)}" stroke="#E4E7EB" stroke-width="1"></line>`).join('');
+
+    const qtdMarcasX = Math.min(5, [...new Set(cotProduto.map(c => c.data))].length);
+    const xTicksMs = qtdMarcasX <= 1 ? [minMs] : Array.from({ length: qtdMarcasX }, (_, i) => minMs + spanMs * i / (qtdMarcasX - 1));
+    const xGridAndLabels = xTicksMs.map((ms, i) => {
+      const x = padL + ((ms - minMs) / spanMs) * (w - padL - padR);
+      const anchor = i === 0 ? 'start' : (i === xTicksMs.length - 1 ? 'end' : 'middle');
+      return `<line x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${h - padB}" stroke="#F0F1F3" stroke-width="1"></line>
+        <text x="${x.toFixed(1)}" y="${h - padB + 18}" text-anchor="${anchor}" font-size="10" fill="${CHART_TXT}">${fmtDate(new Date(ms).toISOString().slice(0, 10))}</text>`;
+    }).join('');
+
+    const legend = fornecedoresComDados.map((nome, idx) => `
+      <span style="display:inline-flex;align-items:center;gap:6px;margin-right:14px;font-size:12px;color:var(--text-2)">
+        <span style="width:9px;height:9px;border-radius:50%;background:${palette[idx % palette.length]};display:inline-block"></span>${escapeHtml(nome)}
+      </span>
+    `).join('');
+
+    return `
+      <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;max-height:320px;display:block;">
+        ${xGridAndLabels}${yGrid}${yLabels}${linesAndDots}
+      </svg>
+      <div style="margin-top:10px;">${legend}</div>
+    `;
+  }
+
+  // ============ PAINEL ============
+  // Medidas de referência das caixas, direto da Cotação 26335 da Cartonagem Nunes (19/08/2026)
+  // + a caixa P (código 13213) informada à parte. Fixo aqui porque é dado de especificação
+  // física da caixa, não uma cotação recorrente — só muda se o modelo físico mudar.
+  const MEDIDAS_CAIXAS = [
+    { codigo: '13212', medidas: '390x300x285', descricao: 'GSO G 4x5L C/ACES', valor: 8.20 },
+    { codigo: '13213', medidas: '280x190x250', descricao: 'GSO P 6x1L C/ACES', valor: 3.61 },
+    { codigo: '17943', medidas: '100x100x250', descricao: 'Ref 1-L (Caixa Unitária 1L)', valor: 1.37 },
+    { codigo: '14206', medidas: '225x155x280', descricao: 'R.1-Bombona (Caixa Unitária 5L)', valor: 3.09 }
+  ];
+  function renderMedidasCaixas() {
+    document.getElementById('cotMedidasCaixasTable').innerHTML = MEDIDAS_CAIXAS.map(m => `
+      <tr>
+        <td class="stack-title">${escapeHtml(m.codigo)}</td>
+        <td data-label="Medidas (mm)">${escapeHtml(m.medidas)}</td>
+        <td data-label="Descrição">${escapeHtml(m.descricao)}</td>
+        <td class="num" data-label="Valor">${fmtBR(m.valor)}</td>
+      </tr>
+    `).join('');
+  }
+
+  function renderPainel() {
+    renderMedidasCaixas();
+    const sel = document.getElementById('cot-painel-produto');
+    if (sel.options.length === 0 || sel.dataset.count != state.produtos.length) {
+      sel.innerHTML = produtoNomes().map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+      sel.dataset.count = state.produtos.length;
+    }
+    const produto = sel.value;
+    const comp = comparativoPorProduto(produto);
+    const comDados = comp.filter(c => c.temDados);
+
+    const stats = document.getElementById('cotPainelStats');
+    if (!comDados.length) {
+      stats.innerHTML = `<div class="stat-card"><div class="stat-label">Sem cotações</div><div class="stat-value">—</div></div>`;
+    } else {
+      const menor = comDados.reduce((a, b) => a.precoAtual <= b.precoAtual ? a : b);
+      const maior = comDados.reduce((a, b) => a.precoAtual >= b.precoAtual ? a : b);
+      const media = comDados.reduce((s, c) => s + c.precoAtual, 0) / comDados.length;
+      stats.innerHTML = `
+        <div class="stat-card"><div class="stat-label">Menor preço atual</div><div class="stat-value">${fmtBR(menor.precoAtual)}</div><div class="form-help">${escapeHtml(menor.fornecedor)}</div></div>
+        <div class="stat-card"><div class="stat-label">Maior preço atual</div><div class="stat-value">${fmtBR(maior.precoAtual)}</div><div class="form-help">${escapeHtml(maior.fornecedor)}</div></div>
+        <div class="stat-card"><div class="stat-label">Média atual</div><div class="stat-value">${fmtBR(media)}</div></div>
+        <div class="stat-card"><div class="stat-label">Fornecedores com preço</div><div class="stat-value">${comDados.length}</div></div>
+      `;
+    }
+
+    document.getElementById('cotPainelChart').innerHTML = barChartSvg(comDados);
+
+    const minVal = comDados.length ? Math.min(...comDados.map(c => c.precoAtual)) : null;
+    const maxVal = comDados.length ? Math.max(...comDados.map(c => c.precoAtual)) : null;
+    document.getElementById('cotPainelTable').innerHTML = comDados.length ? comDados.map(c => {
+      let posicao = 'Intermediário', pill = 'pill-blue';
+      if (c.precoAtual === minVal) { posicao = 'MAIS BARATO'; pill = 'pill-green'; }
+      else if (c.precoAtual === maxVal) { posicao = 'MAIS CARO'; pill = 'pill-red'; }
+      return `
+        <tr>
+          <td class="stack-title">${escapeHtml(c.fornecedor)}</td>
+          <td data-label="Última data">${fmtDate(c.dataAtual)}</td>
+          <td class="num" data-label="Preço atual">${fmtBR(c.precoAtual)}</td>
+          <td class="num" data-label="Preço inicial">${fmtBR(c.precoInicial)}</td>
+          <td class="num" data-label="Variação">${fmtPct(c.variacao)}</td>
+          <td data-label="Posição"><span class="pill ${pill}">${posicao}</span></td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="6" class="table-empty">Nenhum fornecedor tem cotação registrada para este produto ainda.</td></tr>`;
+  }
+
+  // ============ ANÁLISE POR PRODUTO ============
+  function renderAnaliseMatrixTable(produto) {
+    const rows = state.cotacoes.filter(c => c.produto === produto);
+    if (!rows.length) return `<thead><tr><th>Data</th></tr></thead><tbody><tr><td class="table-empty">Sem cotações registradas.</td></tr></tbody>`;
+    const fornecedoresComDados = [...new Set(rows.map(r => r.fornecedor))];
+    const datas = [...new Set(rows.map(r => r.data))].sort().reverse();
+    const porChave = {};
+    rows.forEach(r => { porChave[r.data + '|' + r.fornecedor] = r.valor_unitario; });
+    const thead = `<thead><tr><th>Data</th>${fornecedoresComDados.map(f => `<th class="num">${escapeHtml(f)}</th>`).join('')}</tr></thead>`;
+    const tbody = `<tbody>${datas.map(d => `
+      <tr><td class="stack-title">${fmtDate(d)}</td>${fornecedoresComDados.map(f => {
+        const v = porChave[d + '|' + f];
+        return `<td class="num">${v !== undefined ? fmtBR(v) : '—'}</td>`;
+      }).join('')}</tr>
+    `).join('')}</tbody>`;
+    return thead + tbody;
+  }
+
+  function renderAnalise() {
+    const sel = document.getElementById('cot-analise-produto');
+    if (sel.options.length === 0 || sel.dataset.count != state.produtos.length) {
+      sel.innerHTML = produtoNomes().map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+      sel.dataset.count = state.produtos.length;
+      const painelSel = document.getElementById('cot-painel-produto');
+      if (painelSel && painelSel.value) sel.value = painelSel.value;
+    }
+    const produto = sel.value;
+    if (!produto) return;
+    const comp = comparativoPorProduto(produto);
+    const comDados = comp.filter(c => c.temDados);
+
+    document.getElementById('cotAnaliseChart').innerHTML = lineChartSvg(produto);
+
+    const minVal = comDados.length ? Math.min(...comDados.map(c => c.precoAtual)) : null;
+    const maxVal = comDados.length ? Math.max(...comDados.map(c => c.precoAtual)) : null;
+    document.getElementById('cotAnaliseTable').innerHTML = comDados.length ? comDados.map(c => {
+      let posicao = 'Intermediário', pill = 'pill-blue';
+      if (c.precoAtual === minVal) { posicao = 'MAIS BARATO'; pill = 'pill-green'; }
+      else if (c.precoAtual === maxVal) { posicao = 'MAIS CARO'; pill = 'pill-red'; }
+      return `
+        <tr>
+          <td class="stack-title">${escapeHtml(c.fornecedor)}</td>
+          <td data-label="Data mais recente">${fmtDate(c.dataAtual)}</td>
+          <td class="num" data-label="Preço atual">${fmtBR(c.precoAtual)}</td>
+          <td data-label="Primeira data">${fmtDate(c.dataInicial || c.dataAtual)}</td>
+          <td class="num" data-label="Preço inicial">${fmtBR(c.precoInicial)}</td>
+          <td class="num" data-label="Variação">${fmtPct(c.variacao)}</td>
+          <td data-label="Posição"><span class="pill ${pill}">${posicao}</span></td>
+        </tr>
+      `;
+    }).join('') : `<tr><td colspan="7" class="table-empty">Nenhum fornecedor tem cotação registrada para este produto ainda.</td></tr>`;
+
+    document.getElementById('cotAnaliseMatrix').innerHTML = renderAnaliseMatrixTable(produto);
+    renderEstrategicos();
+  }
+
+  // ============ REGISTRO ============
+  function syncFiltroSelects() {
+    const selProduto = document.getElementById('cot-filtro-produto');
+    const selFornecedor = document.getElementById('cot-filtro-fornecedor');
+    if (selProduto.dataset.count != state.produtos.length) {
+      selProduto.innerHTML = '<option value="">Todos os produtos</option>' + produtoNomes().map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+      selProduto.dataset.count = state.produtos.length;
+    }
+    if (selFornecedor.dataset.count != state.fornecedores.length) {
+      selFornecedor.innerHTML = '<option value="">Todos os fornecedores</option>' + fornecedorNomes().map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+      selFornecedor.dataset.count = state.fornecedores.length;
+    }
+    document.getElementById('cot-produto-list').innerHTML = produtoNomes().map(n => `<option value="${escapeHtml(n)}">`).join('');
+    document.getElementById('cot-fornecedor-list').innerHTML = fornecedorNomes().map(n => `<option value="${escapeHtml(n)}">`).join('');
+  }
+
+  function onRegistroFilterChange() { state.registroPage = 1; renderRegistro(); }
+
+  function renderRegistro() {
+    syncFiltroSelects();
+    const busca = (document.getElementById('cot-busca').value || '').toLowerCase().trim();
+    const filtroProduto = document.getElementById('cot-filtro-produto').value;
+    const filtroFornecedor = document.getElementById('cot-filtro-fornecedor').value;
+    let rows = state.cotacoes.slice().sort((a, b) => b.data.localeCompare(a.data));
+    if (filtroProduto) rows = rows.filter(c => c.produto === filtroProduto);
+    if (filtroFornecedor) rows = rows.filter(c => c.fornecedor === filtroFornecedor);
+    if (busca) rows = rows.filter(c => (c.produto + ' ' + c.fornecedor + ' ' + (c.observacoes || '')).toLowerCase().includes(busca));
+
+    const tbody = document.getElementById('cotRegistroTable');
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Nenhuma cotação encontrada com esse filtro.</td></tr>`;
+      document.getElementById('cotRegistroPagination').innerHTML = '';
+      return;
+    }
+    const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    state.registroPage = Math.min(Math.max(1, state.registroPage), pages);
+    const pageRows = rows.slice((state.registroPage - 1) * PAGE_SIZE, state.registroPage * PAGE_SIZE);
+
+    tbody.innerHTML = pageRows.map(c => `
+      <tr>
+        <td class="stack-title">${fmtDate(c.data)}</td>
+        <td data-label="Produto">${escapeHtml(c.produto)}</td>
+        <td data-label="Fornecedor">${escapeHtml(c.fornecedor)}</td>
+        <td class="num" data-label="Preço">${fmtBR(c.valor_unitario)} / ${escapeHtml(c.unidade_cotada || '')}</td>
+        <td class="num" data-label="Total">${fmtBR(c.total)}</td>
+        <td data-label="Condição">${escapeHtml(c.condicao_pagamento || '—')}</td>
+        <td data-label="Ações">
+          <div class="row-actions">
+            <button class="btn btn-small" onclick="Cot.openCotacaoModal('${c.id}')">Editar</button>
+            <button class="btn btn-small btn-danger" onclick="Cot.excluirCotacao('${c.id}')">Excluir</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    document.getElementById('cotRegistroPagination').innerHTML = paginationHtml('cotRegistroPagination', rows.length, state.registroPage, PAGE_SIZE, 'goRegistroPage');
+  }
+
+  function recalcTotal() {
+    const valor = Number(document.getElementById('cot-valor').value || 0);
+    const unidades = Number(document.getElementById('cot-unidades').value || 0);
+    document.getElementById('cot-total').value = (valor * unidades).toFixed(2);
+  }
+
+  function openCotacaoModal(id = '') {
+    syncFiltroSelects();
+    const item = id ? state.cotacoes.find(c => c.id === id) : null;
+    document.getElementById('modal-cotacao-title').textContent = item ? 'Editar cotação' : 'Nova cotação';
+    document.getElementById('cot-id').value = id || '';
+    document.getElementById('cot-data').value = item ? item.data.slice(0, 10) : new Date().toISOString().slice(0, 10);
+    document.getElementById('cot-produto').value = item?.produto || '';
+    document.getElementById('cot-fornecedor').value = item?.fornecedor || '';
+    document.getElementById('cot-unidade').value = item?.unidade_cotada || 'kg';
+    document.getElementById('cot-qtd-embalagem').value = item?.qtd_embalagem ?? 1;
+    document.getElementById('cot-valor').value = item?.valor_unitario ?? 0;
+    document.getElementById('cot-unidades').value = item?.unidades_cotadas ?? 1;
+    document.getElementById('cot-total').value = item?.total ?? 0;
+    document.getElementById('cot-condicao').value = item?.condicao_pagamento || '';
+    document.getElementById('cot-obs').value = item?.observacoes || '';
+    openModal('modal-cotacao');
+  }
+
+  async function salvarCotacao() {
+    const id = document.getElementById('cot-id').value;
+    const produto = document.getElementById('cot-produto').value.trim();
+    const fornecedor = document.getElementById('cot-fornecedor').value.trim();
+    const data = document.getElementById('cot-data').value;
+    if (!produto || !fornecedor || !data) { alert('Preencha produto, fornecedor e data.'); return; }
+    const payload = {
+      data,
+      produto,
+      fornecedor,
+      unidade_cotada: document.getElementById('cot-unidade').value,
+      qtd_embalagem: Number(document.getElementById('cot-qtd-embalagem').value || 1),
+      valor_unitario: Number(document.getElementById('cot-valor').value || 0),
+      unidades_cotadas: Number(document.getElementById('cot-unidades').value || 0),
+      total: Number(document.getElementById('cot-total').value || 0),
+      condicao_pagamento: document.getElementById('cot-condicao').value.trim() || null,
+      observacoes: document.getElementById('cot-obs').value.trim() || null,
+      atualizado_em: new Date().toISOString()
+    };
+    const client = getSupabaseClient();
+    const { error } = id
+      ? await client.from('gso_cotacoes').update(payload).eq('id', id)
+      : await client.from('gso_cotacoes').insert(payload);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    closeModal('modal-cotacao');
+    await loadCotacoes();
+    renderRegistro();
+  }
+
+  async function excluirCotacao(id) {
+    if (!confirm('Excluir esta cotação? Essa ação não pode ser desfeita.')) return;
+    const client = getSupabaseClient();
+    const { error } = await client.from('gso_cotacoes').delete().eq('id', id);
+    if (error) { alert('Erro ao excluir: ' + error.message); return; }
+    await loadCotacoes();
+    renderRegistro();
+  }
+
+  // ============ CADASTRO ============
+  function renderProdutosCadastro() {
+    const total = state.produtos.length;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE_CADASTRO));
+    state.produtosPage = Math.min(Math.max(1, state.produtosPage), pages);
+    const pageItens = state.produtos.slice((state.produtosPage - 1) * PAGE_SIZE_CADASTRO, state.produtosPage * PAGE_SIZE_CADASTRO);
+    document.getElementById('cotProdutosTable').innerHTML = total
+      ? pageItens.map(p => `
+        <tr>
+          <td data-label="Código">${escapeHtml(p.codigo || '—')}</td>
+          <td class="stack-title" data-label="Produto">${escapeHtml(p.nome)}</td>
+          <td data-label="Unidade">${escapeHtml(p.unidade)}</td>
+          <td data-label="Ações">
+            <div class="row-actions">
+              <button class="btn btn-small" onclick="Cot.openProdutoModal('${p.id}')">Editar</button>
+              <button class="btn btn-small btn-danger" onclick="Cot.removerProduto('${p.id}')">Excluir</button>
+            </div>
+          </td>
+        </tr>
+      `).join('')
+      : `<tr><td colspan="4" class="table-empty">Nenhum produto cadastrado.</td></tr>`;
+    document.getElementById('cotProdutosPagination').innerHTML = paginationHtml('cotProdutosPagination', total, state.produtosPage, PAGE_SIZE_CADASTRO, 'goProdutosPage');
+  }
+
+  function renderFornecedoresCadastro() {
+    document.getElementById('cotFornecedoresTable').innerHTML = state.fornecedores.length
+      ? state.fornecedores.map(f => `
+        <tr>
+          <td class="stack-title" data-label="Fornecedor">${escapeHtml(f.nome)}</td>
+          <td data-label="Contato">${escapeHtml(f.contato || '—')}</td>
+          <td data-label="Telefone">${escapeHtml(f.telefone || '—')}</td>
+          <td data-label="Ações">
+            <div class="row-actions">
+              <button class="btn btn-small" onclick="Cot.openFornecedorModal('${f.id}')">Editar</button>
+              <button class="btn btn-small btn-danger" onclick="Cot.removerFornecedor('${f.id}')">Excluir</button>
+            </div>
+          </td>
+        </tr>
+      `).join('')
+      : `<tr><td colspan="4" class="table-empty">Nenhum fornecedor cadastrado.</td></tr>`;
+  }
+
+  function openProdutoModal(id = '') {
+    const item = id ? state.produtos.find(p => p.id === id) : null;
+    document.getElementById('modal-cot-produto-title').textContent = item ? 'Editar produto' : 'Novo produto';
+    document.getElementById('cot-prod-id').value = id || '';
+    document.getElementById('cot-prod-codigo').value = item?.codigo || '';
+    document.getElementById('cot-prod-unidade').value = item?.unidade || 'kg';
+    document.getElementById('cot-prod-nome').value = item?.nome || '';
+    document.getElementById('cot-prod-categoria').value = item?.categoria || '';
+    document.getElementById('cot-prod-obs').value = item?.observacao || '';
+    openModal('modal-cot-produto');
+  }
+
+  async function salvarProduto() {
+    const id = document.getElementById('cot-prod-id').value;
+    const nome = document.getElementById('cot-prod-nome').value.trim();
+    if (!nome) { alert('Preencha o nome do produto.'); return; }
+    const payload = {
+      codigo: document.getElementById('cot-prod-codigo').value.trim() || null,
+      nome,
+      unidade: document.getElementById('cot-prod-unidade').value,
+      categoria: document.getElementById('cot-prod-categoria').value.trim() || null,
+      observacao: document.getElementById('cot-prod-obs').value.trim() || null,
+      atualizado_em: new Date().toISOString()
+    };
+    const client = getSupabaseClient();
+    const { error } = id
+      ? await client.from('gso_cotacao_produtos').update(payload).eq('id', id)
+      : await client.from('gso_cotacao_produtos').insert(payload);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    closeModal('modal-cot-produto');
+    await loadProdutos();
+    renderProdutosCadastro();
+  }
+
+  async function removerProduto(id) {
+    if (!confirm('Remover este produto do cadastro? O histórico de cotações é mantido.')) return;
+    const client = getSupabaseClient();
+    const { error } = await client.from('gso_cotacao_produtos').update({ ativo: false }).eq('id', id);
+    if (error) { alert('Erro ao remover: ' + error.message); return; }
+    await loadProdutos();
+    renderProdutosCadastro();
+  }
+
+  function openFornecedorModal(id = '') {
+    const item = id ? state.fornecedores.find(f => f.id === id) : null;
+    document.getElementById('modal-cot-fornecedor-title').textContent = item ? 'Editar fornecedor' : 'Novo fornecedor';
+    document.getElementById('cot-forn-id').value = id || '';
+    document.getElementById('cot-forn-nome').value = item?.nome || '';
+    document.getElementById('cot-forn-contato').value = item?.contato || '';
+    document.getElementById('cot-forn-telefone').value = item?.telefone || '';
+    document.getElementById('cot-forn-endereco').value = item?.endereco || '';
+    openModal('modal-cot-fornecedor');
+  }
+
+  async function salvarFornecedor() {
+    const id = document.getElementById('cot-forn-id').value;
+    const nome = document.getElementById('cot-forn-nome').value.trim();
+    if (!nome) { alert('Preencha o nome do fornecedor.'); return; }
+    const payload = {
+      nome,
+      contato: document.getElementById('cot-forn-contato').value.trim() || null,
+      telefone: document.getElementById('cot-forn-telefone').value.trim() || null,
+      endereco: document.getElementById('cot-forn-endereco').value.trim() || null,
+      atualizado_em: new Date().toISOString()
+    };
+    const client = getSupabaseClient();
+    const { error } = id
+      ? await client.from('gso_cotacao_fornecedores').update(payload).eq('id', id)
+      : await client.from('gso_cotacao_fornecedores').insert(payload);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    closeModal('modal-cot-fornecedor');
+    await loadFornecedores();
+    renderFornecedoresCadastro();
+  }
+
+  async function removerFornecedor(id) {
+    if (!confirm('Remover este fornecedor do cadastro? O histórico de cotações é mantido.')) return;
+    const client = getSupabaseClient();
+    const { error } = await client.from('gso_cotacao_fornecedores').update({ ativo: false }).eq('id', id);
+    if (error) { alert('Erro ao remover: ' + error.message); return; }
+    await loadFornecedores();
+    renderFornecedoresCadastro();
+  }
+
+  // ============ FORNECEDORES ESTRATÉGICOS ============
+  // Relatório comparativo pontual (Cartonagem Nunes x NovoBox x P&G), portado da planilha.
+  // Os valores da NovoBox/P&G são benchmarks pontuais digitados manualmente (não há registro
+  // de cotações recorrente desses fornecedores pra esses itens); os da Cartonagem Nunes vêm
+  // ao vivo do registro de cotações, então "Nunes atual" e a linha do tempo sempre atualizam.
+  const ESTRATEGICOS = {
+    unitarias: [
+      { modelo: 'Unitária 5L', ref1: 2.83, ref2: 3.02, fechamento: 3.04, qtd: 100, obs: 'R$2,83 era medida anterior; R$3,02 considerava +2cm. R$3,04 é o pedido de ago/26.', decisao: 'Manter histórico separado por medida.' },
+      { modelo: 'Unitária 1L', ref1: 1.22, ref2: 1.43, fechamento: 1.37, qtd: 100, obs: 'R$1,22 era amostra menor (90x90). Nova medida 100x100x250 foi calculada a R$1,43.', decisao: 'Negociação efetiva: R$1,43 → R$1,37 (-4,2%).' }
+    ]
+  };
+
+  function renderEstrategicos() {
+    const html = `
+      <div class="indic-section-title">Cartonagem Nunes — histórico e negociações</div>
+      <div class="card chart-card">${lineChartSvg('GSO G 4x5L C/Divisórias')}</div>
+
+      <div class="indic-section-title">Caixas unitárias — efeito de medida x negociação</div>
+      <div class="kpi-card-grid">
+        ${ESTRATEGICOS.unitarias.map(u => `
+          <div class="kpi-card">
+            <div class="kpi-title">${escapeHtml(u.modelo)}</div>
+            <div class="kpi-row"><span>Referência inicial</span><strong>${fmtBR(u.ref1)}</strong></div>
+            <div class="kpi-row"><span>Nova referência</span><strong>${fmtBR(u.ref2)}</strong></div>
+            <div class="kpi-row"><span>Fechamento (${u.qtd} un.)</span><strong>${fmtBR(u.fechamento)}</strong></div>
+            <div class="kpi-note">${escapeHtml(u.obs)}<br><strong>Decisão:</strong> ${escapeHtml(u.decisao)}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    document.getElementById('cotEstrategicosBlock').innerHTML = html;
+  }
+
+  window.Cot = {
+    state: state,
+    abrir: abrir,
+    navTo: navTo,
+    onProdutoChange: onProdutoChange,
+    renderPainel: renderPainel,
+    renderAnalise: renderAnalise,
+    renderRegistro: renderRegistro,
+    onRegistroFilterChange: onRegistroFilterChange,
+    goRegistroPage: goRegistroPage,
+    goProdutosPage: goProdutosPage,
+    recalcTotal: recalcTotal,
+    openCotacaoModal: openCotacaoModal,
+    salvarCotacao: salvarCotacao,
+    excluirCotacao: excluirCotacao,
+    openProdutoModal: openProdutoModal,
+    salvarProduto: salvarProduto,
+    removerProduto: removerProduto,
+    openFornecedorModal: openFornecedorModal,
+    salvarFornecedor: salvarFornecedor,
+    removerFornecedor: removerFornecedor,
+    closeModal: closeModal
   };
 })();
 
