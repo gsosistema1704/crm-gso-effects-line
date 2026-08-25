@@ -11764,7 +11764,15 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 @media (max-width: 900px) {#view-cotacoes .stats-bar { grid-template-columns: 1fr 1fr !important;}}
 #view-cotacoes .indic-section-title { font-size: 13px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: .5px !important; color: var(--text-2) !important; margin: 26px 0 12px !important;}
 #view-cotacoes .indic-section-title:first-child { margin-top: 0 !important;}
+#view-cotacoes #cot-medidas-caixas-title { margin-top: 34px !important;}
 #view-cotacoes .chart-card { padding: 20px 22px !important; overflow: visible !important;}
+.cot-hbar-wrap { display: flex; flex-direction: column; gap: 8px; }
+.cot-hbar-row { display: flex; align-items: center; gap: 10px; }
+.cot-hbar-label { width: 34%; max-width: 220px; flex-shrink: 0; font-size: 12.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cot-hbar-track { flex: 1; height: 14px; background: var(--glass-hairline, var(--border)); border-radius: 7px; overflow: hidden; }
+.cot-hbar-fill { height: 100%; border-radius: 7px; min-width: 3px; }
+.cot-hbar-value { width: 78px; flex-shrink: 0; text-align: right; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (max-width: 700px) { .cot-hbar-label { width: 40%; font-size: 11.5px; } .cot-hbar-value { width: 64px; font-size: 11.5px; } }
 #view-cotacoes .rankings-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; align-items: start !important;}
 @media (max-width: 900px) {#view-cotacoes .rankings-grid { grid-template-columns: 1fr !important;}}
 #view-cotacoes .kpi-card-grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important;}
@@ -12889,7 +12897,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </div>
 
         <div class="header">
-          <div><div class="indic-section-title" style="margin:0">Medidas das caixas (referência)</div></div>
+          <div><div class="indic-section-title" id="cot-medidas-caixas-title">Medidas das caixas (referência)</div></div>
           <div class="h-actions"><button class="btn btn-soft" onclick="Cot.openMedidaModal()">+ Medida</button></div>
         </div>
         <div class="card table-card">
@@ -28323,6 +28331,26 @@ async function renderIndicadores() {
     return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;max-height:240px;display:block;">${bars}</svg>`;
   }
 
+  // Barras horizontais pro panorama "Todos os produtos" — com muitos produtos e preços em
+  // faixas bem diferentes (ex.: R$1 a R$250), barras verticais colidem nome com nome e a
+  // barra pequena some do lado da grande. Uma linha por produto resolve os dois problemas.
+  function barChartHorizontalHtml(resumo) {
+    if (!resumo.length) return `<div class="table-empty">Sem cotações registradas ainda.</div>`;
+    const ordenado = resumo.slice().sort((a, b) => b.media - a.media);
+    const maxV = Math.max(...ordenado.map(r => r.media));
+    const palette = COT_PALETTE;
+    const linhas = ordenado.map((r, idx) => {
+      const pct = maxV ? Math.max((r.media / maxV) * 100, 2) : 0;
+      return `
+        <div class="cot-hbar-row">
+          <div class="cot-hbar-label" title="${escapeHtml(r.produto)}">${escapeHtml(r.produto)}</div>
+          <div class="cot-hbar-track"><div class="cot-hbar-fill" style="width:${pct}%;background:${palette[idx % palette.length]}"></div></div>
+          <div class="cot-hbar-value">${fmtBR(r.media)}</div>
+        </div>`;
+    }).join('');
+    return `<div class="cot-hbar-wrap">${linhas}</div>`;
+  }
+
   // Linha do tempo de preço por fornecedor pra um produto — cada fornecedor uma cor/linha,
   // posição X pela ordem cronológica das datas em que HOUVE cotação (não calendário linear).
   // Eixo X proporcional ao tempo real (não por índice de data) — os intervalos entre
@@ -28532,9 +28560,7 @@ async function renderIndicadores() {
       <div class="stat-card"><div class="stat-label">Cotações registradas</div><div class="stat-value">${state.cotacoes.length}</div></div>
     `;
 
-    document.getElementById('cotPainelChart').innerHTML = barChartSvg(
-      comDados.map(r => ({ fornecedor: r.produto, precoAtual: r.media }))
-    );
+    document.getElementById('cotPainelChart').innerHTML = barChartHorizontalHtml(comDados);
 
     document.getElementById('cotPainelThead').innerHTML =
       '<tr><th>Produto</th><th class="num">Fornecedores</th><th class="num">Menor preço</th><th class="num">Maior preço</th><th class="num">Média</th></tr>';
