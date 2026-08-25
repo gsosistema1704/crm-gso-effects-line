@@ -12806,6 +12806,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="subtab" data-subtab="analise" onclick="Cot.navTo('analise')">Análise por Produto</div>
         <div class="subtab" data-subtab="registro" onclick="Cot.navTo('registro')">Cotações</div>
         <div class="subtab" data-subtab="medidas" onclick="Cot.navTo('medidas')">Medidas</div>
+        <div class="subtab" data-subtab="estrategia" onclick="Cot.navTo('estrategia')">Estratégia</div>
         <div class="subtab" data-subtab="cadastro" onclick="Cot.navTo('cadastro')">Cadastro</div>
       </div>
 
@@ -12836,6 +12837,17 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
             <tbody id="cotMedidasCaixasTable"></tbody>
           </table>
         </div>
+      </div>
+
+      <div id="cot-view-estrategia" class="hidden">
+        <div class="header">
+          <div>
+            <div class="h-title" style="font-size:16px">Fornecedores Estratégicos</div>
+            <div class="h-sub">Comparativos, negociações e histórico — edite ou remova qualquer bloco quando quiser.</div>
+          </div>
+          <div class="h-actions"><button class="btn btn-soft" onclick="Cot.novoEstrategiaBloco()">+ Bloco</button></div>
+        </div>
+        <div id="cotEstrategiaBlocos"></div>
       </div>
 
       <div id="cot-view-analise" class="hidden">
@@ -12998,6 +13010,27 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="form-actions">
           <button class="btn" onclick="Cot.closeModal('modal-cot-medida')">Cancelar</button>
           <button class="btn btn-primary" onclick="Cot.salvarMedidaCaixa()">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MODAL: BLOCO DE ESTRATÉGIA ===== -->
+    <div class="modal-bg" id="modal-cot-estrategia-bloco">
+      <div class="modal modal-wide">
+        <div class="modal-title" id="modal-estrategia-bloco-title">Editar bloco</div>
+        <input type="hidden" id="estrategia-bloco-id">
+        <input type="hidden" id="estrategia-bloco-tipo">
+        <div class="form-row"><div><label class="form-label">Título</label><input class="form-input" id="estrategia-bloco-titulo" placeholder="ex: Cartonagem | Benchmark Atual"></div></div>
+        <div class="form-row">
+          <div>
+            <label class="form-label">Conteúdo</label>
+            <textarea class="form-input" id="estrategia-bloco-conteudo" rows="10" style="font-family:monospace;font-size:12px;white-space:pre"></textarea>
+            <div class="form-help" id="estrategia-bloco-ajuda"></div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn" onclick="Cot.closeModal('modal-cot-estrategia-bloco')">Cancelar</button>
+          <button class="btn btn-primary" onclick="Cot.salvarEstrategiaBloco()">Salvar</button>
         </div>
       </div>
     </div>
@@ -28105,6 +28138,7 @@ async function renderIndicadores() {
     fornecedores: [],
     cotacoes: [],
     medidasCaixas: [],
+    estrategiaBlocos: [],
     registroPage: 1,
     produtosPage: 1,
     produtosBusca: '',
@@ -28127,7 +28161,7 @@ async function renderIndicadores() {
     `;
   }
 
-  const COT_VIEWS = ['painel', 'analise', 'registro', 'medidas', 'cadastro'];
+  const COT_VIEWS = ['painel', 'analise', 'registro', 'medidas', 'estrategia', 'cadastro'];
   function navTo(view) {
     COT_VIEWS.forEach(v => document.getElementById('cot-view-' + v).classList.toggle('hidden', v !== view));
     document.querySelectorAll('#view-cotacoes .subtab').forEach(el => el.classList.toggle('active', el.dataset.subtab === view));
@@ -28135,6 +28169,7 @@ async function renderIndicadores() {
     if (view === 'analise') renderAnalise();
     if (view === 'registro') renderRegistro();
     if (view === 'medidas') renderMedidasCaixas();
+    if (view === 'estrategia') renderEstrategiaBlocos();
     if (view === 'cadastro') { renderProdutosCadastro(); renderFornecedoresCadastro(); }
   }
 
@@ -28179,9 +28214,15 @@ async function renderIndicadores() {
     if (error) { console.error(error); return; }
     state.medidasCaixas = data || [];
   }
+  async function loadEstrategiaBlocos() {
+    const client = getSupabaseClient();
+    const { data, error } = await client.from('gso_estrategia_blocos').select('*').order('ordem', { ascending: true });
+    if (error) { console.error(error); return; }
+    state.estrategiaBlocos = data || [];
+  }
 
   function abrir() {
-    Promise.all([loadProdutos(), loadFornecedores(), loadCotacoes(), loadMedidasCaixas()]).then(function () {
+    Promise.all([loadProdutos(), loadFornecedores(), loadCotacoes(), loadMedidasCaixas(), loadEstrategiaBlocos()]).then(function () {
       navTo('painel');
     });
   }
@@ -28389,6 +28430,121 @@ async function renderIndicadores() {
     if (error) { alert('Erro ao excluir: ' + error.message); return; }
     await loadMedidasCaixas();
     renderMedidasCaixas();
+  }
+
+  // ============ ESTRATÉGIA (fornecedores estratégicos: blocos editáveis) ============
+  function renderEstrategiaBloco(b) {
+    const header = `
+      <div class="header" style="margin-top:22px">
+        <div><div class="h-title" style="font-size:15px">${escapeHtml(b.titulo)}</div></div>
+        <div class="h-actions">
+          <button class="btn btn-small" onclick="Cot.abrirEstrategiaBlocoModal('${b.id}')">Editar</button>
+          <button class="btn btn-small btn-danger" onclick="Cot.excluirEstrategiaBloco('${b.id}')" title="Excluir bloco">✕</button>
+        </div>
+      </div>`;
+    let corpo = '';
+    if (b.tipo === 'kpis') {
+      corpo = '<div class="stats-bar">' + (b.conteudo.itens || []).map(i =>
+        `<div class="stat-card"><div class="stat-label">${escapeHtml(i.label)}</div><div class="stat-value">${escapeHtml(i.valor)}</div></div>`
+      ).join('') + '</div>';
+    } else if (b.tipo === 'texto') {
+      corpo = '<div class="card"><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text)">' +
+        (b.conteudo.paragrafos || []).map(p => `<li>${escapeHtml(p)}</li>`).join('') + '</ul></div>';
+    } else {
+      const colunas = b.conteudo.colunas || [];
+      const linhas = b.conteudo.linhas || [];
+      corpo = '<div class="card table-card"><table class="stack-table"><thead><tr>' +
+        colunas.map(c => `<th>${escapeHtml(c)}</th>`).join('') + '</tr></thead><tbody>' +
+        linhas.map(row => '<tr>' + row.map((cell, i) =>
+          `<td${i === 0 ? ' class="stack-title"' : ''} data-label="${escapeHtml(colunas[i] || '')}">${escapeHtml(cell)}</td>`
+        ).join('') + '</tr>').join('') + '</tbody></table></div>' +
+        (b.conteudo.nota ? `<div class="form-help" style="margin-top:8px">${escapeHtml(b.conteudo.nota)}</div>` : '');
+    }
+    return header + corpo;
+  }
+
+  function renderEstrategiaBlocos() {
+    const el = document.getElementById('cotEstrategiaBlocos');
+    const blocos = state.estrategiaBlocos.slice().sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+    el.innerHTML = blocos.length ? blocos.map(renderEstrategiaBloco).join('') : '<div class="table-empty">Nenhum bloco ainda. Clique em "+ Bloco" pra criar o primeiro.</div>';
+  }
+
+  function abrirEstrategiaBlocoModal(id) {
+    const item = id ? state.estrategiaBlocos.find(b => b.id === id) : null;
+    const tipo = item ? item.tipo : 'texto';
+    document.getElementById('estrategia-bloco-id').value = id || '';
+    document.getElementById('estrategia-bloco-tipo').value = tipo;
+    document.getElementById('estrategia-bloco-titulo').value = item ? item.titulo : '';
+    document.getElementById('modal-estrategia-bloco-title').textContent = item ? 'Editar bloco' : 'Novo bloco';
+
+    let textoConteudo = '', ajuda = '';
+    if (tipo === 'kpis') {
+      textoConteudo = ((item && item.conteudo.itens) || []).map(i => `${i.label}: ${i.valor}`).join('\n');
+      ajuda = 'Um item por linha, no formato Rótulo: Valor';
+    } else if (tipo === 'texto') {
+      textoConteudo = ((item && item.conteudo.paragrafos) || []).join('\n');
+      ajuda = 'Um parágrafo por linha.';
+    } else {
+      const colunas = (item && item.conteudo.colunas) || [];
+      const linhas = (item && item.conteudo.linhas) || [];
+      const linhasTexto = [colunas.join(' | ')].concat(linhas.map(r => r.join(' | ')));
+      if (item && item.conteudo.nota) linhasTexto.push('NOTA: ' + item.conteudo.nota);
+      textoConteudo = linhasTexto.join('\n');
+      ajuda = 'Primeira linha = nomes das colunas, separados por " | ". Linhas seguintes = uma linha da tabela cada, valores separados por " | ". Linha opcional no fim começando com "NOTA: " vira uma observação abaixo da tabela.';
+    }
+    document.getElementById('estrategia-bloco-conteudo').value = textoConteudo;
+    document.getElementById('estrategia-bloco-ajuda').textContent = ajuda;
+    openModal('modal-cot-estrategia-bloco');
+  }
+
+  function novoEstrategiaBloco() { abrirEstrategiaBlocoModal(''); }
+
+  async function salvarEstrategiaBloco() {
+    const id = document.getElementById('estrategia-bloco-id').value;
+    const tipo = document.getElementById('estrategia-bloco-tipo').value || 'texto';
+    const titulo = document.getElementById('estrategia-bloco-titulo').value.trim();
+    if (!titulo) { alert('Preencha o título.'); return; }
+    const bruto = document.getElementById('estrategia-bloco-conteudo').value;
+    const linhasTexto = bruto.split('\n').map(l => l.trim()).filter(l => l.length);
+
+    const conteudo = {};
+    if (tipo === 'kpis') {
+      conteudo.itens = linhasTexto.map(l => {
+        const idx = l.indexOf(':');
+        return idx >= 0 ? { label: l.slice(0, idx).trim(), valor: l.slice(idx + 1).trim() } : { label: l, valor: '' };
+      });
+    } else if (tipo === 'texto') {
+      conteudo.paragrafos = linhasTexto;
+    } else {
+      let nota = null;
+      const dataLinhas = linhasTexto.filter(l => {
+        if (l.toUpperCase().startsWith('NOTA:')) { nota = l.slice(l.indexOf(':') + 1).trim(); return false; }
+        return true;
+      });
+      const [cabecalho, ...resto] = dataLinhas;
+      conteudo.colunas = (cabecalho || '').split('|').map(c => c.trim());
+      conteudo.linhas = resto.map(l => l.split('|').map(c => c.trim()));
+      if (nota) conteudo.nota = nota;
+    }
+
+    const client = getSupabaseClient();
+    const payload = { tipo, titulo, conteudo, atualizado_em: new Date().toISOString() };
+    const { error } = id
+      ? await client.from('gso_estrategia_blocos').update(payload).eq('id', id)
+      : await client.from('gso_estrategia_blocos').insert({ ...payload, ordem: state.estrategiaBlocos.length + 1 });
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    closeModal('modal-cot-estrategia-bloco');
+    await loadEstrategiaBlocos();
+    renderEstrategiaBlocos();
+  }
+
+  async function excluirEstrategiaBloco(id) {
+    if (!confirm('Excluir este bloco? Essa ação não pode ser desfeita.')) return;
+    const client = getSupabaseClient();
+    const { error } = await client.from('gso_estrategia_blocos').delete().eq('id', id);
+    if (error) { alert('Erro ao excluir: ' + error.message); return; }
+    await loadEstrategiaBlocos();
+    renderEstrategiaBlocos();
   }
 
   function renderPainel() {
@@ -28851,6 +29007,10 @@ async function renderIndicadores() {
     openMedidaModal: openMedidaModal,
     salvarMedidaCaixa: salvarMedidaCaixa,
     removerMedidaCaixa: removerMedidaCaixa,
+    abrirEstrategiaBlocoModal: abrirEstrategiaBlocoModal,
+    novoEstrategiaBloco: novoEstrategiaBloco,
+    salvarEstrategiaBloco: salvarEstrategiaBloco,
+    excluirEstrategiaBloco: excluirEstrategiaBloco,
     closeModal: closeModal
   };
 })();
