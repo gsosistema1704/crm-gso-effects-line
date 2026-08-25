@@ -28736,30 +28736,10 @@ async function renderIndicadores() {
   // Os valores da NovoBox/P&G são benchmarks pontuais digitados manualmente (não há registro
   // de cotações recorrente desses fornecedores pra esses itens); os da Cartonagem Nunes vêm
   // ao vivo do registro de cotações, então "Nunes atual" e a linha do tempo sempre atualizam.
-  const ESTRATEGICOS = {
-    unitarias: [
-      { modelo: 'Unitária 5L', ref1: 2.83, ref2: 3.02, fechamento: 3.04, qtd: 100, obs: 'R$2,83 era medida anterior; R$3,02 considerava +2cm. R$3,04 é o pedido de ago/26.', decisao: 'Manter histórico separado por medida.' },
-      { modelo: 'Unitária 1L', ref1: 1.22, ref2: 1.43, fechamento: 1.37, qtd: 100, obs: 'R$1,22 era amostra menor (90x90). Nova medida 100x100x250 foi calculada a R$1,43.', decisao: 'Negociação efetiva: R$1,43 → R$1,37 (-4,2%).' }
-    ]
-  };
-
   function renderEstrategicos() {
     const html = `
       <div class="indic-section-title">Cartonagem Nunes — histórico e negociações</div>
       <div class="card chart-card">${lineChartSvg('GSO G 4x5L C/Divisórias')}</div>
-
-      <div class="indic-section-title">Caixas unitárias — efeito de medida x negociação</div>
-      <div class="kpi-card-grid">
-        ${ESTRATEGICOS.unitarias.map(u => `
-          <div class="kpi-card">
-            <div class="kpi-title">${escapeHtml(u.modelo)}</div>
-            <div class="kpi-row"><span>Referência inicial</span><strong>${fmtBR(u.ref1)}</strong></div>
-            <div class="kpi-row"><span>Nova referência</span><strong>${fmtBR(u.ref2)}</strong></div>
-            <div class="kpi-row"><span>Fechamento (${u.qtd} un.)</span><strong>${fmtBR(u.fechamento)}</strong></div>
-            <div class="kpi-note">${escapeHtml(u.obs)}<br><strong>Decisão:</strong> ${escapeHtml(u.decisao)}</div>
-          </div>
-        `).join('')}
-      </div>
     `;
     document.getElementById('cotEstrategicosBlock').innerHTML = html;
   }
