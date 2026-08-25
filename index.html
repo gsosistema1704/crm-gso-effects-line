@@ -1926,6 +1926,8 @@
     .metrics { grid-template-columns: repeat(2, 1fr); }
     .row-2, .row-2-equal, .row-3, .trans-grid, .message-grid { grid-template-columns: 1fr; }
     .form-r2, .form-r3, .form-r3-eq, .form-r4, .form-r5, .filter-panel, .filter-panel.clients, .filter-panel.lojista, .sale-item-row { grid-template-columns: 1fr; }
+    .filter-panel > *, .filter-panel.clients > *, .filter-panel.lojista > * { width: 100%; max-width: 240px; }
+    .filter-panel > .filter-date-range { max-width: 300px; }
     .header { flex-direction: column; align-items: flex-start; }
     .messages-shell { grid-template-columns: 1fr; min-height: auto; }
     .conversation-panel, .chat-panel { min-height: 420px; }
@@ -6628,6 +6630,11 @@ body.dark-mode .scroll-top-button:hover,
     background: var(--crm-primary) !important;
     color: #FFFFFF !important;
     border-color: var(--crm-primary) !important;
+  }
+
+  #mobile-theme-toggle svg {
+    width: 18px !important;
+    height: 18px !important;
   }
 
   .mobile-app-title {
@@ -11813,10 +11820,6 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <span class="nav-label">Vendas</span>
       <span class="client-alert-badge hidden" id="saleReviewBadge" onclick="event.stopPropagation(); abrirRevisaoVendas();">0</span>
     </div>
-    <div class="nav-item" data-view="lojista" data-label="Lojista" id="nav-item-lojista" onclick="navTo('lojista')">
-      <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6l1-3.5h10L14 6"/><path d="M2.5 6h11v7.5h-11z"/><path d="M6 9v2.5M10 9v2.5"/></svg>
-      <span class="nav-label">Lojista</span>
-    </div>
 		    <div class="nav-item" data-view="clientes" data-label="Clientes" onclick="navTo('clientes')">
 		      <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 14c0-2.5 2-4.5 5-4.5s5 2 5 4.5"/></svg>
 		      <span class="nav-label">Clientes</span>
@@ -11917,7 +11920,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       </div>
 
       <div class="card table-card">
-        <table class="sales-table mobile-card-table">
+        <table class="sales-table mobile-card-table mobile-collapsible">
           <colgroup><col style="width:8.71%"><col style="width:11.36%"><col style="width:20.45%"><col style="width:7.58%"><col style="width:4.55%"><col style="width:8.71%"><col style="width:9.85%"><col style="width:9.09%"><col style="width:11.36%"><col style="width:8.33%"></colgroup>
           <thead>
             <tr>
@@ -12116,7 +12119,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </div>
 
         <div class="card table-card">
-          <table class="mobile-card-table">
+          <table class="mobile-card-table mobile-collapsible">
             <thead>
 	              <tr>
 	                <th>Cliente</th>
@@ -14370,13 +14373,11 @@ function toggleDarkMode(enabled) {
 function syncFloatingThemeButton() {
   const isDark = document.body.classList.contains('theme-dark');
   const label = isDark ? 'Ativar modo claro' : 'Ativar modo escuro';
-  ['floating-theme-toggle', 'mobile-theme-toggle'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    btn.textContent = isDark ? '☾' : '☀';
+  const btn = document.getElementById('mobile-theme-toggle');
+  if (btn) {
     btn.title = label;
     btn.setAttribute('aria-label', label);
-  });
+  }
 }
 
 function toggleFloatingTheme() {
@@ -17863,6 +17864,11 @@ function limparFiltrosVendas() {
   renderVendas();
 }
 
+function gsoToggleMobileCard(event, tr) {
+  if (event.target.closest('button, a, input, select, textarea, label')) return;
+  tr.classList.toggle('mobile-open');
+}
+
 function renderVendas() {
   normalizeSellerNames();
   ensureSaleNumbers();
@@ -17927,13 +17933,13 @@ function renderVendas() {
       ? `<span class="nf-compact-ok">NF ${nfNumero ? 'nº ' + escapeHtml(nfNumero) : 'anexada'}</span>`
       : (pagamentoCanonico === 'Dinheiro' ? `<span class="nf-muted">Dinheiro sem NF</span>` : `<span class="nf-compact-missing">Sem NF</span>`);
     return `
-      <tr>
-        <td data-label="Data"${saleCellClass(r, ['data'])}>${typeof gsoDateCell==='function'?gsoDateCell(r.data):fmtDate(r.data)}</td>
-        <td data-label="Cliente"${saleCellClass(r, ['cliente'])}>${r.revisaoCliente ? `<span class="revisao-dot gso-has-tip" data-tip="Cliente ambíguo — precisa revisar em Ver mais"></span> ` : ''}${r.cliente}</td>
+      <tr onclick="gsoToggleMobileCard(event, this)">
+        <td data-label="Data" data-preview="1"${saleCellClass(r, ['data'])}>${typeof gsoDateCell==='function'?gsoDateCell(r.data):fmtDate(r.data)}</td>
+        <td data-label="Cliente" data-preview="1"${saleCellClass(r, ['cliente'])}>${r.revisaoCliente ? `<span class="revisao-dot gso-has-tip" data-tip="Cliente ambíguo — precisa revisar em Ver mais"></span> ` : ''}${r.cliente}</td>
         <td data-label="Produto"${saleCellClass(r, ['produto','tamanho'])}>${r.produto}</td>
         <td data-label="Aroma"${saleCellClass(r, ['aroma'])}><span class="pill pill-aroma ${typeof gsoAromaClass==='function'?gsoAromaClass(r.aroma):''}">${r.aroma || 'Neutro'}</span></td>
         <td data-label="Qtd" class="num${saleCellClassName(r, ['qtd'])}">${r.qtd}</td>
-        <td data-label="Valor" class="num${saleCellClassName(r, ['valor'])}">${fmtBR(r.valor)}</td>
+        <td data-label="Valor" data-preview="1" class="num${saleCellClassName(r, ['valor'])}">${fmtBR(r.valor)}</td>
         <td data-label="Pagamento"${saleCellClass(r, ['pagamento'])}>${paymentDisplay(r)}</td>
         <td data-label="Vendedor"${saleCellClass(r, ['vendedor'])}><span class="pill pill-blue">${r.vendedor}</span></td>
         <td data-label="Nota fiscal">${nfCompact}</td>
@@ -23044,13 +23050,13 @@ init();
       const nomeAttr = typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '');
       const isLojista = c.tipoPessoa === 'lojista';
       const doc = isLojista ? [c.cpf, c.cnpj].filter(Boolean).join(' / ') : clienteDocResumoCompleto(c.nome);
-      return '<tr>' +
+      return '<tr onclick="gsoToggleMobileCard(event, this)">' +
         '<td data-label="Selecionar">' + (isLojista ? '' : '<input type="checkbox" class="chk-unificar-linha" ' + (typeof unificarSelecionados !== 'undefined' && unificarSelecionados.has(nameKey(c.nome)) ? 'checked' : '') + ' onchange="atualizarSelecaoUnificar(this, ' + nomeAttr + ')">') + '</td>' +
-        '<td data-label="Cliente"><strong>' + esc(c.nome || '—') + '</strong>' + (isLojista ? ' <span class="pill pill-blue">Lojista</span>' : '') + '</td>' +
+        '<td data-label="Cliente" data-preview="1"><strong>' + esc(c.nome || '—') + '</strong>' + (isLojista ? ' <span class="pill pill-blue">Lojista</span>' : '') + '</td>' +
         '<td data-label="Telefone">' + esc(c.telefone || '—') + '</td>' +
         '<td data-label="CPF/CNPJ">' + esc(doc) + '</td>' +
-        '<td data-label="Última compra">' + (c.ultima && typeof fmtDate === 'function' ? fmtDate(c.ultima) : '—') + '</td>' +
-        '<td data-label="Status"><span class="pill ' + (typeof pillClass === 'function' ? pillClass(c.status) : '') + '">' + esc(c.status || '—') + '</span></td>' +
+        '<td data-label="Última compra" data-preview="1">' + (c.ultima && typeof fmtDate === 'function' ? fmtDate(c.ultima) : '—') + '</td>' +
+        '<td data-label="Status" data-preview="1"><span class="pill ' + (typeof pillClass === 'function' ? pillClass(c.status) : '') + '">' + esc(c.status || '—') + '</span></td>' +
         '<td data-label="Ações"><div class="row-actions">' +
         (isLojista
           ? '<button class="btn btn-small" onclick="openLojistaCadastroModal(' + nomeAttr + ')">Editar</button>' +
@@ -30694,9 +30700,14 @@ body.theme-dark #gso-calc #gc-te td:last-child .gc-lnk:hover{
   }catch(e){} }
   var SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
   var MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
-  function paintFab(){ var fab=document.getElementById("gso-theme-fab"); if(!fab) return; var d=isDark();
-      var ic=fab.querySelector(".gso-ic"); var lb=fab.querySelector(".gso-lb");
-      if(ic) ic.innerHTML=d?SUN:MOON; if(lb) lb.textContent=d?"Tema claro":"Tema escuro"; fab.setAttribute("aria-pressed", d?"true":"false"); }
+  function paintFab(){ var d=isDark();
+      var fab=document.getElementById("gso-theme-fab");
+      if(fab){
+        var ic=fab.querySelector(".gso-ic"); var lb=fab.querySelector(".gso-lb");
+        if(ic) ic.innerHTML=d?SUN:MOON; if(lb) lb.textContent=d?"Tema claro":"Tema escuro"; fab.setAttribute("aria-pressed", d?"true":"false");
+      }
+      var mob=document.getElementById("mobile-theme-toggle");
+      if(mob) mob.innerHTML = d?SUN:MOON; }
   function setTheme(t){ if(document.body) document.body.classList.toggle('theme-dark', t==='dark');
       try{ localStorage.setItem(KEY,t); }catch(e){}
       var chk=document.getElementById("darkToggle"); if(chk) chk.checked=(t==="dark");
@@ -30998,6 +31009,20 @@ body.theme-dark .unificar-preview { background: rgba(201,60,55,.16) !important; 
   body.theme-dark table.mobile-card-table tr { border-color: var(--crm-border, #464646) !important; background: var(--crm-surface, #2A2A2A) !important; }
   body.theme-dark table.mobile-card-table td { border-bottom-color: var(--crm-border, #464646) !important; }
   body.theme-dark table.mobile-card-table td::before { color: var(--crm-text-secondary, #A5A5A5) !important; }
+
+  /* Cartões fechados no mobile: só as informações essenciais aparecem; toque no cartão abre o resto */
+  table.mobile-collapsible tr { position: relative !important; cursor: pointer; padding-right: 32px !important; }
+  table.mobile-collapsible td:not([data-preview]) { display: none !important; }
+  table.mobile-collapsible tr.mobile-open td:not([data-preview]) { display: flex !important; }
+  table.mobile-collapsible tr.mobile-open td[data-label="Ações"] { display: block !important; }
+  table.mobile-collapsible tr::after {
+    content: '›';
+    position: absolute; top: 14px; right: 12px;
+    font-size: 20px; line-height: 1; color: var(--text-2, #6F6F6F);
+    transform: rotate(90deg); transition: transform .15s ease;
+  }
+  table.mobile-collapsible tr.mobile-open::after { transform: rotate(-90deg); }
+  body.theme-dark table.mobile-collapsible tr::after { color: var(--crm-text-secondary, #A5A5A5); }
 }
 </style>
 </body>
