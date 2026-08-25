@@ -11623,13 +11623,28 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 #view-laboratorio .preview-line { display: flex !important; justify-content: space-between !important; font-size: 13px !important; padding: 4px 0 !important;}
 #view-laboratorio .preview-line strong { font-variant-numeric: tabular-nums !important;}
 #view-laboratorio .preview-warn { color: var(--red-text) !important; font-weight: 700 !important;}
-#view-laboratorio .category-header { display: flex !important; align-items: center !important; gap: 10px !important; padding: 10px 18px !important;}
+#view-laboratorio .category-header { display: flex !important; align-items: center !important; gap: 10px !important; padding: 8px 16px !important;}
 #view-laboratorio .category-header .dot { width: 9px !important; height: 9px !important; border-radius: 50% !important; background: var(--primary) !important; flex-shrink: 0 !important; box-shadow: 0 0 0 3px var(--primary-soft) !important;}
 #view-laboratorio .category-header .name { font-size: 12.5px !important; font-weight: 800 !important; color: var(--text) !important; text-transform: uppercase !important; letter-spacing: .6px !important;}
 #view-laboratorio .category-header .count { font-size: 11px !important; font-weight: 700 !important; color: var(--primary) !important; background: var(--primary-soft) !important; padding: 2px 10px !important; border-radius: 4px !important;}
 #view-laboratorio .category-header-toggle { cursor: pointer !important; user-select: none !important;}
-#view-laboratorio .category-arrow { margin-left: auto !important; font-size: 18px !important; color: var(--text-2) !important; transition: transform .15s ease !important; display: inline-block !important;}
-#view-laboratorio .category-arrow.open { transform: rotate(90deg) !important;}
+#view-laboratorio .category-arrow { margin-left: auto !important; font-size: 18px !important; color: var(--text-2) !important; display: inline-block !important;}
+#view-laboratorio .insumo-categoria-card { margin-bottom: 8px !important; padding: 0 !important; overflow: hidden !important;}
+
+/* Modal em tela cheia — usado pra abrir uma categoria de insumos, mesmo padrão visual
+   de uma view normal (header + voltar) em vez do modal pequeno centralizado padrão. */
+.modal.modal-fullscreen {
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: 100vw !important;
+  max-height: 100dvh !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 20px !important;
+}
+.modal-fullscreen-body { flex: 1 !important; overflow-y: auto !important; min-height: 0 !important;}
 #view-laboratorio .stats-bar { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; margin-bottom: 12px !important;}
 #view-laboratorio .stat-card { background: var(--card) !important; border: 1px solid var(--glass-border) !important; border-radius: 14px !important; padding: 8px 12px !important; box-shadow: var(--shadow-tight) !important;}
 #view-laboratorio .stat-card .stat-label { font-size: 10px !important; color: var(--text-2) !important; text-transform: uppercase !important; letter-spacing: .4px !important; font-weight: 700 !important; margin-bottom: 3px !important;}
@@ -12535,6 +12550,17 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </select>
       </div>
       <div id="insumosGroups"></div>
+    </div>
+
+    <!-- ===== MODAL: CATEGORIA DE INSUMOS (tela cheia) ===== -->
+    <div class="modal-bg" id="modal-categoria-insumos">
+      <div class="modal modal-fullscreen">
+        <div class="header" style="margin-bottom:14px">
+          <div><div class="h-title" id="modal-categoria-insumos-title" style="font-size:18px"></div></div>
+          <div class="h-actions"><button class="btn" onclick="Lab.closeModal('modal-categoria-insumos')">← Voltar</button></div>
+        </div>
+        <div id="modal-categoria-insumos-body" class="modal-fullscreen-body"></div>
+      </div>
     </div>
 
     <!-- ===== VIEW: RECEITAS ===== -->
@@ -26850,31 +26876,36 @@ function groupInsumosByCategoria(rows) {
   return keys.map(cat => ({ cat, items: groups.get(cat).sort((a, b) => a.titulo.localeCompare(b.titulo)) }));
 }
 
-let categoriasAbertas = {};
+// Categorias ficam sempre minimizadas na lista — clicar abre os itens num modal em
+// tela cheia (mesmo padrão do fluxo de Nova venda), em vez de expandir inline e empurrar
+// as outras categorias pra baixo.
+let insumoGroupsCache = [];
 
-function toggleCategoria(cat) {
-  categoriasAbertas[cat] = !categoriasAbertas[cat];
-  renderInsumos();
+function abrirCategoriaModal(cat) {
+  const grupo = insumoGroupsCache.find(g => g.cat === cat);
+  const items = grupo ? grupo.items : [];
+  document.getElementById('modal-categoria-insumos-title').textContent = cat;
+  document.getElementById('modal-categoria-insumos-body').innerHTML = `
+    <table class="stack-table">
+      <thead><tr>
+        <th>Título</th><th>Tipo</th><th>Obs</th><th>Fornecedor</th>
+        <th class="num">Custo</th><th class="num">Estoque</th><th>Baixo estoque</th><th>Ações</th>
+      </tr></thead>
+      <tbody>${items.map(insumoRowHtml).join('')}</tbody>
+    </table>`;
+  openModal('modal-categoria-insumos');
 }
 
 function insumoGroupsHtml(rows) {
-  return groupInsumosByCategoria(rows).map(({ cat, items }) => {
-    const aberta = !!categoriasAbertas[cat];
+  insumoGroupsCache = groupInsumosByCategoria(rows);
+  return insumoGroupsCache.map(({ cat, items }) => {
     const catAttr = escapeHtml(cat).replace(/'/g, "\\'");
     return `
-      <div class="card table-card">
-        <div class="category-header category-header-toggle" onclick="Lab.toggleCategoria('${catAttr}')">
+      <div class="card table-card insumo-categoria-card">
+        <div class="category-header category-header-toggle" onclick="Lab.abrirCategoriaModal('${catAttr}')">
           <span class="dot"></span><span class="name">${escapeHtml(cat)}</span><span class="count">${items.length}</span>
-          <span class="category-arrow${aberta ? ' open' : ''}">›</span>
+          <span class="category-arrow">›</span>
         </div>
-        ${aberta ? `
-        <table class="stack-table">
-          <thead><tr>
-            <th>Título</th><th>Tipo</th><th>Obs</th><th>Fornecedor</th>
-            <th class="num">Custo</th><th class="num">Estoque</th><th>Baixo estoque</th><th>Ações</th>
-          </tr></thead>
-          <tbody>${items.map(insumoRowHtml).join('')}</tbody>
-        </table>` : ''}
       </div>`;
   }).join('');
 }
@@ -26939,9 +26970,16 @@ function renderInsumos() {
   const container = document.getElementById('insumosGroups');
   if (!rows.length) {
     container.innerHTML = `<div class="card table-empty">Nenhum insumo cadastrado ainda. Use "+ Adicionar insumo" ou "+ Importar em lote".</div>`;
-    return;
+  } else {
+    container.innerHTML = insumoGroupsHtml(rows);
   }
-  container.innerHTML = insumoGroupsHtml(rows);
+  // Se o modal de categoria estiver aberto (ex.: acabou de fazer uma entrada/saída ou
+  // editar um item por dentro dele), atualiza o conteúdo em vez de deixar desatualizado.
+  const modalCategoria = document.getElementById('modal-categoria-insumos');
+  if (modalCategoria && modalCategoria.classList.contains('show')) {
+    const catAberta = document.getElementById('modal-categoria-insumos-title').textContent;
+    abrirCategoriaModal(catAberta);
+  }
 }
 
 let pendingExportTipo = null;
@@ -28102,7 +28140,7 @@ async function renderIndicadores() {
     excluirLoteFromForm: excluirLoteFromForm,
     exportLotePdf: exportLotePdf,
     finalizarLoteAtual: finalizarLoteAtual,
-    toggleCategoria: toggleCategoria,
+    abrirCategoriaModal: abrirCategoriaModal,
     navTo: navTo,
     openAjusteModal: openAjusteModal,
     openImportInsumosModal: openImportInsumosModal,
