@@ -6551,7 +6551,6 @@ body.dark-mode .scroll-top-button:hover,
 
 /* ============ GSO MOBILE + APP EXPERIENCE ============ */
 .mobile-app-bar,
-.mobile-bottom-nav,
 .mobile-sidebar-backdrop {
   display: none;
 }
@@ -6572,7 +6571,7 @@ body.dark-mode .scroll-top-button:hover,
     display: block !important;
     min-height: 100dvh !important;
     padding-top: calc(62px + env(safe-area-inset-top)) !important;
-    padding-bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
   }
 
   .app.hidden {
@@ -6581,7 +6580,7 @@ body.dark-mode .scroll-top-button:hover,
 
   .main {
     width: 100% !important;
-    padding: 14px 12px calc(94px + env(safe-area-inset-bottom)) !important;
+    padding: 14px 12px calc(24px + env(safe-area-inset-bottom)) !important;
     overflow-x: hidden !important;
   }
 
@@ -6657,77 +6656,6 @@ body.dark-mode .scroll-top-button:hover,
     text-overflow: ellipsis;
   }
 
-  .mobile-bottom-nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10010;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
-    min-height: calc(66px + env(safe-area-inset-bottom));
-    padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
-    background: rgba(255, 255, 255, 0.96);
-    border-top: 1px solid var(--crm-border);
-    box-shadow: 0 -10px 24px rgba(23, 23, 23, 0.08);
-  }
-
-  body.theme-dark .mobile-bottom-nav {
-    background: rgba(42, 42, 42, 0.97);
-    box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.18);
-  }
-
-  /* Com o teclado virtual aberto, a barra fixa "flutua" por cima do teclado e pode
-     cobrir botões no fim de formulários longos (ex: "Finalizar lote"). Escondendo-a
-     enquanto um campo está em foco, o conteúdo fica livre para rolar até o botão. */
-  body.gso-keyboard-open .mobile-bottom-nav {
-    display: none !important;
-  }
-
-  .mobile-bottom-nav button {
-    min-height: 52px !important;
-    height: 52px !important;
-    padding: 5px 2px !important;
-    border: 0 !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    color: var(--crm-text-secondary) !important;
-    border-radius: 13px !important;
-    display: flex !important;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    font-size: 10px !important;
-    font-weight: 800 !important;
-  }
-
-  .mobile-bottom-nav button.active {
-    background: rgba(145, 145, 145, 0.10) !important;
-    color: var(--crm-primary) !important;
-  }
-
-  body.theme-dark .mobile-bottom-nav button.active {
-    background: rgba(210, 214, 219, 0.18) !important;
-  }
-
-  .mobile-nav-ic {
-    font-size: 18px;
-    line-height: 1;
-  }
-
-  .mobile-nav-plus {
-    width: 30px;
-    height: 30px;
-    border-radius: 10px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--crm-primary);
-    color: #FFFFFF;
-    box-shadow: 0 5px 12px rgba(23, 23, 23, 0.12);
-  }
 
   .mobile-sidebar-backdrop.show {
     display: block;
@@ -13622,20 +13550,6 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     </div>
   </main>
 
-  <nav class="mobile-bottom-nav" aria-label="Navegação principal mobile">
-    <button type="button" data-mobile-view="inteligencia" onclick="navTo('inteligencia')" aria-label="Visão geral">
-      <span class="mobile-nav-ic">▦</span>
-      <span>Início</span>
-    </button>
-    <button type="button" data-mobile-view="vendas" onclick="navTo('vendas')" aria-label="Vendas">
-      <span class="mobile-nav-ic">☰</span>
-      <span>Vendas</span>
-    </button>
-    <button type="button" data-mobile-view="nova" onclick="navTo('nova')" aria-label="Nova venda">
-      <span class="mobile-nav-ic mobile-nav-plus">＋</span>
-      <span>Nova</span>
-    </button>
-  </nav>
 </div>
 
 <!-- ============ MODAL VER MAIS (genérico: Venda / Cliente) ============ -->
@@ -22457,9 +22371,6 @@ function getActiveView() {
 function updateMobileChrome(view = getActiveView()) {
   const title = document.getElementById('mobile-view-title');
   if (title) title.textContent = MOBILE_VIEW_LABELS[view] || 'GSO CRM';
-  document.querySelectorAll('.mobile-bottom-nav button').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.mobileView === view);
-  });
   const app = document.getElementById('app');
   if (app) app.dataset.currentView = view;
 }
