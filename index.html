@@ -23980,7 +23980,6 @@ function intelRenderOverview() {
   const vendasHoje = dashboardSalesInRange(hoje, hoje).filter(saleCountsInRevenue);
   const valorHoje = vendasHoje.reduce((sum, venda) => sum + Number(venda.valor || 0), 0);
   const ticketHoje = vendasHoje.length ? valorHoje / vendasHoje.length : 0;
-  const cadastro = dashboardRegistrationStats();
   const boletoRows = state.vendas.filter(saleIsBoleto).sort((a, b) => {
     const pagoA = saleBoletoPago(a) ? 1 : 0, pagoB = saleBoletoPago(b) ? 1 : 0;
     if (pagoA !== pagoB) return pagoA - pagoB;
@@ -23999,36 +23998,19 @@ function intelRenderOverview() {
   }).join('');
 
   pane.innerHTML = `
-    <div class="intel-grid cols-2" style="margin-bottom:16px;">
-      <div class="card dash-exec-card dash-sales-card">
-        <div class="dash-card-head">
-          <div>
-            <span class="dash-eyebrow">Hoje</span>
-            <h2>Vendas do dia</h2>
-            <p>Valor faturado e quantidade de vendas registradas hoje.</p>
-          </div>
-          <button class="btn btn-small" onclick="dashboardDrill('vendas_hoje')" data-tooltip="Ver apenas as vendas de hoje">Ver vendas</button>
+    <div class="card dash-exec-card dash-sales-card" style="margin-bottom:16px;">
+      <div class="dash-card-head">
+        <div>
+          <span class="dash-eyebrow">Hoje</span>
+          <h2>Vendas do dia</h2>
+          <p>Valor faturado e quantidade de vendas registradas hoje.</p>
         </div>
-        <div class="dash-hero-value">${fmtBR(valorHoje)}</div>
-        <div class="dash-inline-metrics">
-          <div><span>Quantidade</span><strong>${vendasHoje.length.toLocaleString('pt-BR')} venda${vendasHoje.length === 1 ? '' : 's'}</strong></div>
-          <div><span>Ticket médio</span><strong>${fmtBR(ticketHoje)}</strong></div>
-        </div>
+        <button class="btn btn-small" onclick="dashboardDrill('vendas_hoje')" data-tooltip="Ver apenas as vendas de hoje">Ver vendas</button>
       </div>
-      <div class="card dash-exec-card dash-cadastro-card">
-        <div class="dash-card-head">
-          <div>
-            <span class="dash-eyebrow">Base</span>
-            <h2>Pendências de cadastro</h2>
-            <p>Clientes sem CPF/CNPJ fiscal ou sem contato de WhatsApp.</p>
-          </div>
-          <button class="btn btn-small" onclick="dashboardDrill('cadastro_pendencias')" data-tooltip="Abrir Clientes">Corrigir</button>
-        </div>
-        <div class="dash-stat-strip three">
-          <div><span>Sem CPF/CNPJ</span><strong>${cadastro.semDoc.toLocaleString('pt-BR')}</strong></div>
-          <div><span>Sem WhatsApp</span><strong>${cadastro.semWpp.toLocaleString('pt-BR')}</strong></div>
-          <div><span>Ambos</span><strong>${cadastro.ambos.toLocaleString('pt-BR')}</strong></div>
-        </div>
+      <div class="dash-hero-value">${fmtBR(valorHoje)}</div>
+      <div class="dash-inline-metrics">
+        <div><span>Quantidade</span><strong>${vendasHoje.length.toLocaleString('pt-BR')} venda${vendasHoje.length === 1 ? '' : 's'}</strong></div>
+        <div><span>Ticket médio</span><strong>${fmtBR(ticketHoje)}</strong></div>
       </div>
     </div>
     ${k.semTelefone ? `<div class="intel-notice">${k.semTelefone} cliente(s) com compras estão sem telefone cadastrado — complete o cadastro para liberar o WhatsApp nas listas.</div>` : ''}
