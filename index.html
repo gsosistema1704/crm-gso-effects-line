@@ -14400,7 +14400,25 @@ function getSupabaseClient() {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true
+        detectSessionInUrl: true,
+        storage: {
+          getItem: function (key) {
+            return window.localStorage.getItem(key) || window.sessionStorage.getItem(key);
+          },
+          setItem: function (key, value) {
+            if (window.localStorage.getItem('gso_remember_me') === '1') {
+              window.localStorage.setItem(key, value);
+              window.sessionStorage.removeItem(key);
+            } else {
+              window.sessionStorage.setItem(key, value);
+              window.localStorage.removeItem(key);
+            }
+          },
+          removeItem: function (key) {
+            window.localStorage.removeItem(key);
+            window.sessionStorage.removeItem(key);
+          }
+        }
       }
     });
   }
@@ -15980,14 +15998,32 @@ async function deleteNotaFiscal(id) {
   renderDash();
 }
 
+function gsoSetSession(sessionObj) {
+  var json = JSON.stringify(sessionObj);
+  if (localStorage.getItem('gso_remember_me') === '1') {
+    localStorage.setItem('gso_session', json);
+    sessionStorage.removeItem('gso_session');
+  } else {
+    sessionStorage.setItem('gso_session', json);
+    localStorage.removeItem('gso_session');
+  }
+}
+function gsoGetSession() {
+  return JSON.parse(localStorage.getItem('gso_session') || sessionStorage.getItem('gso_session') || 'null');
+}
+function gsoClearSession() {
+  localStorage.removeItem('gso_session');
+  sessionStorage.removeItem('gso_session');
+}
+
 function localLogin(email) {
-  localStorage.setItem('gso_session', JSON.stringify({
+  gsoSetSession({
     token: 'local-' + Date.now(),
     userId: 'local-user',
     email,
     loggedAt: new Date().toISOString(),
     mode: 'local'
-  }));
+  });
   state.session = { token: 'local', userId: 'local-user', email, mode: 'local' };
   setSyncStatus('offline', 'Modo local');
   showApp();
@@ -16043,14 +16079,14 @@ async function finishSupabaseLogin(session) {
     loggedAt: new Date().toISOString(),
     mode: 'supabase'
   };
-  localStorage.setItem('gso_session', JSON.stringify(state.session));
+  gsoSetSession(state.session);
   if (document.getElementById('remember')?.checked) {
     localStorage.setItem('gso_last_email', session.user.email);
   }
   state.user.email = session.user.email || state.user.email;
   const usuarioAtual = await ensureCurrentUsuario(session);
   if (!isOwnerEmail(session.user.email) && normalizeUserType(usuarioAtual?.tipo_usuario) === 'pendente') {
-    localStorage.removeItem('gso_session');
+    gsoClearSession();
     state.session = null;
     await getSupabaseClient()?.auth.signOut();
     setLoginStatus('Acesso solicitado. Aguarde a Luísa aprovar este usuário no Supabase.', 'ok');
@@ -16075,7 +16111,7 @@ async function finishSupabaseLogin(session) {
 const STORE = {
   load() {
     return {
-      session: JSON.parse(localStorage.getItem('gso_session') || 'null'),
+      session: gsoGetSession(),
       user: JSON.parse(localStorage.getItem('gso_user') || JSON.stringify({
         nome: 'Luísa Oliveira',
           email: 'luisa1909@icloud.com',
@@ -16909,6 +16945,7 @@ async function doLogin() {
   const btn = document.getElementById('login-submit');
   const client = getSupabaseClient();
   btn.disabled = true;
+  localStorage.setItem('gso_remember_me', document.getElementById('remember')?.checked ? '1' : '0');
   setLoginStatus('Entrando pelo Supabase...', '');
   if (client) {
     try {
@@ -16943,7 +16980,8 @@ async function logout() {
     client.removeChannel(gsoRealtimeChannel);
     gsoRealtimeChannel = null;
   }
-  localStorage.removeItem('gso_session');
+  gsoClearSession();
+  localStorage.removeItem('gso_remember_me');
   state.session = null;
   setSyncStatus('offline', 'Desconectado');
   document.getElementById('app').classList.add('hidden');
@@ -22590,7 +22628,7 @@ async function init() {
     }
   }
 
-  const session = JSON.parse(localStorage.getItem('gso_session') || 'null');
+  const session = gsoGetSession();
   if (session && session.token) {
     state.session = session;
     showApp();
