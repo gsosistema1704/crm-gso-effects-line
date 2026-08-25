@@ -17028,7 +17028,9 @@ function toggleSidebarCollapsed() {
 // Abas liberadas por completo pra qualquer usuária aprovada, mesmo sem ser admin.
 // 'lojista' fica de fora de propósito: ela já tem seu próprio esquema de blur mais
 // fino (deixa lançar venda nova, só borra o histórico) — não precisa do genérico aqui.
-const VIEWS_LIBERADAS_SEM_ADMIN = ['vendas', 'nova', 'perfil', 'lojista'];
+// 'clientes' também é liberada — renderClientes() já esconde os lojistas sozinha
+// pra quem não é admin, então não precisa do blur genérico da view inteira aqui.
+const VIEWS_LIBERADAS_SEM_ADMIN = ['vendas', 'nova', 'perfil', 'lojista', 'clientes'];
 function aplicarRestricaoAdmin(view) {
   const viewEl = document.getElementById('view-' + view);
   if (!viewEl) return;
