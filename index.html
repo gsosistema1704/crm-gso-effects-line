@@ -28367,10 +28367,10 @@ async function renderIndicadores() {
   // + a caixa P (código 13213) informada à parte. Fixo aqui porque é dado de especificação
   // física da caixa, não uma cotação recorrente — só muda se o modelo físico mudar.
   const MEDIDAS_CAIXAS = [
-    { codigo: '13212', medidas: '390x300x285', descricao: 'GSO G 4x5L C/ACES', valor: 8.20 },
-    { codigo: '13213', medidas: '280x190x250', descricao: 'GSO P 6x1L C/ACES', valor: 3.61 },
-    { codigo: '17943', medidas: '100x100x250', descricao: 'Ref 1-L (Caixa Unitária 1L)', valor: 1.37 },
-    { codigo: '14206', medidas: '225x155x280', descricao: 'R.1-Bombona (Caixa Unitária 5L)', valor: 3.09 }
+    { codigo: '13212', medidas: '390x300x285', descricao: 'GSO G 4x5L C/Divisórias', valor: 8.20 },
+    { codigo: '13213', medidas: '280x190x250', descricao: 'GSO P 6x1L C/Divisórias', valor: 3.61 },
+    { codigo: '17943', medidas: '100x100x250', descricao: 'Caixa Unitária 1L', valor: 1.37 },
+    { codigo: '14206', medidas: '225x155x280', descricao: 'Caixa Unitária 5L', valor: 3.09 }
   ];
   function renderMedidasCaixas() {
     document.getElementById('cotMedidasCaixasTable').innerHTML = MEDIDAS_CAIXAS.map(m => `
