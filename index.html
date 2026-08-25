@@ -14403,20 +14403,23 @@ function getSupabaseClient() {
         detectSessionInUrl: true,
         storage: {
           getItem: function (key) {
-            return window.localStorage.getItem(key) || window.sessionStorage.getItem(key);
+            try { return window.localStorage.getItem(key) || window.sessionStorage.getItem(key); }
+            catch (e) { return null; }
           },
           setItem: function (key, value) {
-            if (window.localStorage.getItem('gso_remember_me') === '1') {
-              window.localStorage.setItem(key, value);
-              window.sessionStorage.removeItem(key);
-            } else {
-              window.sessionStorage.setItem(key, value);
-              window.localStorage.removeItem(key);
-            }
+            try {
+              if (window.localStorage.getItem('gso_remember_me') === '1') {
+                window.localStorage.setItem(key, value);
+                window.sessionStorage.removeItem(key);
+              } else {
+                window.sessionStorage.setItem(key, value);
+                window.localStorage.removeItem(key);
+              }
+            } catch (e) {}
           },
           removeItem: function (key) {
-            window.localStorage.removeItem(key);
-            window.sessionStorage.removeItem(key);
+            try { window.localStorage.removeItem(key); window.sessionStorage.removeItem(key); }
+            catch (e) {}
           }
         }
       }
@@ -15999,21 +16002,24 @@ async function deleteNotaFiscal(id) {
 }
 
 function gsoSetSession(sessionObj) {
-  var json = JSON.stringify(sessionObj);
-  if (localStorage.getItem('gso_remember_me') === '1') {
-    localStorage.setItem('gso_session', json);
-    sessionStorage.removeItem('gso_session');
-  } else {
-    sessionStorage.setItem('gso_session', json);
-    localStorage.removeItem('gso_session');
-  }
+  try {
+    var json = JSON.stringify(sessionObj);
+    if (localStorage.getItem('gso_remember_me') === '1') {
+      localStorage.setItem('gso_session', json);
+      sessionStorage.removeItem('gso_session');
+    } else {
+      sessionStorage.setItem('gso_session', json);
+      localStorage.removeItem('gso_session');
+    }
+  } catch (e) {}
 }
 function gsoGetSession() {
-  return JSON.parse(localStorage.getItem('gso_session') || sessionStorage.getItem('gso_session') || 'null');
+  try { return JSON.parse(localStorage.getItem('gso_session') || sessionStorage.getItem('gso_session') || 'null'); }
+  catch (e) { return null; }
 }
 function gsoClearSession() {
-  localStorage.removeItem('gso_session');
-  sessionStorage.removeItem('gso_session');
+  try { localStorage.removeItem('gso_session'); sessionStorage.removeItem('gso_session'); }
+  catch (e) {}
 }
 
 function localLogin(email) {
@@ -16945,7 +16951,7 @@ async function doLogin() {
   const btn = document.getElementById('login-submit');
   const client = getSupabaseClient();
   btn.disabled = true;
-  localStorage.setItem('gso_remember_me', document.getElementById('remember')?.checked ? '1' : '0');
+  try { localStorage.setItem('gso_remember_me', document.getElementById('remember')?.checked ? '1' : '0'); } catch (e) {}
   setLoginStatus('Entrando pelo Supabase...', '');
   if (client) {
     try {
@@ -16981,7 +16987,7 @@ async function logout() {
     gsoRealtimeChannel = null;
   }
   gsoClearSession();
-  localStorage.removeItem('gso_remember_me');
+  try { localStorage.removeItem('gso_remember_me'); } catch (e) {}
   state.session = null;
   setSyncStatus('offline', 'Desconectado');
   document.getElementById('app').classList.add('hidden');
