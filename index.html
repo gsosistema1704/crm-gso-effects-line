@@ -11764,7 +11764,6 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 @media (max-width: 900px) {#view-cotacoes .stats-bar { grid-template-columns: 1fr 1fr !important;}}
 #view-cotacoes .indic-section-title { font-size: 13px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: .5px !important; color: var(--text-2) !important; margin: 26px 0 12px !important;}
 #view-cotacoes .indic-section-title:first-child { margin-top: 0 !important;}
-#view-cotacoes #cot-medidas-caixas-title { margin-top: 34px !important;}
 #view-cotacoes .chart-card { padding: 20px 22px !important; overflow: visible !important;}
 .cot-hbar-wrap { display: flex; flex-direction: column; gap: 8px; }
 .cot-hbar-row { display: flex; align-items: center; gap: 10px; }
@@ -12878,6 +12877,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="subtab active" data-subtab="painel" onclick="Cot.navTo('painel')">Painel</div>
         <div class="subtab" data-subtab="analise" onclick="Cot.navTo('analise')">Análise por Produto</div>
         <div class="subtab" data-subtab="registro" onclick="Cot.navTo('registro')">Cotações</div>
+        <div class="subtab" data-subtab="medidas" onclick="Cot.navTo('medidas')">Medidas</div>
         <div class="subtab" data-subtab="cadastro" onclick="Cot.navTo('cadastro')">Cadastro</div>
       </div>
 
@@ -12895,9 +12895,11 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
             <tbody id="cotPainelTable"></tbody>
           </table>
         </div>
+      </div>
 
+      <div id="cot-view-medidas" class="hidden">
         <div class="header">
-          <div><div class="indic-section-title" id="cot-medidas-caixas-title">Medidas das caixas (referência)</div></div>
+          <div><div class="h-title" style="font-size:16px">Medidas das caixas (referência)</div></div>
           <div class="h-actions"><button class="btn btn-soft" onclick="Cot.openMedidaModal()">+ Medida</button></div>
         </div>
         <div class="card table-card">
@@ -28217,13 +28219,14 @@ async function renderIndicadores() {
     `;
   }
 
-  const COT_VIEWS = ['painel', 'analise', 'registro', 'cadastro'];
+  const COT_VIEWS = ['painel', 'analise', 'registro', 'medidas', 'cadastro'];
   function navTo(view) {
     COT_VIEWS.forEach(v => document.getElementById('cot-view-' + v).classList.toggle('hidden', v !== view));
     document.querySelectorAll('#view-cotacoes .subtab').forEach(el => el.classList.toggle('active', el.dataset.subtab === view));
     if (view === 'painel') renderPainel();
     if (view === 'analise') renderAnalise();
     if (view === 'registro') renderRegistro();
+    if (view === 'medidas') renderMedidasCaixas();
     if (view === 'cadastro') { renderProdutosCadastro(); renderFornecedoresCadastro(); }
   }
 
@@ -28481,7 +28484,6 @@ async function renderIndicadores() {
   }
 
   function renderPainel() {
-    renderMedidasCaixas();
     const sel = document.getElementById('cot-painel-produto');
     if (sel.options.length === 0 || sel.dataset.count != state.produtos.length) {
       const valorAnterior = sel.value;
