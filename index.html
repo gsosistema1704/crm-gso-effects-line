@@ -25377,13 +25377,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     el.innerHTML =
       '<div class="gc-pedido">' +
       '<div>' +
-      '<div class="gc-blk"><h2>Montar pedido</h2><div class="gc-grid2">' +
+      '<div class="gc-blk"><h2>Montar pedido / Montar orçamento</h2><div class="gc-grid2">' +
       '<label class="gcf">Produto<select id="gc-f-prod">' + nomes.map(function (n) { return '<option' + (n === f.produto ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf">Embalagem<select id="gc-f-emb">' + embs.map(function (o, i) { return '<option value="' + i + '"' + (i === f.embIdx ? ' selected' : '') + '>' + esc(o.label) + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf">Aroma' + aromaSel + '</label>' +
       '<label class="gcf">Quantidade<input id="gc-f-qtd" type="text" inputmode="numeric" value="' + esc(f.qtd) + '"></label>' +
       '<label class="gcf">Tipo de cliente<select id="gc-f-tipo">' + ['Consumidor final', 'Revendedor (Lojista)', 'Revendedor (10%)'].map(function (t) { return '<option' + (t === f.tipo ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
-      '<label class="gcf">Pagamento<select id="gc-f-pag">' + ['Pix', 'Crédito', 'Débito', 'Boleto', 'Dinheiro'].map(function (t) { return '<option' + (t === f.pag ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
+      '<label class="gcf">Pagamento<select id="gc-f-pag">' + ['Pix', 'Crédito', 'Débito', 'Boleto', 'Dinheiro', 'A combinar'].map(function (t) { return '<option' + (t === f.pag ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf">Frete<select id="gc-f-frete">' + ['A combinar', 'Por conta do cliente', 'Subsidiado', 'Grátis'].map(function (t) { return '<option' + (t === f.frete ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf" id="gc-f-fretev-w" style="' + (f.frete === 'Subsidiado' || f.frete === 'Grátis' ? '' : 'display:none') + '">Custo do frete p/ GSO (R$)<input id="gc-f-fretev" type="text" inputmode="decimal" value="' + esc(f.freteV) + '"></label>' +
       '<label class="gcf">Desconto<input id="gc-f-desc" type="text" inputmode="decimal" placeholder="ex.: 5% ou 50,00" value="' + esc(f.desc) + '"></label>' +
@@ -25450,6 +25450,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<button class="gc-btn dark" id="gc-venda">Transformar em venda</button>' +
       '<button class="gc-btn zap" id="gc-zap">Orçamento WhatsApp</button>' +
       '<button class="gc-btn" id="gc-copiar">Copiar resumo</button>' +
+      '<button class="gc-btn" id="gc-pdf">Salvar em PDF</button>' +
       '<button class="gc-btn" id="gc-salvar">Salvar simulação</button>' +
       '<button class="gc-btn red" id="gc-limpar">Limpar</button></div>';
     return head + kvTop + msg + al + prod + kvMore + custo + det + acts;
@@ -25538,6 +25539,44 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     linhas.push('Custo total real: ' + fmt(r.custoTotal));
     linhas.push('Markup: ' + (r.markup ? (Math.round(r.markup * 100) / 100).toLocaleString('pt-BR') + '×' : '—'));
     return linhas.join('\n');
+  }
+  function orcamentoPdfHtml() {
+    var f = fields();
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var linhas = UI.itens.map(function (it) {
+      return '<tr><td>' + esc(it.produto) + ' ' + esc(it.tamanho) + (aromaCfg(it.produto).usa ? ' · ' + esc(it.aroma) : '') + '</td>' +
+        '<td>' + esc(it.embLabel) + '</td>' +
+        '<td style="text-align:right">' + it.qtdEntrada + '</td>' +
+        '<td style="text-align:right">' + fmt(it.precoEntrada) + '</td>' +
+        '<td style="text-align:right">' + fmt(it.total) + '</td></tr>';
+    }).join('');
+    var descontoBox = r.descontoValor > 0 ? '<div class="box"><span>Desconto</span><strong>-' + fmt(r.descontoValor) + '</strong></div>' : '';
+    var hoje = new Date().toLocaleDateString('pt-BR');
+    return '<!doctype html><html><head><meta charset="utf-8"><title>Orçamento' + (f.cliente ? ' - ' + esc(f.cliente) : '') + '</title>' +
+      '<style>body{font-family:Arial,sans-serif;padding:32px;color:#191919}h1{margin:0 0 4px;font-size:22px}p{color:#545454;margin:2px 0}' +
+      '.brand{font-weight:700;color:#6F6F6F;text-transform:uppercase;font-size:12px;letter-spacing:.08em}' +
+      'table{border-collapse:collapse;width:100%;margin-top:18px}td,th{border:1px solid #d1d5db;padding:9px 10px;text-align:left}th{background:#f3f4f6;font-size:12px;text-transform:uppercase;letter-spacing:.03em}' +
+      '.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:16px}.box{border:1px solid #d1d5db;border-radius:10px;padding:10px}.box span{display:block;color:#727272;font-size:12px}.box strong{font-size:15px}' +
+      '.total{margin-top:18px;border:2px solid #191919;border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}' +
+      '.total span{font-size:13px;color:#545454;text-transform:uppercase;letter-spacing:.05em}.total strong{font-size:24px}' +
+      '.obs{margin-top:16px;font-size:13px;color:#545454;white-space:pre-wrap}</style></head><body>' +
+      '<div class="brand">GSO Effects Line</div><h1>Orçamento</h1>' +
+      '<p>Gerado em ' + hoje + (f.cliente ? ' · Cliente: ' + esc(f.cliente) : '') + '</p>' +
+      '<table><thead><tr><th>Produto</th><th>Embalagem</th><th style="text-align:right">Qtd</th><th style="text-align:right">Unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>' + linhas + '</tbody></table>' +
+      '<div class="grid"><div class="box"><span>Pagamento</span><strong>' + esc(f.pag) + '</strong></div><div class="box"><span>Frete</span><strong>' + esc(f.frete) + '</strong></div>' + descontoBox + '</div>' +
+      '<div class="total"><span>Total do orçamento</span><strong>' + fmt(r.valor) + '</strong></div>' +
+      (f.obs ? '<div class="obs">' + esc(f.obs) + '</div>' : '') +
+      '<p style="margin-top:20px;font-size:12px;color:#8a8a8a">Orçamento sujeito à disponibilidade de estoque.</p>' +
+      '</body></html>';
+  }
+  function salvarOrcamentoPDF() {
+    var html = orcamentoPdfHtml();
+    var w = window.open('', '_blank');
+    if (!w) { alert('Permita pop-ups para gerar o PDF.'); return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    setTimeout(function () { try { w.focus(); w.print(); } catch (e) {} }, 250);
   }
   function salvarSim(convertida) {
     var f = fields();
@@ -26775,6 +26814,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var pe = t.closest('[data-preco]'); if (pe) { editPrecoItem(parseInt(pe.dataset.preco, 10)); return; }
       if (t.id === 'gc-zap') { if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; } moOpen(zapTexto()); return; }
       if (t.id === 'gc-copiar') { if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; } moOpen(resumoTecnicoTexto(), 'Resumo técnico do pedido'); return; }
+      if (t.id === 'gc-pdf') { if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; } salvarOrcamentoPDF(); return; }
       if (t.id === 'gc-salvar') { if (salvarSim(false)) renderPedido(); return; }
       if (t.id === 'gc-venda') { transformarEmVenda(); return; }
       if (t.id === 'gc-limpar') { UI.itens = []; renderPedido(); return; }
