@@ -26246,31 +26246,55 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       lucro: round2(num(v.lucro_unitario) * qtd)
     };
   }
-  function mlVendasChartSvg() {
+  function mlSemanaDias(offsetSemanas) {
+    var hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    var dow = hoje.getDay(); // 0=dom..6=sáb
+    var diffSegunda = (dow === 0) ? -6 : 1 - dow;
+    var segunda = new Date(hoje); segunda.setDate(hoje.getDate() + diffSegunda + offsetSemanas * 7);
     var dias = [];
-    for (var i = 6; i >= 0; i--) {
-      var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(segunda); d.setDate(segunda.getDate() + i);
       dias.push({ key: d.toISOString().slice(0, 10), label: d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''), valor: 0 });
     }
-    var porDia = {}; dias.forEach(function (d) { porDia[d.key] = d; });
+    return dias;
+  }
+  function mlVendasSemanaTotais() {
+    var atual = mlSemanaDias(0), passada = mlSemanaDias(-1);
+    var porKeyAtual = {}; atual.forEach(function (d) { porKeyAtual[d.key] = d; });
+    var porKeyPassada = {}; passada.forEach(function (d) { porKeyPassada[d.key] = d; });
     mlVendas.forEach(function (v) {
-      var dia = porDia[String(v.data).slice(0, 10)];
-      if (dia) dia.valor += mlVendaTotais(v).valor;
+      var key = String(v.data).slice(0, 10);
+      var valor = mlVendaTotais(v).valor;
+      if (porKeyAtual[key]) porKeyAtual[key].valor += valor;
+      else if (porKeyPassada[key]) porKeyPassada[key].valor += valor;
     });
-    var w = 640, h = 200, padB = 34, padT = 20, gap = 14;
-    var barW = (w - gap * (dias.length - 1)) / dias.length;
-    var maxV = Math.max.apply(null, dias.map(function (d) { return d.valor; }).concat([1]));
-    var bars = dias.map(function (d, idx) {
-      var x = idx * (barW + gap);
-      var barH = Math.round((d.valor / maxV) * (h - padT - padB));
-      var y = h - padB - barH;
+    return { atual: atual, passada: passada };
+  }
+  function mlVendasChartSvg() {
+    var sem = mlVendasSemanaTotais();
+    var totalAtual = sem.atual.reduce(function (s, d) { return s + d.valor; }, 0);
+    var totalPassada = sem.passada.reduce(function (s, d) { return s + d.valor; }, 0);
+    var w = 640, h = 210, padB = 34, padT = 22, gapGrupo = 16, gapBarra = 4;
+    var grupoW = (w - gapGrupo * 6) / 7;
+    var barW = (grupoW - gapBarra) / 2;
+    var maxV = Math.max.apply(null, sem.atual.concat(sem.passada).map(function (d) { return d.valor; }).concat([1]));
+    var bars = sem.atual.map(function (dAtual, idx) {
+      var dPassada = sem.passada[idx];
+      var xGrupo = idx * (grupoW + gapGrupo);
+      var hPassada = Math.round((dPassada.valor / maxV) * (h - padT - padB));
+      var hAtual = Math.round((dAtual.valor / maxV) * (h - padT - padB));
+      var yPassada = h - padB - hPassada, yAtual = h - padB - hAtual;
       return '<g>' +
-        '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + Math.max(barH, 2) + '" rx="4" fill="var(--gcac)"></rect>' +
-        '<text x="' + (x + barW / 2) + '" y="' + (h - padB + 16) + '" text-anchor="middle" font-size="10" fill="var(--gcmut)">' + esc(d.label) + '</text>' +
-        (d.valor ? '<text x="' + (x + barW / 2) + '" y="' + (y - 6) + '" text-anchor="middle" font-size="10" font-weight="700" fill="var(--gcink)">' + fmt(d.valor) + '</text>' : '') +
+        '<rect x="' + xGrupo + '" y="' + yPassada + '" width="' + barW + '" height="' + Math.max(hPassada, 2) + '" rx="3" fill="var(--gcac)" opacity="0.32"></rect>' +
+        '<rect x="' + (xGrupo + barW + gapBarra) + '" y="' + yAtual + '" width="' + barW + '" height="' + Math.max(hAtual, 2) + '" rx="3" fill="var(--gcac)"></rect>' +
+        '<text x="' + (xGrupo + grupoW / 2) + '" y="' + (h - padB + 16) + '" text-anchor="middle" font-size="10" fill="var(--gcmut)">' + esc(dAtual.label) + '</text>' +
       '</g>';
     }).join('');
-    return '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:auto;max-height:220px;display:block;">' + bars + '</svg>';
+    var legenda = '<div class="gc-hint" style="display:flex;gap:16px;align-items:center;margin:2px 0 6px;padding:0">' +
+      '<span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:2px;background:var(--gcac);display:inline-block"></span>Semana atual · ' + fmt(totalAtual) + '</span>' +
+      '<span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:2px;background:var(--gcac);opacity:0.32;display:inline-block"></span>Semana passada · ' + fmt(totalPassada) + '</span>' +
+    '</div>';
+    return legenda + '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:auto;max-height:220px;display:block;">' + bars + '</svg>';
   }
   function renderMLVendasHtml() {
     if (!mlVendasCarregado) { loadMlVendas().then(function () { if (UI.mlView === 'vendas') renderML(); }); }
@@ -26299,7 +26323,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<div class="gc-ml-venda-stat"><span class="l">Total recebido</span><b>' + fmt(totais.recebido) + '</b></div>' +
         '<div class="gc-ml-venda-stat"><span class="l">Lucro total</span><b>' + fmt(totais.lucro) + '</b></div>' +
       '</div>' +
-      '<div class="gc-hint" style="margin:14px 0 8px;padding:0">Vendas nos últimos 7 dias</div>' +
+      '<div class="gc-hint" style="margin:14px 0 8px;padding:0">Semana atual vs. semana passada</div>' +
       mlVendasChartSvg() +
       (mlVendas.length ? (
         '<div class="gc-table-wrap gc-ml-venda-table-wrap" style="margin-top:16px"><table class="gct">' +
