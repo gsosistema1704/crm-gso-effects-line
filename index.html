@@ -8850,6 +8850,22 @@ body.theme-dark .price-year-2026 .price-year-title {
   grid-template-columns: minmax(0, 1fr) minmax(248px, 320px) !important;
   align-items: stretch !important;
 }
+#view-produtos .catalog-year-panel.is-collapsed .catalog-year-content { display: none !important; }
+#view-produtos .catalog-year-toggle-ic { font-size: 12px; color: var(--crm-text-secondary, #8A8A8A); margin-left: 4px; }
+#view-produtos .catalog-year-panel.is-historical .catalog-year-head:hover { opacity: 0.85; }
+#view-produtos .produto-info-header { margin: 24px 0 12px; cursor: pointer; user-select: none; }
+#view-produtos .produto-info-header h2 { font-size: 17px; font-weight: 700; color: var(--crm-text, #1A1A1A); margin: 0 0 4px; display: flex; align-items: center; gap: 6px; }
+#view-produtos .produto-info-header p { font-size: 13px; color: var(--crm-text-secondary, #767676); margin: 0; }
+#view-produtos .produto-info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-bottom: 20px; }
+#view-produtos .produto-info-grid.is-collapsed { display: none; }
+#view-produtos .produto-info-card { background: var(--crm-surface, #FFFFFF); border: 1px solid var(--crm-border, #E7E7E7); border-left: 4px solid var(--pcor-light, var(--crm-border, #E7E7E7)); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+body.theme-dark #view-produtos .produto-info-card { border-left-color: var(--pcor-dark, var(--crm-border, #3A3A3A)); }
+#view-produtos .produto-info-card h3 { font-size: 14px; font-weight: 700; color: var(--crm-text, #1A1A1A); margin: 0; }
+#view-produtos .produto-info-card p { font-size: 12.5px; line-height: 1.5; color: var(--crm-text-secondary, #6F6F6F); margin: 0; flex: 1; }
+#view-produtos .produto-info-meta { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--crm-text-secondary, #8A8A8A); border-top: 1px solid var(--crm-border, #EEEEEE); padding-top: 8px; }
+#view-produtos .produto-info-card [contenteditable="true"] { border-radius: 4px; padding: 1px 3px; margin: -1px -3px; }
+#view-produtos .produto-info-card [contenteditable="true"]:hover { background: var(--crm-hover, rgba(0,0,0,.035)); }
+#view-produtos .produto-info-card [contenteditable="true"]:focus { outline: 1px solid var(--crm-primary, #6F6F6F); background: var(--crm-hover, rgba(0,0,0,.035)); }
 #view-produtos .catalog-table-card {
   background: var(--crm-surface, #FFFFFF) !important;
   border-right: 1px solid var(--crm-border, #E7E7E7) !important;
@@ -12274,12 +12290,12 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <div class="h-sub">Tabela vigente, histórico de valores e caixas fechadas por SKU</div>
         </div>
         <div class="h-actions">
-          <button class="btn" onclick="openProdutoModal()">+ Novo produto</button>
+          <button class="btn" id="produtosNovoBtn" onclick="openProdutoModal()">+ Novo produto</button>
           <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
         </div>
       </div>
 
-      <div class="info-banner price-book-note">
+      <div class="info-banner price-book-note" id="produtosNote">
         Tabela comercial da GSO organizada por período. Clique em qualquer valor para editar. 2026 aparece como tabela vigente; 2025 e 2024 ficam agrupados porque mantêm os mesmos valores.
       </div>
 
@@ -12287,7 +12303,9 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
       <div id="produtosPriceBook" class="price-book-stack"></div>
 
-      <details class="price-manage-panel">
+      <div id="produtosTextos"></div>
+
+      <details class="price-manage-panel" id="produtosManagePanel">
         <summary>Gerenciar cadastros de produtos</summary>
         <div class="card table-card price-manage-card">
           <table class="product-table product-manage-table mobile-card-table">
@@ -17034,7 +17052,9 @@ function toggleSidebarCollapsed() {
 // fino (deixa lançar venda nova, só borra o histórico) — não precisa do genérico aqui.
 // 'clientes' também é liberada — renderClientes() já esconde os lojistas sozinha
 // pra quem não é admin, então não precisa do blur genérico da view inteira aqui.
-const VIEWS_LIBERADAS_SEM_ADMIN = ['vendas', 'nova', 'perfil', 'lojista', 'clientes'];
+// 'produtos' também é liberada — renderProdutos() já deixa a tabela de preços
+// só-leitura e esconde a gestão de cadastros pra quem não é admin.
+const VIEWS_LIBERADAS_SEM_ADMIN = ['vendas', 'nova', 'perfil', 'lojista', 'clientes', 'produtos'];
 function aplicarRestricaoAdmin(view) {
   const viewEl = document.getElementById('view-' + view);
   if (!viewEl) return;
@@ -19425,9 +19445,25 @@ function renderProdutos() {
 
   renderCatalogSummary(aggregate);
 
+  const podeEditarPrecos = isAdminUser();
+  const novoBtn = document.getElementById('produtosNovoBtn');
+  if (novoBtn) novoBtn.classList.toggle('hidden', !podeEditarPrecos);
+  const managePanel = document.getElementById('produtosManagePanel');
+  if (managePanel) managePanel.classList.toggle('hidden', !podeEditarPrecos);
+  const note = document.getElementById('produtosNote');
+  if (note) note.textContent = podeEditarPrecos
+    ? 'Tabela comercial da GSO organizada por período. Clique em qualquer valor para editar. 2026 aparece como tabela vigente; 2025 e 2024 ficam agrupados porque mantêm os mesmos valores.'
+    : 'Tabela comercial da GSO organizada por período. 2026 é a tabela vigente; 2025 e 2024 ficam agrupados porque mantêm os mesmos valores.';
+
   const priceBook = document.getElementById('produtosPriceBook');
   if (priceBook) {
-    priceBook.innerHTML = renderPriceBookYear(2026) + renderPriceBookYear(2025, { label: '2025 / 2024', shared: true });
+    priceBook.innerHTML = renderPriceBookYear(2026, { readOnly: !podeEditarPrecos }) + renderPriceBookYear(2025, { label: '2025 / 2024', shared: true, readOnly: !podeEditarPrecos });
+  }
+
+  const textos = document.getElementById('produtosTextos');
+  if (textos && !textos.dataset.built) {
+    textos.innerHTML = renderProdutosTextos();
+    textos.dataset.built = '1';
   }
 
   const manageBody = document.getElementById('produtosManageTable');
@@ -19495,8 +19531,15 @@ function renderCatalogSummary(aggregate) {
   `).join('');
 }
 
+let PRODUTOS_HISTORICO_ABERTO = false;
+function toggleProdutosHistorico() {
+  PRODUTOS_HISTORICO_ABERTO = !PRODUTOS_HISTORICO_ABERTO;
+  const panel = document.querySelector('#produtosPriceBook .catalog-year-panel.is-historical');
+  if (panel) panel.classList.toggle('is-collapsed', !PRODUTOS_HISTORICO_ABERTO);
+}
 function renderPriceBookYear(year, options = {}) {
   const shared = Boolean(options.shared);
+  const readOnly = Boolean(options.readOnly);
   const rowsSource = PRICE_BOOK_ORDER[year] || [];
   const boxesSource = PRICE_BOOK_BOX_ORDER[year] || [];
 
@@ -19507,13 +19550,14 @@ function renderPriceBookYear(year, options = {}) {
     if (!value) return '';
     const id = item.id || estoqueProductId(item);
     const unitHint = shared ? 'Edita o valor unitário compartilhado de 2025 e 2024.' : `Edita o valor unitário de ${year}.`;
+    const editAttrs = readOnly ? '' : ` contenteditable="true" data-tip="${escapeHtml(unitHint)}" onblur="updateProdutoPrice(${attrJsString(id)}, ${year}, 'unit', this.textContent)"`;
     return `
       <div class="catalog-price-row">
         <div class="catalog-product-info">
           <strong>${escapeHtml(priceBookDisplayName(produto, tamanho))}</strong>
           <span>Valor unitário</span>
         </div>
-        <div class="catalog-value price-book-value" contenteditable="true" data-tip="${escapeHtml(unitHint)}" onblur="updateProdutoPrice(${attrJsString(id)}, ${year}, 'unit', this.textContent)">${priceBookEditableValue(item, year, 'unit')}</div>
+        <div class="catalog-value price-book-value"${editAttrs}>${priceBookEditableValue(item, year, 'unit')}</div>
       </div>
     `;
   }).filter(Boolean);
@@ -19525,10 +19569,11 @@ function renderPriceBookYear(year, options = {}) {
     if (!value) return '';
     const id = item.id || estoqueProductId(item);
     const boxHint = shared ? 'Edita o valor de caixa compartilhado de 2025 e 2024.' : `Edita o valor de caixa fechada de ${year}.`;
+    const editAttrs = readOnly ? '' : ` contenteditable="true" data-tip="${escapeHtml(boxHint)}" onblur="updateProdutoPrice(${attrJsString(id)}, ${year}, 'caixa', this.textContent)"`;
     return `
       <div class="catalog-box-row">
         <span>${escapeHtml(priceBookBoxName(produto, tamanho))}</span>
-        <strong class="catalog-box-price" contenteditable="true" data-tip="${escapeHtml(boxHint)}" onblur="updateProdutoPrice(${attrJsString(id)}, ${year}, 'caixa', this.textContent)">${priceBookEditableValue(item, year, 'caixa')}</strong>
+        <strong class="catalog-box-price"${editAttrs}>${priceBookEditableValue(item, year, 'caixa')}</strong>
       </div>
     `;
   }).filter(Boolean);
@@ -19536,7 +19581,7 @@ function renderPriceBookYear(year, options = {}) {
   const title = shared ? '2025 / 2024' : String(year);
   const eyebrow = shared ? 'Histórico preservado' : 'Tabela vigente';
   const description = shared
-    ? '2024 manteve exatamente a mesma tabela de 2025. Ao editar um valor aqui, os dois anos são atualizados juntos.'
+    ? '2024 manteve exatamente a mesma tabela de 2025.' + (readOnly ? '' : ' Ao editar um valor aqui, os dois anos são atualizados juntos.')
     : 'Valores atuais de venda para produtos unitários e caixas fechadas.';
   const sharedNote = shared ? `
     <div class="catalog-shared-note">
@@ -19544,14 +19589,16 @@ function renderPriceBookYear(year, options = {}) {
       <span>2025 e 2024 usam a mesma base de preços.</span>
     </div>
   ` : '';
-  const yearClass = shared ? 'is-historical' : 'is-current';
+  const yearClass = shared ? 'is-historical' + (PRODUTOS_HISTORICO_ABERTO ? '' : ' is-collapsed') : 'is-current';
+  const headAttrs = shared ? ' onclick="toggleProdutosHistorico()" style="cursor:pointer"' : '';
+  const collapseHint = shared ? `<span class="catalog-year-toggle-ic">${PRODUTOS_HISTORICO_ABERTO ? '▾' : '▸'}</span>` : '';
 
   return `
     <section class="catalog-year-panel ${yearClass}">
-      <header class="catalog-year-head">
+      <header class="catalog-year-head"${headAttrs}>
         <div class="catalog-year-titleblock">
           <span class="catalog-eyebrow">${escapeHtml(eyebrow)}</span>
-          <h2>${escapeHtml(title)}</h2>
+          <h2>${escapeHtml(title)} ${collapseHint}</h2>
           <p>${escapeHtml(description)}</p>
         </div>
         <div class="catalog-year-badges">
@@ -19575,6 +19622,84 @@ function renderPriceBookYear(year, options = {}) {
         </aside>
       </div>
     </section>
+  `;
+}
+
+const PRODUTO_COR_HEX = {
+  azul: { light: '#1D5FA8', dark: '#8FB8E8' },
+  verde: { light: '#1F6B3D', dark: '#6FBE8C' },
+  vermelho: { light: '#D93636', dark: '#F08A8A' },
+  cinza: { light: '#5E5E5E', dark: '#C9C9C9' },
+  roxo: { light: '#7C3AED', dark: '#B794F6' },
+  amarelo: { light: '#B8860B', dark: '#E6C34A' },
+  'vermelho-escuro': { light: '#9C2B2B', dark: '#E0A3A3' },
+  'azul-claro': { light: '#5AA9E6', dark: '#9CCBEF' },
+  rosa: { light: '#E0559C', dark: '#F0A8CC' },
+  tiffany: { light: '#0ABAB5', dark: '#6FE0DB' },
+  branco: { light: '#B0B0B0', dark: '#8A8A8A' }
+};
+let produtoDescricoes = [];
+let produtoDescricoesCarregado = false;
+let PRODUTOS_TEXTOS_ABERTO = true;
+async function loadProdutoDescricoes() {
+  const client = getSupabaseClient();
+  if (!client) return;
+  const { data, error } = await client.from('gso_produto_descricoes').select('*').order('ordem', { ascending: true });
+  if (error) { console.warn('produto_descricoes: erro ao carregar', error.message); return; }
+  produtoDescricoes = data || [];
+  produtoDescricoesCarregado = true;
+}
+function toggleProdutosTextos() {
+  PRODUTOS_TEXTOS_ABERTO = !PRODUTOS_TEXTOS_ABERTO;
+  const grid = document.getElementById('produtoInfoGrid');
+  if (grid) grid.classList.toggle('is-collapsed', !PRODUTOS_TEXTOS_ABERTO);
+  const ic = document.getElementById('produtoInfoToggleIc');
+  if (ic) ic.textContent = PRODUTOS_TEXTOS_ABERTO ? '▾' : '▸';
+}
+async function updateProdutoDescricao(id, field, rawValue) {
+  if (!isAdminUser()) return;
+  const item = produtoDescricoes.find(p => p.id === id);
+  if (!item) return;
+  const value = String(rawValue || '').trim();
+  const anterior = item[field];
+  if (anterior === value) return;
+  item[field] = value;
+  const client = requireSupabaseSession();
+  if (!client) { item[field] = anterior; return; }
+  const patch = { atualizado_em: new Date().toISOString() };
+  patch[field] = value;
+  const { error } = await client.from('gso_produto_descricoes').update(patch).eq('id', id);
+  if (error) { item[field] = anterior; alert('Não consegui salvar a descrição: ' + error.message); renderProdutos(); }
+}
+function renderProdutosTextos() {
+  if (!produtoDescricoesCarregado) {
+    loadProdutoDescricoes().then(() => {
+      const el = document.getElementById('produtosTextos');
+      if (el) el.innerHTML = renderProdutosTextos();
+    });
+  }
+  const podeEditar = isAdminUser();
+  const editCard = (val, field, id) => podeEditar ? ` contenteditable="true" onblur="updateProdutoDescricao(${attrJsString(id)}, '${field}', this.textContent)"` : '';
+  const cards = produtoDescricoes.map(p => {
+    const hex = PRODUTO_COR_HEX[p.cor] || null;
+    const style = hex ? ` style="--pcor-light:${hex.light};--pcor-dark:${hex.dark}"` : '';
+    return `
+    <div class="produto-info-card"${style}>
+      <h3${editCard(p.titulo, 'titulo', p.id)}>${escapeHtml(p.titulo)}</h3>
+      <p${editCard(p.descricao, 'descricao', p.id)}>${escapeHtml(p.descricao)}</p>
+      <div class="produto-info-meta">
+        <span>Aroma: <span${editCard(p.aroma, 'aroma', p.id)}>${escapeHtml(p.aroma || '')}</span></span>
+        <span>Quantidade: <span${editCard(p.quantidade, 'quantidade', p.id)}>${escapeHtml(p.quantidade || '')}</span></span>
+      </div>
+    </div>
+  `;
+  }).join('') || (produtoDescricoesCarregado ? '<div class="table-empty">Nenhuma descrição cadastrada ainda.</div>' : '<div class="gc-hint">Carregando…</div>');
+  return `
+    <div class="produto-info-header" onclick="toggleProdutosTextos()">
+      <h2>Sobre os produtos <span class="catalog-year-toggle-ic" id="produtoInfoToggleIc">${PRODUTOS_TEXTOS_ABERTO ? '▾' : '▸'}</span></h2>
+      <p>Descrições do catálogo GSO Effects Line — aplicação, aroma e quantidade de cada linha.${podeEditar ? ' Clique em qualquer texto para editar.' : ''}</p>
+    </div>
+    <div class="produto-info-grid${PRODUTOS_TEXTOS_ABERTO ? '' : ' is-collapsed'}" id="produtoInfoGrid">${cards}</div>
   `;
 }
 
