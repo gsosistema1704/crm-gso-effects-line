@@ -17135,7 +17135,29 @@ function aplicarRestricaoAdmin(view) {
   }
 }
 
+// Pra quem não é admin, as abas restritas nem aparecem no menu e nem são
+// alcançáveis por navegação direta — cai direto em Vendas, sem aviso de bloqueio.
+function applyAdminNavVisibility() {
+  const admin = isAdminUser();
+  document.querySelectorAll('.nav-item[data-view]').forEach(el => {
+    const restrita = !VIEWS_LIBERADAS_SEM_ADMIN.includes(el.dataset.view);
+    el.classList.toggle('hidden', !admin && restrita);
+  });
+  // esconde também o cabeçalho de seção (ex: "FERRAMENTAS") quando nenhum item dela sobrar visível
+  document.querySelectorAll('.sb-section').forEach(section => {
+    let hasVisible = false;
+    let node = section.nextElementSibling;
+    while (node && !node.classList.contains('sb-section')) {
+      if (node.classList.contains('nav-item') && !node.classList.contains('hidden')) { hasVisible = true; break; }
+      node = node.nextElementSibling;
+    }
+    section.classList.toggle('hidden', !hasVisible);
+  });
+}
+
 function navTo(view) {
+  applyAdminNavVisibility();
+  if (!isAdminUser() && !VIEWS_LIBERADAS_SEM_ADMIN.includes(view) && view !== 'vendas') view = 'vendas';
   VIEWS.forEach(v => {
     document.getElementById('view-' + v).classList.toggle('hidden', v !== view);
   });
