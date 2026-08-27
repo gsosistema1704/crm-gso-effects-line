@@ -26621,6 +26621,75 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '</div>';
     }).join('');
   }
+  // Vários anúncios diferentes costumam vender o mesmo produto (ex.: "Clean" tem mais de
+  // um anúncio ativo) — pra saber o produto campeão de verdade a venda precisa ser
+  // reduzida ao produto do catálogo, não ao anúncio. Usa o mesmo vínculo anúncio→produto
+  // já existente (itensCatalogo) e só cai pra um palpite por palavra-chave no nome quando
+  // o anúncio da venda não tem produto vinculado (acessório, kit avulso ou venda antiga
+  // sem anúncio casado).
+  var ML_PRODUTO_PALAVRAS = [
+    { re: /haze\s*oil/i, produto: 'Haze Oil' },
+    { re: /low\s*fog/i, produto: 'Low Fog' },
+    { re: /limpeza\s*a\s*seco/i, produto: 'Top Up - Limpeza a Seco' },
+    { re: /lentes\s*e\s*telas|cristalinas/i, produto: 'Top Up - Lentes e Telas Cristalinas' },
+    { re: /co\W?2|simulad(or|ora)/i, produto: 'CO₂ Simulator' },
+    { re: /\bdjs?\b|clubs/i, produto: 'DJs and Clubs' },
+    { re: /bubble|bolha/i, produto: 'Bubble' },
+    { re: /\bsnow\b/i, produto: 'Snow' },
+    { re: /palco|atrapalha\s*fotos/i, produto: 'Palco' },
+    { re: /clean|limpeza/i, produto: 'Clean' },
+    { re: /\bhaze\b/i, produto: 'Haze' }
+  ];
+  // Peça/acessório de máquina (tubo, serpentina, pasta de limpeza de equipamento etc.) não é
+  // líquido de nenhuma linha — mesmo citando "Haze" ou "Clean" no nome, é da máquina, não do
+  // produto. Fica de fora do palpite por palavra-chave pra não virar "Haze"/"Clean" à toa.
+  var ML_ACESSORIO_PALAVRAS = /\btubo\b|serpentina|\bpasta\b|\bcabo\b|\bcase\b|controladora|resist[eê]ncia|conector|adaptador|v[aá]lvula/i;
+  function produtoDeNomeFallback(nome) {
+    var n = String(nome || '');
+    if (ML_ACESSORIO_PALAVRAS.test(n)) return null;
+    for (var i = 0; i < ML_PRODUTO_PALAVRAS.length; i++) {
+      if (ML_PRODUTO_PALAVRAS[i].re.test(n)) return ML_PRODUTO_PALAVRAS[i].produto;
+    }
+    return null;
+  }
+  function mlVendaProduto(v) {
+    var anuncio = (store.anuncios || []).filter(function (a) { return a.id === v.anuncio_id; })[0];
+    if (anuncio) {
+      var itens = anuncioItens(anuncio);
+      if (itens.length && itens[0].produto) return itens[0].produto;
+    }
+    return produtoDeNomeFallback(v.anuncio_nome);
+  }
+  function mlVendasPorProduto() {
+    var porProduto = {};
+    mlVendas.forEach(function (v) {
+      var produto = mlVendaProduto(v) || 'Outros';
+      var t = mlVendaTotais(v);
+      if (!porProduto[produto]) porProduto[produto] = { produto: produto, qtd: 0, vendas: 0, recebido: 0, lucro: 0 };
+      porProduto[produto].qtd += (num(v.qtd) || 1);
+      porProduto[produto].vendas += 1;
+      porProduto[produto].recebido += t.recebido;
+      porProduto[produto].lucro += t.lucro;
+    });
+    return Object.keys(porProduto).map(function (k) { return porProduto[k]; }).sort(function (a, b) { return b.qtd - a.qtd; });
+  }
+  function mlVendasPorProdutoHtml(dados) {
+    var maxQtd = dados[0].qtd || 1;
+    return dados.map(function (p, i) {
+      var corKey = ML_COR_PRODUTO[p.produto];
+      var hex = corKey && PRODUTO_COR_HEX[corKey] ? PRODUTO_COR_HEX[corKey] : null;
+      var pct = Math.max(4, Math.round((p.qtd / maxQtd) * 100));
+      var rowStyle = hex ? (' style="--pcor-l:' + hex.light + ';--pcor-d:' + hex.dark + '"') : '';
+      return '<div class="gc-ml-prod-row' + (i === 0 ? ' win' : '') + '"' + rowStyle + '>' +
+        '<span class="gc-ml-prod-dot"></span>' +
+        '<div class="gc-ml-prod-mid">' +
+          '<div class="gc-ml-prod-title">' + esc(p.produto) + (i === 0 ? ' <span class="gc-ml-prod-badge">Mais vendido</span>' : '') + '</div>' +
+          '<div class="gc-ml-prod-track"><div class="gc-ml-prod-fill" style="width:' + pct + '%"></div></div>' +
+        '</div>' +
+        '<div class="gc-ml-rank-stats"><b>' + p.qtd + ' un.</b>' + p.vendas + (p.vendas === 1 ? ' venda' : ' vendas') + '</div>' +
+      '</div>';
+    }).join('');
+  }
   function renderMLVendasHtml() {
     if (!mlVendasCarregado) { loadMlVendas().then(function () { if (UI.mlView === 'vendas') renderML(); }); }
     var totais = mlVendas.reduce(function (acc, v) {
@@ -26630,6 +26699,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     }, { valor: 0, recebido: 0, lucro: 0 });
     var evolucaoDias = mlVendasEvolucaoData();
     var ranking = mlVendasRankingAnuncios();
+    var porProduto = mlVendasPorProduto();
     var linhas = mlVendas.map(function (v) {
       var t = mlVendaTotais(v);
       return '<tr>' +
@@ -26662,6 +26732,12 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<div class="gc-blk">' +
         '<h2>Evolução das vendas<span>' + esc(fmtDate(evolucaoDias[0].data)) + ' — ' + esc(fmtDate(evolucaoDias[evolucaoDias.length - 1].data)) + '</span></h2>' +
         mlVendasEvolucaoSvg(evolucaoDias) +
+      '</div>'
+    ) : '') +
+    (porProduto.length ? (
+      '<div class="gc-blk">' +
+        '<h2>Vendas por produto<span>somando todos os anúncios de cada produto</span></h2>' +
+        mlVendasPorProdutoHtml(porProduto) +
       '</div>'
     ) : '') +
     (ranking.length ? (
@@ -30876,6 +30952,16 @@ body.theme-dark #gso-calc .gc-tabs button.on, body.theme-dark #gso-calc .gc-ml-s
 #gso-calc .gc-ml-rank-row.win .gc-ml-rank-fill{ background:var(--gcok); }
 #gso-calc .gc-ml-rank-stats{ font-size:11px; color:var(--gcmut); text-align:right; white-space:nowrap; }
 #gso-calc .gc-ml-rank-stats b{ font-size:14px; font-weight:800; color:var(--gcink); margin-right:4px; }
+#gso-calc .gc-ml-prod-row{ display:grid; grid-template-columns:10px 1fr auto; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--gcln); }
+#gso-calc .gc-ml-prod-row:last-child{ border-bottom:0; }
+#gso-calc .gc-ml-prod-dot{ width:10px; height:10px; border-radius:50%; background:var(--pcor-l, var(--gcgr)); }
+body.theme-dark #gso-calc .gc-ml-prod-dot{ background:var(--pcor-d, var(--gcgr)); }
+#gso-calc .gc-ml-prod-mid{ min-width:0; }
+#gso-calc .gc-ml-prod-title{ font-size:12.5px; font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+#gso-calc .gc-ml-prod-badge{ font-size:9.5px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; color:var(--gcok); background:var(--gcokbg); border-radius:999px; padding:2px 7px; white-space:nowrap; }
+#gso-calc .gc-ml-prod-track{ height:6px; background:var(--gcln2); border-radius:3px; overflow:hidden; }
+#gso-calc .gc-ml-prod-fill{ height:100%; border-radius:3px; background:var(--pcor-l, var(--gcgr)); }
+body.theme-dark #gso-calc .gc-ml-prod-fill{ background:var(--pcor-d, var(--gcgr)); }
 #gso-calc .gc-ml-board{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; }
 @media(max-width:1320px){ #gso-calc .gc-ml-board{ grid-template-columns:repeat(3, minmax(0, 1fr)); } }
 @media(max-width:1080px){ #gso-calc .gc-ml-board{ grid-template-columns:repeat(2, minmax(0, 1fr)); } }
