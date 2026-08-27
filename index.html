@@ -14165,6 +14165,54 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
   </div>
 </div>
 
+<div class="modal-bg" id="modal-boleto-venda">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Venda em boleto</div>
+    <input type="hidden" id="bv-id">
+    <div class="form-row form-r2">
+      <div>
+        <label class="form-label">Cliente</label>
+        <div id="bv-cliente" style="font-weight:600;padding-top:4px"></div>
+      </div>
+      <div>
+        <label class="form-label">Data</label>
+        <div id="bv-data" style="padding-top:4px"></div>
+      </div>
+    </div>
+    <div class="form-row form-r2">
+      <div>
+        <label class="form-label">Valor original</label>
+        <div id="bv-valor" style="font-weight:600;padding-top:4px"></div>
+      </div>
+      <div>
+        <label class="form-label">Status</label>
+        <div id="bv-status" style="padding-top:4px"></div>
+      </div>
+    </div>
+    <div class="form-row form-r2">
+      <div>
+        <label class="form-label">Multa (R$)</label>
+        <input type="text" class="form-input" inputmode="decimal" id="bv-multa" placeholder="0,00" oninput="bvAtualizarTotal()">
+      </div>
+      <div>
+        <label class="form-label">Juros (R$)</label>
+        <input type="text" class="form-input" inputmode="decimal" id="bv-juros" placeholder="0,00" oninput="bvAtualizarTotal()">
+      </div>
+    </div>
+    <div class="form-help" style="margin-top:2px">Nem toda venda tem multa/juros — deixe em branco quando não houver. O valor preenchido aqui soma ao total mostrado como pago.</div>
+    <div class="form-row" style="margin-top:8px">
+      <div>
+        <label class="form-label">Total com multa/juros</label>
+        <div id="bv-total" style="font-weight:700;font-size:16px;padding-top:4px"></div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="document.getElementById('modal-boleto-venda').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarMultaJurosBoleto()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL NOTA FISCAL ============ -->
 <div class="modal-bg" id="modal-nota">
   <div class="modal modal-wide">
@@ -14515,6 +14563,8 @@ function saleToRow(v) {
       } : null,
       boletoPago: Boolean(v.boletoPago),
       boletoOculto: Boolean(v.boletoOculto),
+      boletoMulta: Number(v.boletoMulta) || 0,
+      boletoJuros: Number(v.boletoJuros) || 0,
       clienteOriginal: v.clienteOriginal || null,
       revisaoCliente: Boolean(v.revisaoCliente),
       revisaoCandidatos: v.revisaoCandidatos || null,
@@ -14552,6 +14602,8 @@ function rowToSale(r) {
     boleto: r.metadata?.boleto?.path ? { name: r.metadata.boleto.name || 'boleto.pdf', path: r.metadata.boleto.path } : null,
     boletoPago: Boolean(r.metadata?.boletoPago),
     boletoOculto: Boolean(r.metadata?.boletoOculto),
+    boletoMulta: Number(r.metadata?.boletoMulta) || 0,
+    boletoJuros: Number(r.metadata?.boletoJuros) || 0,
     clienteOriginal: r.metadata?.clienteOriginal || null,
     revisaoCliente: Boolean(r.metadata?.revisaoCliente),
     revisaoCandidatos: Array.isArray(r.metadata?.revisaoCandidatos) ? r.metadata.revisaoCandidatos : null,
@@ -17242,7 +17294,7 @@ function computeMensal() {
     const d = dashboardDateObj(v.data);
     if (!d) return;
     const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    map[key] = (map[key] || 0) + (parseFloat(v.valor) || 0);
+    map[key] = (map[key] || 0) + (saleIsBoleto(v) ? saleBoletoValorTotal(v) : (parseFloat(v.valor) || 0));
   });
   return Object.keys(map).sort().map(k => ({ mes: k, fat: map[k] }));
 }
@@ -17318,13 +17370,24 @@ function saleBoletoOculto(venda) {
 function saleCountsInRevenue(venda) {
   return !saleIsBoleto(venda) || saleBoletoPago(venda);
 }
+function saleBoletoMulta(venda) {
+  return Number(venda?.boletoMulta) || 0;
+}
+function saleBoletoJuros(venda) {
+  return Number(venda?.boletoJuros) || 0;
+}
+// Valor final do boleto já somando multa/juros manuais — é esse total que conta
+// como "pago" quando o boleto é confirmado, não só o valor original da venda.
+function saleBoletoValorTotal(venda) {
+  return Math.round(((Number(venda?.valor) || 0) + saleBoletoMulta(venda) + saleBoletoJuros(venda)) * 100) / 100;
+}
 
 async function atualizarVendaBoletoMeta(id, patch) {
   const client = requireSupabaseSession();
   if (!client) return;
   const venda = state.vendas.find(v => String(v.id) === String(id));
   if (!venda) return;
-  const anterior = { boletoPago: venda.boletoPago, boletoOculto: venda.boletoOculto };
+  const anterior = { boletoPago: venda.boletoPago, boletoOculto: venda.boletoOculto, boletoMulta: venda.boletoMulta, boletoJuros: venda.boletoJuros };
   Object.assign(venda, patch);
   const row = saleToRow(venda);
   const { error } = await client.from('crm_vendas').update({ metadata: row.metadata }).eq('id', id);
@@ -17342,6 +17405,36 @@ function desfazerVendaBoletoPago(id) { return atualizarVendaBoletoMeta(id, { bol
 function ocultarVendaBoleto(id) {
   if (!confirm('Tirar esta venda do bloco de boletos? Ela continua normalmente na aba Vendas.')) return;
   return atualizarVendaBoletoMeta(id, { boletoOculto: true });
+}
+
+function abrirVendaBoletoModal(id) {
+  const venda = state.vendas.find(v => String(v.id) === String(id));
+  if (!venda) return;
+  document.getElementById('bv-id').value = venda.id;
+  document.getElementById('bv-cliente').textContent = venda.cliente || '—';
+  document.getElementById('bv-data').textContent = fmtDate(venda.data);
+  document.getElementById('bv-valor').textContent = fmtBR(venda.valor);
+  document.getElementById('bv-status').innerHTML = saleBoletoPago(venda) ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>';
+  document.getElementById('bv-multa').value = saleBoletoMulta(venda) ? String(saleBoletoMulta(venda)).replace('.', ',') : '';
+  document.getElementById('bv-juros').value = saleBoletoJuros(venda) ? String(saleBoletoJuros(venda)).replace('.', ',') : '';
+  document.getElementById('bv-total').textContent = fmtBR(saleBoletoValorTotal(venda));
+  document.getElementById('modal-boleto-venda').classList.add('show');
+}
+function bvAtualizarTotal() {
+  const valorEl = document.getElementById('bv-valor');
+  const id = document.getElementById('bv-id').value;
+  const venda = state.vendas.find(v => String(v.id) === String(id));
+  if (!venda) return;
+  const multa = parseFloat((document.getElementById('bv-multa').value || '0').replace(',', '.')) || 0;
+  const juros = parseFloat((document.getElementById('bv-juros').value || '0').replace(',', '.')) || 0;
+  document.getElementById('bv-total').textContent = fmtBR(Math.round(((Number(venda.valor) || 0) + multa + juros) * 100) / 100);
+}
+async function salvarMultaJurosBoleto() {
+  const id = document.getElementById('bv-id').value;
+  const multa = parseFloat((document.getElementById('bv-multa').value || '0').replace(',', '.')) || 0;
+  const juros = parseFloat((document.getElementById('bv-juros').value || '0').replace(',', '.')) || 0;
+  document.getElementById('modal-boleto-venda').classList.remove('show');
+  await atualizarVendaBoletoMeta(id, { boletoMulta: multa, boletoJuros: juros });
 }
 
 function saleHasNf(venda) {
@@ -24115,7 +24208,7 @@ function intelRenderOverview() {
 
   const hoje = dashboardStartOfDay();
   const vendasHoje = dashboardSalesInRange(hoje, hoje).filter(saleCountsInRevenue);
-  const valorHoje = vendasHoje.reduce((sum, venda) => sum + Number(venda.valor || 0), 0);
+  const valorHoje = vendasHoje.reduce((sum, venda) => sum + (saleIsBoleto(venda) ? saleBoletoValorTotal(venda) : Number(venda.valor || 0)), 0);
   const ticketHoje = vendasHoje.length ? valorHoje / vendasHoje.length : 0;
   const boletoRows = state.vendas.filter(v => saleIsBoleto(v) && !saleBoletoOculto(v)).sort((a, b) => {
     const pagoA = saleBoletoPago(a) ? 1 : 0, pagoB = saleBoletoPago(b) ? 1 : 0;
@@ -24128,10 +24221,14 @@ function intelRenderOverview() {
     const acaoPrincipal = pago
       ? `<button class="btn btn-small" onclick="desfazerVendaBoletoPago('${v.id}')" data-tooltip="Voltar para pendente">Desfazer</button>`
       : `<button class="btn btn-small" onclick="marcarVendaBoletoPago('${v.id}')">Marcar pago</button>`;
-    return `<tr>
+    const extra = saleBoletoMulta(v) || saleBoletoJuros(v);
+    const valorCell = extra
+      ? `${fmtBR(saleBoletoValorTotal(v))}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">${fmtBR(v.valor)} + multa/juros</small>`
+      : fmtBR(v.valor);
+    return `<tr onclick="if(!event.target.closest('button')) abrirVendaBoletoModal('${v.id}')" style="cursor:pointer">
       <td>${fmtDate(v.data)}</td>
       <td>${escapeHtml(v.cliente || '—')}</td>
-      <td class="num">${fmtBR(v.valor)}</td>
+      <td class="num">${valorCell}</td>
       <td>${pago ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>'}</td>
       <td style="display:flex;gap:6px;align-items:center;">${acaoPrincipal}<button class="btn btn-small" onclick="ocultarVendaBoleto('${v.id}')" data-tooltip="Tirar esta venda daqui" aria-label="Tirar esta venda daqui">✕</button></td>
     </tr>`;
