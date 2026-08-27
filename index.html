@@ -26610,7 +26610,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           '<div class="gc-kv"><span class="l">Cai na sua conta</span><b>' + fmt(c.recebido * qtd) + '</b></div>' +
           '<div class="gc-kv"><span class="l">Custo do produto</span><b>−' + fmt(c.custoProduto * qtd) + '</b></div>' +
           '<div class="gc-kv"><span class="l">Fiscal</span><b>−' + fmt(c.fiscalValor * qtd) + '</b></div>' +
-          '<div class="gc-kv"><span class="l">Lucro final</span><b>' + fmt(c.lucro * qtd) + '</b></div>'
+          '<div class="gc-kv"><span class="l">Lucro final</span><b>' + fmt(round2((c.recebido - c.custoProduto) * qtd)) + '</b></div>'
         ) : '<div class="gc-hint" style="margin-top:10px">Cadastre um anúncio em "Anúncios" antes de registrar uma venda.</div>') +
         '<div class="gc-row" style="margin-top:10px">' +
           '<button class="gc-btn dark" id="gc-vml-save"' + (anuncio ? '' : ' disabled') + '>Salvar venda</button>' +
@@ -26643,7 +26643,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       custo_unitario: c.custoProduto,
       fiscal_unitario: c.fiscalValor,
       recebido_unitario: c.recebido,
-      lucro_unitario: c.lucro
+      lucro_unitario: round2(c.recebido - c.custoProduto)
     };
     var res = await client.from('gso_ml_vendas').insert(payload);
     if (res.error) { alert('Erro ao salvar: ' + res.error.message); return; }
