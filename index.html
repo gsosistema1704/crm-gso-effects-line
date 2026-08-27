@@ -26551,6 +26551,76 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     '</div>';
     return legenda + '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:auto;max-height:220px;display:block;">' + bars + '</svg>';
   }
+  function mlVendasEvolucaoData() {
+    var porDia = {};
+    mlVendas.forEach(function (v) {
+      var key = String(v.data).slice(0, 10);
+      var t = mlVendaTotais(v);
+      if (!porDia[key]) porDia[key] = { data: key, qtd: 0, recebido: 0, lucro: 0 };
+      porDia[key].qtd += (num(v.qtd) || 1);
+      porDia[key].recebido += t.recebido;
+      porDia[key].lucro += t.lucro;
+    });
+    var dias = Object.keys(porDia).sort().map(function (k) { return porDia[k]; });
+    var cumR = 0, cumL = 0;
+    dias.forEach(function (d) { cumR += d.recebido; cumL += d.lucro; d.cumRecebido = round2(cumR); d.cumLucro = round2(cumL); });
+    return dias;
+  }
+  function mlVendasEvolucaoSvg(dias) {
+    var w = 640, h = 200, padT = 16, padB = 24;
+    var n = dias.length;
+    var maxY = Math.max.apply(null, dias.map(function (d) { return d.cumRecebido; })) * 1.08 || 1;
+    var x = function (i) { return (i / (n - 1)) * w; };
+    var y = function (v) { return padT + (h - padT - padB) - (v / maxY) * (h - padT - padB); };
+    var areaPts = dias.map(function (d, i) { return x(i) + ',' + y(d.cumRecebido); }).join(' ');
+    var areaPath = 'M' + x(0) + ',' + y(0) + ' L' + areaPts + ' L' + x(n - 1) + ',' + y(0) + ' Z';
+    var linePts = dias.map(function (d, i) { return x(i) + ',' + y(d.cumRecebido); }).join(' ');
+    var lucroPts = dias.map(function (d, i) { return x(i) + ',' + y(d.cumLucro); }).join(' ');
+    var ticksIdx = [0, Math.round((n - 1) * 0.33), Math.round((n - 1) * 0.66), n - 1].filter(function (v, i, arr) { return arr.indexOf(v) === i; });
+    var labels = ticksIdx.map(function (i) {
+      var anchor = i === 0 ? 'start' : (i === n - 1 ? 'end' : 'middle');
+      return '<text x="' + x(i) + '" y="' + (h - 6) + '" font-size="10" fill="var(--gcfnt)" text-anchor="' + anchor + '">' + esc(fmtDate(dias[i].data)) + '</text>';
+    }).join('');
+    var totalRecebido = dias[n - 1].cumRecebido, totalLucro = dias[n - 1].cumLucro;
+    var legenda = '<div class="gc-hint" style="display:flex;gap:16px;align-items:center;margin:2px 0 6px;padding:0">' +
+      '<span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:2px;background:var(--gcac);display:inline-block"></span>Recebido · ' + fmt(totalRecebido) + '</span>' +
+      '<span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:50%;background:var(--gcok);display:inline-block"></span>Lucro · ' + fmt(totalLucro) + '</span>' +
+    '</div>';
+    return legenda + '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:auto;max-height:200px;display:block;overflow:visible">' +
+      '<path d="' + areaPath + '" fill="var(--gcac)" opacity="0.08"></path>' +
+      '<polyline points="' + linePts + '" fill="none" stroke="var(--gcac)" stroke-width="2"></polyline>' +
+      '<polyline points="' + lucroPts + '" fill="none" stroke="var(--gcok)" stroke-width="2" stroke-dasharray="5,4"></polyline>' +
+      labels +
+    '</svg>';
+  }
+  function mlVendasRankingAnuncios() {
+    var porNome = {};
+    mlVendas.forEach(function (v) {
+      var nome = v.anuncio_nome || 'Sem nome';
+      var t = mlVendaTotais(v);
+      if (!porNome[nome]) porNome[nome] = { nome: nome, qtd: 0, vendas: 0, recebido: 0, lucro: 0 };
+      porNome[nome].qtd += (num(v.qtd) || 1);
+      porNome[nome].vendas += 1;
+      porNome[nome].recebido += t.recebido;
+      porNome[nome].lucro += t.lucro;
+    });
+    return Object.keys(porNome).map(function (k) { return porNome[k]; }).sort(function (a, b) { return b.qtd - a.qtd; });
+  }
+  function mlVendasRankingHtml(ranking) {
+    var top = ranking.slice(0, 6);
+    var maxQtd = top[0].qtd || 1;
+    return top.map(function (r, i) {
+      var pct = Math.max(6, Math.round((r.qtd / maxQtd) * 100));
+      return '<div class="gc-ml-rank-row' + (i === 0 ? ' win' : '') + '">' +
+        '<span class="gc-ml-rank-n">' + (i + 1) + '</span>' +
+        '<div class="gc-ml-rank-mid">' +
+          '<div class="gc-ml-rank-title">' + esc(r.nome) + '</div>' +
+          '<div class="gc-ml-rank-track"><div class="gc-ml-rank-fill" style="width:' + pct + '%"></div></div>' +
+        '</div>' +
+        '<div class="gc-ml-rank-stats"><b>' + r.qtd + ' un.</b>' + r.vendas + (r.vendas === 1 ? ' venda' : ' vendas') + '</div>' +
+      '</div>';
+    }).join('');
+  }
   function renderMLVendasHtml() {
     if (!mlVendasCarregado) { loadMlVendas().then(function () { if (UI.mlView === 'vendas') renderML(); }); }
     var totais = mlVendas.reduce(function (acc, v) {
@@ -26558,6 +26628,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       acc.valor += t.valor; acc.recebido += t.recebido; acc.lucro += t.lucro;
       return acc;
     }, { valor: 0, recebido: 0, lucro: 0 });
+    var evolucaoDias = mlVendasEvolucaoData();
+    var ranking = mlVendasRankingAnuncios();
     var linhas = mlVendas.map(function (v) {
       var t = mlVendaTotais(v);
       return '<tr>' +
@@ -26585,7 +26657,19 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<thead><tr><th>Data</th><th>Anúncio</th><th class="num">Qtd</th><th class="num">Valor</th><th class="num">Recebido</th><th class="num">Lucro</th><th>Ações</th></tr></thead>' +
         '<tbody>' + linhas + '</tbody></table></div>'
       ) : '<div class="gc-hint" style="margin-top:16px">Nenhuma venda registrada ainda. Clique em "+ Nova venda" e escolha o anúncio vendido.</div>') +
-    '</div>';
+    '</div>' +
+    (evolucaoDias.length >= 2 ? (
+      '<div class="gc-blk">' +
+        '<h2>Evolução das vendas<span>' + esc(fmtDate(evolucaoDias[0].data)) + ' — ' + esc(fmtDate(evolucaoDias[evolucaoDias.length - 1].data)) + '</span></h2>' +
+        mlVendasEvolucaoSvg(evolucaoDias) +
+      '</div>'
+    ) : '') +
+    (ranking.length ? (
+      '<div class="gc-blk">' +
+        '<h2>Anúncio mais vendido</h2>' +
+        mlVendasRankingHtml(ranking) +
+      '</div>'
+    ) : '');
   }
   function abrirVendaMLForm() {
     document.body.classList.add('gc-dr-flutuante');
@@ -30780,6 +30864,18 @@ body.theme-dark #gso-calc .gc-tabs button.on, body.theme-dark #gso-calc .gc-ml-s
   #gso-calc .gc-ml-venda-table-wrap table.gct{ table-layout:auto; min-width:600px; }
   #gso-calc .gc-ml-venda-table-wrap table.gct td{ white-space:nowrap; overflow-wrap:normal; }
 }
+#gso-calc .gc-ml-rank-row{ display:grid; grid-template-columns:20px 1fr auto; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--gcln); }
+#gso-calc .gc-ml-rank-row:last-child{ border-bottom:0; }
+#gso-calc .gc-ml-rank-row.win{ background:var(--gcokbg); border:1px solid var(--gcok); border-radius:10px; padding:8px 10px; margin-bottom:2px; }
+#gso-calc .gc-ml-rank-n{ font-weight:800; font-size:13px; color:var(--gcmut); text-align:center; }
+#gso-calc .gc-ml-rank-row.win .gc-ml-rank-n{ color:var(--gcok); }
+#gso-calc .gc-ml-rank-mid{ min-width:0; }
+#gso-calc .gc-ml-rank-title{ font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:4px; }
+#gso-calc .gc-ml-rank-track{ height:4px; background:var(--gcln2); border-radius:3px; overflow:hidden; }
+#gso-calc .gc-ml-rank-fill{ height:100%; background:var(--gcgr); border-radius:3px; }
+#gso-calc .gc-ml-rank-row.win .gc-ml-rank-fill{ background:var(--gcok); }
+#gso-calc .gc-ml-rank-stats{ font-size:11px; color:var(--gcmut); text-align:right; white-space:nowrap; }
+#gso-calc .gc-ml-rank-stats b{ font-size:14px; font-weight:800; color:var(--gcink); margin-right:4px; }
 #gso-calc .gc-ml-board{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; }
 @media(max-width:1320px){ #gso-calc .gc-ml-board{ grid-template-columns:repeat(3, minmax(0, 1fr)); } }
 @media(max-width:1080px){ #gso-calc .gc-ml-board{ grid-template-columns:repeat(2, minmax(0, 1fr)); } }
