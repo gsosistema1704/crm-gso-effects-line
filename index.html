@@ -14175,8 +14175,18 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div id="bv-cliente" style="font-weight:600;padding-top:4px"></div>
       </div>
       <div>
-        <label class="form-label">Data</label>
+        <label class="form-label">Dia</label>
         <div id="bv-data" style="padding-top:4px"></div>
+      </div>
+    </div>
+    <div class="form-row form-r2">
+      <div>
+        <label class="form-label">Produto</label>
+        <div id="bv-produto" style="padding-top:4px"></div>
+      </div>
+      <div>
+        <label class="form-label">Vendedor</label>
+        <div id="bv-vendedor" style="padding-top:4px"></div>
       </div>
     </div>
     <div class="form-row form-r2">
@@ -14199,7 +14209,6 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <input type="text" class="form-input" inputmode="decimal" id="bv-juros" placeholder="0,00" oninput="bvAtualizarTotal()">
       </div>
     </div>
-    <div class="form-help" style="margin-top:2px">Nem toda venda tem multa/juros — deixe em branco quando não houver. O valor preenchido aqui soma ao total mostrado como pago.</div>
     <div class="form-row" style="margin-top:8px">
       <div>
         <label class="form-label">Total com multa/juros</label>
@@ -17413,6 +17422,8 @@ function abrirVendaBoletoModal(id) {
   document.getElementById('bv-id').value = venda.id;
   document.getElementById('bv-cliente').textContent = venda.cliente || '—';
   document.getElementById('bv-data').textContent = fmtDate(venda.data);
+  document.getElementById('bv-produto').textContent = venda.produto || '—';
+  document.getElementById('bv-vendedor').textContent = venda.vendedor || '—';
   document.getElementById('bv-valor').textContent = fmtBR(venda.valor);
   document.getElementById('bv-status').innerHTML = saleBoletoPago(venda) ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>';
   document.getElementById('bv-multa').value = saleBoletoMulta(venda) ? String(saleBoletoMulta(venda)).replace('.', ',') : '';
