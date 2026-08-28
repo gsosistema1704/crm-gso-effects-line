@@ -16854,6 +16854,39 @@ function catalogLinePrice(produto, tamanho, units) {
   }
   return units * (product.unit2026 || 0);
 }
+// Descrição de venda combinando vários produtos num texto só (ex.: "18 UN Palco 1L N +
+// 12 UN Palco 1L T", de venda importada sem os itens estruturados) — separa em itens
+// individuais de produto/tamanho/aroma/qtd próprios, do jeito que o cadastro manual gera.
+// Detecta aroma por uma letra solta no fim do trecho (N=Neutro, T=Tropical), convenção
+// usada nessas descrições.
+function parseProdutoLivreEmItens(descricao, tamanhoFallback, aromaFallback, qtdFallback) {
+  const description = String(descricao || '');
+  const parts = description.split(/\s+\+\s+/).map(s => s.trim()).filter(Boolean);
+  const itens = [];
+  (parts.length ? parts : [description]).forEach(part => {
+    const found = findCatalogProductInText(part) || findCatalogProductInText(description);
+    if (!found) return;
+    const tamanho = correctedCatalogSize(found.produto, findSaleSize(part, tamanhoFallback));
+    const { qtd, kind } = extractQtyAndKind(nameKey(part), found.index, qtdFallback);
+    const unCx = getUnCx(tamanho);
+    const units = kind === 'CX' && unCx > 0 ? qtd * unCx : qtd;
+    if (units <= 0) return;
+    const aromaMatch = part.trim().match(/\s([NT])\s*(\(brinde\))?$/i);
+    const aroma = aromaMatch ? (aromaMatch[1].toUpperCase() === 'N' ? 'Neutro' : 'Tropical') : (aromaFallback || 'Neutro');
+    itens.push({ produto: found.produto, tamanho, aroma, qtd: units, formato: kind });
+  });
+  if (itens.length === 0 && description) {
+    const found = findCatalogProductInText(description);
+    itens.push({
+      produto: found ? found.produto : description,
+      tamanho: correctedCatalogSize(found ? found.produto : description, tamanhoFallback),
+      aroma: aromaFallback || 'Neutro',
+      qtd: parseInt(qtdFallback, 10) || 1,
+      formato: 'UN'
+    });
+  }
+  return itens;
+}
 function saleCatalogItems(venda) {
   if (Array.isArray(venda.items) && venda.items.length > 0) {
     const total = parseFloat(venda.valor) || 0;
@@ -22612,12 +22645,12 @@ function initEditVenda(id) {
 
   if (Array.isArray(venda.items) && venda.items.length) {
     currentSaleItems = venda.items.map(it => ({ ...it }));
-  } else {
+  } else if (venda.catalogProduto && venda.catalogTamanho) {
     currentSaleItems = [{
-      produto: venda.catalogProduto || venda.produto || '',
-      tamanho: venda.catalogTamanho || venda.tamanho || '',
-      catalogProduto: venda.catalogProduto || venda.produto || '',
-      catalogTamanho: venda.catalogTamanho || venda.tamanho || '',
+      produto: venda.catalogProduto,
+      tamanho: venda.catalogTamanho,
+      catalogProduto: venda.catalogProduto,
+      catalogTamanho: venda.catalogTamanho,
       formato: venda.formato || 'UN',
       aroma: venda.aroma || 'Neutro',
       qtdEntrada: venda.qtd || 1,
@@ -22625,6 +22658,25 @@ function initEditVenda(id) {
       preco: venda.valor || 0,
       descricao: venda.produto || ''
     }];
+  } else {
+    // Venda sem itens estruturados e sem produto de catálogo direto — a descrição pode
+    // combinar mais de um produto num texto só (comum em venda importada); separa em
+    // itens individuais em vez de tratar o texto inteiro como se fosse um produto só.
+    const parsed = parseProdutoLivreEmItens(venda.produto, venda.tamanho, venda.aroma, venda.qtd);
+    const totalValor = parseFloat(venda.valor) || 0;
+    const totalQtd = parsed.reduce((sum, it) => sum + it.qtd, 0) || 1;
+    currentSaleItems = parsed.map(it => ({
+      produto: it.produto,
+      tamanho: it.tamanho,
+      catalogProduto: it.produto,
+      catalogTamanho: it.tamanho,
+      formato: it.formato,
+      aroma: it.aroma,
+      qtdEntrada: it.qtd,
+      qtdUnidades: it.qtd,
+      preco: round2(totalValor * it.qtd / totalQtd),
+      descricao: it.qtd + ' ' + it.formato + ' ' + it.produto + ' ' + it.tamanho
+    }));
   }
   renderSaleItemsList();
 
@@ -22965,13 +23017,17 @@ async function ajustarEstoqueLaboratorioNaVenda(venda, vendaAnterior, origem) {
   try {
     const baixasAnteriores = vendaAnterior ? (vendaAnterior.estoqueBaixado || []) : [];
     if (baixasAnteriores.length) await Lab.reverterEstoque(baixasAnteriores, 'Edição ' + origem);
-    const itens = (venda.items && venda.items.length ? venda.items : [{ produto: venda.produto, tamanho: venda.tamanho, aroma: venda.aroma, qtd: venda.qtd }])
-      .map(it => ({
-        nomeProduto: it.catalogProduto || it.produto || it.descricao,
-        tamanho: it.tamanho,
-        aroma: it.aroma,
-        qtd: it.qtdUnidades != null ? it.qtdUnidades : it.qtd
-      }));
+    const itensBase = (venda.items && venda.items.length)
+      ? venda.items
+      : parseProdutoLivreEmItens(venda.produto, venda.tamanho, venda.aroma, venda.qtd).map(it => ({
+          catalogProduto: it.produto, tamanho: it.tamanho, aroma: it.aroma, qtdUnidades: it.qtd
+        }));
+    const itens = itensBase.map(it => ({
+      nomeProduto: it.catalogProduto || it.produto || it.descricao,
+      tamanho: it.tamanho,
+      aroma: it.aroma,
+      qtd: it.qtdUnidades != null ? it.qtdUnidades : it.qtd
+    }));
     const resultado = await Lab.baixarEstoquePorItens(itens, origem);
     venda.estoqueBaixado = resultado.baixas;
     if (resultado.naoEncontrados.length) {
