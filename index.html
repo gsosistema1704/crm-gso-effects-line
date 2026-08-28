@@ -18289,7 +18289,15 @@ function renderVendas() {
   const vendedorFiltro = document.getElementById('filterVendedor')?.value || '';
   const nfFiltro = document.getElementById('filterNF')?.value || '';
   const revisarFiltro = Boolean(document.getElementById('filterRevisar')?.checked);
-  let rows = [...state.vendas].sort((a, b) => new Date(b.data) - new Date(a.data));
+  // Ordem por dia (mais recente primeiro) e, dentro do mesmo dia, por ordem de registro
+  // (a última venda lançada aparece em cima) — numeroVenda nunca muda ao editar uma venda,
+  // então essa ordem fica estável mesmo depois de alterar valor/produto/etc., só muda se
+  // a Data da venda for realmente alterada.
+  let rows = [...state.vendas].sort((a, b) => {
+    const diffData = new Date(b.data) - new Date(a.data);
+    if (diffData) return diffData;
+    return (parseInt(b.numeroVenda, 10) || 0) - (parseInt(a.numeroVenda, 10) || 0);
+  });
   if (term) rows = rows.filter(r =>
     (r.cliente || '').toLowerCase().includes(term) ||
     (r.produto || '').toLowerCase().includes(term) ||
@@ -18413,7 +18421,13 @@ function renderVendasLojista() {
   if (countEl) countEl.textContent = state.vendasLojista.length.toLocaleString('pt-BR');
   const term = document.getElementById('searchLojista')?.value.toLowerCase() || '';
   const dataFiltro = document.getElementById('filterDataLojista')?.value || '';
-  let rows = [...state.vendasLojista].sort((a, b) => new Date(b.data) - new Date(a.data));
+  // Mesma ordem estável da lista de Vendas: por dia, e dentro do dia por ordem de
+  // registro (numeroVenda não muda ao editar).
+  let rows = [...state.vendasLojista].sort((a, b) => {
+    const diffData = new Date(b.data) - new Date(a.data);
+    if (diffData) return diffData;
+    return (parseInt(b.numeroVenda, 10) || 0) - (parseInt(a.numeroVenda, 10) || 0);
+  });
   if (term) rows = rows.filter(r =>
     (r.cliente || '').toLowerCase().includes(term) ||
     (r.produto || '').toLowerCase().includes(term) ||
