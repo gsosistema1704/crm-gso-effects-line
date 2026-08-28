@@ -28818,18 +28818,33 @@ async function renderIndicadores() {
     var nomeNorm = normalizeTexto(nomeProduto);
     var tamanhoNorm = normalizeTamanhoVenda(tamanho);
     var aromaNorm = normalizeTexto(aroma || 'neutro');
-    var candidatos = state.produtos.filter(function (p) {
-      if (p.ativo === false || !p.produto_insumo_id) return false;
-      var linhaNorm = normalizeTexto(p.linha || '');
+    var ativos = state.produtos.filter(function (p) { return p.ativo !== false && p.produto_insumo_id; });
+    function bateTamanhoEAroma(p) {
       var pTamanhoNorm = normalizeTamanhoVenda(p.tamanho || '');
       var pAromaNorm = normalizeTexto(p.aroma || 'neutro');
-      if (!linhaNorm || !pTamanhoNorm) return false;
+      // cadastro sem tamanho definido serve pra qualquer tamanho da venda (ex.: linhas
+      // como "Top Up" que não têm variação por litragem/gramatura cadastrada)
+      var tamanhoOk = !pTamanhoNorm || pTamanhoNorm === tamanhoNorm;
+      return tamanhoOk && pAromaNorm === aromaNorm;
+    }
+    var porLinha = ativos.filter(function (p) {
+      var linhaNorm = normalizeTexto(p.linha || '');
+      if (!linhaNorm) return false;
       var linhaOk = nomeNorm.indexOf(linhaNorm) !== -1 || linhaNorm.indexOf(nomeNorm) !== -1;
-      var tamanhoOk = pTamanhoNorm === tamanhoNorm;
-      var aromaOk = pAromaNorm === aromaNorm;
-      return linhaOk && tamanhoOk && aromaOk;
+      return linhaOk && bateTamanhoEAroma(p);
     });
-    return candidatos.length === 1 ? candidatos[0] : null;
+    if (porLinha.length === 1) return porLinha[0];
+    if (porLinha.length > 1) {
+      // "linha" sozinha não diferenciou (ex.: "Top Up" cobre tanto "Limpeza a Seco" quanto
+      // "Lentes e Telas") — desempata pelo "nome" completo cadastrado, que costuma ter o
+      // detalhe que falta na linha.
+      var porNome = porLinha.filter(function (p) {
+        var nomeCadastroNorm = normalizeTexto(p.nome || '');
+        return nomeCadastroNorm && (nomeNorm.indexOf(nomeCadastroNorm) !== -1 || nomeCadastroNorm.indexOf(nomeNorm) !== -1);
+      });
+      if (porNome.length === 1) return porNome[0];
+    }
+    return null;
   }
   async function baixarEstoquePorItens(itens, origem) {
     var client = getSupabaseClient();
