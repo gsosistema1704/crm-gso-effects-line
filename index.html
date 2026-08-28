@@ -14017,7 +14017,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       </div>
     </div>
     <div class="form-actions">
-      <button class="btn" onclick="document.getElementById('modal-lojista-cadastro').classList.remove('show')">Cancelar</button>
+      <button class="btn" onclick="window.__clienteParaConverterEmLojista = null; document.getElementById('modal-lojista-cadastro').classList.remove('show')">Cancelar</button>
       <button class="btn btn-green" id="mlj-save-btn" onclick="salvarLojistaCadastro()">Salvar</button>
     </div>
   </div>
@@ -18583,6 +18583,7 @@ function renderLojistasCadastro() {
 }
 
 function openLojistaCadastroModal(nome = '') {
+  window.__clienteParaConverterEmLojista = null;
   const originalInput = document.getElementById('mlj-original-nome');
   const title = document.getElementById('modal-lojista-cadastro-title');
   const saveBtn = document.getElementById('mlj-save-btn');
@@ -18608,6 +18609,56 @@ function openLojistaCadastroModal(nome = '') {
   document.getElementById('modal-lojista-cadastro').classList.add('show');
 }
 
+// Cliente e lojista são cadastros separados (crm_clientes x crm_lojistas) — "converter"
+// significa criar um lojista com os mesmos dados de contato e remover o cadastro de
+// cliente comum, mantendo o histórico de vendas intacto (ele é ligado pelo nome, não
+// pelo cadastro). Reaproveita o modal e o salvarLojistaCadastro já existentes: preenche
+// os campos e marca __clienteParaConverterEmLojista pra remover o cliente só depois que
+// o lojista for salvo com sucesso.
+function converterClienteEmLojista(nome) {
+  if (state.lojistas.some(l => nameKey(l.nome) === nameKey(nome))) {
+    alert('Já existe um lojista cadastrado com esse nome. Edite o cadastro de lojista existente em vez de converter de novo.');
+    return;
+  }
+  const clienteBase = state.clientes.find(c => nameKey(c.nome) === nameKey(nome)) || computeClientes().find(c => nameKey(c.nome) === nameKey(nome)) || {};
+  const fiscal = fiscalRecordForCliente(nome) || {};
+  const docs = splitFiscalDocs(fiscal);
+  const merged = mergeClienteFiscalInfo(clienteBase, fiscal);
+  if (!confirm('Converter "' + nome + '" de cliente comum para lojista?\n\nUm cadastro de lojista será criado com os mesmos dados de contato, e o cadastro de cliente comum será removido. O histórico de vendas dele é mantido.')) return;
+
+  document.getElementById('mlj-original-nome').value = '';
+  document.getElementById('modal-lojista-cadastro-title').textContent = 'Converter em Lojista';
+  document.getElementById('mlj-save-btn').textContent = 'Salvar';
+  document.getElementById('mlj-nome').value = clienteBase.nome || nome;
+  document.getElementById('mlj-tel').value = merged.telefone || '';
+  document.getElementById('mlj-email').value = merged.email || '';
+  document.getElementById('mlj-cpf').value = docs.cpf || '';
+  document.getElementById('mlj-cnpj').value = docs.cnpj || '';
+  const meta = merged.metadata || {};
+  document.getElementById('mlj-cep').value = meta.cep || fiscal.cep || '';
+  document.getElementById('mlj-rua').value = meta.rua || fiscal.rua || '';
+  document.getElementById('mlj-numero').value = meta.numero || fiscal.numero || '';
+  document.getElementById('mlj-bairro').value = meta.bairro || fiscal.bairro || '';
+  document.getElementById('mlj-cidade').value = meta.cidade || fiscal.cidade_nome || fiscal.cidade || '';
+  document.getElementById('mlj-estado').value = meta.estado || fiscal.estado || '';
+  document.getElementById('mlj-nasc-dia').value = meta.nascimentoDia || fiscal.nascimentoDia || '';
+  document.getElementById('mlj-nasc-mes').value = meta.nascimentoMes || fiscal.nascimentoMes || '';
+  window.__clienteParaConverterEmLojista = nome;
+  document.getElementById('modal-lojista-cadastro').classList.add('show');
+}
+async function removerCadastroClienteAposConversao(nome) {
+  state.clientes = state.clientes.filter(c => nameKey(c.nome) !== nameKey(nome));
+  state.fiscais = state.fiscais.filter(f => nameKey(f.nome) !== nameKey(nome));
+  STORE.save('clientes', state.clientes);
+  STORE.save('fiscais', state.fiscais);
+  const client = getSupabaseClient();
+  const session = await getSupabaseSession();
+  if (client && session) {
+    await client.from('crm_clientes').delete().eq('nome', nome);
+    await client.from('crm_fiscais').delete().eq('nome', nome);
+  }
+  renderClientes();
+}
 function salvarLojistaCadastro() {
   const originalNome = document.getElementById('mlj-original-nome')?.value.trim() || '';
   const nomeInformado = document.getElementById('mlj-nome').value.trim();
@@ -18649,6 +18700,11 @@ function salvarLojistaCadastro() {
   document.getElementById('modal-lojista-cadastro').classList.remove('show');
   renderLojistasCadastro();
   if (!document.getElementById('view-clientes').classList.contains('hidden')) renderClientes();
+  if (window.__clienteParaConverterEmLojista) {
+    const nomeConvertido = window.__clienteParaConverterEmLojista;
+    window.__clienteParaConverterEmLojista = null;
+    removerCadastroClienteAposConversao(nomeConvertido);
+  }
 }
 
 async function excluirLojistaCadastro(nome) {
@@ -23548,7 +23604,8 @@ init();
             '<button class="btn btn-small btn-danger" onclick="excluirLojistaCadastro(' + nomeAttr + ')">Apagar</button>'
           : '<button class="btn btn-small" onclick="openClienteModal(' + nomeAttr + ')">Editar</button>' +
             '<button class="btn btn-small btn-danger" onclick="excluirCliente(' + nomeAttr + ')">Apagar</button>' +
-            '<button class="btn btn-small" onclick="verMaisCliente(' + nomeAttr + ')">Ver mais</button>') +
+            '<button class="btn btn-small" onclick="verMaisCliente(' + nomeAttr + ')">Ver mais</button>' +
+            (typeof isAdminUser === 'function' && isAdminUser() ? '<button class="btn btn-small" onclick="converterClienteEmLojista(' + nomeAttr + ')" data-tip="Cria um cadastro de lojista com os mesmos dados e remove o cadastro de cliente comum">Converter em Lojista</button>' : '')) +
         '</div></td></tr>';
     }).join('');
   };
