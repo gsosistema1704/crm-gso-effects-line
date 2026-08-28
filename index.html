@@ -24479,7 +24479,7 @@ function intelRenderOverview() {
       <td>${vencCell}</td>
       <td class="num">${valorCell}</td>
       <td>${pago ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>'}</td>
-      <td style="display:flex;gap:6px;align-items:center;">${acaoPrincipal}<button class="btn btn-small" onclick="ocultarVendaBoleto('${v.id}')" data-tooltip="Tirar esta venda daqui" aria-label="Tirar esta venda daqui">✕</button></td>
+      <td style="display:flex;gap:6px;align-items:center;">${acaoPrincipal}<button class="btn btn-small" onclick="openEditVenda('${v.id}')" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button><button class="btn btn-small" onclick="ocultarVendaBoleto('${v.id}')" data-tooltip="Tirar esta venda daqui" aria-label="Tirar esta venda daqui">✕</button></td>
     </tr>`;
   }).join('');
 
