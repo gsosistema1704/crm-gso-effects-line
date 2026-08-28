@@ -18332,6 +18332,7 @@ function renderVendas() {
             <button class="btn btn-small" onclick="openEditVenda('${r.id}')">Editar</button>
             <button class="btn btn-small btn-danger" onclick="excluirVenda('${r.id}')">Apagar</button>
             <button class="btn btn-small" onclick="verMaisVenda('${r.id}')">Ver mais</button>
+            ${isAdminUser() ? `<button class="btn btn-small" onclick="converterVendaEmLojista('${r.id}')" data-tip="Move esta venda pra Vendas Lojista">Converter em venda lojista</button>` : ''}
           </div>
         </td>
       </tr>
@@ -18366,6 +18367,32 @@ async function excluirVenda(id) {
   renderVendas();
   renderDash();
   if (!document.getElementById('view-clientes').classList.contains('hidden')) renderClientes();
+}
+
+// Vendas normais e vendas lojista ficam em tabelas separadas (crm_vendas x
+// crm_vendas_lojista) — "converter" move o registro inteiro de uma pra outra, preservando
+// todos os dados (itens, NF, boleto, estoque já baixado), só trocando o número da venda
+// pela numeração própria de lojista.
+async function converterVendaEmLojista(id) {
+  if (!isAdminUser()) { alert('Apenas administradores podem converter vendas.'); return; }
+  const venda = state.vendas.find(v => v.id === id);
+  if (!venda) return;
+  const label = venda.numeroVenda ? `nº ${venda.numeroVenda}` : venda.cliente;
+  if (!confirm(`Converter a venda ${label} (${venda.cliente}) em venda de lojista?\n\nEla sai da lista de Vendas e passa a aparecer em Vendas Lojista.`)) return;
+
+  const numeroVenda = nextSaleNumberLojista();
+  const vendaLojista = { ...venda, id: 'vl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), numeroVenda };
+  state.vendasLojista.push(vendaLojista);
+  state.vendas = state.vendas.filter(v => v.id !== id);
+  STORE.save('vendas', state.vendas);
+  STORE.save('vendasLojista', state.vendasLojista);
+  const client = getSupabaseClient();
+  const session = await getSupabaseSession();
+  if (client && session) await client.from('crm_vendas').delete().eq('id', id);
+  renderVendas();
+  if (typeof renderVendasLojista === 'function') renderVendasLojista();
+  renderDash();
+  alert(`Convertida — agora é a venda lojista nº ${numeroVenda}.`);
 }
 
 function nextSaleNumberLojista() {
