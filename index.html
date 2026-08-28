@@ -13384,14 +13384,15 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="conditional-row hidden" id="boleto-row">
           <div class="form-row form-r2" style="margin-bottom:0;">
             <div>
-              <label class="form-label">Data de vencimento</label>
-              <input type="date" class="form-input" id="f-boleto-vencimento">
+              <label class="form-label">Parcelas do boleto</label>
+              <input type="number" class="form-input" id="f-boleto-parcelas" min="1" value="1" oninput="renderBoletoParcelasCampos()">
             </div>
             <div>
               <label class="form-label">Boleto em PDF</label>
               <div class="file-input-actions"><input type="file" class="form-input" id="f-boleto-pdf" accept="application/pdf"><button type="button" class="btn btn-small" onclick="clearSaleFileInput('f-boleto-pdf')" data-tip="Remove o boleto selecionado antes de salvar a venda.">Apagar PDF</button></div>
             </div>
           </div>
+          <div id="boleto-parcelas-campos" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
         </div>
 
         <div class="form-row form-r2" id="nf-row">
@@ -14165,15 +14166,16 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
 <div class="modal-bg" id="modal-boleto-venda">
   <div class="modal" style="max-width:420px">
-    <div class="modal-title">Venda em boleto</div>
+    <div class="modal-title" id="bv-modal-title">Venda em boleto</div>
     <input type="hidden" id="bv-id">
+    <input type="hidden" id="bv-idx">
     <div class="form-row form-r2">
       <div>
         <label class="form-label">Cliente</label>
         <div id="bv-cliente" style="font-weight:600;padding-top:4px"></div>
       </div>
       <div>
-        <label class="form-label">Dia</label>
+        <label class="form-label">Dia da venda</label>
         <div id="bv-data" style="padding-top:4px"></div>
       </div>
     </div>
@@ -14189,12 +14191,22 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     </div>
     <div class="form-row form-r2">
       <div>
-        <label class="form-label">Valor original</label>
-        <div id="bv-valor" style="font-weight:600;padding-top:4px"></div>
+        <label class="form-label">Vencimento desta parcela</label>
+        <input type="date" class="form-input" id="bv-vencimento">
       </div>
       <div>
         <label class="form-label">Status</label>
         <div id="bv-status" style="padding-top:4px"></div>
+      </div>
+    </div>
+    <div class="form-row form-r2">
+      <div>
+        <label class="form-label">Valor original</label>
+        <div id="bv-valor" style="font-weight:600;padding-top:4px"></div>
+      </div>
+      <div>
+        <label class="form-label">Total com multa/juros</label>
+        <div id="bv-total" style="font-weight:700;font-size:16px;padding-top:4px"></div>
       </div>
     </div>
     <div class="form-row form-r2">
@@ -14212,15 +14224,11 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <label class="form-label">Data de recebimento</label>
         <input type="date" class="form-input" id="bv-recebimento">
       </div>
-      <div>
-        <label class="form-label">Total com multa/juros</label>
-        <div id="bv-total" style="font-weight:700;font-size:16px;padding-top:4px"></div>
-      </div>
     </div>
-    <div class="form-help" style="margin-top:4px">O faturamento mensal conta esta venda no mês da data de recebimento (se preenchida), não no mês da venda.</div>
+    <div class="form-help" style="margin-top:4px">O faturamento mensal conta esta venda no mês da data de recebimento (se preenchida) — só quando todas as parcelas estiverem pagas.</div>
     <div class="form-actions">
       <button class="btn" onclick="document.getElementById('modal-boleto-venda').classList.remove('show')">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarMultaJurosBoleto()">Salvar</button>
+      <button class="btn btn-primary" onclick="salvarMultaJurosParcelaBoleto()">Salvar</button>
     </div>
   </div>
 </div>
@@ -17434,37 +17442,13 @@ function saleNfNumber(venda) {
 function saleIsBoleto(venda) {
   return canonicalPayment(venda?.pagamento || '') === 'Boleto';
 }
-function saleBoletoPago(venda) {
-  return Boolean(venda?.boletoPago);
-}
 function saleBoletoOculto(venda) {
   return Boolean(venda?.boletoOculto);
 }
-function saleCountsInRevenue(venda) {
-  return !saleIsBoleto(venda) || saleBoletoPago(venda);
-}
-function saleBoletoMulta(venda) {
-  return Number(venda?.boletoMulta) || 0;
-}
-function saleBoletoJuros(venda) {
-  return Number(venda?.boletoJuros) || 0;
-}
-// Valor final do boleto já somando multa/juros manuais — é esse total que conta
-// como "pago" quando o boleto é confirmado, não só o valor original da venda.
-function saleBoletoValorTotal(venda) {
-  return Math.round(((Number(venda?.valor) || 0) + saleBoletoMulta(venda) + saleBoletoJuros(venda)) * 100) / 100;
-}
-// Data usada pro faturamento mensal: um boleto pago fora do mês da venda (atraso) conta
-// no mês em que o dinheiro realmente entrou — não no mês da venda original — quando essa
-// data de recebimento foi registrada. Toda venda normal (e boleto sem essa data) continua
-// usando a Data da venda, como sempre.
-function saleRevenueDate(venda) {
-  if (saleIsBoleto(venda) && saleBoletoPago(venda) && venda?.boletoDataRecebimento) return venda.boletoDataRecebimento;
-  return venda?.data;
-}
-// Vencimento do boleto: usa a data escolhida diretamente no pagamento (vencimento). Vendas
-// antigas só tinham "quantos dias" — pra elas, calcula a partir da Data da venda + esses dias.
-function saleBoletoVencimento(venda) {
+// Vencimento "legado" de uma venda em boleto sem parcelas cadastradas — data direta ou,
+// pra vendas bem antigas, Data da venda + "quantos dias" (formato usado antes de existir
+// data de vencimento/parcelas).
+function saleBoletoVencimentoLegado(venda) {
   const direto = venda?.pagamentoDetalhes?.vencimento;
   if (direto) return String(direto).slice(0, 10);
   const dias = Number(venda?.pagamentoDetalhes?.boletoDias) || 0;
@@ -17474,11 +17458,31 @@ function saleBoletoVencimento(venda) {
   d.setDate(d.getDate() + dias);
   return d.toISOString().slice(0, 10);
 }
+// Uma venda em boleto pode ter mais de uma parcela (cada uma com seu próprio vencimento e
+// status de pagamento) — ex.: "2x de 780". Retorna sempre um array; vendas sem parcelas
+// cadastradas (caso comum, ou vendas antigas de antes dessa funcionalidade) viram uma
+// parcela única sintetizada a partir dos campos de boleto simples, com o mesmo formato.
+function saleBoletoParcelas(venda) {
+  const lista = venda?.pagamentoDetalhes?.parcelasBoleto;
+  if (Array.isArray(lista) && lista.length) return lista;
+  return [{
+    numero: 1,
+    valor: Number(venda?.valor) || 0,
+    vencimento: saleBoletoVencimentoLegado(venda),
+    pago: Boolean(venda?.boletoPago),
+    multa: Number(venda?.boletoMulta) || 0,
+    juros: Number(venda?.boletoJuros) || 0,
+    dataRecebimento: venda?.boletoDataRecebimento || null
+  }];
+}
+function boletoParcelaValorTotal(parcela) {
+  return round2((Number(parcela?.valor) || 0) + (Number(parcela?.multa) || 0) + (Number(parcela?.juros) || 0));
+}
 // Mesma lógica de urgência usada nos boletos de fornecedor (boletoComputed), adaptada
-// pra boleto de venda: pra acompanhar quando o vencimento tá chegando.
-function saleBoletoVencimentoStatus(venda) {
-  if (saleBoletoPago(venda)) return { phrase: 'Pago', cls: 'green' };
-  const venc = saleBoletoVencimento(venda);
+// pra uma parcela de boleto de venda: pra acompanhar quando o vencimento tá chegando.
+function boletoParcelaVencimentoStatus(parcela) {
+  if (parcela?.pago) return { phrase: 'Pago', cls: 'green' };
+  const venc = parcela?.vencimento;
   if (!venc) return { phrase: 'Sem vencimento', cls: 'blue' };
   const due = dateOnly(venc);
   const today = dateOnly(isoToday());
@@ -17489,69 +17493,139 @@ function saleBoletoVencimentoStatus(venda) {
   if (diff <= 5) return { phrase: `Vence em ${diff} dias`, cls: 'amber' };
   return { phrase: `Vence em ${diff} dias`, cls: 'blue' };
 }
+function saleBoletoPago(venda) {
+  const parcelas = saleBoletoParcelas(venda);
+  return parcelas.length > 0 && parcelas.every(p => p.pago);
+}
+function saleCountsInRevenue(venda) {
+  return !saleIsBoleto(venda) || saleBoletoPago(venda);
+}
+// Valor final do boleto já somando multa/juros manuais de todas as parcelas — é esse
+// total que conta como "pago" quando todas as parcelas são confirmadas.
+function saleBoletoValorTotal(venda) {
+  return round2(saleBoletoParcelas(venda).reduce((sum, p) => sum + boletoParcelaValorTotal(p), 0));
+}
+// Data usada pro faturamento mensal: uma venda em boleto só conta quando TODAS as parcelas
+// estão pagas, e conta no mês em que a última parcela foi recebida (não no mês da venda) —
+// assim um boleto pago com atraso entra no mês certo. Venda normal usa a Data da venda.
+function saleRevenueDate(venda) {
+  if (saleIsBoleto(venda) && saleBoletoPago(venda)) {
+    const datas = saleBoletoParcelas(venda).map(p => p.dataRecebimento).filter(Boolean).sort();
+    if (datas.length) return datas[datas.length - 1];
+  }
+  return venda?.data;
+}
+// Vencimento representativo da venda (pra exibições compactas, tipo o "Pagamento" da
+// lista de vendas): a parcela pendente mais próxima do vencimento, ou a última parcela se
+// tudo já foi pago.
+function saleBoletoVencimento(venda) {
+  const parcelas = saleBoletoParcelas(venda);
+  const pendentes = parcelas.filter(p => !p.pago && p.vencimento).sort((a, b) => a.vencimento < b.vencimento ? -1 : 1);
+  if (pendentes.length) return pendentes[0].vencimento;
+  const comVencimento = parcelas.filter(p => p.vencimento).sort((a, b) => a.vencimento < b.vencimento ? -1 : 1);
+  return comVencimento.length ? comVencimento[comVencimento.length - 1].vencimento : null;
+}
+function saleBoletoVencimentoStatus(venda) {
+  if (saleBoletoPago(venda)) return { phrase: 'Pago', cls: 'green' };
+  return boletoParcelaVencimentoStatus({ pago: false, vencimento: saleBoletoVencimento(venda) });
+}
 
-async function atualizarVendaBoletoMeta(id, patch) {
+async function salvarParcelasBoleto(venda, parcelas) {
   const client = requireSupabaseSession();
-  if (!client) return;
-  const venda = state.vendas.find(v => String(v.id) === String(id));
-  if (!venda) return;
-  const anterior = { boletoPago: venda.boletoPago, boletoOculto: venda.boletoOculto, boletoMulta: venda.boletoMulta, boletoJuros: venda.boletoJuros, boletoDataRecebimento: venda.boletoDataRecebimento };
-  Object.assign(venda, patch);
+  if (!client) return false;
+  const anterior = venda.pagamentoDetalhes;
+  venda.pagamentoDetalhes = { ...(venda.pagamentoDetalhes || {}), parcelasBoleto: parcelas };
   const row = saleToRow(venda);
-  const { error } = await client.from('crm_vendas').update({ metadata: row.metadata }).eq('id', id);
+  const { error } = await client.from('crm_vendas').update({ metadata: row.metadata }).eq('id', venda.id);
   if (error) {
-    Object.assign(venda, anterior);
+    venda.pagamentoDetalhes = anterior;
     alert('Não consegui atualizar o boleto: ' + error.message);
-    return;
+    return false;
   }
   try { localStorage.setItem('gso_vendas', JSON.stringify(state.vendas)); } catch (e) {}
   if (typeof renderInteligencia === 'function') renderInteligencia();
   if (typeof renderVendas === 'function' && !document.getElementById('view-vendas')?.classList.contains('hidden')) renderVendas();
+  return true;
 }
-function marcarVendaBoletoPago(id) {
-  const venda = state.vendas.find(v => String(v.id) === String(id));
-  const patch = { boletoPago: true };
-  if (venda && !venda.boletoDataRecebimento) patch.boletoDataRecebimento = isoToday();
-  return atualizarVendaBoletoMeta(id, patch);
+function marcarParcelaBoletoPago(vendaId, idx) {
+  const venda = state.vendas.find(v => String(v.id) === String(vendaId));
+  if (!venda) return;
+  const parcelas = saleBoletoParcelas(venda).map(p => ({ ...p }));
+  if (!parcelas[idx]) return;
+  parcelas[idx].pago = true;
+  if (!parcelas[idx].dataRecebimento) parcelas[idx].dataRecebimento = isoToday();
+  return salvarParcelasBoleto(venda, parcelas);
 }
-function desfazerVendaBoletoPago(id) { return atualizarVendaBoletoMeta(id, { boletoPago: false }); }
-function ocultarVendaBoleto(id) {
+function desfazerParcelaBoletoPago(vendaId, idx) {
+  const venda = state.vendas.find(v => String(v.id) === String(vendaId));
+  if (!venda) return;
+  const parcelas = saleBoletoParcelas(venda).map(p => ({ ...p }));
+  if (!parcelas[idx]) return;
+  parcelas[idx].pago = false;
+  return salvarParcelasBoleto(venda, parcelas);
+}
+async function ocultarVendaBoleto(id) {
   if (!confirm('Tirar esta venda do bloco de boletos? Ela continua normalmente na aba Vendas.')) return;
-  return atualizarVendaBoletoMeta(id, { boletoOculto: true });
-}
-
-function abrirVendaBoletoModal(id) {
+  const client = requireSupabaseSession();
+  if (!client) return;
   const venda = state.vendas.find(v => String(v.id) === String(id));
   if (!venda) return;
+  const anterior = venda.boletoOculto;
+  venda.boletoOculto = true;
+  const row = saleToRow(venda);
+  const { error } = await client.from('crm_vendas').update({ metadata: row.metadata }).eq('id', id);
+  if (error) { venda.boletoOculto = anterior; alert('Não consegui atualizar o boleto: ' + error.message); return; }
+  try { localStorage.setItem('gso_vendas', JSON.stringify(state.vendas)); } catch (e) {}
+  if (typeof renderInteligencia === 'function') renderInteligencia();
+}
+
+function abrirParcelaBoletoModal(vendaId, idx) {
+  const venda = state.vendas.find(v => String(v.id) === String(vendaId));
+  if (!venda) return;
+  const parcelas = saleBoletoParcelas(venda);
+  const parcela = parcelas[idx];
+  if (!parcela) return;
   document.getElementById('bv-id').value = venda.id;
+  document.getElementById('bv-idx').value = idx;
+  document.getElementById('bv-modal-title').textContent = parcelas.length > 1 ? `Venda em boleto — parcela ${parcela.numero || (idx + 1)} de ${parcelas.length}` : 'Venda em boleto';
   document.getElementById('bv-cliente').textContent = venda.cliente || '—';
   document.getElementById('bv-data').textContent = fmtDate(venda.data);
   document.getElementById('bv-produto').textContent = venda.produto || '—';
   document.getElementById('bv-vendedor').textContent = venda.vendedor || '—';
-  document.getElementById('bv-valor').textContent = fmtBR(venda.valor);
-  document.getElementById('bv-status').innerHTML = saleBoletoPago(venda) ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>';
-  document.getElementById('bv-multa').value = saleBoletoMulta(venda) ? String(saleBoletoMulta(venda)).replace('.', ',') : '';
-  document.getElementById('bv-juros').value = saleBoletoJuros(venda) ? String(saleBoletoJuros(venda)).replace('.', ',') : '';
-  document.getElementById('bv-recebimento').value = venda.boletoDataRecebimento || '';
-  document.getElementById('bv-total').textContent = fmtBR(saleBoletoValorTotal(venda));
+  document.getElementById('bv-vencimento').value = parcela.vencimento || '';
+  document.getElementById('bv-valor').textContent = fmtBR(parcela.valor);
+  document.getElementById('bv-status').innerHTML = parcela.pago ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>';
+  document.getElementById('bv-multa').value = parcela.multa ? String(parcela.multa).replace('.', ',') : '';
+  document.getElementById('bv-juros').value = parcela.juros ? String(parcela.juros).replace('.', ',') : '';
+  document.getElementById('bv-recebimento').value = parcela.dataRecebimento || '';
+  document.getElementById('bv-total').textContent = fmtBR(boletoParcelaValorTotal(parcela));
   document.getElementById('modal-boleto-venda').classList.add('show');
 }
 function bvAtualizarTotal() {
-  const valorEl = document.getElementById('bv-valor');
   const id = document.getElementById('bv-id').value;
+  const idx = parseInt(document.getElementById('bv-idx').value, 10) || 0;
   const venda = state.vendas.find(v => String(v.id) === String(id));
   if (!venda) return;
+  const parcela = saleBoletoParcelas(venda)[idx];
+  if (!parcela) return;
   const multa = parseFloat((document.getElementById('bv-multa').value || '0').replace(',', '.')) || 0;
   const juros = parseFloat((document.getElementById('bv-juros').value || '0').replace(',', '.')) || 0;
-  document.getElementById('bv-total').textContent = fmtBR(Math.round(((Number(venda.valor) || 0) + multa + juros) * 100) / 100);
+  document.getElementById('bv-total').textContent = fmtBR(round2((Number(parcela.valor) || 0) + multa + juros));
 }
-async function salvarMultaJurosBoleto() {
+async function salvarMultaJurosParcelaBoleto() {
   const id = document.getElementById('bv-id').value;
+  const idx = parseInt(document.getElementById('bv-idx').value, 10) || 0;
+  const venda = state.vendas.find(v => String(v.id) === String(id));
+  if (!venda) return;
+  const parcelas = saleBoletoParcelas(venda).map(p => ({ ...p }));
+  if (!parcelas[idx]) return;
   const multa = parseFloat((document.getElementById('bv-multa').value || '0').replace(',', '.')) || 0;
   const juros = parseFloat((document.getElementById('bv-juros').value || '0').replace(',', '.')) || 0;
+  const vencimento = document.getElementById('bv-vencimento').value || null;
   const recebimento = document.getElementById('bv-recebimento').value || null;
+  parcelas[idx] = { ...parcelas[idx], multa, juros, vencimento, dataRecebimento: recebimento };
   document.getElementById('modal-boleto-venda').classList.remove('show');
-  await atualizarVendaBoletoMeta(id, { boletoMulta: multa, boletoJuros: juros, boletoDataRecebimento: recebimento });
+  await salvarParcelasBoleto(venda, parcelas);
 }
 
 function saleHasNf(venda) {
@@ -22471,7 +22545,8 @@ function initEditVenda(id) {
   document.getElementById('f-obs').value = venda.obs || '';
   document.getElementById('f-pag').value = venda.pagamento || 'Dinheiro';
   document.getElementById('f-parcelas').value = venda.pagamentoDetalhes?.parcelas || '';
-  document.getElementById('f-boleto-vencimento').value = saleBoletoVencimento(venda) || '';
+  const parcelasBoletoExistentes = venda.pagamento === 'Boleto' ? saleBoletoParcelas(venda) : [];
+  document.getElementById('f-boleto-parcelas').value = parcelasBoletoExistentes.length || 1;
   document.getElementById('f-nf-pdf').value = '';
   document.getElementById('f-boleto-pdf').value = '';
   document.getElementById('f-aroma-custom').value = '';
@@ -22502,6 +22577,7 @@ function initEditVenda(id) {
   updateProductSelectOptions();
   updateProductSizeOptions();
   togglePaymentFields();
+  if (venda.pagamento === 'Boleto') renderBoletoParcelasCampos(parcelasBoletoExistentes);
   updatePreview();
   const vendSelect = document.getElementById('f-vend');
   if (vendSelect) vendSelect.value = venda.vendedor || vendSelect.value;
@@ -22595,6 +22671,30 @@ function togglePaymentFields() {
   if (boletoRow) boletoRow.classList.toggle('hidden', pagamento !== 'Boleto');
   if (nfRow) nfRow.classList.toggle('hidden', pagamento === 'Dinheiro');
   if (pagamento === 'Dinheiro') document.getElementById('f-nf-pdf').value = '';
+  if (pagamento === 'Boleto') renderBoletoParcelasCampos();
+}
+// Desenha um par de campos (vencimento + valor) por parcela do boleto — 1 parcela é o
+// caso comum (boleto único), mas dá pra abrir mais quando a venda foi parcelada em vários
+// boletos com vencimentos diferentes (ex.: "2x de 780").
+function renderBoletoParcelasCampos(parcelasExistentes) {
+  const n = Math.max(1, parseInt(document.getElementById('f-boleto-parcelas')?.value, 10) || 1);
+  const el = document.getElementById('boleto-parcelas-campos');
+  if (!el) return;
+  const valorTotal = parseMoneyValue(document.getElementById('f-valor')?.value) || 0;
+  const valorParcelaPadrao = round2(valorTotal / n);
+  let html = '';
+  for (let i = 0; i < n; i++) {
+    const existente = (parcelasExistentes || [])[i];
+    const venc = existente?.vencimento || '';
+    const val = existente?.valor != null ? existente.valor : valorParcelaPadrao;
+    html += '<div class="form-row form-r2" style="margin-bottom:0">' +
+      '<div><label class="form-label">Vencimento' + (n > 1 ? ' — parcela ' + (i + 1) + '/' + n : '') + '</label>' +
+      '<input type="date" class="form-input boleto-parcela-vencimento" value="' + escapeHtml(venc) + '"></div>' +
+      '<div><label class="form-label">Valor desta parcela (R$)</label>' +
+      '<input type="number" class="form-input boleto-parcela-valor" step="0.01" value="' + val + '"></div>' +
+    '</div>';
+  }
+  el.innerHTML = html;
 }
 
 function initNova() {
@@ -22613,7 +22713,8 @@ function initNova() {
   document.getElementById('f-obs').value = '';
   document.getElementById('f-pag').value = 'Dinheiro';
   document.getElementById('f-parcelas').value = '';
-  document.getElementById('f-boleto-vencimento').value = '';
+  document.getElementById('f-boleto-parcelas').value = '1';
+  document.getElementById('boleto-parcelas-campos').innerHTML = '';
   document.getElementById('f-nf-pdf').value = '';
   document.getElementById('f-boleto-pdf').value = '';
   document.getElementById('f-aroma').value = 'Neutro';
@@ -22681,12 +22782,26 @@ async function salvarVenda() {
     pagamentoDetalhes.parcelas = parcelas;
   }
   if (pagamento === 'Boleto') {
-    const vencimento = document.getElementById('f-boleto-vencimento').value;
-    if (!vencimento) {
-      alert('Informe a data de vencimento do boleto.');
+    const vencimentoInputs = Array.from(document.querySelectorAll('.boleto-parcela-vencimento'));
+    const valorInputs = Array.from(document.querySelectorAll('.boleto-parcela-valor'));
+    if (!vencimentoInputs.length || vencimentoInputs.some(inp => !inp.value)) {
+      alert('Informe a data de vencimento de todas as parcelas do boleto.');
       return;
     }
-    pagamentoDetalhes.vencimento = vencimento;
+    const vendaParaEditarBoleto = editingVendaId ? state.vendas.find(v => v.id === editingVendaId) : null;
+    const parcelasAnteriores = vendaParaEditarBoleto ? saleBoletoParcelas(vendaParaEditarBoleto) : [];
+    pagamentoDetalhes.parcelasBoleto = vencimentoInputs.map((inp, i) => {
+      const anterior = parcelasAnteriores[i] || {};
+      return {
+        numero: i + 1,
+        valor: parseFloat(valorInputs[i]?.value) || 0,
+        vencimento: inp.value,
+        pago: Boolean(anterior.pago),
+        multa: Number(anterior.multa) || 0,
+        juros: Number(anterior.juros) || 0,
+        dataRecebimento: anterior.dataRecebimento || null
+      };
+    });
   }
 
   const isEditing = Boolean(editingVendaId);
@@ -24322,37 +24437,45 @@ function intelRenderOverview() {
     lucroHoje += l;
   });
   lucroHoje = round2(lucroHoje);
-  const boletoRows = state.vendas.filter(v => saleIsBoleto(v) && !saleBoletoOculto(v)).sort((a, b) => {
-    const pagoA = saleBoletoPago(a) ? 1 : 0, pagoB = saleBoletoPago(b) ? 1 : 0;
+  const boletoLinhas = [];
+  state.vendas.filter(v => saleIsBoleto(v) && !saleBoletoOculto(v)).forEach(v => {
+    const parcelas = saleBoletoParcelas(v);
+    parcelas.forEach((parcela, idx) => boletoLinhas.push({ venda: v, parcela, idx, totalParcelas: parcelas.length }));
+  });
+  boletoLinhas.sort((a, b) => {
+    const pagoA = a.parcela.pago ? 1 : 0, pagoB = b.parcela.pago ? 1 : 0;
     if (pagoA !== pagoB) return pagoA - pagoB;
     if (!pagoA) {
-      const vencA = saleBoletoVencimento(a), vencB = saleBoletoVencimento(b);
+      const vencA = a.parcela.vencimento, vencB = b.parcela.vencimento;
       if (vencA && vencB && vencA !== vencB) return new Date(vencA) - new Date(vencB);
     }
-    return new Date(b.data) - new Date(a.data);
+    return new Date(b.venda.data) - new Date(a.venda.data);
   });
-  const boletosPendentes = boletoRows.filter(v => !saleBoletoPago(v));
-  const boletoRowsHtml = boletoRows.map(v => {
-    const pago = saleBoletoPago(v);
+  const boletosPendentes = boletoLinhas.filter(l => !l.parcela.pago);
+  const boletoRowsHtml = boletoLinhas.map(l => {
+    const v = l.venda, parcela = l.parcela, idx = l.idx;
+    const pago = parcela.pago;
     const acaoPrincipal = pago
-      ? `<button class="btn btn-small" onclick="desfazerVendaBoletoPago('${v.id}')" data-tooltip="Voltar para pendente">Desfazer</button>`
-      : `<button class="btn btn-small" onclick="marcarVendaBoletoPago('${v.id}')">Marcar pago</button>`;
-    const extra = saleBoletoMulta(v) || saleBoletoJuros(v);
+      ? `<button class="btn btn-small" onclick="desfazerParcelaBoletoPago('${v.id}',${idx})" data-tooltip="Voltar para pendente">Desfazer</button>`
+      : `<button class="btn btn-small" onclick="marcarParcelaBoletoPago('${v.id}',${idx})">Marcar pago</button>`;
+    const extra = (Number(parcela.multa) || 0) || (Number(parcela.juros) || 0);
     const valorCell = extra
-      ? `${fmtBR(saleBoletoValorTotal(v))}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">${fmtBR(v.valor)} + multa/juros</small>`
-      : fmtBR(v.valor);
-    const recebidoOutroMes = pago && v.boletoDataRecebimento && v.boletoDataRecebimento.slice(0, 7) !== String(v.data || '').slice(0, 7);
+      ? `${fmtBR(boletoParcelaValorTotal(parcela))}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">${fmtBR(parcela.valor)} + multa/juros</small>`
+      : fmtBR(parcela.valor);
+    const recebidoOutroMes = pago && parcela.dataRecebimento && parcela.dataRecebimento.slice(0, 7) !== String(v.data || '').slice(0, 7);
     const dataCell = recebidoOutroMes
-      ? `${fmtDate(v.data)}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">recebido ${fmtDate(v.boletoDataRecebimento)}</small>`
+      ? `${fmtDate(v.data)}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">recebido ${fmtDate(parcela.dataRecebimento)}</small>`
       : fmtDate(v.data);
-    const venc = saleBoletoVencimento(v);
-    const vencStatus = saleBoletoVencimentoStatus(v);
-    const vencCell = venc
-      ? `${fmtDate(venc)}<br><span class="pill pill-${vencStatus.cls}" style="margin-top:2px">${escapeHtml(vencStatus.phrase)}</span>`
+    const vencStatus = boletoParcelaVencimentoStatus(parcela);
+    const vencCell = parcela.vencimento
+      ? `${fmtDate(parcela.vencimento)}<br><span class="pill pill-${vencStatus.cls}" style="margin-top:2px">${escapeHtml(vencStatus.phrase)}</span>`
       : '<span style="color:var(--text-2,#8A8A8A)">—</span>';
-    return `<tr onclick="if(!event.target.closest('button')) abrirVendaBoletoModal('${v.id}')" style="cursor:pointer">
+    const clienteCell = l.totalParcelas > 1
+      ? `${escapeHtml(v.cliente || '—')}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">parcela ${parcela.numero || (idx + 1)} de ${l.totalParcelas}</small>`
+      : escapeHtml(v.cliente || '—');
+    return `<tr onclick="if(!event.target.closest('button')) abrirParcelaBoletoModal('${v.id}',${idx})" style="cursor:pointer">
       <td>${dataCell}</td>
-      <td>${escapeHtml(v.cliente || '—')}</td>
+      <td>${clienteCell}</td>
       <td>${vencCell}</td>
       <td class="num">${valorCell}</td>
       <td>${pago ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>'}</td>
@@ -24382,12 +24505,12 @@ function intelRenderOverview() {
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div><div class="card-title">Vendas em boleto</div><div class="card-sub">O valor só entra no faturamento depois de marcado como pago.</div></div>
         ${boletosPendentes.length ? (() => {
-          const vencidoCount = boletosPendentes.filter(v => saleBoletoVencimentoStatus(v).cls === 'red').length;
+          const vencidoCount = boletosPendentes.filter(l => boletoParcelaVencimentoStatus(l.parcela).cls === 'red').length;
           if (vencidoCount) return `<span class="pill pill-red">${vencidoCount} vencido${vencidoCount === 1 ? '' : 's'}</span>`;
           return `<span class="pill pill-amber">${boletosPendentes.length} pendente${boletosPendentes.length === 1 ? '' : 's'}</span>`;
         })() : ''}
       </div>
-      ${boletoRows.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table"><thead><tr><th>Data</th><th>Cliente</th><th>Vencimento</th><th class="num">Valor</th><th>Status</th><th>Ação</th></tr></thead><tbody>${boletoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda em boleto registrada.</div>`}
+      ${boletoLinhas.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table"><thead><tr><th>Data</th><th>Cliente</th><th>Vencimento</th><th class="num">Valor</th><th>Status</th><th>Ação</th></tr></thead><tbody>${boletoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda em boleto registrada.</div>`}
     </div>
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
