@@ -13384,8 +13384,8 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="conditional-row hidden" id="boleto-row">
           <div class="form-row form-r2" style="margin-bottom:0;">
             <div>
-              <label class="form-label">Boleto de quantos dias?</label>
-              <input type="number" class="form-input" id="f-boleto-dias" min="1" placeholder="Ex: 28">
+              <label class="form-label">Data de vencimento</label>
+              <input type="date" class="form-input" id="f-boleto-vencimento">
             </div>
             <div>
               <label class="form-label">Boleto em PDF</label>
@@ -16679,7 +16679,10 @@ function canonicalPayment(value) {
 function paymentDisplay(venda) {
   const payment = canonicalPayment(venda.pagamento || '');
   if (payment === 'Crédito' && venda.pagamentoDetalhes?.parcelas) return `${payment} · ${venda.pagamentoDetalhes.parcelas}x`;
-  if (payment === 'Boleto' && venda.pagamentoDetalhes?.boletoDias) return `${payment} · ${venda.pagamentoDetalhes.boletoDias} dias`;
+  if (payment === 'Boleto') {
+    const venc = saleBoletoVencimento(venda);
+    if (venc) return `${payment} · vence ${fmtDate(venc)}`;
+  }
   return payment || venda.pagamento || '—';
 }
 function nameKey(value) {
@@ -17459,8 +17462,11 @@ function saleRevenueDate(venda) {
   if (saleIsBoleto(venda) && saleBoletoPago(venda) && venda?.boletoDataRecebimento) return venda.boletoDataRecebimento;
   return venda?.data;
 }
-// Vencimento do boleto = Data da venda + prazo em dias informado no pagamento.
+// Vencimento do boleto: usa a data escolhida diretamente no pagamento (vencimento). Vendas
+// antigas só tinham "quantos dias" — pra elas, calcula a partir da Data da venda + esses dias.
 function saleBoletoVencimento(venda) {
+  const direto = venda?.pagamentoDetalhes?.vencimento;
+  if (direto) return String(direto).slice(0, 10);
   const dias = Number(venda?.pagamentoDetalhes?.boletoDias) || 0;
   const base = dateOnly(venda?.data);
   if (!base || !dias) return null;
@@ -22465,7 +22471,7 @@ function initEditVenda(id) {
   document.getElementById('f-obs').value = venda.obs || '';
   document.getElementById('f-pag').value = venda.pagamento || 'Dinheiro';
   document.getElementById('f-parcelas').value = venda.pagamentoDetalhes?.parcelas || '';
-  document.getElementById('f-boleto-dias').value = venda.pagamentoDetalhes?.boletoDias || '';
+  document.getElementById('f-boleto-vencimento').value = saleBoletoVencimento(venda) || '';
   document.getElementById('f-nf-pdf').value = '';
   document.getElementById('f-boleto-pdf').value = '';
   document.getElementById('f-aroma-custom').value = '';
@@ -22607,7 +22613,7 @@ function initNova() {
   document.getElementById('f-obs').value = '';
   document.getElementById('f-pag').value = 'Dinheiro';
   document.getElementById('f-parcelas').value = '';
-  document.getElementById('f-boleto-dias').value = '';
+  document.getElementById('f-boleto-vencimento').value = '';
   document.getElementById('f-nf-pdf').value = '';
   document.getElementById('f-boleto-pdf').value = '';
   document.getElementById('f-aroma').value = 'Neutro';
@@ -22675,12 +22681,12 @@ async function salvarVenda() {
     pagamentoDetalhes.parcelas = parcelas;
   }
   if (pagamento === 'Boleto') {
-    const boletoDias = parseInt(document.getElementById('f-boleto-dias').value, 10);
-    if (!boletoDias || boletoDias < 1) {
-      alert('Informe de quantos dias é o boleto.');
+    const vencimento = document.getElementById('f-boleto-vencimento').value;
+    if (!vencimento) {
+      alert('Informe a data de vencimento do boleto.');
       return;
     }
-    pagamentoDetalhes.boletoDias = boletoDias;
+    pagamentoDetalhes.vencimento = vencimento;
   }
 
   const isEditing = Boolean(editingVendaId);
