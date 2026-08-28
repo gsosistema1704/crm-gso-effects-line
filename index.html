@@ -13452,19 +13452,6 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <div class="intel-grid cols-auto" id="rel-segmentos-cards"></div>
         </div>
 
-        <div class="card data-card" style="margin-bottom:14px;">
-          <div class="card-h">
-            <div>
-              <div class="card-title">Clientes</div>
-              <div class="card-sub">Top clientes por faturamento</div>
-            </div>
-          </div>
-          <table>
-            <thead><tr><th>Cliente</th><th class="num">Total</th><th class="num">Pedidos</th><th>Última compra</th></tr></thead>
-            <tbody id="rel-clientes-simples"></tbody>
-          </table>
-        </div>
-
         <div class="report-kpi-grid">
           <div class="report-kpi">
             <div class="report-kpi-label">Financeiro</div>
@@ -20911,18 +20898,6 @@ function renderRelatorios() {
         <div class="intel-seg-desc" style="margin-top:4px;">Faturamento: <strong style="color:var(--text);">${fmtBR(fat)}</strong></div>
       </div>`;
     }).join('');
-  }
-
-  const cliBodyEl = document.getElementById('rel-clientes-simples');
-  if (cliBodyEl) {
-    const topCli = listaCliAtivos.slice().sort((a, b) => b.total - a.total).slice(0, 15);
-    cliBodyEl.innerHTML = topCli.length ? topCli.map(c => `
-      <tr>
-        <td>${escapeHtml(c.nome)}</td>
-        <td class="num">${fmtBR(c.total)}</td>
-        <td class="num">${c.pedidos}</td>
-        <td>${c.ultima ? fmtDate(c.ultima) : '—'}</td>
-      </tr>`).join('') : '<tr><td colspan="4" class="table-empty">Nenhum cliente com compras ainda</td></tr>';
   }
 
   const sales = reportValidSales();
