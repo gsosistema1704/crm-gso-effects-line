@@ -17373,14 +17373,19 @@ function computeClientes() {
 function computeLojistasParaClientes() {
   const today = new Date();
   const porNome = {};
-  state.vendasLojista.forEach(v => {
-    const k = nameKey(v.cliente);
+  const soma = (nome, valor, data) => {
+    const k = nameKey(nome);
     if (!porNome[k]) porNome[k] = { total: 0, pedidos: 0, ultima: null };
-    porNome[k].total += parseFloat(v.valor) || 0;
+    porNome[k].total += parseFloat(valor) || 0;
     porNome[k].pedidos += 1;
-    const dt = dashboardDateObj(v.data);
+    const dt = dashboardDateObj(data);
     if (dt && (!porNome[k].ultima || dt > porNome[k].ultima)) porNome[k].ultima = dt;
-  });
+  };
+  state.vendasLojista.forEach(v => soma(v.cliente, v.valor, v.data));
+  // Um lojista pode ter vendas de quando ainda era cliente comum (lançadas em
+  // state.vendas antes da conversão) — soma junto aqui, senão "Converter em Lojista"
+  // parece apagar o histórico da pessoa (ele só muda de cadastro, não de identidade).
+  state.vendas.forEach(v => { if (state.lojistas.some(l => nameKey(l.nome) === nameKey(v.cliente))) soma(v.cliente, v.valor, v.data); });
   return state.lojistas.map(l => {
     const agg = porNome[nameKey(l.nome)] || { total: 0, pedidos: 0, ultima: null };
     const dias = agg.ultima ? daysBetween(agg.ultima, today) : 999;
@@ -18253,6 +18258,10 @@ function gsoToggleMobileCard(event, tr) {
   tr.classList.toggle('mobile-open');
 }
 
+function trashIconSvg() {
+  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+}
+
 function renderVendas() {
   normalizeSellerNames();
   ensureSaleNumbers();
@@ -18330,7 +18339,7 @@ function renderVendas() {
         <td data-label="Ações">
           <div class="row-actions">
             <button class="btn btn-small" onclick="openEditVenda('${r.id}')">Editar</button>
-            <button class="btn btn-small btn-danger" onclick="excluirVenda('${r.id}')">Apagar</button>
+            <button class="btn btn-small btn-danger" onclick="excluirVenda('${r.id}')" data-tip="Apagar venda" aria-label="Apagar venda">${trashIconSvg()}</button>
             <button class="btn btn-small" onclick="verMaisVenda('${r.id}')">Ver mais</button>
             ${isAdminUser() ? `<button class="btn btn-small" onclick="converterVendaEmLojista('${r.id}')" data-tip="Move esta venda pra Vendas Lojista">Converter em venda lojista</button>` : ''}
           </div>
@@ -18430,7 +18439,7 @@ function renderVendasLojista() {
         <td data-label="Ações">
           <div class="row-actions">
             <button class="btn btn-small" onclick="openVendaLojistaModal('${r.id}')">Editar</button>
-            <button class="btn btn-small btn-danger" onclick="excluirVendaLojista('${r.id}')">Apagar</button>
+            <button class="btn btn-small btn-danger" onclick="excluirVendaLojista('${r.id}')" data-tip="Apagar venda" aria-label="Apagar venda">${trashIconSvg()}</button>
           </div>
         </td>
       </tr>
@@ -19428,7 +19437,7 @@ function atualizarSelecaoUnificar(checkbox, nome) {
 function selecionarTodosClientesFiltrados() {
   const lista = window.__clientesFiltradosAtuais || [];
   if (!lista.length) return;
-  lista.filter(c => c.tipoPessoa !== 'lojista').forEach(c => unificarSelecionados.add(nameKey(c.nome)));
+  lista.forEach(c => unificarSelecionados.add(nameKey(c.nome)));
   atualizarBotoesSelecaoClientes();
   if (typeof renderClientes === 'function') renderClientes();
 }
@@ -19544,9 +19553,25 @@ function toggleTodosUnificar(checkbox) {
   });
 }
 
+// Cliente comum e lojista precisam poder ser unificados juntos (ex.: alguém virou
+// lojista mas ainda tem uma venda antiga com o nome grafado diferente) — junta as duas
+// listas por nome, sem duplicar quem já aparece nas duas.
+function computeClientesEIojistasParaUnificar() {
+  const clientes = (typeof computeClientes === 'function' ? computeClientes() : []);
+  const lojistas = (typeof isAdminUser === 'function' && isAdminUser() && typeof computeLojistasParaClientes === 'function') ? computeLojistasParaClientes() : [];
+  const vistos = new Set();
+  const out = [];
+  clientes.concat(lojistas).forEach(c => {
+    const k = nameKey(c.nome);
+    if (vistos.has(k)) return;
+    vistos.add(k);
+    out.push(c);
+  });
+  return out;
+}
 function abrirUnificacaoClientes() {
   if (unificarSelecionados.size < 2) { alert('Selecione ao menos 2 clientes para unificar.'); return; }
-  const clis = computeClientes();
+  const clis = computeClientesEIojistasParaUnificar();
   const selecionados = clis.filter(c => unificarSelecionados.has(nameKey(c.nome)));
   unificarNomePrincipal = selecionados.slice().sort((a, b) => b.pedidos - a.pedidos)[0]?.nome || null;
   renderUnificarModal(selecionados);
@@ -19581,7 +19606,7 @@ function removerCandidatoUnificar(nome) {
   unificarSelecionados.delete(nameKey(nome));
   renderClientes();
   if (unificarSelecionados.size < 2) { fecharUnificacaoClientes(); return; }
-  const clis = computeClientes().filter(c => unificarSelecionados.has(nameKey(c.nome)));
+  const clis = computeClientesEIojistasParaUnificar().filter(c => unificarSelecionados.has(nameKey(c.nome)));
   if (nameKey(unificarNomePrincipal) === nameKey(nome)) unificarNomePrincipal = clis.slice().sort((a, b) => b.pedidos - a.pedidos)[0]?.nome || null;
   renderUnificarModal(clis);
 }
@@ -19591,7 +19616,7 @@ function buscarClienteParaUnificar(termo) {
   if (!resultados) return;
   const t = termo.trim().toLowerCase();
   if (t.length < 2) { resultados.classList.add('hidden'); resultados.innerHTML = ''; return; }
-  const achados = computeClientes()
+  const achados = computeClientesEIojistasParaUnificar()
     .filter(c => !unificarSelecionados.has(nameKey(c.nome)) && c.nome.toLowerCase().includes(t))
     .slice(0, 8);
   if (!achados.length) { resultados.classList.add('hidden'); resultados.innerHTML = ''; return; }
@@ -19610,14 +19635,14 @@ function adicionarCandidatoUnificar(nome) {
   if (busca) busca.value = '';
   const resultados = document.getElementById('unificar-busca-resultados');
   if (resultados) { resultados.classList.add('hidden'); resultados.innerHTML = ''; }
-  const clis = computeClientes().filter(c => unificarSelecionados.has(nameKey(c.nome)));
+  const clis = computeClientesEIojistasParaUnificar().filter(c => unificarSelecionados.has(nameKey(c.nome)));
   renderUnificarModal(clis);
 }
 
 function atualizarUnificarPreview() {
   const preview = document.getElementById('unificar-preview');
   if (!preview) return;
-  const clis = computeClientes().filter(c => unificarSelecionados.has(nameKey(c.nome)));
+  const clis = computeClientesEIojistasParaUnificar().filter(c => unificarSelecionados.has(nameKey(c.nome)));
   const outros = clis.filter(c => nameKey(c.nome) !== nameKey(unificarNomePrincipal));
   const totalVendas = clis.reduce((sum, c) => sum + c.pedidos, 0);
   const totalValor = clis.reduce((sum, c) => sum + c.total, 0);
@@ -19627,7 +19652,7 @@ function atualizarUnificarPreview() {
 
 async function confirmarUnificacaoClientes() {
   if (!unificarNomePrincipal || unificarSelecionados.size < 2) return;
-  const clis = computeClientes().filter(c => unificarSelecionados.has(nameKey(c.nome)));
+  const clis = computeClientesEIojistasParaUnificar().filter(c => unificarSelecionados.has(nameKey(c.nome)));
   const nomes = clis.map(c => c.nome);
   const outros = nomes.filter(n => nameKey(n) !== nameKey(unificarNomePrincipal));
   if (!confirm(`Unificar ${nomes.length} clientes sob "${unificarNomePrincipal}"?\n\nOs nomes "${outros.join('", "')}" deixarão de aparecer como clientes separados. Essa ação renomeia as vendas no histórico e não tem um botão de desfazer — mas nada é apagado, só renomeado.`)) return;
@@ -19727,6 +19752,42 @@ async function executarUnificacaoClientes(nomesSelecionados, nomePrincipal) {
     STORE.save('clienteAliases', state.clienteAliases);
     if (client && session) {
       await client.from('crm_client_aliases').upsert(aliasSeed, { onConflict: 'alias_normalizado,cliente_nome' });
+    }
+  }
+
+  // Lojista: se o principal ou qualquer um dos mesclados já é lojista, o resultado da
+  // unificação também vira lojista — junta os cadastros de lojista (o mais completo
+  // ganha) e todas as vendas lojista passam a apontar pro nome principal.
+  let lojistaIdx = state.lojistas.findIndex(l => nameKey(l.nome) === nameKey(nomePrincipal));
+  let lojistaPrincipal = lojistaIdx >= 0 ? { ...state.lojistas[lojistaIdx] } : null;
+  const idsLojistasRemover = [];
+  let viraLojista = lojistaIdx >= 0;
+  nomesParaMesclar.forEach(nomeOriginal => {
+    const loj = state.lojistas.find(l => nameKey(l.nome) === nameKey(nomeOriginal));
+    if (loj) {
+      viraLojista = true;
+      if (!lojistaPrincipal) lojistaPrincipal = { nome: nomePrincipal, telefone: '', email: '', cpf: '', cnpj: '', cep: '', rua: '', numero: '', bairro: '', cidade: '', estado: '', nascimentoDia: '', nascimentoMes: '' };
+      ['telefone', 'email', 'cpf', 'cnpj', 'cep', 'rua', 'numero', 'bairro', 'cidade', 'estado', 'nascimentoDia', 'nascimentoMes'].forEach(campo => {
+        if (!lojistaPrincipal[campo] && loj[campo]) lojistaPrincipal[campo] = loj[campo];
+      });
+      idsLojistasRemover.push(loj.id);
+    }
+    state.vendasLojista.forEach(v => { if (nameKey(v.cliente) === nameKey(nomeOriginal)) v.cliente = nomePrincipal; });
+  });
+  if (viraLojista && lojistaPrincipal) {
+    lojistaPrincipal.nome = nomePrincipal;
+    if (!lojistaPrincipal.id) lojistaPrincipal.id = safeId('lj', [nomePrincipal, lojistaPrincipal.telefone, lojistaPrincipal.email]);
+    if (lojistaIdx >= 0) state.lojistas[lojistaIdx] = lojistaPrincipal;
+    else state.lojistas.push(lojistaPrincipal);
+    state.lojistas = state.lojistas.filter(l => !idsLojistasRemover.includes(l.id));
+    STORE.save('lojistas', state.lojistas);
+    STORE.save('vendasLojista', state.vendasLojista);
+    if (client && session) {
+      await client.from('crm_lojistas').upsert(lojistaToRow(lojistaPrincipal), { onConflict: 'id' });
+      for (const nomeOriginal of nomesParaMesclar) {
+        await client.from('crm_vendas_lojista').update({ cliente: nomePrincipal }).eq('cliente', nomeOriginal);
+      }
+      for (const id of idsLojistasRemover) await client.from('crm_lojistas').delete().eq('id', id);
     }
   }
 
@@ -23622,7 +23683,11 @@ init();
     ensureClientesFinalSemFavorito();
     const podeVerLojistas = isAdminUser();
     const tipoPessoa = podeVerLojistas ? (document.getElementById('filterTipoPessoa')?.value || '') : 'cliente';
-    const clis = tipoPessoa === 'lojista' ? [] : (typeof computeClientes === 'function' ? computeClientes().map(c => ({ ...c, tipoPessoa: 'cliente' })) : []);
+    // Quem já é lojista não aparece de novo como "cliente comum" mesmo tendo vendas
+    // antigas em state.vendas (de antes da conversão) — vira só a linha de Lojista,
+    // com o histórico completo (computeLojistasParaClientes já soma as duas origens).
+    const nomesLojistas = new Set(state.lojistas.map(l => nameKey(l.nome)));
+    const clis = tipoPessoa === 'lojista' ? [] : (typeof computeClientes === 'function' ? computeClientes().filter(c => !nomesLojistas.has(nameKey(c.nome))).map(c => ({ ...c, tipoPessoa: 'cliente' })) : []);
     const lojistas = (!podeVerLojistas || tipoPessoa === 'cliente') ? [] : (typeof computeLojistasParaClientes === 'function' ? computeLojistasParaClientes() : []);
     const todos = clis.concat(lojistas);
     const countEl = document.getElementById('clientes-count');
@@ -23675,7 +23740,7 @@ init();
       const isLojista = c.tipoPessoa === 'lojista';
       const doc = isLojista ? [c.cpf, c.cnpj].filter(Boolean).join(' / ') : clienteDocResumoCompleto(c.nome);
       return '<tr onclick="gsoToggleMobileCard(event, this)">' +
-        '<td data-label="Selecionar">' + (isLojista ? '' : '<input type="checkbox" class="chk-unificar-linha" ' + (typeof unificarSelecionados !== 'undefined' && unificarSelecionados.has(nameKey(c.nome)) ? 'checked' : '') + ' onchange="atualizarSelecaoUnificar(this, ' + nomeAttr + ')">') + '</td>' +
+        '<td data-label="Selecionar"><input type="checkbox" class="chk-unificar-linha" ' + (typeof unificarSelecionados !== 'undefined' && unificarSelecionados.has(nameKey(c.nome)) ? 'checked' : '') + ' onchange="atualizarSelecaoUnificar(this, ' + nomeAttr + ')"></td>' +
         '<td data-label="Cliente" data-preview="1"><strong>' + esc(c.nome || '—') + '</strong>' + (isLojista ? ' <span class="pill pill-blue">Lojista</span>' : '') + '</td>' +
         '<td data-label="Telefone">' + esc(c.telefone || '—') + '</td>' +
         '<td data-label="CPF/CNPJ">' + esc(doc) + '</td>' +
@@ -23684,9 +23749,9 @@ init();
         '<td data-label="Ações"><div class="row-actions">' +
         (isLojista
           ? '<button class="btn btn-small" onclick="openLojistaCadastroModal(' + nomeAttr + ')">Editar</button>' +
-            '<button class="btn btn-small btn-danger" onclick="excluirLojistaCadastro(' + nomeAttr + ')">Apagar</button>'
+            '<button class="btn btn-small btn-danger" onclick="excluirLojistaCadastro(' + nomeAttr + ')" data-tip="Apagar cadastro" aria-label="Apagar cadastro">' + trashIconSvg() + '</button>'
           : '<button class="btn btn-small" onclick="openClienteModal(' + nomeAttr + ')">Editar</button>' +
-            '<button class="btn btn-small btn-danger" onclick="excluirCliente(' + nomeAttr + ')">Apagar</button>' +
+            '<button class="btn btn-small btn-danger" onclick="excluirCliente(' + nomeAttr + ')" data-tip="Apagar cadastro" aria-label="Apagar cadastro">' + trashIconSvg() + '</button>' +
             '<button class="btn btn-small" onclick="verMaisCliente(' + nomeAttr + ')">Ver mais</button>' +
             (typeof isAdminUser === 'function' && isAdminUser() ? '<button class="btn btn-small" onclick="converterClienteEmLojista(' + nomeAttr + ')" data-tip="Cria um cadastro de lojista com os mesmos dados e remove o cadastro de cliente comum">Converter em Lojista</button>' : '')) +
         '</div></td></tr>';
@@ -29261,6 +29326,17 @@ async function renderIndicadores() {
         return nomeCadastroNorm && (nomeNorm.indexOf(nomeCadastroNorm) !== -1 || nomeCadastroNorm.indexOf(nomeNorm) !== -1);
       });
       if (porNome.length === 1) return porNome[0];
+      if (porNome.length > 1) {
+        // Cadastros com uma tag entre parênteses no início do nome (ex.: "(Astro) Palco -
+        // 5 litros - Neutro", duplicando linha/tamanho/aroma da linha comum) são variantes
+        // — se a venda não menciona a tag, prioriza o cadastro comum em vez de ficar
+        // ambíguo entre os dois.
+        var semTag = porNome.filter(function (p) {
+          var tag = /^\(([^)]+)\)/.exec(String(p.nome || '').trim());
+          return !tag || nomeNorm.indexOf(normalizeTexto(tag[1])) !== -1;
+        });
+        if (semTag.length === 1) return semTag[0];
+      }
     }
     return null;
   }
