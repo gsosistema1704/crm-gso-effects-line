@@ -740,6 +740,10 @@
   .table-card table { min-width: 980px; }
   .data-card { overflow: auto; }
   .data-card table { min-width: 980px; }
+  .card-collapse-btn { flex: none; width: 28px; height: 28px; border: 1px solid var(--border, #E2E2E2); border-radius: 8px; background: none; color: var(--text-2); cursor: pointer; font-size: 12px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: transform .15s ease; }
+  .card-collapse-btn:hover { color: var(--text); border-color: var(--text-2); }
+  .data-card.is-collapsed .card-collapse-btn { transform: rotate(-90deg); }
+  .data-card.is-collapsed table { display: none; }
   .edited-cell { color: var(--primary-dark); font-weight: 700; }
   .edited-cell .pill { color: var(--primary-dark); border-color: var(--primary-dark); }
   .num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -13345,9 +13349,11 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
             <label class="form-label">Pagamento</label>
             <select class="form-input" id="f-pag" onchange="togglePaymentFields()">
               <option>Dinheiro</option>
-              <option>Pix</option>
+              <option>Pix Chave</option>
+              <option>Pix Qr Code</option>
               <option>Débito</option>
               <option>Crédito</option>
+              <option>Crédito à vista</option>
               <option>Anotado</option>
               <option>Boleto</option>
             </select>
@@ -13563,6 +13569,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               <div class="card-title">Produto e aroma mais vendidos por mês</div>
               <div class="card-sub">Ranking mensal por quantidade vendida, incluindo o aroma dominante</div>
             </div>
+            <button type="button" class="card-collapse-btn" onclick="this.closest('.card').classList.toggle('is-collapsed')" aria-label="Minimizar">▾</button>
           </div>
           <table>
             <thead>
@@ -13585,6 +13592,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               <div class="card-title">Vendas por vendedor</div>
               <div class="card-sub">Faturamento, quantidade e ticket médio por vendedor</div>
             </div>
+            <button type="button" class="card-collapse-btn" onclick="this.closest('.card').classList.toggle('is-collapsed')" aria-label="Minimizar">▾</button>
           </div>
           <table>
             <thead>
@@ -13606,6 +13614,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               <div class="card-title">Top produtos</div>
               <div class="card-sub">Ranking geral por quantidade vendida, usando nomes do catálogo</div>
             </div>
+            <button type="button" class="card-collapse-btn" onclick="this.closest('.card').classList.toggle('is-collapsed')" aria-label="Minimizar">▾</button>
           </div>
           <table>
             <thead>
@@ -13917,9 +13926,11 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <label class="form-label">Pagamento</label>
         <select class="form-input" id="ml-pag">
           <option>Dinheiro</option>
-          <option>Pix</option>
+          <option>Pix Chave</option>
+          <option>Pix Qr Code</option>
           <option>Débito</option>
           <option>Crédito</option>
+          <option>Crédito à vista</option>
           <option>Anotado</option>
           <option>Boleto</option>
         </select>
@@ -15166,6 +15177,10 @@ function openDirectFile(url, download = false, fileName = '') {
 
 function isoToday() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function round2(n) {
+  return Math.round((Number(n) || 0) * 100) / 100;
 }
 
 function dateOnly(value) {
@@ -16658,14 +16673,18 @@ function statusOf(dias) {
 function pillClass(s) {
   return s === 'Ativo' ? 'pill-green' : s === 'Em Risco' ? 'pill-amber' : 'pill-red';
 }
-const PAYMENT_OPTIONS = ['Dinheiro', 'Pix', 'Débito', 'Crédito', 'Anotado', 'Boleto'];
+const PAYMENT_OPTIONS = ['Dinheiro', 'Pix Chave', 'Pix Qr Code', 'Débito', 'Crédito', 'Crédito à vista', 'Anotado', 'Boleto'];
 function canonicalPayment(value) {
   const key = nameKey(value);
   if (!key) return '';
   if (key.includes('dinheiro')) return 'Dinheiro';
-  if (key.includes('pix')) return 'Pix';
+  // Pix sem indicação de chave/qr code é dado antigo (de antes dessa distinção existir) —
+  // cai em "Pix Chave" por ser a forma mais comum.
+  if (key.includes('pix')) return key.includes('qr') ? 'Pix Qr Code' : 'Pix Chave';
   if (key.includes('debito')) return 'Débito';
-  if (key.includes('credito') || key.includes('cartao') || key.includes('maq') || key.includes('ton')) return 'Crédito';
+  if (key.includes('credito') || key.includes('cartao') || key.includes('maq') || key.includes('ton')) {
+    return key.includes('vista') ? 'Crédito à vista' : 'Crédito';
+  }
   if (key.includes('anotado')) return 'Anotado';
   if (key.includes('boleto')) return 'Boleto';
   return value;
@@ -16905,6 +16924,32 @@ function saleCatalogItems(venda) {
     pedidos: 1,
     data: venda.data
   }));
+}
+// Custo real do(s) produto(s) da venda — mesmo custo (matéria-prima/receita/embalagem)
+// que a Calculadora usa pra montar pedido, via window.gsoCalc._custoInfo. Retorna null
+// quando algum item não tem custo cadastrado (não dá pra saber o lucro com certeza).
+function saleCustoProduto(venda) {
+  if (!window.gsoCalc || typeof window.gsoCalc._custoInfo !== 'function') return null;
+  const items = saleCatalogItems(venda);
+  if (!items.length) return null;
+  let custo = 0, semCusto = false;
+  items.forEach(item => {
+    const info = window.gsoCalc._custoInfo(item.produto + '|' + item.tamanho);
+    if (!info || info.total == null) { semCusto = true; return; }
+    custo += info.total * item.qtd;
+  });
+  return semCusto ? null : round2(custo);
+}
+// Lucro líquido = valor - custo do produto - fiscal. Fiscal só é descontado quando o
+// pagamento não é Dinheiro (venda em dinheiro não gera nota, então não tem esse imposto).
+function saleLucroLiquido(venda) {
+  const custo = saleCustoProduto(venda);
+  if (custo == null) return null;
+  const valor = parseFloat(venda.valor) || 0;
+  const ehDinheiro = canonicalPayment(venda.pagamento || '') === 'Dinheiro';
+  const fiscalPct = (window.gsoCalc && typeof window.gsoCalc._params === 'function') ? (Number(window.gsoCalc._params().fiscal) || 0) : 0;
+  const fiscal = ehDinheiro ? 0 : round2(valor * fiscalPct / 100);
+  return round2(valor - custo - fiscal);
 }
 function aggregateCatalogSales() {
   const aggregate = {};
@@ -17426,6 +17471,30 @@ function saleBoletoValorTotal(venda) {
 function saleRevenueDate(venda) {
   if (saleIsBoleto(venda) && saleBoletoPago(venda) && venda?.boletoDataRecebimento) return venda.boletoDataRecebimento;
   return venda?.data;
+}
+// Vencimento do boleto = Data da venda + prazo em dias informado no pagamento.
+function saleBoletoVencimento(venda) {
+  const dias = Number(venda?.pagamentoDetalhes?.boletoDias) || 0;
+  const base = dateOnly(venda?.data);
+  if (!base || !dias) return null;
+  const d = new Date(base);
+  d.setDate(d.getDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+// Mesma lógica de urgência usada nos boletos de fornecedor (boletoComputed), adaptada
+// pra boleto de venda: pra acompanhar quando o vencimento tá chegando.
+function saleBoletoVencimentoStatus(venda) {
+  if (saleBoletoPago(venda)) return { phrase: 'Pago', cls: 'green' };
+  const venc = saleBoletoVencimento(venda);
+  if (!venc) return { phrase: 'Sem vencimento', cls: 'blue' };
+  const due = dateOnly(venc);
+  const today = dateOnly(isoToday());
+  const diff = Math.round((due - today) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return { phrase: `Vencido há ${Math.abs(diff)} dia${Math.abs(diff) === 1 ? '' : 's'}`, cls: 'red' };
+  if (diff === 0) return { phrase: 'Vence hoje', cls: 'amber' };
+  if (diff === 1) return { phrase: 'Vence amanhã', cls: 'amber' };
+  if (diff <= 5) return { phrase: `Vence em ${diff} dias`, cls: 'amber' };
+  return { phrase: `Vence em ${diff} dias`, cls: 'blue' };
 }
 
 async function atualizarVendaBoletoMeta(id, patch) {
@@ -24265,9 +24334,20 @@ function intelRenderOverview() {
   const vendasHoje = dashboardSalesInRange(hoje, hoje).filter(saleCountsInRevenue);
   const valorHoje = vendasHoje.reduce((sum, venda) => sum + (saleIsBoleto(venda) ? saleBoletoValorTotal(venda) : Number(venda.valor || 0)), 0);
   const ticketHoje = vendasHoje.length ? valorHoje / vendasHoje.length : 0;
+  let lucroHoje = 0, lucroHojeIncompleto = false;
+  vendasHoje.forEach(venda => {
+    const l = saleLucroLiquido(venda);
+    if (l == null) { lucroHojeIncompleto = true; return; }
+    lucroHoje += l;
+  });
+  lucroHoje = round2(lucroHoje);
   const boletoRows = state.vendas.filter(v => saleIsBoleto(v) && !saleBoletoOculto(v)).sort((a, b) => {
     const pagoA = saleBoletoPago(a) ? 1 : 0, pagoB = saleBoletoPago(b) ? 1 : 0;
     if (pagoA !== pagoB) return pagoA - pagoB;
+    if (!pagoA) {
+      const vencA = saleBoletoVencimento(a), vencB = saleBoletoVencimento(b);
+      if (vencA && vencB && vencA !== vencB) return new Date(vencA) - new Date(vencB);
+    }
     return new Date(b.data) - new Date(a.data);
   });
   const boletosPendentes = boletoRows.filter(v => !saleBoletoPago(v));
@@ -24284,9 +24364,15 @@ function intelRenderOverview() {
     const dataCell = recebidoOutroMes
       ? `${fmtDate(v.data)}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">recebido ${fmtDate(v.boletoDataRecebimento)}</small>`
       : fmtDate(v.data);
+    const venc = saleBoletoVencimento(v);
+    const vencStatus = saleBoletoVencimentoStatus(v);
+    const vencCell = venc
+      ? `${fmtDate(venc)}<br><span class="pill pill-${vencStatus.cls}" style="margin-top:2px">${escapeHtml(vencStatus.phrase)}</span>`
+      : '<span style="color:var(--text-2,#8A8A8A)">—</span>';
     return `<tr onclick="if(!event.target.closest('button')) abrirVendaBoletoModal('${v.id}')" style="cursor:pointer">
       <td>${dataCell}</td>
       <td>${escapeHtml(v.cliente || '—')}</td>
+      <td>${vencCell}</td>
       <td class="num">${valorCell}</td>
       <td>${pago ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>'}</td>
       <td style="display:flex;gap:6px;align-items:center;">${acaoPrincipal}<button class="btn btn-small" onclick="ocultarVendaBoleto('${v.id}')" data-tooltip="Tirar esta venda daqui" aria-label="Tirar esta venda daqui">✕</button></td>
@@ -24304,18 +24390,23 @@ function intelRenderOverview() {
         <button class="btn btn-small" onclick="dashboardDrill('vendas_hoje')" data-tooltip="Ver apenas as vendas de hoje">Ver vendas</button>
       </div>
       <div class="dash-hero-value">${fmtBR(valorHoje)}</div>
-      <div class="dash-inline-metrics">
+      <div class="dash-stat-strip three">
         <div><span>Quantidade</span><strong>${vendasHoje.length.toLocaleString('pt-BR')} venda${vendasHoje.length === 1 ? '' : 's'}</strong></div>
         <div><span>Ticket médio</span><strong>${fmtBR(ticketHoje)}</strong></div>
+        <div${lucroHojeIncompleto ? ' data-tooltip="Alguma venda de hoje tem produto sem custo cadastrado — o lucro pode estar abaixo do real"' : ''}><span>Lucro líquido${lucroHojeIncompleto ? ' *' : ''}</span><strong>${fmtBR(lucroHoje)}</strong></div>
       </div>
     </div>
     ${k.semTelefone ? `<div class="intel-notice">${k.semTelefone} cliente(s) com compras estão sem telefone cadastrado — complete o cadastro para liberar o WhatsApp nas listas.</div>` : ''}
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div><div class="card-title">Vendas em boleto</div><div class="card-sub">O valor só entra no faturamento depois de marcado como pago.</div></div>
-        ${boletosPendentes.length ? `<span class="pill pill-amber">${boletosPendentes.length} pendente${boletosPendentes.length === 1 ? '' : 's'}</span>` : ''}
+        ${boletosPendentes.length ? (() => {
+          const vencidoCount = boletosPendentes.filter(v => saleBoletoVencimentoStatus(v).cls === 'red').length;
+          if (vencidoCount) return `<span class="pill pill-red">${vencidoCount} vencido${vencidoCount === 1 ? '' : 's'}</span>`;
+          return `<span class="pill pill-amber">${boletosPendentes.length} pendente${boletosPendentes.length === 1 ? '' : 's'}</span>`;
+        })() : ''}
       </div>
-      ${boletoRows.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table"><thead><tr><th>Data</th><th>Cliente</th><th class="num">Valor</th><th>Status</th><th>Ação</th></tr></thead><tbody>${boletoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda em boleto registrada.</div>`}
+      ${boletoRows.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table"><thead><tr><th>Data</th><th>Cliente</th><th>Vencimento</th><th class="num">Valor</th><th>Status</th><th>Ação</th></tr></thead><tbody>${boletoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda em boleto registrada.</div>`}
     </div>
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
