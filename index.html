@@ -14209,12 +14209,17 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <input type="text" class="form-input" inputmode="decimal" id="bv-juros" placeholder="0,00" oninput="bvAtualizarTotal()">
       </div>
     </div>
-    <div class="form-row" style="margin-top:8px">
+    <div class="form-row form-r2" style="margin-top:8px">
+      <div>
+        <label class="form-label">Data de recebimento</label>
+        <input type="date" class="form-input" id="bv-recebimento">
+      </div>
       <div>
         <label class="form-label">Total com multa/juros</label>
         <div id="bv-total" style="font-weight:700;font-size:16px;padding-top:4px"></div>
       </div>
     </div>
+    <div class="form-help" style="margin-top:4px">O faturamento mensal conta esta venda no mês da data de recebimento (se preenchida), não no mês da venda.</div>
     <div class="form-actions">
       <button class="btn" onclick="document.getElementById('modal-boleto-venda').classList.remove('show')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarMultaJurosBoleto()">Salvar</button>
@@ -14574,6 +14579,7 @@ function saleToRow(v) {
       boletoOculto: Boolean(v.boletoOculto),
       boletoMulta: Number(v.boletoMulta) || 0,
       boletoJuros: Number(v.boletoJuros) || 0,
+      boletoDataRecebimento: v.boletoDataRecebimento || null,
       clienteOriginal: v.clienteOriginal || null,
       revisaoCliente: Boolean(v.revisaoCliente),
       revisaoCandidatos: v.revisaoCandidatos || null,
@@ -14613,6 +14619,7 @@ function rowToSale(r) {
     boletoOculto: Boolean(r.metadata?.boletoOculto),
     boletoMulta: Number(r.metadata?.boletoMulta) || 0,
     boletoJuros: Number(r.metadata?.boletoJuros) || 0,
+    boletoDataRecebimento: r.metadata?.boletoDataRecebimento || null,
     clienteOriginal: r.metadata?.clienteOriginal || null,
     revisaoCliente: Boolean(r.metadata?.revisaoCliente),
     revisaoCandidatos: Array.isArray(r.metadata?.revisaoCandidatos) ? r.metadata.revisaoCandidatos : null,
@@ -17322,7 +17329,7 @@ function computeMensal() {
   const map = {};
   state.vendas.forEach(v => {
     if (!saleCountsInRevenue(v)) return;
-    const d = dashboardDateObj(v.data);
+    const d = dashboardDateObj(saleRevenueDate(v));
     if (!d) return;
     const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
     map[key] = (map[key] || 0) + (saleIsBoleto(v) ? saleBoletoValorTotal(v) : (parseFloat(v.valor) || 0));
@@ -17412,13 +17419,21 @@ function saleBoletoJuros(venda) {
 function saleBoletoValorTotal(venda) {
   return Math.round(((Number(venda?.valor) || 0) + saleBoletoMulta(venda) + saleBoletoJuros(venda)) * 100) / 100;
 }
+// Data usada pro faturamento mensal: um boleto pago fora do mês da venda (atraso) conta
+// no mês em que o dinheiro realmente entrou — não no mês da venda original — quando essa
+// data de recebimento foi registrada. Toda venda normal (e boleto sem essa data) continua
+// usando a Data da venda, como sempre.
+function saleRevenueDate(venda) {
+  if (saleIsBoleto(venda) && saleBoletoPago(venda) && venda?.boletoDataRecebimento) return venda.boletoDataRecebimento;
+  return venda?.data;
+}
 
 async function atualizarVendaBoletoMeta(id, patch) {
   const client = requireSupabaseSession();
   if (!client) return;
   const venda = state.vendas.find(v => String(v.id) === String(id));
   if (!venda) return;
-  const anterior = { boletoPago: venda.boletoPago, boletoOculto: venda.boletoOculto, boletoMulta: venda.boletoMulta, boletoJuros: venda.boletoJuros };
+  const anterior = { boletoPago: venda.boletoPago, boletoOculto: venda.boletoOculto, boletoMulta: venda.boletoMulta, boletoJuros: venda.boletoJuros, boletoDataRecebimento: venda.boletoDataRecebimento };
   Object.assign(venda, patch);
   const row = saleToRow(venda);
   const { error } = await client.from('crm_vendas').update({ metadata: row.metadata }).eq('id', id);
@@ -17431,7 +17446,12 @@ async function atualizarVendaBoletoMeta(id, patch) {
   if (typeof renderInteligencia === 'function') renderInteligencia();
   if (typeof renderVendas === 'function' && !document.getElementById('view-vendas')?.classList.contains('hidden')) renderVendas();
 }
-function marcarVendaBoletoPago(id) { return atualizarVendaBoletoMeta(id, { boletoPago: true }); }
+function marcarVendaBoletoPago(id) {
+  const venda = state.vendas.find(v => String(v.id) === String(id));
+  const patch = { boletoPago: true };
+  if (venda && !venda.boletoDataRecebimento) patch.boletoDataRecebimento = isoToday();
+  return atualizarVendaBoletoMeta(id, patch);
+}
 function desfazerVendaBoletoPago(id) { return atualizarVendaBoletoMeta(id, { boletoPago: false }); }
 function ocultarVendaBoleto(id) {
   if (!confirm('Tirar esta venda do bloco de boletos? Ela continua normalmente na aba Vendas.')) return;
@@ -17450,6 +17470,7 @@ function abrirVendaBoletoModal(id) {
   document.getElementById('bv-status').innerHTML = saleBoletoPago(venda) ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>';
   document.getElementById('bv-multa').value = saleBoletoMulta(venda) ? String(saleBoletoMulta(venda)).replace('.', ',') : '';
   document.getElementById('bv-juros').value = saleBoletoJuros(venda) ? String(saleBoletoJuros(venda)).replace('.', ',') : '';
+  document.getElementById('bv-recebimento').value = venda.boletoDataRecebimento || '';
   document.getElementById('bv-total').textContent = fmtBR(saleBoletoValorTotal(venda));
   document.getElementById('modal-boleto-venda').classList.add('show');
 }
@@ -17466,8 +17487,9 @@ async function salvarMultaJurosBoleto() {
   const id = document.getElementById('bv-id').value;
   const multa = parseFloat((document.getElementById('bv-multa').value || '0').replace(',', '.')) || 0;
   const juros = parseFloat((document.getElementById('bv-juros').value || '0').replace(',', '.')) || 0;
+  const recebimento = document.getElementById('bv-recebimento').value || null;
   document.getElementById('modal-boleto-venda').classList.remove('show');
-  await atualizarVendaBoletoMeta(id, { boletoMulta: multa, boletoJuros: juros });
+  await atualizarVendaBoletoMeta(id, { boletoMulta: multa, boletoJuros: juros, boletoDataRecebimento: recebimento });
 }
 
 function saleHasNf(venda) {
@@ -24258,8 +24280,12 @@ function intelRenderOverview() {
     const valorCell = extra
       ? `${fmtBR(saleBoletoValorTotal(v))}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">${fmtBR(v.valor)} + multa/juros</small>`
       : fmtBR(v.valor);
+    const recebidoOutroMes = pago && v.boletoDataRecebimento && v.boletoDataRecebimento.slice(0, 7) !== String(v.data || '').slice(0, 7);
+    const dataCell = recebidoOutroMes
+      ? `${fmtDate(v.data)}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">recebido ${fmtDate(v.boletoDataRecebimento)}</small>`
+      : fmtDate(v.data);
     return `<tr onclick="if(!event.target.closest('button')) abrirVendaBoletoModal('${v.id}')" style="cursor:pointer">
-      <td>${fmtDate(v.data)}</td>
+      <td>${dataCell}</td>
       <td>${escapeHtml(v.cliente || '—')}</td>
       <td class="num">${valorCell}</td>
       <td>${pago ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>'}</td>
