@@ -12536,45 +12536,67 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       </div>
       <div class="subtabs">
         <div class="subtab active" data-subtab="lotes" onclick="Lab.navTo('lotes')">Controle de Lote <span class="pill pill-amber" style="font-size:9px;font-weight:700;padding:2px 7px;margin-left:4px;vertical-align:middle">Importante</span></div>
-        <div class="subtab" data-subtab="insumos" onclick="Lab.navTo('insumos')">Estoque de Insumos</div>
-        <div class="subtab" data-subtab="receitas" onclick="Lab.navTo('receitas')">Insumos</div>
         <div class="subtab" data-subtab="indicadores" onclick="Lab.navTo('indicadores')">Indicadores</div>
+        <div class="subtab" data-subtab="insumos" onclick="Lab.navTo('insumos')">Estoque</div>
       </div>
 
     <div id="view-insumos" class="hidden">
       <div class="header">
         <div>
-          <div class="h-title">Estoque de Insumos</div>
-          <div class="h-sub">Garrafas, tampas, rótulos e todo o restante do estoque — separado por categoria</div>
+          <div class="h-title">Estoque</div>
+          <div class="h-sub">Garrafas, tampas, rótulos, matérias-primas e as receitas de cada produto envasado</div>
         </div>
-        <div class="h-actions">
+      </div>
+
+      <div class="subtabs">
+        <div class="subtab active" data-insumos-tab="estoque" onclick="Lab.switchInsumosTab('estoque')">Estoque</div>
+        <div class="subtab" data-insumos-tab="receitas" onclick="Lab.switchInsumosTab('receitas')">Insumos</div>
+      </div>
+
+      <div id="insumos-tab-estoque">
+        <div class="h-actions" style="justify-content:flex-end;margin-bottom:14px;">
           <button class="btn btn-soft" onclick="Lab.abrirEscolhaExport('excel')">Exportar Excel</button>
           <button class="btn btn-soft" onclick="Lab.abrirEscolhaExport('pdf')">Exportar PDF</button>
           <button class="btn btn-soft" onclick="Lab.openImportInsumosModal()">+ Importar em lote</button>
           <button class="btn btn-primary" onclick="Lab.openInsumoModal()">+ Adicionar insumo</button>
         </div>
+        <div class="stats-bar" id="insumosStats"></div>
+        <div class="search">
+          <input class="input" id="insumo-busca" placeholder="Buscar por título, código ou fornecedor..." oninput="Lab.onInsumoFiltroChange()">
+          <select class="input" id="insumo-filtro-tipo" onchange="Lab.onInsumoFiltroChange()">
+            <option value="">Todos os tipos</option>
+            <option value="garrafa">Garrafa</option>
+            <option value="tampa">Tampa</option>
+            <option value="rotulo">Rótulo</option>
+            <option value="essencia">Essência</option>
+            <option value="produto">Produto</option>
+            <option value="materia_prima">Matéria-prima</option>
+            <option value="caixa">Caixa de papelão</option>
+            <option value="deionizador">Deionizador</option>
+            <option value="outro">Outro</option>
+          </select>
+          <select class="input" id="insumo-filtro-baixo" onchange="Lab.onInsumoFiltroChange()">
+            <option value="">Todos os estoques</option>
+            <option value="sim">Só baixo estoque</option>
+          </select>
+        </div>
+        <div id="insumosGroups"></div>
       </div>
-      <div class="stats-bar" id="insumosStats"></div>
-      <div class="search">
-        <input class="input" id="insumo-busca" placeholder="Buscar por título, código ou fornecedor..." oninput="Lab.onInsumoFiltroChange()">
-        <select class="input" id="insumo-filtro-tipo" onchange="Lab.onInsumoFiltroChange()">
-          <option value="">Todos os tipos</option>
-          <option value="garrafa">Garrafa</option>
-          <option value="tampa">Tampa</option>
-          <option value="rotulo">Rótulo</option>
-          <option value="essencia">Essência</option>
-          <option value="produto">Produto</option>
-          <option value="materia_prima">Matéria-prima</option>
-          <option value="caixa">Caixa de papelão</option>
-          <option value="deionizador">Deionizador</option>
-          <option value="outro">Outro</option>
-        </select>
-        <select class="input" id="insumo-filtro-baixo" onchange="Lab.onInsumoFiltroChange()">
-          <option value="">Todos os estoques</option>
-          <option value="sim">Só baixo estoque</option>
-        </select>
+
+      <!-- ===== INNER TAB: RECEITAS DE PRODUTO ===== -->
+      <div id="view-receitas" class="hidden">
+        <div class="h-actions" style="justify-content:space-between;margin-bottom:14px;align-items:center;">
+          <div class="form-help" style="margin:0;max-width:640px;">Para cada produto envasado, escolha a garrafa, tampa e rótulo consumidos por unidade — e o item de estoque que recebe as unidades produzidas ao finalizar um lote.</div>
+          <button class="btn btn-primary" onclick="Lab.openLabProdutoModal()">+ Adicionar produto</button>
+        </div>
+        <div class="card table-card">
+          <table class="stack-table">
+            <colgroup><col style="width:13%"><col style="width:14%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:7%"><col style="width:13%"></colgroup>
+            <thead><tr><th>Produto</th><th>Produto (estoque)</th><th>Garrafa</th><th>Tampa</th><th>Rótulo</th><th>Rótulo 2</th><th>Ativo</th><th>Ações</th></tr></thead>
+            <tbody id="receitasTable"></tbody>
+          </table>
+        </div>
       </div>
-      <div id="insumosGroups"></div>
     </div>
 
     <!-- ===== MODAL: CATEGORIA DE INSUMOS (tela cheia) ===== -->
@@ -12585,24 +12607,6 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <div class="h-actions"><button class="btn" onclick="Lab.closeModal('modal-categoria-insumos')">← Voltar</button></div>
         </div>
         <div id="modal-categoria-insumos-body" class="modal-fullscreen-body"></div>
-      </div>
-    </div>
-
-    <!-- ===== VIEW: RECEITAS ===== -->
-    <div id="view-receitas" class="hidden">
-      <div class="header">
-        <div>
-          <div class="h-title">Insumos</div>
-          <div class="h-sub">Para cada produto envasado, escolha a garrafa, tampa e rótulo consumidos por unidade — e o item de estoque que recebe as unidades produzidas ao finalizar um lote</div>
-        </div>
-        <div class="h-actions"><button class="btn btn-primary" onclick="Lab.openLabProdutoModal()">+ Adicionar produto</button></div>
-      </div>
-      <div class="card table-card">
-        <table class="stack-table">
-          <colgroup><col style="width:13%"><col style="width:14%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:7%"><col style="width:13%"></colgroup>
-          <thead><tr><th>Produto</th><th>Produto (estoque)</th><th>Garrafa</th><th>Tampa</th><th>Rótulo</th><th>Rótulo 2</th><th>Ativo</th><th>Ações</th></tr></thead>
-          <tbody id="receitasTable"></tbody>
-        </table>
       </div>
     </div>
 
@@ -18330,13 +18334,20 @@ function renderVendas() {
     const nfNumero = saleNfNumber(r);
     const hasNfPdf = dashboardHasSaleFile(r, 'nf');
     const pagamentoCanonico = canonicalPayment(r.pagamento || '');
-    const nfCompact = hasNfPdf || nfNumero
-      ? `<span class="nf-compact-ok">NF ${nfNumero ? 'nº ' + escapeHtml(nfNumero) : 'anexada'}</span>`
-      : (pagamentoCanonico === 'Dinheiro' ? `<span class="nf-muted">Dinheiro sem NF</span>` : `<span class="nf-compact-missing">Sem NF</span>`);
+    const nfNeedsAlert = !hasNfPdf && !nfNumero && pagamentoCanonico !== 'Dinheiro';
+    const nfCompact = `
+      <div class="nf-inline-wrap" onclick="event.stopPropagation()">
+        <input type="text" class="input nf-inline-input${nfNeedsAlert ? ' nf-inline-alert' : ''}"
+          value="${escapeHtml(nfNumero)}"
+          placeholder="${nfNeedsAlert ? 'Emitir NF!' : 'Nº NF'}"
+          data-tip="${nfNeedsAlert ? 'Pagamento não é em dinheiro — a Nota Fiscal ainda não foi emitida. Digite o número aqui.' : 'Número da Nota Fiscal desta venda'}"
+          onchange="salvarNfNumeroInline('${r.id}', this.value)">
+        ${hasNfPdf ? `<button type="button" class="nf-inline-pdf-btn" onclick="openNF('${r.id}')" data-tip="Abrir PDF da NF anexado">PDF</button>` : ''}
+      </div>`;
     return `
       <tr onclick="gsoToggleMobileCard(event, this)">
         <td data-label="Data" data-preview="1"${saleCellClass(r, ['data'])}>${typeof gsoDateCell==='function'?gsoDateCell(r.data):fmtDate(r.data)}</td>
-        <td data-label="Cliente" data-preview="1"${saleCellClass(r, ['cliente'])}>${r.revisaoCliente ? `<span class="revisao-dot gso-has-tip" data-tip="Cliente ambíguo — precisa revisar em Ver mais"></span> ` : ''}${r.cliente}</td>
+        <td data-label="Cliente" data-preview="1"${saleCellClass(r, ['cliente'])}>${r.revisaoCliente ? `<span class="revisao-dot gso-has-tip" data-tip="Cliente ambíguo — precisa revisar em Ver mais"></span> ` : ''}<span class="cliente-link" onclick="event.stopPropagation(); verMaisCliente(${attrJsString(r.cliente)})">${r.cliente}</span></td>
         <td data-label="Produto"${saleCellClass(r, ['produto','tamanho'])}>${r.produto}</td>
         <td data-label="Aroma"${saleCellClass(r, ['aroma'])}><span class="pill pill-aroma ${typeof gsoAromaClass==='function'?gsoAromaClass(r.aroma):''}">${r.aroma || 'Neutro'}</span></td>
         <td data-label="Qtd" class="num${saleCellClassName(r, ['qtd'])}">${r.qtd}</td>
@@ -18852,6 +18863,18 @@ async function saveSalePdf(venda, file, kind) {
     }
   }
   return readPdfAsDataUrl(file);
+}
+
+async function salvarNfNumeroInline(id, valor) {
+  const venda = state.vendas.find(v => v.id === id);
+  if (!venda) return;
+  const novo = (valor || '').trim();
+  if ((saleNfNumber(venda) || '') === novo) return;
+  venda.nfNumber = novo;
+  STORE.save('vendas', state.vendas);
+  await syncCollectionToSupabase('vendas', state.vendas);
+  renderVendas();
+  if (!document.getElementById('view-notas')?.classList.contains('hidden')) renderNotasFiscais();
 }
 
 async function uploadNF(id, ev) {
@@ -28038,14 +28061,20 @@ function toggleOutro(selectId, wrapId) {
 }
 
 
-const VIEW_TITLES = { insumos: 'Estoque de Insumos', receitas: 'Insumos', lotes: 'Controle de Lote', indicadores: 'Indicadores' };
+const VIEW_TITLES = { insumos: 'Estoque', lotes: 'Controle de Lote', indicadores: 'Indicadores' };
 function navTo(view) {
-  ['insumos', 'receitas', 'lotes', 'indicadores'].forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== view));
-  document.querySelectorAll('#view-laboratorio .subtab').forEach(el => el.classList.toggle('active', el.dataset.subtab === view));
-  if (view === 'insumos') renderInsumos();
-  if (view === 'receitas') renderReceitas();
+  ['insumos', 'lotes', 'indicadores'].forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== view));
+  document.querySelectorAll('#view-laboratorio > .subtabs .subtab').forEach(el => el.classList.toggle('active', el.dataset.subtab === view));
+  if (view === 'insumos') switchInsumosTab('estoque');
   if (view === 'lotes') { showLotesList(); renderLotesList(); }
   if (view === 'indicadores') renderIndicadores();
+}
+function switchInsumosTab(tab) {
+  document.querySelectorAll('#view-insumos .subtabs .subtab').forEach(el => el.classList.toggle('active', el.dataset.insumosTab === tab));
+  document.getElementById('insumos-tab-estoque').classList.toggle('hidden', tab !== 'estoque');
+  document.getElementById('view-receitas').classList.toggle('hidden', tab !== 'receitas');
+  if (tab === 'estoque') renderInsumos();
+  if (tab === 'receitas') renderReceitas();
 }
 
 // ============ DATA LOADING ============
@@ -28670,13 +28699,22 @@ function statusPill(status) {
   return status === 'finalizado' ? '<span class="pill pill-green">Finalizado</span>' : '<span class="pill pill-amber">Rascunho</span>';
 }
 
+function loteNumeroOrdKey(numeroLote) {
+  const m = String(numeroLote || '').match(/\d+/);
+  return m ? parseInt(m[0], 10) : -1;
+}
 function renderLotesList() {
   const tbody = document.getElementById('lotesTable');
   if (!state.lotes.length) {
     tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Nenhum lote registrado ainda. Clique em "+ Novo lote".</td></tr>`;
     return;
   }
-  tbody.innerHTML = state.lotes.map(l => `
+  const lotesOrdenados = [...state.lotes].sort((a, b) => {
+    const diffNum = loteNumeroOrdKey(b.numero_lote) - loteNumeroOrdKey(a.numero_lote);
+    if (diffNum) return diffNum;
+    return new Date(b.data_envase || 0) - new Date(a.data_envase || 0);
+  });
+  tbody.innerHTML = lotesOrdenados.map(l => `
     <tr>
       <td class="stack-title">${escapeHtml(l.numero_lote)}</td>
       <td data-label="Data">${fmtDate(l.data_envase)}</td>
@@ -29493,6 +29531,7 @@ async function renderIndicadores() {
     finalizarLoteAtual: finalizarLoteAtual,
     abrirCategoriaModal: abrirCategoriaModal,
     navTo: navTo,
+    switchInsumosTab: switchInsumosTab,
     openAjusteModal: openAjusteModal,
     openImportInsumosModal: openImportInsumosModal,
     openInsumoHistorico: openInsumoHistorico,
@@ -32010,6 +32049,16 @@ body.theme-dark #view-inteligencia .dash-inline-metrics > div, body.theme-dark #
 /* Modal "Ver mais" (Vendas / Clientes) */
 .nf-compact-ok { font-size: 11.5px; font-weight: 600; color: var(--green-text); }
 .nf-compact-missing { font-size: 11.5px; color: var(--text-2); }
+.nf-inline-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.nf-inline-input { width: 74px; min-width: 0; padding: 5px 7px; font-size: 12px; border-radius: 6px; }
+#view-vendas .nf-inline-input.nf-inline-alert { border: 1.5px solid #F0C5C3 !important; background: #FBE8E8 !important; font-weight: 700 !important; }
+#view-vendas .nf-inline-input.nf-inline-alert, #view-vendas .nf-inline-input.nf-inline-alert::placeholder { color: #B0322F !important; }
+body.theme-dark #view-vendas .nf-inline-input.nf-inline-alert { border-color: rgba(216,108,108,.44) !important; background: rgba(216,108,108,.18) !important; }
+body.theme-dark #view-vendas .nf-inline-input.nf-inline-alert, body.theme-dark #view-vendas .nf-inline-input.nf-inline-alert::placeholder { color: #E89A9A !important; }
+.nf-inline-pdf-btn { font-size: 10.5px; font-weight: 700; padding: 4px 7px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2, #eef3f7); color: var(--text-2); cursor: pointer; white-space: nowrap; }
+.nf-inline-pdf-btn:hover { color: var(--text); }
+.cliente-link { cursor: pointer; }
+.cliente-link:hover { text-decoration: underline; }
 .vm-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 14px 0; }
 .vm-stats .s { background: var(--surface-2,#eef3f7); padding: 12px 10px; }
 .vm-stats .s .l { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); font-weight: 600; }
