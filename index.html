@@ -13663,7 +13663,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
       <div class="card" style="margin-bottom:16px;">
         <div class="card-title">Evolução mensal</div>
-        <div class="card-sub">Receita = o que entra na conta com as vendas (boleto/anotado só quando pago). Despesas = suas despesas cadastradas + custo do produto e imposto de cada venda. Lucro líquido = o que sobra depois de pagar tudo isso. Clique nos valores de Receita/Despesas para ajustar manualmente.</div>
+        <div class="card-sub">Receita = o que entra na conta com as vendas (boleto/anotado só quando pago). Despesas = suas despesas cadastradas + custo do produto e imposto de cada venda (boleto só quando quitado, anotado por pagamento, crédito parcelado dividido mês a mês). Lucro líquido = o que sobra depois de pagar tudo isso. Clique nos valores de Receita/Despesas para ajustar manualmente.</div>
         <div style="overflow-x:auto;margin-top:12px;">
           <table class="intel-table" id="fin-evolucao-table">
             <thead><tr><th>Mês</th><th class="num">Receita</th><th class="num">Despesas</th><th class="num">Lucro líquido</th><th class="num">Variação</th></tr></thead>
@@ -17752,6 +17752,29 @@ function despesaCountsInTotal(d) {
   if (despesaIsAnotado(d)) return false;
   return true;
 }
+// Crédito parcelado divide o valor em N meses seguidos a partir do mês da compra (1ª
+// parcela no mês da data informada, as demais nos meses seguintes) — diferente de Vendas,
+// onde o parcelamento no crédito é só informativo. Aqui faz sentido dividir de verdade,
+// porque é dinheiro saindo da conta aos poucos, mês a mês.
+function despesaCreditoParcelasDatas(d) {
+  const n = Math.max(1, parseInt(d?.pagamento_detalhes?.parcelas, 10) || 1);
+  const total = Number(d?.valor) || 0;
+  const dataBase = dashboardDateObj(d?.data);
+  const base = Math.floor((total / n) * 100) / 100;
+  let acumulado = 0;
+  const parcelas = [];
+  for (let i = 0; i < n; i++) {
+    const valor = i === n - 1 ? round2(total - acumulado) : base;
+    acumulado = round2(acumulado + valor);
+    let data = null;
+    if (dataBase) {
+      const dt = new Date(dataBase.getFullYear(), dataBase.getMonth() + i, dataBase.getDate());
+      data = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+    }
+    parcelas.push({ valor, data });
+  }
+  return parcelas;
+}
 function despesaExpenseEntries(d) {
   if (despesaIsBoleto(d)) {
     if (!despesaBoletoPago(d)) return [];
@@ -17761,6 +17784,9 @@ function despesaExpenseEntries(d) {
     return despesaAnotadoPagamentos(d)
       .filter(p => p && p.data && (Number(p.valor) || 0) !== 0)
       .map(p => ({ data: p.data, valor: Number(p.valor) || 0 }));
+  }
+  if (canonicalPayment(d?.pagamento || '') === 'Crédito' && (Number(d?.pagamento_detalhes?.parcelas) || 1) > 1) {
+    return despesaCreditoParcelasDatas(d).filter(p => p.data);
   }
   return [{ data: d?.data, valor: Number(d?.valor) || 0 }];
 }
@@ -17851,14 +17877,13 @@ function parseBRLInput(str) {
   const n = parseFloat(clean);
   return Number.isFinite(n) ? n : null;
 }
-function finAjusteCellHtml(mes, campo, valorAtual, valorComputado, nota) {
+function finAjusteCellHtml(mes, campo, valorAtual, valorComputado) {
   const override = finAjusteValor(mes, campo);
   const isOverride = override != null;
   const tip = isOverride
     ? `Ajustado manualmente. Valor calculado: ${fmtBR(valorComputado)} — apague o campo e saia do campo para restaurar.`
     : 'Clique para ajustar este valor manualmente';
   return `<div class="fin-ajuste-wrap">
-    ${nota || ''}
     <input type="text" inputmode="decimal" class="input fin-ajuste-input${isOverride ? ' fin-ajuste-override' : ''}"
       value="${fmtBR(valorAtual)}"
       data-tip="${escapeHtml(tip)}"
@@ -17873,7 +17898,7 @@ function renderEvolucaoMensal() {
   if (!body) return;
   const receitaMap = {}; computeMensal().forEach(m => { receitaMap[m.mes] = m.fat; });
   const despesaCadastradaMap = computeDespesasMensal();
-  const { map: lucroBrutoMap, incompleto: custoIncompletoMap } = computeLucroBrutoMensal();
+  const { map: lucroBrutoMap } = computeLucroBrutoMensal();
   const meses = [...new Set([...Object.keys(receitaMap), ...Object.keys(despesaCadastradaMap), ...Object.keys(lucroBrutoMap), ...state.financeiroAjustes.map(a => a.mes)])].filter(m => m >= '2026-01').sort();
   if (!meses.length) { body.innerHTML = '<tr><td colspan="5" class="table-empty">Sem dados a partir de 2026 ainda.</td></tr>'; return; }
   let lucroLiquidoAnterior = null;
@@ -17886,7 +17911,6 @@ function renderEvolucaoMensal() {
     const despesaOverride = finAjusteValor(mes, 'despesas_ajustada');
     const receita = receitaOverride != null ? receitaOverride : receitaComputada;
     const despesa = despesaOverride != null ? despesaOverride : despesaComputada;
-    const custoIncompleto = !!custoIncompletoMap[mes];
     const lucroLiquido = round2(receita - despesa);
     let variacaoHtml = '<span style="color:var(--text-2,#8A8A8A)">—</span>';
     if (lucroLiquidoAnterior !== null) {
@@ -17899,11 +17923,10 @@ function renderEvolucaoMensal() {
       }
     }
     lucroLiquidoAnterior = lucroLiquido;
-    const despesaNota = custoIncompleto ? `<span class="fin-ajuste-nota" data-tip="Alguma venda desse mês tem produto sem custo cadastrado — o custo do produto pode estar subestimado aqui">*</span>` : '';
     return `<tr>
       <td class="strong">${reportMonthLabel(mes)}</td>
       <td class="num">${finAjusteCellHtml(mes, 'receita_ajustada', receita, receitaComputada)}</td>
-      <td class="num">${finAjusteCellHtml(mes, 'despesas_ajustada', despesa, despesaComputada, despesaNota)}</td>
+      <td class="num">${finAjusteCellHtml(mes, 'despesas_ajustada', despesa, despesaComputada)}</td>
       <td class="num"><span class="fin-lucro-final${lucroLiquido < 0 ? ' fin-lucro-neg' : ''}">${fmtBR(lucroLiquido)}</span></td>
       <td class="num">${variacaoHtml}</td>
     </tr>`;
@@ -32033,19 +32056,18 @@ body.theme-dark #view-financeiro .pill-green { background: rgba(70,170,100,.18) 
 body.theme-dark #view-financeiro .pill-red   { background: rgba(216,108,108,.18) !important; color: #E89A9A !important; border-color: rgba(216,108,108,.44) !important; }
 
 /* --- FINANCEIRO: valores de Receita/Despesas editáveis na Evolução mensal --- */
-.fin-ajuste-wrap { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
-.fin-ajuste-input { width: 118px; min-width: 0; padding: 5px 7px; font-size: 12.5px; border-radius: 6px; text-align: right; flex-shrink: 0; }
+.fin-ajuste-wrap { display: flex; align-items: center; justify-content: center; gap: 5px; }
+.fin-ajuste-input { width: 118px; min-width: 0; padding: 5px 7px; font-size: 12.5px; border-radius: 6px; text-align: center; flex-shrink: 0; }
 .fin-ajuste-input.fin-ajuste-override { border: 1.5px solid #A9C7EE !important; background: #EAF1FB !important; font-weight: 700 !important; color: #1D4E8F !important; }
 body.theme-dark .fin-ajuste-input.fin-ajuste-override { border-color: rgba(122,168,231,.5) !important; background: rgba(122,168,231,.16) !important; color: #9CC1F2 !important; }
 .fin-ajuste-reset { font-size: 12px; font-weight: 700; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2, #eef3f7); color: var(--text-2); cursor: pointer; line-height: 1; flex-shrink: 0; }
 .fin-ajuste-reset:hover { color: var(--text); }
 .fin-ajuste-reset-hidden { visibility: hidden; pointer-events: none; }
-.fin-ajuste-nota { font-size: 12px; font-weight: 700; color: var(--amber-text, #B8860B); flex-shrink: 0; cursor: help; }
-.fin-lucro-final { display: inline-block; min-width: 110px; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; text-align: right; background: #EAF6EF; color: #137A43; border: 1px solid #BFE3CD; }
+.fin-lucro-final { display: inline-block; min-width: 110px; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; text-align: center; background: #EAF6EF; color: #137A43; border: 1px solid #BFE3CD; }
 .fin-lucro-final.fin-lucro-neg { background: #FBE8E8; color: #B0322F; border-color: #F0C5C3; }
 body.theme-dark .fin-lucro-final { background: rgba(70,170,100,.16); color: #86D9A6; border-color: rgba(70,170,100,.4); }
 body.theme-dark .fin-lucro-final.fin-lucro-neg { background: rgba(216,108,108,.18); color: #E89A9A; border-color: rgba(216,108,108,.44); }
-#fin-evolucao-table th, #fin-evolucao-table td { padding: 14px 18px !important; white-space: nowrap; }
+#fin-evolucao-table th, #fin-evolucao-table td { padding: 14px 18px !important; white-space: nowrap; text-align: center !important; }
 #fin-evolucao-table th:first-child, #fin-evolucao-table td:first-child { padding-left: 20px !important; }
 #fin-evolucao-table th:last-child, #fin-evolucao-table td:last-child { padding-right: 20px !important; }
 
