@@ -13695,7 +13695,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </div>
         <div style="overflow-x:auto;margin-top:12px;">
           <table class="stack-table" id="fin-desp-table-el">
-            <thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th class="num">Valor</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Pagamento</th><th class="num">Valor</th><th>Ações</th></tr></thead>
             <tbody id="fin-desp-table"></tbody>
           </table>
         </div>
@@ -14428,6 +14428,41 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     </div>
     <div class="form-row">
       <div>
+        <label class="form-label">Pagamento</label>
+        <select class="form-input" id="desp-pagamento" onchange="toggleDespesaPaymentFields()">
+          <option>Dinheiro</option>
+          <option>Pix Chave</option>
+          <option>Pix Qr Code</option>
+          <option>Débito</option>
+          <option>Crédito</option>
+          <option>Crédito à vista</option>
+          <option>Anotado</option>
+          <option>Boleto</option>
+        </select>
+      </div>
+    </div>
+    <div class="conditional-row hidden" id="desp-credito-row">
+      <div class="form-row" style="margin-bottom:0;">
+        <div>
+          <label class="form-label">Crédito em quantas vezes?</label>
+          <input type="number" class="form-input" id="desp-parcelas" min="1" placeholder="Ex: 3">
+        </div>
+      </div>
+    </div>
+    <div class="conditional-row hidden" id="desp-boleto-row">
+      <div class="form-row" style="margin-bottom:0;">
+        <div>
+          <label class="form-label">Parcelas do boleto</label>
+          <input type="number" class="form-input" id="desp-boleto-parcelas" min="1" value="1" oninput="renderDespesaBoletoParcelasCampos()">
+        </div>
+      </div>
+      <div id="desp-boleto-parcelas-campos" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+    <div class="form-row hidden" id="desp-anotado-aviso">
+      <div class="form-help">Essa despesa fica pendente até você registrar o(s) pagamento(s) — depois de salvar, use "Registrar pagamento" na lista de despesas.</div>
+    </div>
+    <div class="form-row">
+      <div>
         <label class="form-label">Descrição (opcional)</label>
         <input type="text" class="form-input" id="desp-descricao" placeholder="Ex: compra de garrafas 5L">
       </div>
@@ -14436,6 +14471,46 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <button class="btn btn-danger" id="desp-excluir-btn" onclick="excluirDespesa()" style="display:none;">Excluir</button>
       <button class="btn" onclick="document.getElementById('modal-despesa').classList.remove('show')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarDespesa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL BOLETO DE DESPESA ============ -->
+<div class="modal-bg" id="modal-despesa-boleto">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title">Boleto da despesa</div>
+    <input type="hidden" id="db-id">
+    <div class="form-help" style="margin-bottom:10px">Marque cada parcela como paga quando você quitar o boleto — a despesa só entra na Evolução mensal quando todas as parcelas estiverem pagas, no mês da última quitação.</div>
+    <div id="db-lista"></div>
+    <div class="form-actions">
+      <button class="btn" onclick="document.getElementById('modal-despesa-boleto').classList.remove('show')">Fechar</button>
+      <button class="btn btn-primary" onclick="salvarParcelasDespesaBoleto()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL DESPESA ANOTADA ============ -->
+<div class="modal-bg" id="modal-despesa-anotado">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Despesa anotada</div>
+    <input type="hidden" id="da-id">
+    <div class="form-row form-r3">
+      <div><label class="form-label">Valor total</label><div id="da-valor" style="font-weight:600;padding-top:4px"></div></div>
+      <div><label class="form-label">Pago até agora</label><div id="da-pago" style="font-weight:600;padding-top:4px"></div></div>
+      <div><label class="form-label">Saldo devedor</label><div id="da-saldo" style="font-weight:700;padding-top:4px"></div></div>
+    </div>
+    <div class="form-help" style="margin-top:4px;margin-bottom:4px">Pagamentos registrados</div>
+    <div id="da-lista" style="margin-bottom:10px"></div>
+    <div class="form-row form-r2" style="align-items:flex-end;">
+      <div><label class="form-label">Valor pago agora (R$)</label><input type="text" class="form-input" inputmode="decimal" id="da-novo-valor" placeholder="0,00"></div>
+      <div><label class="form-label">Dia do pagamento</label><input type="date" class="form-input" id="da-novo-data"></div>
+    </div>
+    <div class="form-actions" style="margin-top:6px;">
+      <button class="btn btn-primary" onclick="adicionarPagamentoDespesaAnotada()" style="width:100%;">+ Registrar este pagamento</button>
+    </div>
+    <div class="form-help" style="margin-top:8px">Cada pagamento entra na Evolução mensal no mês em que foi registrado — não no mês da despesa. Ela some da lista de pendências só quando o saldo devedor chegar a zero.</div>
+    <div class="form-actions">
+      <button class="btn" onclick="document.getElementById('modal-despesa-anotado').classList.remove('show')">Fechar</button>
     </div>
   </div>
 </div>
@@ -17635,13 +17710,74 @@ async function loadDespesas() {
 function despesaCategoriaLabel(d) {
   return d.categoria === 'Outro' ? (d.categoria_outro || 'Outro') : d.categoria;
 }
+// Despesas seguem as mesmas regras de reconhecimento das Vendas (saleCountsInRevenue /
+// saleRevenueEntries): Boleto só entra quando todas as parcelas estiverem pagas (no mês
+// da última quitação), Anotado nunca conta como valor único — cada pagamento registrado
+// entra no mês em que foi de fato pago.
+function despesaIsBoleto(d) { return canonicalPayment(d?.pagamento || '') === 'Boleto'; }
+function despesaBoletoParcelas(d) {
+  const lista = d?.pagamento_detalhes?.parcelasBoleto;
+  if (Array.isArray(lista) && lista.length) return lista;
+  if (despesaIsBoleto(d)) return [{ numero: 1, valor: Number(d?.valor) || 0, vencimento: d?.data, pago: false, dataRecebimento: null }];
+  return [];
+}
+function despesaBoletoPago(d) {
+  const p = despesaBoletoParcelas(d);
+  return p.length > 0 && p.every(x => x.pago);
+}
+function despesaBoletoValorTotal(d) {
+  return round2(despesaBoletoParcelas(d).reduce((s, p) => s + (Number(p.valor) || 0), 0));
+}
+function despesaBoletoDataFinal(d) {
+  const pagas = despesaBoletoParcelas(d).filter(p => p.dataRecebimento);
+  if (!pagas.length) return d.data;
+  return pagas.reduce((a, b) => new Date(b.dataRecebimento) > new Date(a.dataRecebimento) ? b : a).dataRecebimento;
+}
+function despesaIsAnotado(d) { return canonicalPayment(d?.pagamento || '') === 'Anotado'; }
+function despesaAnotadoPagamentos(d) {
+  const lista = d?.pagamento_detalhes?.anotadoPagamentos;
+  return Array.isArray(lista) ? lista : [];
+}
+function despesaAnotadoTotalPago(d) {
+  return round2(despesaAnotadoPagamentos(d).reduce((sum, p) => sum + (Number(p.valor) || 0), 0));
+}
+function despesaAnotadoSaldoDevedor(d) {
+  return round2((Number(d?.valor) || 0) - despesaAnotadoTotalPago(d));
+}
+function despesaAnotadoQuitado(d) {
+  return despesaAnotadoSaldoDevedor(d) <= 0.009;
+}
+function despesaCountsInTotal(d) {
+  if (despesaIsBoleto(d)) return despesaBoletoPago(d);
+  if (despesaIsAnotado(d)) return false;
+  return true;
+}
+function despesaExpenseEntries(d) {
+  if (despesaIsBoleto(d)) {
+    if (!despesaBoletoPago(d)) return [];
+    return [{ data: despesaBoletoDataFinal(d), valor: despesaBoletoValorTotal(d) }];
+  }
+  if (despesaIsAnotado(d)) {
+    return despesaAnotadoPagamentos(d)
+      .filter(p => p && p.data && (Number(p.valor) || 0) !== 0)
+      .map(p => ({ data: p.data, valor: Number(p.valor) || 0 }));
+  }
+  return [{ data: d?.data, valor: Number(d?.valor) || 0 }];
+}
+function despesaPaymentDisplay(d) {
+  const payment = canonicalPayment(d?.pagamento || '') || 'Dinheiro';
+  if (payment === 'Crédito' && d?.pagamento_detalhes?.parcelas) return `${payment} · ${d.pagamento_detalhes.parcelas}x`;
+  return payment;
+}
 function computeDespesasMensal() {
   const map = {};
   state.despesas.forEach(d => {
-    const dt = dashboardDateObj(d.data);
-    if (!dt) return;
-    const key = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
-    map[key] = (map[key] || 0) + (Number(d.valor) || 0);
+    despesaExpenseEntries(d).forEach(entry => {
+      const dt = dashboardDateObj(entry.data);
+      if (!dt) return;
+      const key = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+      map[key] = (map[key] || 0) + entry.valor;
+    });
   });
   return map;
 }
@@ -17863,16 +17999,55 @@ function renderDespesas() {
   if (mesFiltro) rows = rows.filter(d => String(d.data || '').slice(0, 7) === mesFiltro);
   if (catFiltro) rows = rows.filter(d => despesaCategoriaLabel(d) === catFiltro);
   renderDespesasChart();
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Nenhuma despesa registrada ainda.</td></tr>'; return; }
-  tbody.innerHTML = rows.map(d => `
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhuma despesa registrada ainda.</td></tr>'; return; }
+  tbody.innerHTML = rows.map(d => {
+    let pendenciaHtml = '';
+    if (despesaIsBoleto(d) && !despesaBoletoPago(d)) {
+      pendenciaHtml = `<button type="button" class="btn btn-small fin-pendencia-btn" onclick="abrirDespesaBoletoModal('${d.id}')" data-tip="Boleto ainda não está totalmente pago">Boleto pendente</button>`;
+    } else if (despesaIsAnotado(d) && !despesaAnotadoQuitado(d)) {
+      pendenciaHtml = `<button type="button" class="btn btn-small fin-pendencia-btn" onclick="abrirDespesaAnotadoModal('${d.id}')" data-tip="Faltam ${escapeHtml(fmtBR(despesaAnotadoSaldoDevedor(d)))} para quitar">Registrar pagamento</button>`;
+    }
+    return `
     <tr>
       <td data-label="Data">${fmtDate(d.data)}</td>
       <td data-label="Categoria"><span class="pill pill-blue">${escapeHtml(despesaCategoriaLabel(d))}</span></td>
       <td data-label="Descrição">${escapeHtml(d.descricao || '—')}</td>
+      <td data-label="Pagamento">${escapeHtml(despesaPaymentDisplay(d))}${pendenciaHtml ? '<br>' + pendenciaHtml : ''}</td>
       <td data-label="Valor" class="num">${fmtBR(d.valor)}</td>
       <td data-label="Ações"><div class="row-actions"><button class="btn btn-small" onclick="openDespesaModal('${d.id}')">Editar</button></div></td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
+}
+function toggleDespesaPaymentFields() {
+  const pagamento = document.getElementById('desp-pagamento')?.value || '';
+  const creditoRow = document.getElementById('desp-credito-row');
+  const boletoRow = document.getElementById('desp-boleto-row');
+  const anotadoAviso = document.getElementById('desp-anotado-aviso');
+  if (creditoRow) creditoRow.classList.toggle('hidden', pagamento !== 'Crédito');
+  if (boletoRow) boletoRow.classList.toggle('hidden', pagamento !== 'Boleto');
+  if (anotadoAviso) anotadoAviso.classList.toggle('hidden', pagamento !== 'Anotado');
+  if (pagamento === 'Boleto') renderDespesaBoletoParcelasCampos();
+}
+function renderDespesaBoletoParcelasCampos(parcelasExistentes) {
+  const n = Math.max(1, parseInt(document.getElementById('desp-boleto-parcelas')?.value, 10) || 1);
+  const el = document.getElementById('desp-boleto-parcelas-campos');
+  if (!el) return;
+  const valorTotal = parseFloat((document.getElementById('desp-valor')?.value || '0').replace(',', '.')) || 0;
+  const valorParcelaPadrao = round2(valorTotal / n);
+  let html = '';
+  for (let i = 0; i < n; i++) {
+    const existente = (parcelasExistentes || [])[i];
+    const venc = existente?.vencimento || '';
+    const val = existente?.valor != null ? existente.valor : valorParcelaPadrao;
+    html += '<div class="form-row form-r2" style="margin-bottom:0">' +
+      '<div><label class="form-label">Vencimento' + (n > 1 ? ' — parcela ' + (i + 1) + '/' + n : '') + '</label>' +
+      '<input type="date" class="form-input desp-boleto-parcela-vencimento" value="' + escapeHtml(venc) + '"></div>' +
+      '<div><label class="form-label">Valor desta parcela (R$)</label>' +
+      '<input type="number" class="form-input desp-boleto-parcela-valor" step="0.01" value="' + val + '"></div>' +
+    '</div>';
+  }
+  el.innerHTML = html;
 }
 function openDespesaModal(id) {
   const despesa = id ? state.despesas.find(d => String(d.id) === String(id)) : null;
@@ -17883,6 +18058,12 @@ function openDespesaModal(id) {
   document.getElementById('desp-categoria').value = despesa ? despesa.categoria : 'Matéria-prima / Insumos';
   document.getElementById('desp-categoria-outro').value = despesa ? (despesa.categoria_outro || '') : '';
   document.getElementById('desp-categoria-outro-wrap').classList.toggle('hidden', !despesa || despesa.categoria !== 'Outro');
+  document.getElementById('desp-pagamento').value = despesa ? (despesa.pagamento || 'Dinheiro') : 'Dinheiro';
+  document.getElementById('desp-parcelas').value = despesa?.pagamento_detalhes?.parcelas || '';
+  const parcelasBoleto = despesa ? despesaBoletoParcelas(despesa) : [];
+  document.getElementById('desp-boleto-parcelas').value = parcelasBoleto.length || 1;
+  toggleDespesaPaymentFields();
+  if (despesa && despesaIsBoleto(despesa)) renderDespesaBoletoParcelasCampos(parcelasBoleto);
   document.getElementById('desp-descricao').value = despesa ? (despesa.descricao || '') : '';
   document.getElementById('desp-excluir-btn').style.display = despesa ? '' : 'none';
   document.getElementById('modal-despesa').classList.add('show');
@@ -17896,9 +18077,36 @@ async function salvarDespesa() {
   const categoria = document.getElementById('desp-categoria').value;
   const categoriaOutro = document.getElementById('desp-categoria-outro').value.trim() || null;
   const descricao = document.getElementById('desp-descricao').value.trim() || null;
+  const pagamento = document.getElementById('desp-pagamento').value;
   if (!data) { alert('Informe a data da despesa.'); return; }
   if (valor <= 0) { alert('Informe um valor maior que zero.'); return; }
-  const row = { data, valor, categoria, categoria_outro: categoria === 'Outro' ? categoriaOutro : null, descricao, atualizado_em: new Date().toISOString() };
+
+  const pagamentoDetalhes = {};
+  const despesaAtual = id ? state.despesas.find(d => String(d.id) === String(id)) : null;
+  if (despesaAtual?.pagamento_detalhes?.anotadoPagamentos) pagamentoDetalhes.anotadoPagamentos = despesaAtual.pagamento_detalhes.anotadoPagamentos;
+  if (pagamento === 'Crédito') {
+    const parcelas = parseInt(document.getElementById('desp-parcelas').value, 10);
+    if (!parcelas || parcelas < 1) { alert('Informe em quantas vezes será o crédito.'); return; }
+    pagamentoDetalhes.parcelas = parcelas;
+  }
+  if (pagamento === 'Boleto') {
+    const vencimentoInputs = Array.from(document.querySelectorAll('.desp-boleto-parcela-vencimento'));
+    const valorInputs = Array.from(document.querySelectorAll('.desp-boleto-parcela-valor'));
+    if (!vencimentoInputs.length || vencimentoInputs.some(inp => !inp.value)) { alert('Informe a data de vencimento de todas as parcelas do boleto.'); return; }
+    const parcelasAnteriores = despesaAtual ? despesaBoletoParcelas(despesaAtual) : [];
+    pagamentoDetalhes.parcelasBoleto = vencimentoInputs.map((inp, i) => {
+      const anterior = parcelasAnteriores[i] || {};
+      return {
+        numero: i + 1,
+        valor: parseFloat(valorInputs[i]?.value) || 0,
+        vencimento: inp.value,
+        pago: Boolean(anterior.pago),
+        dataRecebimento: anterior.dataRecebimento || null
+      };
+    });
+  }
+
+  const row = { data, valor, categoria, categoria_outro: categoria === 'Outro' ? categoriaOutro : null, descricao, pagamento, pagamento_detalhes: pagamentoDetalhes, atualizado_em: new Date().toISOString() };
   const { error } = id
     ? await client.from('crm_despesas').update(row).eq('id', id)
     : await client.from('crm_despesas').insert(row);
@@ -17916,6 +18124,114 @@ async function excluirDespesa() {
   if (error) { alert('Não consegui excluir a despesa: ' + error.message); return; }
   document.getElementById('modal-despesa').classList.remove('show');
   await renderFinanceiro();
+}
+
+// ---- Boleto de despesa (mesma regra do Boleto de venda: só entra na Evolução mensal
+// quando todas as parcelas estiverem pagas) ----
+function abrirDespesaBoletoModal(despesaId) {
+  const d = state.despesas.find(x => String(x.id) === String(despesaId));
+  if (!d) return;
+  document.getElementById('db-id').value = d.id;
+  const parcelas = despesaBoletoParcelas(d);
+  document.getElementById('db-lista').innerHTML = parcelas.map((p, idx) => `
+    <div class="form-row form-r3" style="align-items:flex-end;margin-bottom:8px;">
+      <div><label class="form-label">Parcela ${idx + 1}${parcelas.length > 1 ? '/' + parcelas.length : ''}</label><div style="padding-top:4px;">${fmtBR(p.valor)} — vence ${fmtDate(p.vencimento)}</div></div>
+      <div><label class="form-label">Paga?</label>
+        <select class="form-input db-parcela-pago" data-idx="${idx}">
+          <option value="nao" ${!p.pago ? 'selected' : ''}>Não</option>
+          <option value="sim" ${p.pago ? 'selected' : ''}>Sim</option>
+        </select>
+      </div>
+      <div><label class="form-label">Data do pagamento</label><input type="date" class="form-input db-parcela-data" data-idx="${idx}" value="${p.dataRecebimento ? String(p.dataRecebimento).slice(0, 10) : ''}"></div>
+    </div>
+  `).join('');
+  document.getElementById('modal-despesa-boleto').classList.add('show');
+}
+async function salvarParcelasDespesaBoleto() {
+  const id = document.getElementById('db-id').value;
+  const d = state.despesas.find(x => String(x.id) === String(id));
+  if (!d) return;
+  const client = requireSupabaseSession();
+  if (!client) return;
+  const parcelasAtuais = despesaBoletoParcelas(d);
+  const pagoSelects = Array.from(document.querySelectorAll('.db-parcela-pago'));
+  const dataInputs = Array.from(document.querySelectorAll('.db-parcela-data'));
+  const novasParcelas = parcelasAtuais.map((p, idx) => {
+    const pago = pagoSelects[idx]?.value === 'sim';
+    const dataRecebimento = dataInputs[idx]?.value || null;
+    if (pago && !dataRecebimento) return null;
+    return { ...p, pago, dataRecebimento: pago ? dataRecebimento : null };
+  });
+  if (novasParcelas.some(p => p === null)) { alert('Informe a data do pagamento das parcelas marcadas como pagas.'); return; }
+  const pagamentoDetalhes = { ...(d.pagamento_detalhes || {}), parcelasBoleto: novasParcelas };
+  const { error } = await client.from('crm_despesas').update({ pagamento_detalhes: pagamentoDetalhes, atualizado_em: new Date().toISOString() }).eq('id', id);
+  if (error) { alert('Não consegui salvar as parcelas: ' + error.message); return; }
+  d.pagamento_detalhes = pagamentoDetalhes;
+  document.getElementById('modal-despesa-boleto').classList.remove('show');
+  renderEvolucaoMensal();
+  renderDespesas();
+}
+
+// ---- Despesa anotada (mesma regra do Anotado de venda: cada pagamento entra no mês em
+// que foi de fato pago, a despesa some da lista de pendências só quando quitada) ----
+function abrirDespesaAnotadoModal(despesaId) {
+  const d = state.despesas.find(x => String(x.id) === String(despesaId));
+  if (!d) return;
+  document.getElementById('da-id').value = d.id;
+  document.getElementById('da-valor').textContent = fmtBR(d.valor);
+  document.getElementById('da-novo-valor').value = '';
+  document.getElementById('da-novo-data').value = isoToday();
+  daRenderPagamentos(d);
+  document.getElementById('modal-despesa-anotado').classList.add('show');
+}
+function daRenderPagamentos(d) {
+  const pagamentos = despesaAnotadoPagamentos(d);
+  document.getElementById('da-pago').textContent = fmtBR(despesaAnotadoTotalPago(d));
+  document.getElementById('da-saldo').textContent = fmtBR(despesaAnotadoSaldoDevedor(d));
+  const lista = document.getElementById('da-lista');
+  if (!pagamentos.length) { lista.innerHTML = '<div class="form-help">Nenhum pagamento registrado ainda.</div>'; return; }
+  lista.innerHTML = pagamentos.map((p, idx) => `
+    <div class="an-pagamento-row">
+      <span>${fmtDate(p.data)}</span>
+      <span class="num">${fmtBR(p.valor)}</span>
+      <button type="button" class="btn btn-small btn-danger" onclick="removerPagamentoDespesaAnotada('${d.id}', ${idx})" data-tip="Remover este pagamento">Remover</button>
+    </div>
+  `).join('');
+}
+async function salvarPagamentosDespesaAnotada(d, pagamentos) {
+  const client = requireSupabaseSession();
+  if (!client) return false;
+  const pagamentoDetalhes = { ...(d.pagamento_detalhes || {}), anotadoPagamentos: pagamentos };
+  const { error } = await client.from('crm_despesas').update({ pagamento_detalhes: pagamentoDetalhes, atualizado_em: new Date().toISOString() }).eq('id', d.id);
+  if (error) { alert('Não consegui atualizar o pagamento: ' + error.message); return false; }
+  d.pagamento_detalhes = pagamentoDetalhes;
+  return true;
+}
+async function adicionarPagamentoDespesaAnotada() {
+  const id = document.getElementById('da-id').value;
+  const d = state.despesas.find(x => String(x.id) === String(id));
+  if (!d) return;
+  const valor = parseFloat((document.getElementById('da-novo-valor').value || '0').replace(',', '.')) || 0;
+  const data = document.getElementById('da-novo-data').value || isoToday();
+  if (valor <= 0) { alert('Informe um valor de pagamento maior que zero.'); return; }
+  const pagamentos = [...despesaAnotadoPagamentos(d), { valor: round2(valor), data }];
+  const ok = await salvarPagamentosDespesaAnotada(d, pagamentos);
+  if (!ok) return;
+  document.getElementById('da-novo-valor').value = '';
+  daRenderPagamentos(d);
+  renderEvolucaoMensal();
+  renderDespesas();
+}
+async function removerPagamentoDespesaAnotada(despesaId, idx) {
+  const d = state.despesas.find(x => String(x.id) === String(despesaId));
+  if (!d) return;
+  if (!confirm('Remover este pagamento?')) return;
+  const pagamentos = despesaAnotadoPagamentos(d).filter((_, i) => i !== idx);
+  const ok = await salvarPagamentosDespesaAnotada(d, pagamentos);
+  if (!ok) return;
+  daRenderPagamentos(d);
+  renderEvolucaoMensal();
+  renderDespesas();
 }
 
 function computeMensal() {
@@ -31742,6 +32058,12 @@ body.theme-dark .fin-lucro-final.fin-lucro-neg { background: rgba(216,108,108,.1
 .fin-cat-rank-value { color: var(--text-2); white-space: nowrap; }
 .fin-cat-rank-bar { height: 6px; border-radius: 999px; background: var(--surface-2, #eef3f7); overflow: hidden; }
 .fin-cat-rank-bar-fill { height: 100%; border-radius: 999px; }
+
+/* --- FINANCEIRO: aviso de pendência (boleto/anotado) na tabela de Despesas --- */
+.fin-pendencia-btn { margin-top: 4px; font-size: 11px !important; font-weight: 700 !important; background: #FBF1DD !important; color: #8A5800 !important; border: 1px solid #F0DBA9 !important; }
+.fin-pendencia-btn:hover { background: #F5E6C4 !important; }
+body.theme-dark .fin-pendencia-btn { background: rgba(224,163,62,.18) !important; color: #E7B765 !important; border-color: rgba(224,163,62,.42) !important; }
+body.theme-dark .fin-pendencia-btn:hover { background: rgba(224,163,62,.28) !important; }
 
 /* ================= v20: tags de AROMA coloridas (suaves) na tabela de Vendas ================= */
 .pill-aroma { border: 1px solid transparent !important; font-weight: 600 !important; }
