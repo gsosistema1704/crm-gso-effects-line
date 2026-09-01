@@ -11846,6 +11846,10 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 	      <span class="client-alert-badge hidden" id="clientAlertBadge">0</span>
 	      <span class="client-alert-bubble hidden" id="clientAlertBubble"></span>
 	    </div>
+	    <div class="nav-item" data-view="financeiro" data-label="Financeiro" onclick="navTo('financeiro')">
+	      <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5v7M10 6.2c0-.9-.9-1.7-2-1.7s-2 .7-2 1.6c0 2 4 1 4 3 0 .9-.9 1.6-2 1.6s-2-.8-2-1.7"/></svg>
+	      <span class="nav-label">Financeiro</span>
+	    </div>
 	    <div class="sb-section">CATÁLOGO</div>
     <div class="nav-item" data-view="produtos" data-label="Produtos" onclick="navTo('produtos')">
       <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l6 3v8l-6 3-6-3V4z"/><path d="M2 4l6 3 6-3M8 7v8"/></svg>
@@ -13447,14 +13451,15 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 	      <div id="relatorios-main" class="relatorios-pro hidden">
         <div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button class="btn" onclick="exportarRelatorioPDF()">Exportar PDF</button></div>
 
-        <div class="card data-card" style="margin-bottom:14px;">
-          <div class="card-h">
-            <div>
-              <div class="card-title">Segmentos de clientes</div>
-              <div class="card-sub">Clique num segmento para ver a estratégia sugerida e contatar os clientes dele</div>
-            </div>
+        <div class="intel-grid cols-2" style="margin-bottom:14px;">
+          <div class="card">
+            <div class="card-title">Faturamento por mês</div><div class="card-sub">Evolução mensal registrada</div>
+            <div class="intel-chart-wrap intel-chart-wrap-sm"><canvas id="intel-chart-mensal"></canvas></div>
           </div>
-          <div class="intel-grid cols-auto" id="rel-segmentos-cards"></div>
+          <div class="card">
+            <div class="card-title">Mix de pagamento</div><div class="card-sub">Faturamento por forma de pagamento</div>
+            <div class="intel-chart-wrap intel-chart-wrap-sm"><canvas id="intel-chart-pgto"></canvas></div>
+          </div>
         </div>
 
         <div class="report-kpi-grid">
@@ -13623,6 +13628,45 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           </table>
         </div>
 	      </div>
+    </div>
+
+    <!-- ============ FINANCEIRO ============ -->
+    <div id="view-financeiro" class="hidden">
+      <div class="header">
+        <div>
+          <div class="h-title">Financeiro</div>
+          <div class="h-sub">Evolução mensal de receita, despesas e lucro</div>
+        </div>
+        <div class="h-actions"><button class="btn btn-primary" onclick="openDespesaModal()">+ Nova despesa</button></div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Evolução mensal</div>
+        <div class="card-sub">Receita já conta boleto/anotado só quando pago — cada mês comparado com o anterior</div>
+        <div style="overflow-x:auto;margin-top:12px;">
+          <table class="intel-table" id="fin-evolucao-table">
+            <thead><tr><th>Mês</th><th class="num">Receita</th><th class="num">Despesas</th><th class="num">Lucro</th><th class="num">Variação</th></tr></thead>
+            <tbody id="fin-evolucao-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div><div class="card-title">Despesas</div><div class="card-sub">Gastos do negócio — dia, valor e categoria</div></div>
+        </div>
+        <div class="search" style="margin-top:12px;">
+          <input class="input" id="fin-desp-busca" placeholder="Buscar por categoria ou descrição..." oninput="renderDespesas()">
+          <select class="input" id="fin-desp-mes" onchange="renderDespesas()"><option value="">Todos os meses</option></select>
+          <select class="input" id="fin-desp-categoria" onchange="renderDespesas()"><option value="">Todas as categorias</option></select>
+        </div>
+        <div style="overflow-x:auto;margin-top:12px;">
+          <table class="stack-table" id="fin-desp-table-el">
+            <thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th class="num">Valor</th><th>Ações</th></tr></thead>
+            <tbody id="fin-desp-table"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -14233,6 +14277,120 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div class="form-actions">
       <button class="btn" onclick="document.getElementById('modal-boleto-venda').classList.remove('show')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarMultaJurosParcelaBoleto()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL VENDA ANOTADA (pagamentos parciais) ============ -->
+<div class="modal-bg" id="modal-anotado-venda">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Venda anotada</div>
+    <input type="hidden" id="an-id">
+    <div class="form-row form-r2">
+      <div>
+        <label class="form-label">Cliente</label>
+        <div id="an-cliente" style="font-weight:600;padding-top:4px"></div>
+      </div>
+      <div>
+        <label class="form-label">Dia da venda</label>
+        <div id="an-data" style="padding-top:4px"></div>
+      </div>
+    </div>
+    <div class="form-row form-r2">
+      <div>
+        <label class="form-label">Produto</label>
+        <div id="an-produto" style="padding-top:4px"></div>
+      </div>
+      <div>
+        <label class="form-label">Status</label>
+        <div id="an-status" style="padding-top:4px"></div>
+      </div>
+    </div>
+    <div class="form-row form-r3">
+      <div>
+        <label class="form-label">Valor total</label>
+        <div id="an-valor" style="font-weight:600;padding-top:4px"></div>
+      </div>
+      <div>
+        <label class="form-label">Pago até agora</label>
+        <div id="an-pago" style="font-weight:600;padding-top:4px"></div>
+      </div>
+      <div>
+        <label class="form-label">Saldo devedor</label>
+        <div id="an-saldo" style="font-weight:700;padding-top:4px"></div>
+      </div>
+    </div>
+    <div class="form-help" style="margin-top:4px;margin-bottom:4px">Pagamentos registrados</div>
+    <div id="an-lista" style="margin-bottom:10px"></div>
+    <div class="form-row form-r2" style="align-items:flex-end;">
+      <div>
+        <label class="form-label">Valor pago agora (R$)</label>
+        <input type="text" class="form-input" inputmode="decimal" id="an-novo-valor" placeholder="0,00">
+      </div>
+      <div>
+        <label class="form-label">Dia do pagamento</label>
+        <input type="date" class="form-input" id="an-novo-data">
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:6px;">
+      <button class="btn btn-primary" onclick="adicionarPagamentoAnotado()" style="width:100%;">+ Registrar este pagamento</button>
+    </div>
+    <div class="form-help" style="margin-top:8px">Cada pagamento entra no faturamento no mês em que foi registrado — não no mês da venda. A venda some da lista de anotados só quando o saldo devedor chegar a zero.</div>
+    <div class="form-actions">
+      <button class="btn" onclick="document.getElementById('modal-anotado-venda').classList.remove('show')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL DESPESA (Financeiro) ============ -->
+<div class="modal-bg" id="modal-despesa">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title" id="modal-despesa-title">Nova despesa</div>
+    <input type="hidden" id="desp-id">
+    <div class="form-row form-r2">
+      <div>
+        <label class="form-label">Data</label>
+        <input type="date" class="form-input" id="desp-data">
+      </div>
+      <div>
+        <label class="form-label">Valor (R$)</label>
+        <input type="text" class="form-input" inputmode="decimal" id="desp-valor" placeholder="0,00">
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label class="form-label">Categoria</label>
+        <select class="form-input" id="desp-categoria" onchange="document.getElementById('desp-categoria-outro-wrap').classList.toggle('hidden', this.value !== 'Outro')">
+          <option value="Matéria-prima / Insumos">Matéria-prima / Insumos</option>
+          <option value="Embalagens">Embalagens</option>
+          <option value="Frete / Transporte">Frete / Transporte</option>
+          <option value="Marketing / Anúncios">Marketing / Anúncios</option>
+          <option value="Aluguel">Aluguel</option>
+          <option value="Energia / Água / Internet">Energia / Água / Internet</option>
+          <option value="Salários / Pró-labore">Salários / Pró-labore</option>
+          <option value="Impostos / Taxas">Impostos / Taxas</option>
+          <option value="Manutenção / Equipamentos">Manutenção / Equipamentos</option>
+          <option value="Contabilidade">Contabilidade</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row hidden" id="desp-categoria-outro-wrap">
+      <div>
+        <label class="form-label">Qual categoria?</label>
+        <input type="text" class="form-input" id="desp-categoria-outro">
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label class="form-label">Descrição (opcional)</label>
+        <input type="text" class="form-input" id="desp-descricao" placeholder="Ex: compra de garrafas 5L">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-danger" id="desp-excluir-btn" onclick="excluirDespesa()" style="display:none;">Excluir</button>
+      <button class="btn" onclick="document.getElementById('modal-despesa').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarDespesa()">Salvar</button>
     </div>
   </div>
 </div>
@@ -16547,6 +16705,7 @@ async function cleanupCatalogProductsInSupabase() {
 }
 
 let state = STORE.load();
+state.despesas = []; // Financeiro — carregado sob demanda direto do Supabase (loadDespesas), sem cache local
 
 // ============ DADOS IMPORTADOS DO EXCEL REVISADO ============
 const GSO_IMPORTED_DATA_VERSION = "limpo-sem-vendas-clientes-20260630";
@@ -16694,6 +16853,10 @@ function paymentDisplay(venda) {
   if (payment === 'Boleto') {
     const venc = saleBoletoVencimento(venda);
     if (venc) return `${payment} · vence ${fmtDate(venc)}`;
+  }
+  if (payment === 'Anotado') {
+    if (typeof saleAnotadoQuitado === 'function' && saleAnotadoQuitado(venda)) return `${payment} · quitado`;
+    if (typeof saleAnotadoSaldoDevedor === 'function') return `${payment} · saldo ${fmtBR(saleAnotadoSaldoDevedor(venda))}`;
   }
   return payment || venda.pagamento || '—';
 }
@@ -17176,7 +17339,7 @@ function showApp() {
 }
 
 // ============ NAVEGAÇÃO ============
-const VIEWS = ['vendas','lojista','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','calculadora','mercadolivre','laboratorio','cotacoes','inteligencia','config','perfil','nova'];
+const VIEWS = ['vendas','lojista','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','calculadora','mercadolivre','laboratorio','cotacoes','inteligencia','financeiro','config','perfil','nova'];
 function applySidebarPreference() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
@@ -17276,6 +17439,7 @@ function navTo(view) {
   }
   if (view === 'mensagens') renderMensagens();
   if (view === 'inteligencia') renderInteligencia();
+  if (view === 'financeiro') renderFinanceiro();
   if (view === 'config') renderConfig();
   if (view === 'perfil') renderPerfil();
   if (view === 'nova') { if (editingVendaId) initEditVenda(editingVendaId); else initNova(); }
@@ -17410,14 +17574,152 @@ function computeLojistasParaClientes() {
   }).sort((a, b) => b.total - a.total);
 }
 
+// ============ FINANCEIRO (Despesas + evolução mensal) ============
+async function loadDespesas() {
+  const client = getSupabaseClient();
+  const session = await getSupabaseSession();
+  if (!client || !session) { state.despesas = []; return state.despesas; }
+  const { data, error } = await client.from('crm_despesas').select('*').order('data', { ascending: false });
+  if (error) { console.error(error); state.despesas = []; return state.despesas; }
+  state.despesas = data || [];
+  return state.despesas;
+}
+function despesaCategoriaLabel(d) {
+  return d.categoria === 'Outro' ? (d.categoria_outro || 'Outro') : d.categoria;
+}
+function computeDespesasMensal() {
+  const map = {};
+  state.despesas.forEach(d => {
+    const dt = dashboardDateObj(d.data);
+    if (!dt) return;
+    const key = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+    map[key] = (map[key] || 0) + (Number(d.valor) || 0);
+  });
+  return map;
+}
+async function renderFinanceiro() {
+  await loadDespesas();
+  renderEvolucaoMensal();
+  const mesSel = document.getElementById('fin-desp-mes');
+  if (mesSel) {
+    const atual = mesSel.value;
+    const meses = [...new Set(state.despesas.map(d => String(d.data || '').slice(0, 7)).filter(Boolean))].sort().reverse();
+    mesSel.innerHTML = '<option value="">Todos os meses</option>' + meses.map(m => `<option value="${m}" ${m === atual ? 'selected' : ''}>${reportMonthLabel(m)}</option>`).join('');
+  }
+  const catSel = document.getElementById('fin-desp-categoria');
+  if (catSel) {
+    const atual = catSel.value;
+    const cats = [...new Set(state.despesas.map(despesaCategoriaLabel).filter(Boolean))].sort();
+    catSel.innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => `<option value="${escapeHtml(c)}" ${c === atual ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
+  }
+  renderDespesas();
+}
+function renderEvolucaoMensal() {
+  const body = document.getElementById('fin-evolucao-body');
+  if (!body) return;
+  const receitaMap = {}; computeMensal().forEach(m => { receitaMap[m.mes] = m.fat; });
+  const despesaMap = computeDespesasMensal();
+  const meses = [...new Set([...Object.keys(receitaMap), ...Object.keys(despesaMap)])].sort();
+  if (!meses.length) { body.innerHTML = '<tr><td colspan="5" class="table-empty">Sem dados ainda.</td></tr>'; return; }
+  let lucroAnterior = null;
+  body.innerHTML = meses.map(mes => {
+    const receita = receitaMap[mes] || 0;
+    const despesa = despesaMap[mes] || 0;
+    const lucro = round2(receita - despesa);
+    let variacaoHtml = '<span style="color:var(--text-2,#8A8A8A)">—</span>';
+    if (lucroAnterior !== null) {
+      if (lucroAnterior === 0) {
+        variacaoHtml = lucro > 0 ? '<span class="pill pill-green">novo</span>' : (lucro < 0 ? '<span class="pill pill-red">novo</span>' : '—');
+      } else {
+        const pct = round2(((lucro - lucroAnterior) / Math.abs(lucroAnterior)) * 100);
+        const sinal = pct > 0 ? '+' : '';
+        variacaoHtml = `<span class="pill ${pct > 0 ? 'pill-green' : (pct < 0 ? 'pill-red' : 'pill-blue')}">${sinal}${pct}%</span>`;
+      }
+    }
+    lucroAnterior = lucro;
+    return `<tr>
+      <td class="strong">${reportMonthLabel(mes)}</td>
+      <td class="num">${fmtBR(receita)}</td>
+      <td class="num">${fmtBR(despesa)}</td>
+      <td class="num strong">${fmtBR(lucro)}</td>
+      <td class="num">${variacaoHtml}</td>
+    </tr>`;
+  }).join('');
+}
+function renderDespesas() {
+  const tbody = document.getElementById('fin-desp-table');
+  if (!tbody) return;
+  const term = nameKey(document.getElementById('fin-desp-busca')?.value || '');
+  const mesFiltro = document.getElementById('fin-desp-mes')?.value || '';
+  const catFiltro = document.getElementById('fin-desp-categoria')?.value || '';
+  let rows = [...state.despesas];
+  if (term) rows = rows.filter(d => nameKey(despesaCategoriaLabel(d) + ' ' + (d.descricao || '')).includes(term));
+  if (mesFiltro) rows = rows.filter(d => String(d.data || '').slice(0, 7) === mesFiltro);
+  if (catFiltro) rows = rows.filter(d => despesaCategoriaLabel(d) === catFiltro);
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Nenhuma despesa registrada ainda.</td></tr>'; return; }
+  tbody.innerHTML = rows.map(d => `
+    <tr>
+      <td data-label="Data">${fmtDate(d.data)}</td>
+      <td data-label="Categoria"><span class="pill pill-blue">${escapeHtml(despesaCategoriaLabel(d))}</span></td>
+      <td data-label="Descrição">${escapeHtml(d.descricao || '—')}</td>
+      <td data-label="Valor" class="num">${fmtBR(d.valor)}</td>
+      <td data-label="Ações"><div class="row-actions"><button class="btn btn-small" onclick="openDespesaModal('${d.id}')">Editar</button></div></td>
+    </tr>
+  `).join('');
+}
+function openDespesaModal(id) {
+  const despesa = id ? state.despesas.find(d => String(d.id) === String(id)) : null;
+  document.getElementById('modal-despesa-title').textContent = despesa ? 'Editar despesa' : 'Nova despesa';
+  document.getElementById('desp-id').value = despesa ? despesa.id : '';
+  document.getElementById('desp-data').value = despesa ? String(despesa.data).slice(0, 10) : isoToday();
+  document.getElementById('desp-valor').value = despesa ? String(despesa.valor).replace('.', ',') : '';
+  document.getElementById('desp-categoria').value = despesa ? despesa.categoria : 'Matéria-prima / Insumos';
+  document.getElementById('desp-categoria-outro').value = despesa ? (despesa.categoria_outro || '') : '';
+  document.getElementById('desp-categoria-outro-wrap').classList.toggle('hidden', !despesa || despesa.categoria !== 'Outro');
+  document.getElementById('desp-descricao').value = despesa ? (despesa.descricao || '') : '';
+  document.getElementById('desp-excluir-btn').style.display = despesa ? '' : 'none';
+  document.getElementById('modal-despesa').classList.add('show');
+}
+async function salvarDespesa() {
+  const client = requireSupabaseSession();
+  if (!client) return;
+  const id = document.getElementById('desp-id').value;
+  const data = document.getElementById('desp-data').value;
+  const valor = parseFloat((document.getElementById('desp-valor').value || '0').replace(',', '.')) || 0;
+  const categoria = document.getElementById('desp-categoria').value;
+  const categoriaOutro = document.getElementById('desp-categoria-outro').value.trim() || null;
+  const descricao = document.getElementById('desp-descricao').value.trim() || null;
+  if (!data) { alert('Informe a data da despesa.'); return; }
+  if (valor <= 0) { alert('Informe um valor maior que zero.'); return; }
+  const row = { data, valor, categoria, categoria_outro: categoria === 'Outro' ? categoriaOutro : null, descricao, atualizado_em: new Date().toISOString() };
+  const { error } = id
+    ? await client.from('crm_despesas').update(row).eq('id', id)
+    : await client.from('crm_despesas').insert(row);
+  if (error) { alert('Não consegui salvar a despesa: ' + error.message); return; }
+  document.getElementById('modal-despesa').classList.remove('show');
+  await renderFinanceiro();
+}
+async function excluirDespesa() {
+  const id = document.getElementById('desp-id').value;
+  if (!id) return;
+  if (!confirm('Excluir esta despesa?')) return;
+  const client = requireSupabaseSession();
+  if (!client) return;
+  const { error } = await client.from('crm_despesas').delete().eq('id', id);
+  if (error) { alert('Não consegui excluir a despesa: ' + error.message); return; }
+  document.getElementById('modal-despesa').classList.remove('show');
+  await renderFinanceiro();
+}
+
 function computeMensal() {
   const map = {};
   state.vendas.forEach(v => {
-    if (!saleCountsInRevenue(v)) return;
-    const d = dashboardDateObj(saleRevenueDate(v));
-    if (!d) return;
-    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    map[key] = (map[key] || 0) + (saleIsBoleto(v) ? saleBoletoValorTotal(v) : (parseFloat(v.valor) || 0));
+    saleRevenueEntries(v).forEach(entry => {
+      const d = dashboardDateObj(entry.data);
+      if (!d) return;
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      map[key] = (map[key] || 0) + entry.valor;
+    });
   });
   return Object.keys(map).sort().map(k => ({ mes: k, fat: map[k] }));
 }
@@ -17539,8 +17841,46 @@ function saleBoletoPago(venda) {
   const parcelas = saleBoletoParcelas(venda);
   return parcelas.length > 0 && parcelas.every(p => p.pago);
 }
+// "Anotado" — venda que fica pendente até ser paga, podendo ser paga aos poucos, em datas
+// diferentes (ex.: metade num mês, o resto no mês seguinte). Cada pagamento registrado entra
+// no faturamento no mês em que ele foi feito — nunca no mês da venda em si.
+function saleIsAnotado(venda) {
+  return canonicalPayment(venda?.pagamento || '') === 'Anotado';
+}
+function saleAnotadoPagamentos(venda) {
+  const lista = venda?.pagamentoDetalhes?.anotadoPagamentos;
+  return Array.isArray(lista) ? lista : [];
+}
+function saleAnotadoTotalPago(venda) {
+  return round2(saleAnotadoPagamentos(venda).reduce((sum, p) => sum + (Number(p.valor) || 0), 0));
+}
+function saleAnotadoSaldoDevedor(venda) {
+  return round2((Number(venda?.valor) || 0) - saleAnotadoTotalPago(venda));
+}
+function saleAnotadoQuitado(venda) {
+  return saleAnotadoSaldoDevedor(venda) <= 0.009;
+}
 function saleCountsInRevenue(venda) {
-  return !saleIsBoleto(venda) || saleBoletoPago(venda);
+  if (saleIsBoleto(venda)) return saleBoletoPago(venda);
+  if (saleIsAnotado(venda)) return false; // conta via saleRevenueEntries, por pagamento — nunca como valor único
+  return true;
+}
+// Lista de {data, valor} — como o valor desta venda deve entrar no faturamento ao longo do
+// tempo. Venda normal: uma entrada, na data da venda. Boleto: uma entrada (o total), só quando
+// todas as parcelas estiverem pagas. Anotado: uma entrada por pagamento já registrado, cada
+// uma na sua própria data — por isso uma venda anotada paga em partes pode contar em vários
+// meses diferentes.
+function saleRevenueEntries(venda) {
+  if (saleIsBoleto(venda)) {
+    if (!saleBoletoPago(venda)) return [];
+    return [{ data: saleRevenueDate(venda), valor: saleBoletoValorTotal(venda) }];
+  }
+  if (saleIsAnotado(venda)) {
+    return saleAnotadoPagamentos(venda)
+      .filter(p => p && p.data && (Number(p.valor) || 0) !== 0)
+      .map(p => ({ data: p.data, valor: Number(p.valor) || 0 }));
+  }
+  return [{ data: venda?.data, valor: Number(venda?.valor) || 0 }];
 }
 // Valor final do boleto já somando multa/juros manuais de todas as parcelas — é esse
 // total que conta como "pago" quando todas as parcelas são confirmadas.
@@ -17668,6 +18008,80 @@ async function salvarMultaJurosParcelaBoleto() {
   parcelas[idx] = { ...parcelas[idx], multa, juros, vencimento, dataRecebimento: recebimento };
   document.getElementById('modal-boleto-venda').classList.remove('show');
   await salvarParcelasBoleto(venda, parcelas);
+}
+
+async function salvarPagamentosAnotado(venda, pagamentos) {
+  const client = requireSupabaseSession();
+  if (!client) return false;
+  const anterior = venda.pagamentoDetalhes;
+  venda.pagamentoDetalhes = { ...(venda.pagamentoDetalhes || {}), anotadoPagamentos: pagamentos };
+  const row = saleToRow(venda);
+  const { error } = await client.from('crm_vendas').update({ metadata: row.metadata }).eq('id', venda.id);
+  if (error) {
+    venda.pagamentoDetalhes = anterior;
+    alert('Não consegui atualizar o pagamento anotado: ' + error.message);
+    return false;
+  }
+  try { localStorage.setItem('gso_vendas', JSON.stringify(state.vendas)); } catch (e) {}
+  if (typeof renderInteligencia === 'function') renderInteligencia();
+  if (typeof renderVendas === 'function' && !document.getElementById('view-vendas')?.classList.contains('hidden')) renderVendas();
+  return true;
+}
+
+function abrirAnotadoModal(vendaId) {
+  const venda = state.vendas.find(v => String(v.id) === String(vendaId));
+  if (!venda) return;
+  document.getElementById('an-id').value = venda.id;
+  document.getElementById('an-cliente').textContent = venda.cliente || '—';
+  document.getElementById('an-data').textContent = fmtDate(venda.data);
+  document.getElementById('an-produto').textContent = venda.produto || '—';
+  document.getElementById('an-valor').textContent = fmtBR(venda.valor);
+  document.getElementById('an-novo-valor').value = '';
+  document.getElementById('an-novo-data').value = isoToday();
+  anRenderPagamentos(venda);
+  document.getElementById('modal-anotado-venda').classList.add('show');
+}
+function anRenderPagamentos(venda) {
+  const pagamentos = saleAnotadoPagamentos(venda);
+  const pago = saleAnotadoTotalPago(venda);
+  const saldo = saleAnotadoSaldoDevedor(venda);
+  document.getElementById('an-pago').textContent = fmtBR(pago);
+  document.getElementById('an-saldo').textContent = fmtBR(saldo);
+  document.getElementById('an-status').innerHTML = saleAnotadoQuitado(venda) ? '<span class="pill pill-green">Quitado</span>' : '<span class="pill pill-amber">Pendente</span>';
+  const lista = document.getElementById('an-lista');
+  if (!pagamentos.length) {
+    lista.innerHTML = '<div class="form-help">Nenhum pagamento registrado ainda.</div>';
+    return;
+  }
+  lista.innerHTML = pagamentos.map((p, idx) => `
+    <div class="an-pagamento-row">
+      <span>${fmtDate(p.data)}</span>
+      <span class="num">${fmtBR(p.valor)}</span>
+      <button type="button" class="btn btn-small btn-danger" onclick="removerPagamentoAnotado('${venda.id}', ${idx})" data-tooltip="Remover este pagamento">Remover</button>
+    </div>
+  `).join('');
+}
+async function adicionarPagamentoAnotado() {
+  const id = document.getElementById('an-id').value;
+  const venda = state.vendas.find(v => String(v.id) === String(id));
+  if (!venda) return;
+  const valor = parseFloat((document.getElementById('an-novo-valor').value || '0').replace(',', '.')) || 0;
+  const data = document.getElementById('an-novo-data').value || isoToday();
+  if (valor <= 0) { alert('Informe um valor de pagamento maior que zero.'); return; }
+  const pagamentos = [...saleAnotadoPagamentos(venda), { valor: round2(valor), data }];
+  const ok = await salvarPagamentosAnotado(venda, pagamentos);
+  if (!ok) return;
+  document.getElementById('an-novo-valor').value = '';
+  anRenderPagamentos(venda);
+}
+async function removerPagamentoAnotado(vendaId, idx) {
+  const venda = state.vendas.find(v => String(v.id) === String(vendaId));
+  if (!venda) return;
+  if (!confirm('Remover este pagamento?')) return;
+  const pagamentos = saleAnotadoPagamentos(venda).filter((_, i) => i !== idx);
+  const ok = await salvarPagamentosAnotado(venda, pagamentos);
+  if (!ok) return;
+  anRenderPagamentos(venda);
 }
 
 function saleHasNf(venda) {
@@ -21176,24 +21590,6 @@ function reportMonthlyProductAroma(sales) {
 function renderRelatorios() {
   normalizeSellerNames();
 
-  // Segmentos e Clientes (versões simplificadas, movidas pra dentro de Relatórios).
-  const dCli = intelCompute();
-  const listaCliAtivos = dCli.clientes.filter(c => c.pedidos > 0);
-
-  const segCardsEl = document.getElementById('rel-segmentos-cards');
-  if (segCardsEl) {
-    const bySeg = {}; INTEL_SEGDEF.forEach(s => bySeg[s.nome] = []);
-    listaCliAtivos.forEach(c => { (bySeg[c.segmento] || (bySeg[c.segmento] = [])).push(c); });
-    segCardsEl.innerHTML = INTEL_SEGDEF.map(s => {
-      const arr = bySeg[s.nome] || [];
-      const fat = arr.reduce((sum, c) => sum + c.total, 0);
-      return `<div class="card intel-segcard" style="--c:${s.cor};" onclick="openSegDrawer('${s.nome.replace(/'/g, "\\'")}')">
-        <div class="intel-seg-head"><span class="intel-seg-name"><span class="intel-segcard-dot"></span>${s.nome}</span><span class="intel-seg-count" style="color:${s.cor};">${arr.length}</span></div>
-        <div class="intel-seg-desc" style="margin-top:4px;">Faturamento: <strong style="color:var(--text);">${fmtBR(fat)}</strong></div>
-      </div>`;
-    }).join('');
-  }
-
   const sales = reportValidSales();
   const totalFat = sales.reduce((sum, v) => sum + v._valor, 0);
   const currentMonth = reportMonthKey(new Date());
@@ -21223,6 +21619,41 @@ function renderRelatorios() {
   chartRelSemanalInst = reportRenderBarChart('chartRelSemanal', 'empty-rel-semanal', chartRelSemanalInst, reportGroupRevenue(sales, 'week').slice(-10), reportWeekLabel, 0);
   chartRelMensalInst = reportRenderBarChart('chartRelMensal', 'empty-rel-mensal', chartRelMensalInst, reportGroupRevenue(sales, 'month').slice(-12), reportMonthLabel, 2);
   chartRelAnualInst = reportRenderBarChart('chartRelAnual', 'empty-rel-anual', chartRelAnualInst, reportGroupRevenue(sales, 'year'), key => key, 4);
+
+  // "Faturamento por mês" (conta boleto/anotado só quando recebidos) e "Mix de pagamento" —
+  // movidos da Visão geral pra cá.
+  const _dark = document.body.classList.contains('theme-dark');
+  const _grid = _dark ? 'rgba(255,255,255,0.07)' : 'rgba(36, 36, 36,0.07)';
+  const _tick = _dark ? '#9a9a9a' : '#717171';
+  const _surf = _dark ? '#1b1b1b' : '#FFFFFF';
+  if (intelCharts.mensal) { try { intelCharts.mensal.destroy(); } catch (e) {} intelCharts.mensal = null; }
+  if (intelCharts.pgto) { try { intelCharts.pgto.destroy(); } catch (e) {} intelCharts.pgto = null; }
+  try {
+    const mensal = computeMensal();
+    const ctx = document.getElementById('intel-chart-mensal').getContext('2d');
+    intelCharts.mensal = new Chart(ctx, {
+      type: 'bar',
+      plugins: [intelChartBgPlugin()],
+      data: { labels: mensal.map(m => m.mes), datasets: [{ label: 'Faturamento', data: mensal.map(m => m.fat), backgroundColor: chartBlueGradient(ctx, 260), borderRadius: 6, maxBarThickness: 38, borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fmtBR(c.parsed.y) } } },
+        scales: {
+          x: { grid: { display: false, drawBorder: false }, border: { display: false }, ticks: { color: _tick } },
+          y: { grid: { color: _grid, drawBorder: false }, border: { display: false }, ticks: { color: _tick, callback: v => fmtBRshort(v) } }
+        }
+      }
+    });
+  } catch (e) {}
+  try {
+    const mix = intelPaymentMix();
+    const ctx2 = document.getElementById('intel-chart-pgto').getContext('2d');
+    intelCharts.pgto = new Chart(ctx2, {
+      type: 'doughnut',
+      plugins: [intelChartBgPlugin()],
+      data: { labels: mix.map(m => m.nome), datasets: [{ data: mix.map(m => m.valor), backgroundColor: chartPastelPalette(), borderColor: _surf, borderWidth: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'right', labels: { color: _tick } }, tooltip: { callbacks: { label: c => c.label + ': ' + fmtBR(c.parsed) } } } }
+    });
+  } catch (e) {}
 
   // Meta do mês atual
   const metaKey = reportCurrentMonthKey();
@@ -24656,17 +25087,25 @@ function intelUpdateContatoCounter() {
 
 /* ============================ VIEWS ============================ */
 
+// Cartões de segmento (RFV) — usados na sub aba "Quem chamar hoje". listaCliAtivos vem de
+// intelCompute().clientes filtrado por pedidos > 0.
+function intelSegmentosCardsHtml(listaCliAtivos) {
+  const bySeg = {}; INTEL_SEGDEF.forEach(s => bySeg[s.nome] = []);
+  listaCliAtivos.forEach(c => { (bySeg[c.segmento] || (bySeg[c.segmento] = [])).push(c); });
+  return INTEL_SEGDEF.map(s => {
+    const arr = bySeg[s.nome] || [];
+    const fat = arr.reduce((sum, c) => sum + c.total, 0);
+    return `<div class="card intel-segcard" style="--c:${s.cor};" onclick="openSegDrawer('${s.nome.replace(/'/g, "\\'")}')">
+      <div class="intel-seg-head"><span class="intel-seg-name"><span class="intel-segcard-dot"></span>${s.nome}</span><span class="intel-seg-count" style="color:${s.cor};">${arr.length}</span></div>
+      <div class="intel-seg-desc" style="margin-top:4px;">Faturamento: <strong style="color:var(--text);">${fmtBR(fat)}</strong></div>
+    </div>`;
+  }).join('');
+}
+
 function intelRenderOverview() {
   const pane = document.getElementById('intel-pane');
   const d = intelCompute();
   if (!d.clientes.length) { pane.innerHTML = '<div class="card"><div class="intel-empty">Sem vendas registradas ainda.</div></div>'; return; }
-  const k = d.kpis;
-  const prioridades = d.clientes.filter(c => c.pedidos > 0 && c.acao !== 'Relacionamento').sort((a, b) => b.score - a.score).slice(0, 5);
-  const prioRows = prioridades.map(c => {
-    const wa = intelWaDigits(c.telefone);
-    const waBtn = wa ? `<a class="intel-wa" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(intelWaMessage(c))}">WhatsApp</a>` : '<span class="intel-wa is-disabled">Sem telefone</span>';
-    return `<tr><td class="strong">${escapeHtml(c.nome)}</td><td><span class="intel-tag">${escapeHtml(c.acao)}</span></td><td class="intel-muted">${escapeHtml(c.motivo)}</td><td class="num">${fmtBR(c.total)}</td><td>${intelStatusPill(c.status)}</td><td>${waBtn}</td></tr>`;
-  }).join('');
 
   const hoje = dashboardStartOfDay();
   const vendasHoje = dashboardSalesInRange(hoje, hoje).filter(saleCountsInRevenue);
@@ -24725,6 +25164,21 @@ function intelRenderOverview() {
     </tr>`;
   }).join('');
 
+  const anotadoVendas = state.vendas.filter(v => saleIsAnotado(v) && saleAnotadoSaldoDevedor(v) > 0.001);
+  anotadoVendas.sort((a, b) => new Date(a.data) - new Date(b.data));
+  const anotadoRowsHtml = anotadoVendas.map(v => {
+    const pago = saleAnotadoTotalPago(v);
+    const saldo = saleAnotadoSaldoDevedor(v);
+    return `<tr onclick="if(!event.target.closest('button')) abrirAnotadoModal('${v.id}')" style="cursor:pointer">
+      <td>${fmtDate(v.data)}</td>
+      <td>${escapeHtml(v.cliente || '—')}</td>
+      <td class="num">${fmtBR(v.valor)}</td>
+      <td class="num">${fmtBR(pago)}</td>
+      <td class="num">${fmtBR(saldo)}</td>
+      <td style="white-space:nowrap"><div style="display:flex;gap:6px;align-items:center;"><button class="btn btn-small" onclick="abrirAnotadoModal('${v.id}')">Registrar pagamento</button><button class="btn btn-small" onclick="openEditVenda('${v.id}')" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button></div></td>
+    </tr>`;
+  }).join('');
+
   pane.innerHTML = `
     <div class="card dash-exec-card dash-sales-card" style="margin-bottom:16px;">
       <div class="dash-card-head">
@@ -24742,7 +25196,6 @@ function intelRenderOverview() {
         <div${lucroHojeIncompleto ? ' data-tooltip="Alguma venda de hoje tem produto sem custo cadastrado — o lucro pode estar abaixo do real"' : ''}><span>Lucro líquido${lucroHojeIncompleto ? ' *' : ''}</span><strong>${fmtBR(lucroHoje)}</strong></div>
       </div>
     </div>
-    ${k.semTelefone ? `<div class="intel-notice">${k.semTelefone} cliente(s) com compras estão sem telefone cadastrado — complete o cadastro para liberar o WhatsApp nas listas.</div>` : ''}
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div><div class="card-title">Vendas em boleto</div><div class="card-sub">O valor só entra no faturamento depois de marcado como pago.</div></div>
@@ -24756,53 +25209,12 @@ function intelRenderOverview() {
     </div>
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div><div class="card-title">Prioridades de hoje</div><div class="card-sub">Quem contatar primeiro — por valor do cliente e ciclo de recompra</div></div>
-        <button class="btn btn-primary" onclick="switchInteligenciaTab('call')">Ver lista completa</button>
+        <div><div class="card-title">Vendas anotadas</div><div class="card-sub">O valor só entra no faturamento nos meses em que cada pagamento for registrado. Fica na lista até quitar o valor todo.</div></div>
+        ${anotadoVendas.length ? `<span class="pill pill-amber">${anotadoVendas.length} pendente${anotadoVendas.length === 1 ? '' : 's'}</span>` : ''}
       </div>
-      ${prioridades.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table"><thead><tr><th>Cliente</th><th>Ação</th><th>Motivo</th><th class="num">Total</th><th>Status</th><th>Contato</th></tr></thead><tbody>${prioRows}</tbody></table></div>` : `<div class="intel-empty">Tudo em dia — nenhuma ação prioritária agora.</div>`}
-    </div>
-    <div class="intel-grid cols-2">
-      <div class="card">
-        <div class="card-title">Faturamento por mês</div><div class="card-sub">Evolução mensal registrada</div>
-        <div class="intel-chart-wrap intel-chart-wrap-sm"><canvas id="intel-chart-mensal"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Mix de pagamento</div><div class="card-sub">Faturamento por forma de pagamento</div>
-        <div class="intel-chart-wrap intel-chart-wrap-sm"><canvas id="intel-chart-pgto"></canvas></div>
-      </div>
+      ${anotadoVendas.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table"><thead><tr><th>Data</th><th>Cliente</th><th class="num">Valor total</th><th class="num">Pago</th><th class="num">Saldo devedor</th><th style="width:1%;white-space:nowrap">Ação</th></tr></thead><tbody>${anotadoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda anotada pendente.</div>`}
     </div>
   `;
-
-  const _dark = document.body.classList.contains('theme-dark');
-  const _grid = _dark ? 'rgba(255,255,255,0.07)' : 'rgba(36, 36, 36,0.07)';
-  const _tick = _dark ? '#9a9a9a' : '#717171';
-  const _surf = _dark ? '#1b1b1b' : '#FFFFFF';
-  try {
-    const mensal = computeMensal();
-    const ctx = document.getElementById('intel-chart-mensal').getContext('2d');
-    intelCharts.mensal = new Chart(ctx, {
-      type: 'bar',
-      plugins: [intelChartBgPlugin()],
-      data: { labels: mensal.map(m => m.mes), datasets: [{ label: 'Faturamento', data: mensal.map(m => m.fat), backgroundColor: chartBlueGradient(ctx, 260), borderRadius: 6, maxBarThickness: 38, borderWidth: 0 }] },
-      options: { responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fmtBR(c.parsed.y) } } },
-        scales: {
-          x: { grid: { display: false, drawBorder: false }, border: { display: false }, ticks: { color: _tick } },
-          y: { grid: { color: _grid, drawBorder: false }, border: { display: false }, ticks: { color: _tick, callback: v => fmtBRshort(v) } }
-        }
-      }
-    });
-  } catch (e) {}
-  try {
-    const mix = intelPaymentMix();
-    const ctx2 = document.getElementById('intel-chart-pgto').getContext('2d');
-    intelCharts.pgto = new Chart(ctx2, {
-      type: 'doughnut',
-      plugins: [intelChartBgPlugin()],
-      data: { labels: mix.map(m => m.nome), datasets: [{ data: mix.map(m => m.valor), backgroundColor: chartPastelPalette(), borderColor: _surf, borderWidth: 2 }] },
-      options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'right', labels: { color: _tick } }, tooltip: { callbacks: { label: c => c.label + ': ' + fmtBR(c.parsed) } } } }
-    });
-  } catch (e) {}
 }
 
 let intelCallFilter = 'todos';
@@ -24858,7 +25270,32 @@ function intelRenderCall() {
   lista = lista.slice(0, 60);
   const contatos = intelLoadContatos();
 
+  const listaCliAtivos = d.clientes.filter(c => c.pedidos > 0);
+  const segCardsHtml = intelSegmentosCardsHtml(listaCliAtivos);
+
+  const prioridades = d.clientes.filter(c => c.pedidos > 0 && c.acao !== 'Relacionamento').sort((a, b) => b.score - a.score).slice(0, 5);
+  const prioRows = prioridades.map(c => {
+    const wa = intelWaDigits(c.telefone);
+    const waBtn = wa ? `<a class="intel-wa" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(intelWaMessage(c))}">WhatsApp</a>` : '<span class="intel-wa is-disabled">Sem telefone</span>';
+    return `<tr><td class="strong">${escapeHtml(c.nome)}</td><td><span class="intel-tag">${escapeHtml(c.acao)}</span></td><td class="intel-muted">${escapeHtml(c.motivo)}</td><td class="num">${fmtBR(c.total)}</td><td>${intelStatusPill(c.status)}</td><td>${waBtn}</td></tr>`;
+  }).join('');
+
   pane.innerHTML = `
+    <div class="card data-card" style="margin-bottom:16px;">
+      <div class="card-h">
+        <div>
+          <div class="card-title">Segmentos de clientes</div>
+          <div class="card-sub">Clique num segmento para ver a estratégia sugerida e contatar os clientes dele</div>
+        </div>
+      </div>
+      <div class="intel-grid cols-auto">${segCardsHtml}</div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div><div class="card-title">Prioridades de hoje</div><div class="card-sub">Quem contatar primeiro — por valor do cliente e ciclo de recompra</div></div>
+      </div>
+      ${prioridades.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table"><thead><tr><th>Cliente</th><th>Ação</th><th>Motivo</th><th class="num">Total</th><th>Status</th><th>Contato</th></tr></thead><tbody>${prioRows}</tbody></table></div>` : `<div class="intel-empty">Tudo em dia — nenhuma ação prioritária agora.</div>`}
+    </div>
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div><div class="card-title">Quem chamar hoje</div><div class="card-sub">${lista.length} contatos sugeridos · <span id="intel-contato-counter" data-total="${lista.length}">0 de ${lista.length} contatados hoje</span></div></div>
@@ -31042,6 +31479,12 @@ body.theme-dark #view-clientes .pill-green { background: rgba(70,170,100,.18) !i
 body.theme-dark #view-clientes .pill-amber { background: rgba(224,163,62,.18) !important; color: #E7B765 !important; border-color: rgba(224,163,62,.42) !important; }
 body.theme-dark #view-clientes .pill-red   { background: rgba(216,108,108,.18) !important; color: #E89A9A !important; border-color: rgba(216,108,108,.44) !important; }
 
+/* --- FINANCEIRO: variação mensal (lucro subiu/caiu) com cor real --- */
+#view-financeiro .pill-green { background: #EAF6EF !important; color: #137A43 !important; border: 1px solid #BFE3CD !important; }
+#view-financeiro .pill-red   { background: #FBE8E8 !important; color: #B0322F !important; border: 1px solid #F0C5C3 !important; }
+body.theme-dark #view-financeiro .pill-green { background: rgba(70,170,100,.18) !important; color: #86D9A6 !important; border-color: rgba(70,170,100,.42) !important; }
+body.theme-dark #view-financeiro .pill-red   { background: rgba(216,108,108,.18) !important; color: #E89A9A !important; border-color: rgba(216,108,108,.44) !important; }
+
 /* ================= v20: tags de AROMA coloridas (suaves) na tabela de Vendas ================= */
 .pill-aroma { border: 1px solid transparent !important; font-weight: 600 !important; }
 /* tema claro */
@@ -32059,6 +32502,7 @@ body.theme-dark #view-vendas .nf-inline-input.nf-inline-alert, body.theme-dark #
 .nf-inline-pdf-btn:hover { color: var(--text); }
 .cliente-link { cursor: pointer; }
 .cliente-link:hover { text-decoration: underline; }
+.an-pagamento-row { display: grid; grid-template-columns: 1fr 1fr auto; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
 .vm-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 14px 0; }
 .vm-stats .s { background: var(--surface-2,#eef3f7); padding: 12px 10px; }
 .vm-stats .s .l { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-2); font-weight: 600; }
