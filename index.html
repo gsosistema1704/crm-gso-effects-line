@@ -1928,6 +1928,7 @@
     .main { padding: 16px; width: 100%; }
     .menu-toggle { display: block; }
     .metrics { grid-template-columns: repeat(2, 1fr); }
+    #view-clientes #sub-crm .metrics { grid-template-columns:repeat(2,minmax(0,170px)) !important; max-width:360px !important; }
     .row-2, .row-2-equal, .row-3, .trans-grid, .message-grid { grid-template-columns: 1fr; }
     .form-r2, .form-r3, .form-r3-eq, .form-r4, .form-r5, .filter-panel, .filter-panel.clients, .filter-panel.lojista, .sale-item-row { grid-template-columns: 1fr; }
     .filter-panel > *, .filter-panel.clients > *, .filter-panel.lojista > * { width: 100%; max-width: 240px; }
@@ -13660,10 +13661,10 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
       <div class="card" style="margin-bottom:16px;">
         <div class="card-title">Evolução mensal</div>
-        <div class="card-sub">Receita já conta boleto/anotado só quando pago — cada mês comparado com o anterior. Clique nos valores de Receita/Despesas para ajustar manualmente.</div>
+        <div class="card-sub">Receita já conta boleto/anotado só quando pago. Lucro bruto = valor da venda − custo do produto − imposto (por venda). Lucro líquido = lucro bruto − despesas do mês. Clique nos valores de Receita/Despesas para ajustar manualmente.</div>
         <div style="overflow-x:auto;margin-top:12px;">
           <table class="intel-table" id="fin-evolucao-table">
-            <thead><tr><th>Mês</th><th class="num">Receita</th><th class="num">Despesas</th><th class="num">Lucro</th><th class="num">Variação</th></tr></thead>
+            <thead><tr><th>Mês</th><th class="num">Receita</th><th class="num">Despesas</th><th class="num">Lucro bruto</th><th class="num">Lucro líquido</th><th class="num">Variação</th></tr></thead>
             <tbody id="fin-evolucao-body"></tbody>
           </table>
         </div>
@@ -17630,6 +17631,29 @@ function computeDespesasMensal() {
   });
   return map;
 }
+// Lucro bruto mensal = soma do lucro líquido de cada venda (valor - custo do produto - fiscal),
+// alocado no(s) mês(es) em que a receita daquela venda foi reconhecida (saleRevenueEntries — importante
+// pro Anotado, cujo pagamento pode cair em meses diferentes do mês da venda).
+function computeLucroBrutoMensal() {
+  const map = {};
+  const incompleto = {};
+  state.vendas.forEach(venda => {
+    const entries = saleRevenueEntries(venda);
+    if (!entries.length) return;
+    const lucroTotal = saleLucroLiquido(venda);
+    const valorTotal = parseFloat(venda.valor) || 0;
+    entries.forEach(entry => {
+      const d = dashboardDateObj(entry.data);
+      if (!d) return;
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      if (lucroTotal == null) { incompleto[key] = true; return; }
+      const proporcao = valorTotal > 0 ? (entry.valor / valorTotal) : 0;
+      map[key] = (map[key] || 0) + lucroTotal * proporcao;
+    });
+  });
+  Object.keys(map).forEach(k => { map[k] = round2(map[k]); });
+  return { map, incompleto };
+}
 async function loadFinanceiroAjustes() {
   const client = getSupabaseClient();
   const session = await getSupabaseSession();
@@ -17661,18 +17685,35 @@ function finAjusteValor(mes, campo) {
   const ajuste = state.financeiroAjustes.find(a => a.mes === mes);
   return ajuste && ajuste[campo] != null ? Number(ajuste[campo]) : null;
 }
+function finRawEditValue(valor) {
+  return (Number(valor) || 0).toFixed(2).replace('.', ',');
+}
+function parseBRLInput(str) {
+  const s = String(str || '').trim();
+  if (!s) return null;
+  let clean = s.replace(/[^\d.,-]/g, '');
+  if (!clean) return null;
+  if (clean.includes(',') && clean.includes('.')) {
+    clean = clean.replace(/\./g, '').replace(',', '.');
+  } else if (clean.includes(',')) {
+    clean = clean.replace(',', '.');
+  }
+  const n = parseFloat(clean);
+  return Number.isFinite(n) ? n : null;
+}
 function finAjusteCellHtml(mes, campo, valorAtual, valorComputado) {
   const override = finAjusteValor(mes, campo);
   const isOverride = override != null;
   const tip = isOverride
-    ? `Ajustado manualmente. Valor calculado: ${fmtBR(valorComputado)} — apague o campo para restaurar.`
+    ? `Ajustado manualmente. Valor calculado: ${fmtBR(valorComputado)} — apague o campo e saia do campo para restaurar.`
     : 'Clique para ajustar este valor manualmente';
   return `<div class="fin-ajuste-wrap">
-    <input type="text" class="input fin-ajuste-input${isOverride ? ' fin-ajuste-override' : ''}"
-      value="${valorAtual.toFixed(2).replace('.', ',')}"
+    <input type="text" inputmode="decimal" class="input fin-ajuste-input${isOverride ? ' fin-ajuste-override' : ''}"
+      value="${fmtBR(valorAtual)}"
       data-tip="${escapeHtml(tip)}"
       onclick="event.stopPropagation()"
-      onchange="salvarAjusteFinanceiro('${mes}','${campo}', this.value, ${valorComputado})">
+      onfocus="this.value = finRawEditValue(${valorAtual})"
+      onblur="salvarAjusteFinanceiro('${mes}','${campo}', this.value, ${valorComputado})">
     ${isOverride ? `<button type="button" class="fin-ajuste-reset" data-tip="Restaurar valor calculado" onclick="event.stopPropagation(); restaurarAjusteFinanceiro('${mes}','${campo}')">↺</button>` : ''}
   </div>`;
 }
@@ -17681,9 +17722,10 @@ function renderEvolucaoMensal() {
   if (!body) return;
   const receitaMap = {}; computeMensal().forEach(m => { receitaMap[m.mes] = m.fat; });
   const despesaMap = computeDespesasMensal();
-  const meses = [...new Set([...Object.keys(receitaMap), ...Object.keys(despesaMap), ...state.financeiroAjustes.map(a => a.mes)])].filter(m => m >= '2026-01').sort();
-  if (!meses.length) { body.innerHTML = '<tr><td colspan="5" class="table-empty">Sem dados a partir de 2026 ainda.</td></tr>'; return; }
-  let lucroAnterior = null;
+  const { map: lucroBrutoMap, incompleto: lucroIncompletoMap } = computeLucroBrutoMensal();
+  const meses = [...new Set([...Object.keys(receitaMap), ...Object.keys(despesaMap), ...Object.keys(lucroBrutoMap), ...state.financeiroAjustes.map(a => a.mes)])].filter(m => m >= '2026-01').sort();
+  if (!meses.length) { body.innerHTML = '<tr><td colspan="6" class="table-empty">Sem dados a partir de 2026 ainda.</td></tr>'; return; }
+  let lucroLiquidoAnterior = null;
   body.innerHTML = meses.map(mes => {
     const receitaComputada = receitaMap[mes] || 0;
     const despesaComputada = despesaMap[mes] || 0;
@@ -17691,23 +17733,27 @@ function renderEvolucaoMensal() {
     const despesaOverride = finAjusteValor(mes, 'despesas_ajustada');
     const receita = receitaOverride != null ? receitaOverride : receitaComputada;
     const despesa = despesaOverride != null ? despesaOverride : despesaComputada;
-    const lucro = round2(receita - despesa);
+    const lucroBruto = lucroBrutoMap[mes] || 0;
+    const lucroIncompleto = !!lucroIncompletoMap[mes];
+    const lucroLiquido = round2(lucroBruto - despesa);
     let variacaoHtml = '<span style="color:var(--text-2,#8A8A8A)">—</span>';
-    if (lucroAnterior !== null) {
-      if (lucroAnterior === 0) {
-        variacaoHtml = lucro > 0 ? '<span class="pill pill-green">novo</span>' : (lucro < 0 ? '<span class="pill pill-red">novo</span>' : '—');
+    if (lucroLiquidoAnterior !== null) {
+      if (lucroLiquidoAnterior === 0) {
+        variacaoHtml = lucroLiquido > 0 ? '<span class="pill pill-green">novo</span>' : (lucroLiquido < 0 ? '<span class="pill pill-red">novo</span>' : '—');
       } else {
-        const pct = round2(((lucro - lucroAnterior) / Math.abs(lucroAnterior)) * 100);
+        const pct = round2(((lucroLiquido - lucroLiquidoAnterior) / Math.abs(lucroLiquidoAnterior)) * 100);
         const sinal = pct > 0 ? '+' : '';
         variacaoHtml = `<span class="pill ${pct > 0 ? 'pill-green' : (pct < 0 ? 'pill-red' : 'pill-blue')}">${sinal}${pct}%</span>`;
       }
     }
-    lucroAnterior = lucro;
+    lucroLiquidoAnterior = lucroLiquido;
+    const lucroTip = lucroIncompleto ? ' data-tip="Alguma venda desse mês tem produto sem custo cadastrado — o lucro pode estar abaixo do real"' : '';
     return `<tr>
       <td class="strong">${reportMonthLabel(mes)}</td>
       <td class="num">${finAjusteCellHtml(mes, 'receita_ajustada', receita, receitaComputada)}</td>
       <td class="num">${finAjusteCellHtml(mes, 'despesas_ajustada', despesa, despesaComputada)}</td>
-      <td class="num strong">${fmtBR(lucro)}</td>
+      <td class="num"${lucroTip}>${fmtBR(lucroBruto)}${lucroIncompleto ? ' *' : ''}</td>
+      <td class="num strong"${lucroTip}>${fmtBR(lucroLiquido)}${lucroIncompleto ? ' *' : ''}</td>
       <td class="num">${variacaoHtml}</td>
     </tr>`;
   }).join('');
@@ -17715,15 +17761,16 @@ function renderEvolucaoMensal() {
 async function salvarAjusteFinanceiro(mes, campo, valorStr, valorComputado) {
   const client = requireSupabaseSession();
   if (!client) { renderEvolucaoMensal(); return; }
-  const raw = (valorStr || '').trim();
-  const novoValor = raw === '' ? null : (parseFloat(raw.replace(',', '.')) || 0);
-  if (novoValor !== null && round2(novoValor) === round2(valorComputado)) {
-    await restaurarAjusteFinanceiro(mes, campo);
+  const novoValor = parseBRLInput(valorStr);
+  const overrideAtual = finAjusteValor(mes, campo);
+  if (novoValor === null || round2(novoValor) === round2(valorComputado)) {
+    if (overrideAtual != null) await restaurarAjusteFinanceiro(mes, campo); else renderEvolucaoMensal();
     return;
   }
+  if (overrideAtual != null && round2(novoValor) === round2(overrideAtual)) { renderEvolucaoMensal(); return; }
   const existente = state.financeiroAjustes.find(a => a.mes === mes);
   const row = { mes, receita_ajustada: existente?.receita_ajustada ?? null, despesas_ajustada: existente?.despesas_ajustada ?? null, atualizado_em: new Date().toISOString() };
-  row[campo] = novoValor;
+  row[campo] = round2(novoValor);
   const { data, error } = await client.from('crm_financeiro_ajustes').upsert(row, { onConflict: 'mes' }).select().single();
   if (error) { alert('Não consegui salvar o ajuste: ' + error.message); renderEvolucaoMensal(); return; }
   if (existente) Object.assign(existente, data); else state.financeiroAjustes.push(data);
@@ -24212,7 +24259,8 @@ init();
   #view-clientes #sub-crm .table-card td:nth-child(6) { width: 18%; }
   #view-clientes #sub-crm .row-actions { display:flex; gap:7px; flex-wrap:wrap; justify-content:flex-end; }
   #view-clientes #sub-crm .row-actions .btn-small { white-space:nowrap; padding:7px 9px; }
-  #view-clientes #sub-crm .metrics .metric { border-width:1px !important; box-shadow:none !important; padding:10px 14px !important; }
+  #view-clientes #sub-crm .metrics { grid-template-columns:repeat(3,minmax(0,170px)) !important; gap:10px !important; max-width:560px !important; margin-bottom:16px !important; }
+  #view-clientes #sub-crm .metrics .metric { border-width:1px !important; box-shadow:none !important; padding:10px 14px !important; border-radius:12px !important; }
   #view-clientes #sub-crm .metrics .metric-label { font-size:11px !important; margin-bottom:3px !important; }
   #view-clientes #sub-crm .metrics .metric-value { font-size:19px !important; margin-bottom:2px !important; }
   #view-clientes #sub-crm .metrics .metric-delta { font-size:10px !important; }
@@ -31621,7 +31669,7 @@ body.theme-dark #view-financeiro .pill-red   { background: rgba(216,108,108,.18)
 
 /* --- FINANCEIRO: valores de Receita/Despesas editáveis na Evolução mensal --- */
 .fin-ajuste-wrap { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
-.fin-ajuste-input { width: 96px; min-width: 0; padding: 5px 7px; font-size: 12.5px; border-radius: 6px; text-align: right; }
+.fin-ajuste-input { width: 118px; min-width: 0; padding: 5px 7px; font-size: 12.5px; border-radius: 6px; text-align: right; }
 .fin-ajuste-input.fin-ajuste-override { border: 1.5px solid #A9C7EE !important; background: #EAF1FB !important; font-weight: 700 !important; color: #1D4E8F !important; }
 body.theme-dark .fin-ajuste-input.fin-ajuste-override { border-color: rgba(122,168,231,.5) !important; background: rgba(122,168,231,.16) !important; color: #9CC1F2 !important; }
 .fin-ajuste-reset { font-size: 12px; font-weight: 700; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2, #eef3f7); color: var(--text-2); cursor: pointer; line-height: 1; }
