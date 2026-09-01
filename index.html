@@ -13661,10 +13661,10 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
       <div class="card" style="margin-bottom:16px;">
         <div class="card-title">Evolução mensal</div>
-        <div class="card-sub">Receita já conta boleto/anotado só quando pago. Lucro bruto = valor da venda − custo do produto − imposto (por venda). Lucro líquido = lucro bruto − despesas do mês. Clique nos valores de Receita/Despesas para ajustar manualmente.</div>
+        <div class="card-sub">Receita já é o lucro bruto de cada venda (valor − custo do produto − imposto), contando boleto/anotado só quando pago. Lucro líquido = Receita − Despesas do mês. Clique nos valores de Receita/Despesas para ajustar manualmente.</div>
         <div style="overflow-x:auto;margin-top:12px;">
           <table class="intel-table" id="fin-evolucao-table">
-            <thead><tr><th>Mês</th><th class="num">Receita</th><th class="num">Despesas</th><th class="num">Lucro bruto</th><th class="num">Lucro líquido</th><th class="num">Variação</th></tr></thead>
+            <thead><tr><th>Mês</th><th class="num">Receita</th><th class="num">Despesas</th><th class="num">Lucro líquido</th><th class="num">Variação</th></tr></thead>
             <tbody id="fin-evolucao-body"></tbody>
           </table>
         </div>
@@ -17720,11 +17720,10 @@ function finAjusteCellHtml(mes, campo, valorAtual, valorComputado) {
 function renderEvolucaoMensal() {
   const body = document.getElementById('fin-evolucao-body');
   if (!body) return;
-  const receitaMap = {}; computeMensal().forEach(m => { receitaMap[m.mes] = m.fat; });
   const despesaMap = computeDespesasMensal();
-  const { map: lucroBrutoMap, incompleto: lucroIncompletoMap } = computeLucroBrutoMensal();
-  const meses = [...new Set([...Object.keys(receitaMap), ...Object.keys(despesaMap), ...Object.keys(lucroBrutoMap), ...state.financeiroAjustes.map(a => a.mes)])].filter(m => m >= '2026-01').sort();
-  if (!meses.length) { body.innerHTML = '<tr><td colspan="6" class="table-empty">Sem dados a partir de 2026 ainda.</td></tr>'; return; }
+  const { map: receitaMap, incompleto: receitaIncompletoMap } = computeLucroBrutoMensal();
+  const meses = [...new Set([...Object.keys(receitaMap), ...Object.keys(despesaMap), ...state.financeiroAjustes.map(a => a.mes)])].filter(m => m >= '2026-01').sort();
+  if (!meses.length) { body.innerHTML = '<tr><td colspan="5" class="table-empty">Sem dados a partir de 2026 ainda.</td></tr>'; return; }
   let lucroLiquidoAnterior = null;
   body.innerHTML = meses.map(mes => {
     const receitaComputada = receitaMap[mes] || 0;
@@ -17733,9 +17732,8 @@ function renderEvolucaoMensal() {
     const despesaOverride = finAjusteValor(mes, 'despesas_ajustada');
     const receita = receitaOverride != null ? receitaOverride : receitaComputada;
     const despesa = despesaOverride != null ? despesaOverride : despesaComputada;
-    const lucroBruto = lucroBrutoMap[mes] || 0;
-    const lucroIncompleto = !!lucroIncompletoMap[mes];
-    const lucroLiquido = round2(lucroBruto - despesa);
+    const receitaIncompleta = !!receitaIncompletoMap[mes];
+    const lucroLiquido = round2(receita - despesa);
     let variacaoHtml = '<span style="color:var(--text-2,#8A8A8A)">—</span>';
     if (lucroLiquidoAnterior !== null) {
       if (lucroLiquidoAnterior === 0) {
@@ -17747,13 +17745,13 @@ function renderEvolucaoMensal() {
       }
     }
     lucroLiquidoAnterior = lucroLiquido;
-    const lucroTip = lucroIncompleto ? ' data-tip="Alguma venda desse mês tem produto sem custo cadastrado — o lucro pode estar abaixo do real"' : '';
+    const incompletoNota = receitaIncompleta ? ' *' : '';
+    const incompletoTip = receitaIncompleta ? ' data-tip="Alguma venda desse mês tem produto sem custo cadastrado — o valor pode estar abaixo do real"' : '';
     return `<tr>
       <td class="strong">${reportMonthLabel(mes)}</td>
-      <td class="num">${finAjusteCellHtml(mes, 'receita_ajustada', receita, receitaComputada)}</td>
+      <td class="num"${incompletoTip}>${finAjusteCellHtml(mes, 'receita_ajustada', receita, receitaComputada)}</td>
       <td class="num">${finAjusteCellHtml(mes, 'despesas_ajustada', despesa, despesaComputada)}</td>
-      <td class="num"${lucroTip}>${fmtBR(lucroBruto)}${lucroIncompleto ? ' *' : ''}</td>
-      <td class="num strong"${lucroTip}>${fmtBR(lucroLiquido)}${lucroIncompleto ? ' *' : ''}</td>
+      <td class="num"><span class="fin-lucro-final${lucroLiquido < 0 ? ' fin-lucro-neg' : ''}">${fmtBR(lucroLiquido)}${incompletoNota}</span></td>
       <td class="num">${variacaoHtml}</td>
     </tr>`;
   }).join('');
@@ -29776,8 +29774,15 @@ function computeIndicadoresStats(lotes, itens) {
 
   const porResponsavel = new Map();
   lotes.forEach(l => {
+    const qtd = qtdPorLote[l.id] || 0;
+    // Lote envasado por mais de uma pessoa (ex: "Luísa e Bianca") credita cada uma individualmente
+    // no ranking, em vez de virar um nome-bucket à parte.
+    if (Array.isArray(l.envasado_por_lista) && l.envasado_por_lista.length) {
+      l.envasado_por_lista.forEach(nome => porResponsavel.set(nome, (porResponsavel.get(nome) || 0) + qtd));
+      return;
+    }
     const nome = l.envasado_por === 'Outro' ? (l.envasado_por_outro || 'Outro') : (l.envasado_por || '—');
-    porResponsavel.set(nome, (porResponsavel.get(nome) || 0) + (qtdPorLote[l.id] || 0));
+    porResponsavel.set(nome, (porResponsavel.get(nome) || 0) + qtd);
   });
   const rankingResponsaveis = [...porResponsavel.entries()].map(([nome, qtd]) => ({ nome, qtd })).sort((a, b) => b.qtd - a.qtd);
 
@@ -31674,6 +31679,13 @@ body.theme-dark #view-financeiro .pill-red   { background: rgba(216,108,108,.18)
 body.theme-dark .fin-ajuste-input.fin-ajuste-override { border-color: rgba(122,168,231,.5) !important; background: rgba(122,168,231,.16) !important; color: #9CC1F2 !important; }
 .fin-ajuste-reset { font-size: 12px; font-weight: 700; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2, #eef3f7); color: var(--text-2); cursor: pointer; line-height: 1; }
 .fin-ajuste-reset:hover { color: var(--text); }
+.fin-lucro-final { display: inline-block; min-width: 110px; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; text-align: right; background: #EAF6EF; color: #137A43; border: 1px solid #BFE3CD; }
+.fin-lucro-final.fin-lucro-neg { background: #FBE8E8; color: #B0322F; border-color: #F0C5C3; }
+body.theme-dark .fin-lucro-final { background: rgba(70,170,100,.16); color: #86D9A6; border-color: rgba(70,170,100,.4); }
+body.theme-dark .fin-lucro-final.fin-lucro-neg { background: rgba(216,108,108,.18); color: #E89A9A; border-color: rgba(216,108,108,.44); }
+#fin-evolucao-table th, #fin-evolucao-table td { padding: 14px 18px !important; }
+#fin-evolucao-table th:first-child, #fin-evolucao-table td:first-child { padding-left: 20px !important; }
+#fin-evolucao-table th:last-child, #fin-evolucao-table td:last-child { padding-right: 20px !important; }
 
 /* --- FINANCEIRO: ranking de despesas por categoria --- */
 .fin-cat-rank-row { margin-bottom: 12px; }
