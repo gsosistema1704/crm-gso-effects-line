@@ -1928,7 +1928,7 @@
     .main { padding: 16px; width: 100%; }
     .menu-toggle { display: block; }
     .metrics { grid-template-columns: repeat(2, 1fr); }
-    #view-clientes #sub-crm .metrics { grid-template-columns:repeat(2,minmax(0,170px)) !important; max-width:360px !important; }
+    #view-clientes #sub-crm .metrics { grid-template-columns:repeat(2,minmax(0,128px)) !important; max-width:280px !important; }
     .row-2, .row-2-equal, .row-3, .trans-grid, .message-grid { grid-template-columns: 1fr; }
     .form-r2, .form-r3, .form-r3-eq, .form-r4, .form-r5, .filter-panel, .filter-panel.clients, .filter-panel.lojista, .sale-item-row { grid-template-columns: 1fr; }
     .filter-panel > *, .filter-panel.clients > *, .filter-panel.lojista > * { width: 100%; max-width: 240px; }
@@ -12099,20 +12099,17 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 	      <!-- Clientes -->
       <div id="sub-crm">
         <div class="metrics" style="grid-template-columns:repeat(3,1fr);">
-          <div class="metric metric-ativo">
+          <div class="metric metric-ativo" data-tip="Comprou nos últimos 30 dias">
             <div class="metric-label">Ativos</div>
-            <div class="metric-value" style="color:var(--green-text);" id="c-ativo">0</div>
-            <div class="metric-delta">Últimos 30d</div>
+            <div class="metric-value-row"><span class="metric-value" style="color:var(--green-text);" id="c-ativo">0</span><span class="metric-delta">Últimos 30d</span></div>
           </div>
-          <div class="metric metric-risco">
+          <div class="metric metric-risco" data-tip="Entre 31 e 60 dias sem comprar">
             <div class="metric-label">Em risco</div>
-            <div class="metric-value" style="color:var(--amber-text);" id="c-risco">0</div>
-            <div class="metric-delta">31 a 60 dias</div>
+            <div class="metric-value-row"><span class="metric-value" style="color:var(--amber-text);" id="c-risco">0</span><span class="metric-delta">31-60d</span></div>
           </div>
-          <div class="metric metric-inativo">
+          <div class="metric metric-inativo" data-tip="Mais de 60 dias sem comprar">
             <div class="metric-label">Inativos</div>
-            <div class="metric-value" style="color:var(--red-text);" id="c-inativo">0</div>
-            <div class="metric-delta">Mais de 60 dias</div>
+            <div class="metric-value-row"><span class="metric-value" style="color:var(--red-text);" id="c-inativo">0</span><span class="metric-delta">60d+</span></div>
           </div>
         </div>
 
@@ -24622,11 +24619,12 @@ init();
   #view-clientes #sub-crm .table-card td:nth-child(6) { width: 18%; }
   #view-clientes #sub-crm .row-actions { display:flex; gap:7px; flex-wrap:wrap; justify-content:flex-end; }
   #view-clientes #sub-crm .row-actions .btn-small { white-space:nowrap; padding:7px 9px; }
-  #view-clientes #sub-crm .metrics { grid-template-columns:repeat(3,minmax(0,170px)) !important; gap:10px !important; max-width:560px !important; margin-bottom:16px !important; }
-  #view-clientes #sub-crm .metrics .metric { border-width:1px !important; box-shadow:none !important; padding:6px 14px !important; border-radius:12px !important; }
-  #view-clientes #sub-crm .metrics .metric-label { font-size:11px !important; margin-bottom:1px !important; }
-  #view-clientes #sub-crm .metrics .metric-value { font-size:19px !important; margin-bottom:0 !important; line-height:1.15 !important; }
-  #view-clientes #sub-crm .metrics .metric-delta { font-size:10px !important; }
+  #view-clientes #sub-crm .metrics { grid-template-columns:repeat(3,minmax(0,128px)) !important; gap:8px !important; max-width:420px !important; margin-bottom:16px !important; }
+  #view-clientes #sub-crm .metrics .metric { border-width:1px !important; box-shadow:none !important; padding:8px 12px !important; border-radius:10px !important; }
+  #view-clientes #sub-crm .metrics .metric-label { font-size:11px !important; font-weight:600 !important; margin-bottom:3px !important; }
+  #view-clientes #sub-crm .metrics .metric-value-row { display:flex !important; align-items:baseline !important; gap:6px !important; }
+  #view-clientes #sub-crm .metrics .metric-value { font-size:20px !important; margin-bottom:0 !important; line-height:1 !important; }
+  #view-clientes #sub-crm .metrics .metric-delta { font-size:10px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #view-clientes #sub-crm .metrics .metric:nth-child(1) { border-color:rgba(23,141,74,.42) !important; }
   #view-clientes #sub-crm .metrics .metric:nth-child(2) { border-color:rgba(217,148,13,.42) !important; }
   #view-clientes #sub-crm .metrics .metric:nth-child(3) { border-color:rgba(201,60,55,.42) !important; }
@@ -25251,10 +25249,15 @@ body.theme-dark .intel-chip.on { color: #141414; }
 .intel-actcard.u-md { border-left-color: var(--amber-text); }
 .intel-actcard.u-lo { border-left-color: var(--primary); }
 .intel-actcard.intel-done { opacity: .5; }
-.intel-actcard-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.intel-actcard-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; cursor: pointer; }
 .intel-actcard-nm { font-weight: 700; font-size: 15.5px; line-height: 1.25; }
 .intel-actcard-meta { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+.intel-actcard-h-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .intel-actcard-score { font-weight: 800; font-size: 13px; color: var(--primary); background: var(--surface-2,#eef3f7); padding: 3px 9px; border-radius: 8px; white-space: nowrap; }
+.intel-actcard-chevron { font-size: 11px; color: var(--text-2); transition: transform .15s ease; }
+.intel-actcard.is-collapsed .intel-actcard-chevron { transform: rotate(-90deg); }
+.intel-actcard.is-collapsed .intel-actcard-body { display: none; }
+.intel-actcard-body { display: flex; flex-direction: column; gap: 12px; }
 .intel-actcard-why { font-size: 13px; background: var(--surface-2,#eef3f7); border-radius: 10px; padding: 11px 13px; line-height: 1.5; }
 .intel-actcard-recs { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
 .intel-actcard-rr { display: flex; gap: 8px; }
@@ -25789,24 +25792,29 @@ function intelActCard(c, contatos) {
     : `<span class="intel-wa is-disabled">Sem telefone</span>`;
   const next = c.proxima ? fmtDate(c.proxima) : '—';
   const fav = c.favProdValido ? c.favProd : 'seus produtos';
-  return `<div class="card intel-actcard u-${c.tom || 'lo'} ${done ? 'intel-done' : ''}">
-    <div class="intel-actcard-h">
+  return `<div class="card intel-actcard u-${c.tom || 'lo'} ${done ? 'intel-done' : ''} is-collapsed">
+    <div class="intel-actcard-h" onclick="this.closest('.intel-actcard').classList.toggle('is-collapsed')">
       <div>
         <div class="intel-actcard-nm">${escapeHtml(c.nome)}</div>
         <div class="intel-actcard-meta">${fmtBR(c.total)} em ${c.pedidos} pedido(s) · ${c.dias} dias sem comprar</div>
       </div>
-      <div class="intel-actcard-score">${Math.round((c.score || 0) * 100)}</div>
+      <div class="intel-actcard-h-right">
+        <div class="intel-actcard-score">${Math.round((c.score || 0) * 100)}</div>
+        <span class="intel-actcard-chevron">▾</span>
+      </div>
     </div>
-    <div class="intel-actcard-why">${escapeHtml(c.motivo)}</div>
-    <div class="intel-actcard-recs">
-      <div class="intel-actcard-rr"><span class="intel-actcard-rl">Ofereça</span><span class="intel-actcard-rv"><strong>${escapeHtml(fav)}</strong>${c.favProdValido ? ' (produto que ele mais compra)' : ''}</span></div>
-      <div class="intel-actcard-rr"><span class="intel-actcard-rl">Desconto</span><span class="intel-actcard-rv">${c.desconto > 0 ? `sugerido <strong>${c.desconto}%</strong> para fechar` : 'não precisa — foque em relacionamento / venda casada'}</span></div>
-      <div class="intel-actcard-rr"><span class="intel-actcard-rl">Recompra</span><span class="intel-actcard-rv">prevista p/ ${next}</span></div>
-    </div>
-    <div class="intel-actcard-cta">
-      ${waBtn}
-      <button class="btn btn-small" onclick="openClienteDrawer(${attrJsString(c.nome)})">Raio-x</button>
-      <label class="intel-actcard-done"><input type="checkbox" class="intel-check" ${done ? 'checked' : ''} onchange="intelToggleContato('${key}', this)"> Contatado hoje</label>
+    <div class="intel-actcard-body">
+      <div class="intel-actcard-why">${escapeHtml(c.motivo)}</div>
+      <div class="intel-actcard-recs">
+        <div class="intel-actcard-rr"><span class="intel-actcard-rl">Ofereça</span><span class="intel-actcard-rv"><strong>${escapeHtml(fav)}</strong>${c.favProdValido ? ' (produto que ele mais compra)' : ''}</span></div>
+        <div class="intel-actcard-rr"><span class="intel-actcard-rl">Desconto</span><span class="intel-actcard-rv">${c.desconto > 0 ? `sugerido <strong>${c.desconto}%</strong> para fechar` : 'não precisa — foque em relacionamento / venda casada'}</span></div>
+        <div class="intel-actcard-rr"><span class="intel-actcard-rl">Recompra</span><span class="intel-actcard-rv">prevista p/ ${next}</span></div>
+      </div>
+      <div class="intel-actcard-cta">
+        ${waBtn}
+        <button class="btn btn-small" onclick="openClienteDrawer(${attrJsString(c.nome)})">Raio-x</button>
+        <label class="intel-actcard-done"><input type="checkbox" class="intel-check" ${done ? 'checked' : ''} onchange="intelToggleContato('${key}', this)"> Contatado hoje</label>
+      </div>
     </div>
   </div>`;
 }
