@@ -11931,6 +11931,12 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <select class="input" id="filterVendedor" onchange="renderVendas()">
           <option value="">Todos os vendedores</option>
         </select>
+        <select class="input hidden" id="filterTipoVenda" onchange="renderVendas()">
+          <option value="">Todos os tipos de venda</option>
+          <option value="Direto">Direto</option>
+          <option value="Lojista">Lojista</option>
+          <option value="Revendedor">Revendedor</option>
+        </select>
         <select class="input" id="filterNF" onchange="renderVendas()">
           <option value="">Todas as NFs</option>
           <option value="com">Com NF</option>
@@ -13380,6 +13386,18 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           </div>
         </div>
 
+        <div class="form-row hidden" id="f-tipo-venda-row">
+          <div>
+            <label class="form-label">Tipo de venda</label>
+            <input type="hidden" id="f-tipo-venda" value="Direto">
+            <div class="intel-chips">
+              <span class="intel-chip on" data-tipo="Direto" onclick="setTipoVendaForm('Direto')">Direto</span>
+              <span class="intel-chip" data-tipo="Lojista" onclick="setTipoVendaForm('Lojista')">Lojista</span>
+              <span class="intel-chip" data-tipo="Revendedor" onclick="setTipoVendaForm('Revendedor')">Revendedor</span>
+            </div>
+          </div>
+        </div>
+
         <div class="conditional-row hidden" id="credito-row">
           <div class="form-row" style="margin-bottom:0;">
             <div>
@@ -13642,12 +13660,24 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
       <div class="card" style="margin-bottom:16px;">
         <div class="card-title">Evolução mensal</div>
-        <div class="card-sub">Receita já conta boleto/anotado só quando pago — cada mês comparado com o anterior</div>
+        <div class="card-sub">Receita já conta boleto/anotado só quando pago — cada mês comparado com o anterior. Clique nos valores de Receita/Despesas para ajustar manualmente.</div>
         <div style="overflow-x:auto;margin-top:12px;">
           <table class="intel-table" id="fin-evolucao-table">
             <thead><tr><th>Mês</th><th class="num">Receita</th><th class="num">Despesas</th><th class="num">Lucro</th><th class="num">Variação</th></tr></thead>
             <tbody id="fin-evolucao-body"></tbody>
           </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Despesas por categoria</div>
+        <div class="card-sub">Onde o dinheiro está saindo — segue o mês selecionado no filtro de Despesas abaixo</div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center;margin-top:14px;">
+          <div style="flex:1 1 220px;min-width:200px;max-width:260px;height:220px;position:relative;">
+            <canvas id="fin-chart-despesas"></canvas>
+            <div id="fin-chart-despesas-empty" class="table-empty hidden" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;">Nenhuma despesa registrada ainda.</div>
+          </div>
+          <div id="fin-desp-categoria-ranking" style="flex:1 1 260px;min-width:220px;"></div>
         </div>
       </div>
 
@@ -14751,7 +14781,8 @@ function saleToRow(v) {
       clienteOriginal: v.clienteOriginal || null,
       revisaoCliente: Boolean(v.revisaoCliente),
       revisaoCandidatos: v.revisaoCandidatos || null,
-      estoqueBaixado: v.estoqueBaixado || null
+      estoqueBaixado: v.estoqueBaixado || null,
+      tipoVenda: v.tipoVenda || 'Direto'
     }
   };
 }
@@ -14791,7 +14822,8 @@ function rowToSale(r) {
     clienteOriginal: r.metadata?.clienteOriginal || null,
     revisaoCliente: Boolean(r.metadata?.revisaoCliente),
     revisaoCandidatos: Array.isArray(r.metadata?.revisaoCandidatos) ? r.metadata.revisaoCandidatos : null,
-    estoqueBaixado: Array.isArray(r.metadata?.estoqueBaixado) ? r.metadata.estoqueBaixado : null
+    estoqueBaixado: Array.isArray(r.metadata?.estoqueBaixado) ? r.metadata.estoqueBaixado : null,
+    tipoVenda: r.metadata?.tipoVenda || 'Direto'
   };
 }
 
@@ -16706,6 +16738,7 @@ async function cleanupCatalogProductsInSupabase() {
 
 let state = STORE.load();
 state.despesas = []; // Financeiro — carregado sob demanda direto do Supabase (loadDespesas), sem cache local
+state.financeiroAjustes = []; // Financeiro — ajustes manuais de Receita/Despesas por mês, carregado sob demanda
 
 // ============ DADOS IMPORTADOS DO EXCEL REVISADO ============
 const GSO_IMPORTED_DATA_VERSION = "limpo-sem-vendas-clientes-20260630";
@@ -17597,8 +17630,18 @@ function computeDespesasMensal() {
   });
   return map;
 }
+async function loadFinanceiroAjustes() {
+  const client = getSupabaseClient();
+  const session = await getSupabaseSession();
+  if (!client || !session) { state.financeiroAjustes = []; return state.financeiroAjustes; }
+  const { data, error } = await client.from('crm_financeiro_ajustes').select('*');
+  if (error) { console.error(error); state.financeiroAjustes = []; return state.financeiroAjustes; }
+  state.financeiroAjustes = data || [];
+  return state.financeiroAjustes;
+}
 async function renderFinanceiro() {
   await loadDespesas();
+  await loadFinanceiroAjustes();
   renderEvolucaoMensal();
   const mesSel = document.getElementById('fin-desp-mes');
   if (mesSel) {
@@ -17614,17 +17657,40 @@ async function renderFinanceiro() {
   }
   renderDespesas();
 }
+function finAjusteValor(mes, campo) {
+  const ajuste = state.financeiroAjustes.find(a => a.mes === mes);
+  return ajuste && ajuste[campo] != null ? Number(ajuste[campo]) : null;
+}
+function finAjusteCellHtml(mes, campo, valorAtual, valorComputado) {
+  const override = finAjusteValor(mes, campo);
+  const isOverride = override != null;
+  const tip = isOverride
+    ? `Ajustado manualmente. Valor calculado: ${fmtBR(valorComputado)} — apague o campo para restaurar.`
+    : 'Clique para ajustar este valor manualmente';
+  return `<div class="fin-ajuste-wrap">
+    <input type="text" class="input fin-ajuste-input${isOverride ? ' fin-ajuste-override' : ''}"
+      value="${valorAtual.toFixed(2).replace('.', ',')}"
+      data-tip="${escapeHtml(tip)}"
+      onclick="event.stopPropagation()"
+      onchange="salvarAjusteFinanceiro('${mes}','${campo}', this.value, ${valorComputado})">
+    ${isOverride ? `<button type="button" class="fin-ajuste-reset" data-tip="Restaurar valor calculado" onclick="event.stopPropagation(); restaurarAjusteFinanceiro('${mes}','${campo}')">↺</button>` : ''}
+  </div>`;
+}
 function renderEvolucaoMensal() {
   const body = document.getElementById('fin-evolucao-body');
   if (!body) return;
   const receitaMap = {}; computeMensal().forEach(m => { receitaMap[m.mes] = m.fat; });
   const despesaMap = computeDespesasMensal();
-  const meses = [...new Set([...Object.keys(receitaMap), ...Object.keys(despesaMap)])].sort();
-  if (!meses.length) { body.innerHTML = '<tr><td colspan="5" class="table-empty">Sem dados ainda.</td></tr>'; return; }
+  const meses = [...new Set([...Object.keys(receitaMap), ...Object.keys(despesaMap), ...state.financeiroAjustes.map(a => a.mes)])].filter(m => m >= '2026-01').sort();
+  if (!meses.length) { body.innerHTML = '<tr><td colspan="5" class="table-empty">Sem dados a partir de 2026 ainda.</td></tr>'; return; }
   let lucroAnterior = null;
   body.innerHTML = meses.map(mes => {
-    const receita = receitaMap[mes] || 0;
-    const despesa = despesaMap[mes] || 0;
+    const receitaComputada = receitaMap[mes] || 0;
+    const despesaComputada = despesaMap[mes] || 0;
+    const receitaOverride = finAjusteValor(mes, 'receita_ajustada');
+    const despesaOverride = finAjusteValor(mes, 'despesas_ajustada');
+    const receita = receitaOverride != null ? receitaOverride : receitaComputada;
+    const despesa = despesaOverride != null ? despesaOverride : despesaComputada;
     const lucro = round2(receita - despesa);
     let variacaoHtml = '<span style="color:var(--text-2,#8A8A8A)">—</span>';
     if (lucroAnterior !== null) {
@@ -17639,12 +17705,90 @@ function renderEvolucaoMensal() {
     lucroAnterior = lucro;
     return `<tr>
       <td class="strong">${reportMonthLabel(mes)}</td>
-      <td class="num">${fmtBR(receita)}</td>
-      <td class="num">${fmtBR(despesa)}</td>
+      <td class="num">${finAjusteCellHtml(mes, 'receita_ajustada', receita, receitaComputada)}</td>
+      <td class="num">${finAjusteCellHtml(mes, 'despesas_ajustada', despesa, despesaComputada)}</td>
       <td class="num strong">${fmtBR(lucro)}</td>
       <td class="num">${variacaoHtml}</td>
     </tr>`;
   }).join('');
+}
+async function salvarAjusteFinanceiro(mes, campo, valorStr, valorComputado) {
+  const client = requireSupabaseSession();
+  if (!client) { renderEvolucaoMensal(); return; }
+  const raw = (valorStr || '').trim();
+  const novoValor = raw === '' ? null : (parseFloat(raw.replace(',', '.')) || 0);
+  if (novoValor !== null && round2(novoValor) === round2(valorComputado)) {
+    await restaurarAjusteFinanceiro(mes, campo);
+    return;
+  }
+  const existente = state.financeiroAjustes.find(a => a.mes === mes);
+  const row = { mes, receita_ajustada: existente?.receita_ajustada ?? null, despesas_ajustada: existente?.despesas_ajustada ?? null, atualizado_em: new Date().toISOString() };
+  row[campo] = novoValor;
+  const { data, error } = await client.from('crm_financeiro_ajustes').upsert(row, { onConflict: 'mes' }).select().single();
+  if (error) { alert('Não consegui salvar o ajuste: ' + error.message); renderEvolucaoMensal(); return; }
+  if (existente) Object.assign(existente, data); else state.financeiroAjustes.push(data);
+  renderEvolucaoMensal();
+}
+async function restaurarAjusteFinanceiro(mes, campo) {
+  const client = requireSupabaseSession();
+  if (!client) return;
+  const existente = state.financeiroAjustes.find(a => a.mes === mes);
+  if (!existente) { renderEvolucaoMensal(); return; }
+  existente[campo] = null;
+  if (existente.receita_ajustada == null && existente.despesas_ajustada == null) {
+    const { error } = await client.from('crm_financeiro_ajustes').delete().eq('mes', mes);
+    if (error) { alert('Não consegui restaurar: ' + error.message); return; }
+    state.financeiroAjustes = state.financeiroAjustes.filter(a => a.mes !== mes);
+  } else {
+    const { error } = await client.from('crm_financeiro_ajustes').update({ [campo]: null, atualizado_em: new Date().toISOString() }).eq('mes', mes);
+    if (error) { alert('Não consegui restaurar: ' + error.message); return; }
+  }
+  renderEvolucaoMensal();
+}
+let finChartDespesas = null;
+function renderDespesasChart() {
+  const canvas = document.getElementById('fin-chart-despesas');
+  const emptyEl = document.getElementById('fin-chart-despesas-empty');
+  const rankEl = document.getElementById('fin-desp-categoria-ranking');
+  if (!canvas) return;
+  const mesFiltro = document.getElementById('fin-desp-mes')?.value || '';
+  let rows = state.despesas;
+  if (mesFiltro) rows = rows.filter(d => String(d.data || '').slice(0, 7) === mesFiltro);
+  const porCategoria = {};
+  rows.forEach(d => {
+    const label = despesaCategoriaLabel(d) || 'Outro';
+    porCategoria[label] = (porCategoria[label] || 0) + (Number(d.valor) || 0);
+  });
+  const entries = Object.entries(porCategoria).sort((a, b) => b[1] - a[1]);
+  if (finChartDespesas) { try { finChartDespesas.destroy(); } catch (e) {} finChartDespesas = null; }
+  if (!entries.length) {
+    canvas.style.display = 'none';
+    if (emptyEl) emptyEl.classList.remove('hidden');
+    if (rankEl) rankEl.innerHTML = '';
+    return;
+  }
+  canvas.style.display = 'block';
+  if (emptyEl) emptyEl.classList.add('hidden');
+  const palette = chartPastelPalette();
+  const total = entries.reduce((s, [, v]) => s + v, 0);
+  try {
+    finChartDespesas = new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      plugins: [intelChartBgPlugin()],
+      data: { labels: entries.map(([l]) => l), datasets: [{ data: entries.map(([, v]) => v), backgroundColor: palette, borderColor: chartSurfaceStroke(), borderWidth: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.label + ': ' + fmtBR(c.parsed) } } } }
+    });
+  } catch (e) {}
+  if (rankEl) {
+    rankEl.innerHTML = entries.map(([label, valor], i) => {
+      const pct = total > 0 ? Math.round((valor / total) * 100) : 0;
+      const cor = palette[i % palette.length];
+      return `<div class="fin-cat-rank-row">
+        <div class="fin-cat-rank-top"><span class="fin-cat-rank-dot" style="background:${cor}"></span><span class="fin-cat-rank-label">${escapeHtml(label)}</span><span class="fin-cat-rank-value">${fmtBR(valor)} · ${pct}%</span></div>
+        <div class="fin-cat-rank-bar"><div class="fin-cat-rank-bar-fill" style="width:${pct}%;background:${cor}"></div></div>
+      </div>`;
+    }).join('');
+  }
 }
 function renderDespesas() {
   const tbody = document.getElementById('fin-desp-table');
@@ -17656,6 +17800,7 @@ function renderDespesas() {
   if (term) rows = rows.filter(d => nameKey(despesaCategoriaLabel(d) + ' ' + (d.descricao || '')).includes(term));
   if (mesFiltro) rows = rows.filter(d => String(d.data || '').slice(0, 7) === mesFiltro);
   if (catFiltro) rows = rows.filter(d => despesaCategoriaLabel(d) === catFiltro);
+  renderDespesasChart();
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" class="table-empty">Nenhuma despesa registrada ainda.</td></tr>'; return; }
   tbody.innerHTML = rows.map(d => `
     <tr>
@@ -18662,7 +18807,7 @@ function gsoClearPagination(containerId) {
 
 function limparFiltrosVendas() {
   dashboardSalesQuickFilter = '';
-  ['searchVendas','filterDataVenda','filterDataVendaAte','filterAno','filterProdutoVenda','filterAromaVenda','filterPagamento','filterVendedor','filterNF'].forEach(id => {
+  ['searchVendas','filterDataVenda','filterDataVendaAte','filterAno','filterProdutoVenda','filterAromaVenda','filterPagamento','filterVendedor','filterTipoVenda','filterNF'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -18696,6 +18841,7 @@ function renderVendas() {
   setSelectOptions(document.getElementById('filterAromaVenda'), saleAromaFilterValues(), 'Todos os aromas');
   setSelectOptions(document.getElementById('filterPagamento'), PAYMENT_OPTIONS, 'Todos os pagamentos');
   setSelectOptions(document.getElementById('filterVendedor'), saleSellerFilterOptions(), 'Todos os vendedores');
+  document.getElementById('filterTipoVenda')?.classList.toggle('hidden', !isAdminUser());
 
   const term = document.getElementById('searchVendas').value.toLowerCase();
   const dataFiltro = document.getElementById('filterDataVenda')?.value || '';
@@ -18705,6 +18851,7 @@ function renderVendas() {
   const aromaFiltro = document.getElementById('filterAromaVenda')?.value || '';
   const pagamentoFiltro = document.getElementById('filterPagamento')?.value || '';
   const vendedorFiltro = document.getElementById('filterVendedor')?.value || '';
+  const tipoVendaFiltro = isAdminUser() ? (document.getElementById('filterTipoVenda')?.value || '') : '';
   const nfFiltro = document.getElementById('filterNF')?.value || '';
   const revisarFiltro = Boolean(document.getElementById('filterRevisar')?.checked);
   // Ordem por dia (mais recente primeiro) e, dentro do mesmo dia, por ordem de registro
@@ -18729,13 +18876,14 @@ function renderVendas() {
   if (aromaFiltro) rows = rows.filter(r => saleAromaValues(r).some(aroma => nameKey(aroma) === nameKey(aromaFiltro)));
   if (pagamentoFiltro) rows = rows.filter(r => canonicalPayment(r.pagamento || '') === pagamentoFiltro);
   if (vendedorFiltro) rows = rows.filter(r => canonicalSellerName(r.vendedor || 'Sem vendedor') === vendedorFiltro);
+  if (tipoVendaFiltro) rows = rows.filter(r => (r.tipoVenda || 'Direto') === tipoVendaFiltro);
   if (nfFiltro === 'com') rows = rows.filter(saleHasNf);
   if (nfFiltro === 'sem') rows = rows.filter(r => !saleHasNf(r));
   if (revisarFiltro) rows = rows.filter(r => r.revisaoCliente);
   if (dashboardSalesQuickFilter === 'hoje') rows = rows.filter(r => dashboardDateKey(r.data) === dashboardDateKey(new Date()));
   if (dashboardSalesQuickFilter === 'sem_boleto') rows = rows.filter(r => canonicalPayment(r.pagamento || '') === 'Boleto' && !dashboardHasSaleFile(r, 'boleto'));
 
-  const pageSignature = gsoPaginationSignature([term, dataFiltro, dataFiltroAte, ano, produtoFiltro, aromaFiltro, pagamentoFiltro, vendedorFiltro, nfFiltro, revisarFiltro, dashboardSalesQuickFilter, rows.length]);
+  const pageSignature = gsoPaginationSignature([term, dataFiltro, dataFiltroAte, ano, produtoFiltro, aromaFiltro, pagamentoFiltro, vendedorFiltro, tipoVendaFiltro, nfFiltro, revisarFiltro, dashboardSalesQuickFilter, rows.length]);
   const pageInfo = gsoPaginateRows('vendas', rows, pageSignature);
   const tbody = document.getElementById('vendasTable');
   if (rows.length === 0) {
@@ -18774,7 +18922,6 @@ function renderVendas() {
             <button class="btn btn-small" onclick="openEditVenda('${r.id}')">Editar</button>
             <button class="btn btn-small btn-danger" onclick="excluirVenda('${r.id}')" data-tip="Apagar venda" aria-label="Apagar venda">${trashIconSvg()}</button>
             <button class="btn btn-small" onclick="verMaisVenda('${r.id}')">Ver mais</button>
-            ${isAdminUser() ? `<button class="btn btn-small" onclick="converterVendaEmLojista('${r.id}')" data-tip="Move esta venda pra Vendas Lojista">Converter em venda lojista</button>` : ''}
           </div>
         </td>
       </tr>
@@ -18809,32 +18956,6 @@ async function excluirVenda(id) {
   renderVendas();
   renderDash();
   if (!document.getElementById('view-clientes').classList.contains('hidden')) renderClientes();
-}
-
-// Vendas normais e vendas lojista ficam em tabelas separadas (crm_vendas x
-// crm_vendas_lojista) — "converter" move o registro inteiro de uma pra outra, preservando
-// todos os dados (itens, NF, boleto, estoque já baixado), só trocando o número da venda
-// pela numeração própria de lojista.
-async function converterVendaEmLojista(id) {
-  if (!isAdminUser()) { alert('Apenas administradores podem converter vendas.'); return; }
-  const venda = state.vendas.find(v => v.id === id);
-  if (!venda) return;
-  const label = venda.numeroVenda ? `nº ${venda.numeroVenda}` : venda.cliente;
-  if (!confirm(`Converter a venda ${label} (${venda.cliente}) em venda de lojista?\n\nEla sai da lista de Vendas e passa a aparecer em Vendas Lojista.`)) return;
-
-  const numeroVenda = nextSaleNumberLojista();
-  const vendaLojista = { ...venda, id: 'vl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), numeroVenda };
-  state.vendasLojista.push(vendaLojista);
-  state.vendas = state.vendas.filter(v => v.id !== id);
-  STORE.save('vendas', state.vendas);
-  STORE.save('vendasLojista', state.vendasLojista);
-  const client = getSupabaseClient();
-  const session = await getSupabaseSession();
-  if (client && session) await client.from('crm_vendas').delete().eq('id', id);
-  renderVendas();
-  if (typeof renderVendasLojista === 'function') renderVendasLojista();
-  renderDash();
-  alert(`Convertida — agora é a venda lojista nº ${numeroVenda}.`);
 }
 
 function nextSaleNumberLojista() {
@@ -23196,6 +23317,8 @@ function initEditVenda(id) {
   document.getElementById('f-boleto-pdf').value = '';
   document.getElementById('f-aroma-custom').value = '';
   document.getElementById('f-aroma-custom-row').classList.add('hidden');
+  setTipoVendaForm(venda.tipoVenda || 'Direto');
+  document.getElementById('f-tipo-venda-row').classList.toggle('hidden', !isAdminUser());
   const nfNumeroInput = document.getElementById('f-nf-numero');
   if (nfNumeroInput) nfNumeroInput.value = saleNfNumber(venda) || '';
 
@@ -23385,6 +23508,8 @@ function initNova() {
   document.getElementById('f-tipo').value = 'UN';
   document.getElementById('f-aroma-custom').value = '';
   document.getElementById('f-aroma-custom-row').classList.add('hidden');
+  setTipoVendaForm('Direto');
+  document.getElementById('f-tipo-venda-row').classList.toggle('hidden', !isAdminUser());
   currentSaleItems = [];
   renderSaleItemsList();
 
@@ -23394,6 +23519,11 @@ function initNova() {
   updateProductSelectOptions();
   updateProductSizeOptions();
   togglePaymentFields();
+}
+
+function setTipoVendaForm(tipo) {
+  document.getElementById('f-tipo-venda').value = tipo;
+  document.querySelectorAll('#f-tipo-venda-row .intel-chip').forEach(el => el.classList.toggle('on', el.dataset.tipo === tipo));
 }
 
 function toggleAromaCustom() {
@@ -23513,6 +23643,7 @@ async function salvarVenda() {
     desconto,
     pagamento,
     pagamentoDetalhes,
+    tipoVenda: document.getElementById('f-tipo-venda').value || 'Direto',
     vendedor: canonicalSellerName(document.getElementById('f-vend').value),
     nfNumber: document.getElementById('f-nf-numero')?.value.trim() || '',
     obs: document.getElementById('f-obs').value.trim(),
@@ -24081,7 +24212,10 @@ init();
   #view-clientes #sub-crm .table-card td:nth-child(6) { width: 18%; }
   #view-clientes #sub-crm .row-actions { display:flex; gap:7px; flex-wrap:wrap; justify-content:flex-end; }
   #view-clientes #sub-crm .row-actions .btn-small { white-space:nowrap; padding:7px 9px; }
-  #view-clientes #sub-crm .metrics .metric { border-width:1px !important; box-shadow:none !important; }
+  #view-clientes #sub-crm .metrics .metric { border-width:1px !important; box-shadow:none !important; padding:10px 14px !important; }
+  #view-clientes #sub-crm .metrics .metric-label { font-size:11px !important; margin-bottom:3px !important; }
+  #view-clientes #sub-crm .metrics .metric-value { font-size:19px !important; margin-bottom:2px !important; }
+  #view-clientes #sub-crm .metrics .metric-delta { font-size:10px !important; }
   #view-clientes #sub-crm .metrics .metric:nth-child(1) { border-color:rgba(23,141,74,.42) !important; }
   #view-clientes #sub-crm .metrics .metric:nth-child(2) { border-color:rgba(217,148,13,.42) !important; }
   #view-clientes #sub-crm .metrics .metric:nth-child(3) { border-color:rgba(201,60,55,.42) !important; }
@@ -31484,6 +31618,24 @@ body.theme-dark #view-clientes .pill-red   { background: rgba(216,108,108,.18) !
 #view-financeiro .pill-red   { background: #FBE8E8 !important; color: #B0322F !important; border: 1px solid #F0C5C3 !important; }
 body.theme-dark #view-financeiro .pill-green { background: rgba(70,170,100,.18) !important; color: #86D9A6 !important; border-color: rgba(70,170,100,.42) !important; }
 body.theme-dark #view-financeiro .pill-red   { background: rgba(216,108,108,.18) !important; color: #E89A9A !important; border-color: rgba(216,108,108,.44) !important; }
+
+/* --- FINANCEIRO: valores de Receita/Despesas editáveis na Evolução mensal --- */
+.fin-ajuste-wrap { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+.fin-ajuste-input { width: 96px; min-width: 0; padding: 5px 7px; font-size: 12.5px; border-radius: 6px; text-align: right; }
+.fin-ajuste-input.fin-ajuste-override { border: 1.5px solid #A9C7EE !important; background: #EAF1FB !important; font-weight: 700 !important; color: #1D4E8F !important; }
+body.theme-dark .fin-ajuste-input.fin-ajuste-override { border-color: rgba(122,168,231,.5) !important; background: rgba(122,168,231,.16) !important; color: #9CC1F2 !important; }
+.fin-ajuste-reset { font-size: 12px; font-weight: 700; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2, #eef3f7); color: var(--text-2); cursor: pointer; line-height: 1; }
+.fin-ajuste-reset:hover { color: var(--text); }
+
+/* --- FINANCEIRO: ranking de despesas por categoria --- */
+.fin-cat-rank-row { margin-bottom: 12px; }
+.fin-cat-rank-row:last-child { margin-bottom: 0; }
+.fin-cat-rank-top { display: flex; align-items: center; gap: 7px; font-size: 12.5px; margin-bottom: 4px; }
+.fin-cat-rank-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.fin-cat-rank-label { flex: 1; color: var(--text); font-weight: 600; }
+.fin-cat-rank-value { color: var(--text-2); white-space: nowrap; }
+.fin-cat-rank-bar { height: 6px; border-radius: 999px; background: var(--surface-2, #eef3f7); overflow: hidden; }
+.fin-cat-rank-bar-fill { height: 100%; border-radius: 999px; }
 
 /* ================= v20: tags de AROMA coloridas (suaves) na tabela de Vendas ================= */
 .pill-aroma { border: 1px solid transparent !important; font-weight: 600 !important; }
