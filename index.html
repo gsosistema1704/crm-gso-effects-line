@@ -1928,7 +1928,6 @@
     .main { padding: 16px; width: 100%; }
     .menu-toggle { display: block; }
     .metrics { grid-template-columns: repeat(2, 1fr); }
-    #view-clientes #sub-crm .metrics { grid-template-columns:repeat(2,minmax(0,128px)) !important; max-width:280px !important; }
     .row-2, .row-2-equal, .row-3, .trans-grid, .message-grid { grid-template-columns: 1fr; }
     .form-r2, .form-r3, .form-r3-eq, .form-r4, .form-r5, .filter-panel, .filter-panel.clients, .filter-panel.lojista, .sale-item-row { grid-template-columns: 1fr; }
     .filter-panel > *, .filter-panel.clients > *, .filter-panel.lojista > * { width: 100%; max-width: 240px; }
@@ -12098,20 +12097,6 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
 	      <!-- Clientes -->
       <div id="sub-crm">
-        <div class="metrics" style="grid-template-columns:repeat(3,1fr);">
-          <div class="metric metric-ativo" data-tip="Comprou nos últimos 30 dias">
-            <div class="metric-label">Ativos</div>
-            <div class="metric-value-row"><span class="metric-value" style="color:var(--green-text);" id="c-ativo">0</span><span class="metric-delta">Últimos 30d</span></div>
-          </div>
-          <div class="metric metric-risco" data-tip="Entre 31 e 60 dias sem comprar">
-            <div class="metric-label">Em risco</div>
-            <div class="metric-value-row"><span class="metric-value" style="color:var(--amber-text);" id="c-risco">0</span><span class="metric-delta">31-60d</span></div>
-          </div>
-          <div class="metric metric-inativo" data-tip="Mais de 60 dias sem comprar">
-            <div class="metric-label">Inativos</div>
-            <div class="metric-value-row"><span class="metric-value" style="color:var(--red-text);" id="c-inativo">0</span><span class="metric-delta">60d+</span></div>
-          </div>
-        </div>
 
         <div class="filter-panel clients">
           <input type="text" class="input" id="searchClientes" placeholder="Buscar cliente..." oninput="renderClientes()">
@@ -24619,15 +24604,6 @@ init();
   #view-clientes #sub-crm .table-card td:nth-child(6) { width: 18%; }
   #view-clientes #sub-crm .row-actions { display:flex; gap:7px; flex-wrap:wrap; justify-content:flex-end; }
   #view-clientes #sub-crm .row-actions .btn-small { white-space:nowrap; padding:7px 9px; }
-  #view-clientes #sub-crm .metrics { grid-template-columns:repeat(3,minmax(0,128px)) !important; gap:8px !important; max-width:420px !important; margin-bottom:16px !important; }
-  #view-clientes #sub-crm .metrics .metric { border-width:1px !important; box-shadow:none !important; padding:8px 12px !important; border-radius:10px !important; }
-  #view-clientes #sub-crm .metrics .metric-label { font-size:11px !important; font-weight:600 !important; margin-bottom:3px !important; }
-  #view-clientes #sub-crm .metrics .metric-value-row { display:flex !important; align-items:baseline !important; gap:6px !important; }
-  #view-clientes #sub-crm .metrics .metric-value { font-size:20px !important; margin-bottom:0 !important; line-height:1 !important; }
-  #view-clientes #sub-crm .metrics .metric-delta { font-size:10px !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #view-clientes #sub-crm .metrics .metric:nth-child(1) { border-color:rgba(23,141,74,.42) !important; }
-  #view-clientes #sub-crm .metrics .metric:nth-child(2) { border-color:rgba(217,148,13,.42) !important; }
-  #view-clientes #sub-crm .metrics .metric:nth-child(3) { border-color:rgba(201,60,55,.42) !important; }
   .gso-calc-pager { display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:12px; flex-wrap:wrap; }
   .gso-calc-pager small { color:var(--crm-muted); margin-right:auto; font-weight:700; }
   .gso-prec-multi-card { margin-top:14px; }
@@ -24708,12 +24684,6 @@ init();
     if (tipoPessoa === 'revendedor') todos = todos.filter(c => c.tipoCliente === 'Revendedor');
     const countEl = document.getElementById('clientes-count');
     if (countEl) countEl.textContent = todos.length.toLocaleString('pt-BR');
-    const ativoEl = document.getElementById('c-ativo');
-    const riscoEl = document.getElementById('c-risco');
-    const inativoEl = document.getElementById('c-inativo');
-    if (ativoEl) ativoEl.textContent = todos.filter(c => c.status === 'Ativo').length;
-    if (riscoEl) riscoEl.textContent = todos.filter(c => c.status === 'Em Risco').length;
-    if (inativoEl) inativoEl.textContent = todos.filter(c => c.status === 'Inativo').length;
 
     const term = (document.getElementById('searchClientes')?.value || '').toLowerCase();
     const status = document.getElementById('filterStatus')?.value || '';
@@ -32022,17 +31992,6 @@ body:not(.theme-dark) .login-left, body.theme-dark .login-left {
 }
 .sales-table .row-actions { gap: 5px; flex-wrap: wrap; max-width: 150px; }
 .sales-table .payment-cell { white-space: normal; }
-
-/* --- CLIENTES: cards de status com preenchimento suave seguindo a borda --- */
-#sub-crm .metric.metric-ativo,
-#sub-crm .metric.metric-risco,
-#sub-crm .metric.metric-inativo { border-width: 1px !important; border-style: solid !important; }
-#sub-crm .metric.metric-ativo   { background: #EAF6EF !important; border-color: #BFE3CD !important; }
-#sub-crm .metric.metric-risco   { background: #FBF1DD !important; border-color: #F0DBA9 !important; }
-#sub-crm .metric.metric-inativo { background: #FBE8E8 !important; border-color: #F0C5C3 !important; }
-body.theme-dark #sub-crm .metric.metric-ativo   { background: rgba(70,170,100,.16) !important; border-color: rgba(70,170,100,.42) !important; }
-body.theme-dark #sub-crm .metric.metric-risco   { background: rgba(224,163,62,.16) !important; border-color: rgba(224,163,62,.42) !important; }
-body.theme-dark #sub-crm .metric.metric-inativo { background: rgba(216,108,108,.16) !important; border-color: rgba(216,108,108,.44) !important; }
 
 /* --- CLIENTES: badge de tipo de cadastro (L/D/R/C) no lugar do botão Converter em Lojista --- */
 .cli-tipo-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: 700; border: 1.5px solid; flex-shrink: 0; cursor: default; }
