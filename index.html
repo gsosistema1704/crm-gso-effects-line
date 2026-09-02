@@ -11836,6 +11836,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div class="nav-item" data-view="recados" data-label="Recados" onclick="navTo('recados')">
       <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2.5" width="12" height="11" rx="1.2"/><path d="M5 6h6M5 8.5h4"/></svg>
       <span class="nav-label">Recados</span>
+      <span class="client-alert-badge hidden" id="recadosAlertBadge">0</span>
     </div>
 
     <div class="sb-section">OPERAÇÕES</div>
@@ -18340,8 +18341,43 @@ async function loadRecados() {
   return state.recados;
 }
 
+const RECADOS_ULTIMO_VISTO_KEY = 'gso_recados_ultimo_visto';
+function getRecadosUltimoVisto() {
+  return localStorage.getItem(RECADOS_ULTIMO_VISTO_KEY) || null;
+}
+function marcarRecadosComoVistos() {
+  localStorage.setItem(RECADOS_ULTIMO_VISTO_KEY, new Date().toISOString());
+  const badge = document.getElementById('recadosAlertBadge');
+  if (badge) badge.classList.add('hidden');
+}
+// Bolinha de notificação no menu quando alguém posta um recado novo — "visto" é guardado
+// só neste navegador (não sincroniza entre aparelhos), suficiente pra avisar "tem coisa nova".
+async function updateRecadosBadge() {
+  const badge = document.getElementById('recadosAlertBadge');
+  if (!badge) return;
+  const client = getSupabaseClient();
+  const session = await getSupabaseSession();
+  if (!client || !session) { badge.classList.add('hidden'); return; }
+  try {
+    await loadRecados();
+    const ultimoVisto = getRecadosUltimoVisto();
+    if (!ultimoVisto) {
+      // Primeira vez que essa pessoa usa o recurso — não mostra tudo que já existe como "novo".
+      marcarRecadosComoVistos();
+      return;
+    }
+    const ultimoVistoMs = new Date(ultimoVisto).getTime();
+    const novos = state.recados.filter(r => r.criado_em && new Date(r.criado_em).getTime() > ultimoVistoMs);
+    badge.textContent = novos.length > 9 ? '9+' : String(novos.length);
+    badge.classList.toggle('hidden', novos.length === 0);
+  } catch (err) {
+    console.warn('Recados badge error:', err);
+  }
+}
+
 async function renderRecados() {
   await loadRecados();
+  marcarRecadosComoVistos();
   const grid = document.getElementById('recados-grid');
   if (!grid) return;
   if (!state.recados.length) {
@@ -24561,6 +24597,7 @@ function renderAll() {
   updateSaleReviewBadge();
   updateUnreadBadge();
   updateBoletosBadge();
+  updateRecadosBadge();
   updateMobileChrome();
   setTimeout(enhanceButtonTooltips, 0);
 }
