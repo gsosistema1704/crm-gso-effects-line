@@ -11833,6 +11833,10 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5a4.5 4.5 0 0 0-2.6 8.17c.36.27.6.68.6 1.12V11h4v-.21c0-.44.24-.85.6-1.12A4.5 4.5 0 0 0 8 1.5Z"/><path d="M6 13.2h4M6.6 11v2.4M9.4 11v2.4"/></svg>
       Visão geral
     </div>
+    <div class="nav-item" data-view="recados" data-label="Recados" onclick="navTo('recados')">
+      <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2.5" width="12" height="11" rx="1.2"/><path d="M5 6h6M5 8.5h4"/></svg>
+      <span class="nav-label">Recados</span>
+    </div>
 
     <div class="sb-section">OPERAÇÕES</div>
     <div class="nav-item" data-view="vendas" data-label="Vendas" onclick="navTo('vendas')">
@@ -11976,7 +11980,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div id="view-lojista" class="hidden">
       <div class="header">
         <div>
-          <div class="h-title">Lojista</div>
+          <div class="h-title">Lojistas</div>
           <div class="h-sub"><span id="lojista-count">0</span> vendas para lojistas/revendedores</div>
         </div>
         <div class="h-actions">
@@ -11984,7 +11988,10 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </div>
       </div>
 
-      <div class="form-help" style="margin:0 0 14px;font-size:13px">O cadastro de lojistas (nome, contato, CPF/CNPJ) agora fica em <strong>Clientes</strong> — use o filtro "Só Lojistas" lá pra ver/editar. Aqui fica só o lançamento das vendas.</div>
+      <div class="subtabs">
+        <div class="subtab active" data-lojista-subtab="vendas" onclick="switchLojistaTab('vendas')">Vendas</div>
+        <div class="subtab" data-lojista-subtab="cadastros" onclick="switchLojistaTab('cadastros')">Cadastros</div>
+      </div>
 
       <datalist id="lojistas-datalist"></datalist>
 
@@ -11996,30 +12003,51 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           </div>
         </div>
         <div id="lojista-restrito-conteudo">
-          <div class="filter-panel lojista">
-            <input type="text" class="input" id="searchLojista" placeholder="Buscar lojista, produto..." oninput="renderVendasLojista()">
-            <input type="date" class="input" id="filterDataLojista" title="Filtrar por dia" aria-label="Filtrar por dia" onchange="renderVendasLojista()">
-            <button class="btn btn-soft" onclick="document.getElementById('searchLojista').value='';document.getElementById('filterDataLojista').value='';renderVendasLojista();">Limpar</button>
+          <div id="sub-lojista-vendas">
+            <div class="filter-panel lojista">
+              <input type="text" class="input" id="searchLojista" placeholder="Buscar lojista, produto..." oninput="renderVendasLojista()">
+              <input type="date" class="input" id="filterDataLojista" title="Filtrar por dia" aria-label="Filtrar por dia" onchange="renderVendasLojista()">
+              <button class="btn btn-soft" onclick="document.getElementById('searchLojista').value='';document.getElementById('filterDataLojista').value='';renderVendasLojista();">Limpar</button>
+            </div>
+
+            <div class="card table-card">
+              <table class="sales-table mobile-card-table">
+                <colgroup><col style="width:10%"><col style="width:20%"><col style="width:20%"><col style="width:9%"><col style="width:6%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:5%"></colgroup>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Lojista</th>
+                    <th>Produto</th>
+                    <th>Aroma</th>
+                    <th class="num">Qtd</th>
+                    <th class="num">Valor</th>
+                    <th>Pagamento</th>
+                    <th>Vendedor</th>
+                    <th class="col-acoes">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="lojistaTable"></tbody>
+              </table>
+            </div>
           </div>
 
-          <div class="card table-card">
-            <table class="sales-table mobile-card-table">
-              <colgroup><col style="width:10%"><col style="width:20%"><col style="width:20%"><col style="width:9%"><col style="width:6%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:5%"></colgroup>
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Lojista</th>
-                  <th>Produto</th>
-                  <th>Aroma</th>
-                  <th class="num">Qtd</th>
-                  <th class="num">Valor</th>
-                  <th>Pagamento</th>
-                  <th>Vendedor</th>
-                  <th class="col-acoes">Ações</th>
-                </tr>
-              </thead>
-              <tbody id="lojistaTable"></tbody>
-            </table>
+          <div id="sub-lojista-cadastros" class="hidden">
+            <div class="header" style="margin-bottom:12px;">
+              <div><span id="lojistas-count">0</span> lojistas cadastrados</div>
+              <div class="h-actions">
+                <button class="btn btn-primary" id="btn-novo-lojista" onclick="openLojistaCadastroModal()">+ Novo Lojista</button>
+              </div>
+            </div>
+            <div class="filter-panel lojista">
+              <input type="text" class="input" id="searchLojistasCadastro" placeholder="Buscar lojista, telefone, CPF/CNPJ..." oninput="renderLojistasCadastro()">
+              <button class="btn btn-soft" onclick="document.getElementById('searchLojistasCadastro').value='';renderLojistasCadastro();">Limpar</button>
+            </div>
+            <div class="card table-card">
+              <table class="stack-table">
+                <thead><tr><th>Nome</th><th>Telefone</th><th>CPF/CNPJ</th><th>Cidade</th><th>Ações</th></tr></thead>
+                <tbody id="lojistasCadastroTable"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -12085,7 +12113,6 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <button class="btn hidden" id="btn-inativar-clientes" onclick="inativarClientesSelecionados()">Deixar inativo (<span id="inativar-count">0</span>)</button>
           <button class="btn btn-danger hidden" id="btn-apagar-clientes" onclick="apagarClientesSelecionados()">Apagar (<span id="apagar-count">0</span>)</button>
           <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
-          <button class="btn btn-soft hidden" id="btn-novo-lojista" onclick="openLojistaCadastroModal()">+ Novo Lojista</button>
           <button class="btn btn-primary" onclick="openClienteModal()">+ Novo Cliente</button>
         </div>
       </div>
@@ -12101,11 +12128,9 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="filter-panel clients">
           <input type="text" class="input" id="searchClientes" placeholder="Buscar cliente..." oninput="renderClientes()">
           <select class="input hidden" id="filterTipoPessoa" onchange="renderClientes()">
-            <option value="">Clientes e Lojistas</option>
-            <option value="cliente">Só Clientes</option>
-            <option value="lojista">Só Lojistas</option>
-            <option value="direto">Só Diretos</option>
-            <option value="revendedor">Só Revendedores</option>
+            <option value="">Todos os tipos</option>
+            <option value="consumidor">Só Consumidor Final</option>
+            <option value="direto-lab">Só Direto Lab</option>
           </select>
           <select class="input" id="filterStatus" onchange="renderClientes()">
             <option value="">Todos os status</option>
@@ -13258,8 +13283,9 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           </div>
           <div>
             <label class="form-label">Cliente</label>
-            <input type="text" class="form-input" id="f-cliente" placeholder="Nome do cliente" list="clientesList">
+            <input type="text" class="form-input" id="f-cliente" placeholder="Nome ou CPF/CNPJ do cliente" list="clientesList" oninput="buscarClientePorDocumentoNoInput(this)">
             <datalist id="clientesList"></datalist>
+            <div id="f-cliente-doc-hint" class="form-help hidden" style="cursor:pointer;color:var(--primary);"></div>
           </div>
         </div>
 
@@ -13683,6 +13709,20 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </div>
       </div>
     </div>
+
+    <!-- ============ RECADOS ============ -->
+    <div id="view-recados" class="hidden">
+      <div class="header">
+        <div>
+          <div class="h-title">Mural de Recados</div>
+          <div class="h-sub">Deixe um recado pra equipe</div>
+        </div>
+        <div class="h-actions">
+          <button class="btn btn-primary" onclick="openRecadoModal()">+ Novo recado</button>
+        </div>
+      </div>
+      <div class="recados-grid" id="recados-grid"></div>
+    </div>
   </main>
 
 </div>
@@ -13792,14 +13832,13 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <label class="form-label">Tipo de cliente</label>
         <input type="hidden" id="mc-tipo-cliente" value="">
         <div class="intel-chips">
-          <span class="intel-chip on" data-tipo="" onclick="setTipoClienteForm('')">Cliente normal</span>
-          <span class="intel-chip" data-tipo="Direto" onclick="setTipoClienteForm('Direto')">Direto</span>
-          <span class="intel-chip" data-tipo="Revendedor" onclick="setTipoClienteForm('Revendedor')">Revendedor</span>
+          <span class="intel-chip on" data-tipo="" onclick="setTipoClienteForm('')">Consumidor Final</span>
+          <span class="intel-chip" data-tipo="__lojista__" onclick="selecionarTipoClienteLojista()" data-tip="Abre o cadastro de lojista, aproveitando o que já foi digitado aqui">Lojista</span>
+          <span class="intel-chip" data-tipo="Direto Lab" onclick="setTipoClienteForm('Direto Lab')">Direto Lab</span>
         </div>
       </div>
     </div>
 	    <div class="form-actions">
-      <button class="btn hidden" id="mc-converter-lojista-btn" onclick="document.getElementById('modal-cliente').classList.remove('show'); converterClienteEmLojista(document.getElementById('mc-original-nome').value);" data-tip="Cria um cadastro de lojista com os mesmos dados e remove o cadastro de cliente comum">Converter em Lojista</button>
       <button class="btn" onclick="document.getElementById('modal-cliente').classList.remove('show')">Cancelar</button>
       <button class="btn btn-green" id="mc-save-btn" onclick="salvarCliente()">Salvar</button>
     </div>
@@ -14493,6 +14532,35 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div class="form-help" style="margin-top:8px">Cada pagamento entra na Evolução mensal no mês em que foi registrado — não no mês da despesa. Ela some da lista de pendências só quando o saldo devedor chegar a zero.</div>
     <div class="form-actions">
       <button class="btn" onclick="document.getElementById('modal-despesa-anotado').classList.remove('show')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL RECADO ============ -->
+<div class="modal-bg" id="modal-recado">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title" id="modal-recado-title">Novo recado</div>
+    <input type="hidden" id="rec-id">
+    <div class="form-row">
+      <div>
+        <label class="form-label">Recado</label>
+        <textarea class="form-input" id="rec-texto" rows="4" maxlength="500" placeholder="Escreva seu recado..."></textarea>
+      </div>
+    </div>
+    <div class="form-row hidden" id="rec-visibilidade-row">
+      <div>
+        <label class="form-label">Quem pode ver</label>
+        <input type="hidden" id="rec-visibilidade" value="todos">
+        <div class="intel-chips">
+          <span class="intel-chip on" data-vis="todos" onclick="setRecadoVisibilidade('todos')">Todos</span>
+          <span class="intel-chip" data-vis="admins" onclick="setRecadoVisibilidade('admins')" data-tip="Só administradores vão ver esse recado">Só administradores</span>
+        </div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-danger hidden" id="rec-excluir-btn" onclick="excluirRecado()">Excluir</button>
+      <button class="btn" onclick="document.getElementById('modal-recado').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-green" onclick="salvarRecado()">Salvar</button>
     </div>
   </div>
 </div>
@@ -17014,6 +17082,20 @@ function resolveClienteAlias(nomeDigitado) {
   return { cliente: nomeDigitado, clienteOriginal: null, revisaoCliente: true, revisaoCandidatos: matches };
 }
 
+// Deixa buscar o cliente da venda por CPF/CNPJ além do nome — evita cadastro duplicado
+// quando quem está lançando a venda não lembra exatamente como o nome foi digitado antes.
+function buscarClientePorDocumentoNoInput(el) {
+  const hint = document.getElementById('f-cliente-doc-hint');
+  if (!hint) return;
+  const digitado = onlyDigits(el.value);
+  if (digitado.length < 6) { hint.classList.add('hidden'); hint.textContent = ''; return; }
+  const fiscal = state.fiscais.find(f => (f.cpf && onlyDigits(f.cpf) === digitado) || (f.cnpj && onlyDigits(f.cnpj) === digitado));
+  if (!fiscal || !fiscal.nome) { hint.classList.add('hidden'); hint.textContent = ''; return; }
+  hint.textContent = `Encontrado: ${fiscal.nome} — clique para usar`;
+  hint.classList.remove('hidden');
+  hint.onclick = () => { el.value = fiscal.nome; hint.classList.add('hidden'); hint.textContent = ''; };
+}
+
 function canonicalSellerName(value) {
   const key = nameKey(value);
   const map = {
@@ -17444,7 +17526,7 @@ function showApp() {
 }
 
 // ============ NAVEGAÇÃO ============
-const VIEWS = ['vendas','lojista','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','calculadora','mercadolivre','laboratorio','cotacoes','inteligencia','financeiro','config','perfil','nova'];
+const VIEWS = ['vendas','lojista','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','calculadora','mercadolivre','laboratorio','cotacoes','inteligencia','financeiro','recados','config','perfil','nova'];
 function applySidebarPreference() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
@@ -17470,7 +17552,7 @@ function toggleSidebarCollapsed() {
 // pra quem não é admin, então não precisa do blur genérico da view inteira aqui.
 // 'produtos' também é liberada — renderProdutos() já deixa a tabela de preços
 // só-leitura e esconde a gestão de cadastros pra quem não é admin.
-const VIEWS_LIBERADAS_SEM_ADMIN = ['vendas', 'nova', 'perfil', 'lojista', 'clientes', 'produtos'];
+const VIEWS_LIBERADAS_SEM_ADMIN = ['vendas', 'nova', 'perfil', 'lojista', 'clientes', 'produtos', 'recados'];
 function aplicarRestricaoAdmin(view) {
   const viewEl = document.getElementById('view-' + view);
   if (!viewEl) return;
@@ -17545,6 +17627,7 @@ function navTo(view) {
   if (view === 'mensagens') renderMensagens();
   if (view === 'inteligencia') renderInteligencia();
   if (view === 'financeiro') renderFinanceiro();
+  if (view === 'recados') renderRecados();
   if (view === 'config') renderConfig();
   if (view === 'perfil') renderPerfil();
   if (view === 'nova') { if (editingVendaId) initEditVenda(editingVendaId); else initNova(); }
@@ -18237,6 +18320,104 @@ async function removerPagamentoDespesaAnotada(despesaId, idx) {
   daRenderPagamentos(d);
   renderEvolucaoMensal();
   renderDespesas();
+}
+
+// ============ RECADOS (mural em formato de post-it) ============
+state.recados = [];
+
+function fmtDataHora(value) {
+  if (!value) return '—';
+  return `${fmtDate(value)} ${formatTime(value)}`.trim();
+}
+
+async function loadRecados() {
+  const client = getSupabaseClient();
+  const session = await getSupabaseSession();
+  if (!client || !session) { state.recados = []; return state.recados; }
+  const { data, error } = await client.from('crm_recados').select('*').order('criado_em', { ascending: false });
+  if (error) { console.error(error); state.recados = []; return state.recados; }
+  state.recados = data || [];
+  return state.recados;
+}
+
+async function renderRecados() {
+  await loadRecados();
+  const grid = document.getElementById('recados-grid');
+  if (!grid) return;
+  if (!state.recados.length) {
+    grid.innerHTML = '<div class="card"><div class="intel-empty">Nenhum recado ainda — seja a primeira a deixar um!</div></div>';
+    return;
+  }
+  const meuId = currentUserId();
+  const souAdmin = isAdminUser();
+  grid.innerHTML = state.recados.map((r, i) => {
+    const editado = Boolean(r.editado_em) && r.editado_em !== r.criado_em;
+    const podeGerenciar = souAdmin || (meuId && r.autor_id === meuId);
+    const ehPrivado = r.visibilidade === 'admins';
+    return `<div class="postit postit-cor-${i % 5}${ehPrivado ? ' postit-privado' : ''}">
+      <div class="postit-top">
+        <span class="postit-autor">${escapeHtml(r.autor_nome || 'Alguém')}</span>
+        <span class="postit-data">${fmtDataHora(r.criado_em)}</span>
+      </div>
+      <div class="postit-texto">${escapeHtml(r.texto)}</div>
+      <div class="postit-bottom">
+        <div class="postit-tags">
+          ${editado ? '<span class="postit-tag">editado</span>' : ''}
+          ${ehPrivado ? '<span class="postit-tag postit-tag-priv">Só administradores</span>' : ''}
+        </div>
+        ${podeGerenciar ? `<div class="postit-actions"><button type="button" onclick="openRecadoModal('${r.id}')" data-tip="Editar">✎</button><button type="button" onclick="excluirRecado('${r.id}')" data-tip="Excluir">🗑</button></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setRecadoVisibilidade(v) {
+  document.getElementById('rec-visibilidade').value = v;
+  document.querySelectorAll('#rec-visibilidade-row .intel-chip').forEach(el => el.classList.toggle('on', el.dataset.vis === v));
+}
+
+function openRecadoModal(id = '') {
+  const recado = id ? state.recados.find(r => String(r.id) === String(id)) : null;
+  document.getElementById('rec-id').value = recado ? recado.id : '';
+  document.getElementById('rec-texto').value = recado ? recado.texto : '';
+  document.getElementById('modal-recado-title').textContent = recado ? 'Editar recado' : 'Novo recado';
+  document.getElementById('rec-excluir-btn').classList.toggle('hidden', !recado);
+  const visRow = document.getElementById('rec-visibilidade-row');
+  if (visRow) visRow.classList.toggle('hidden', !isAdminUser());
+  setRecadoVisibilidade(recado?.visibilidade === 'admins' ? 'admins' : 'todos');
+  document.getElementById('modal-recado').classList.add('show');
+}
+
+async function salvarRecado() {
+  const client = requireSupabaseSession();
+  if (!client) return;
+  const id = document.getElementById('rec-id').value;
+  const texto = document.getElementById('rec-texto').value.trim();
+  if (!texto) { alert('Escreva o recado antes de salvar.'); return; }
+  const visibilidade = isAdminUser() ? (document.getElementById('rec-visibilidade').value || 'todos') : 'todos';
+  if (id) {
+    const row = { texto, visibilidade, editado_em: new Date().toISOString() };
+    const { error } = await client.from('crm_recados').update(row).eq('id', id);
+    if (error) { alert('Não consegui salvar o recado: ' + error.message); return; }
+  } else {
+    const row = { texto, visibilidade, autor_nome: currentUserName() };
+    const { error } = await client.from('crm_recados').insert(row);
+    if (error) { alert('Não consegui salvar o recado: ' + error.message); return; }
+  }
+  document.getElementById('modal-recado').classList.remove('show');
+  renderRecados();
+}
+
+async function excluirRecado(id) {
+  const recadoId = id || document.getElementById('rec-id').value;
+  if (!recadoId) return;
+  if (!confirm('Excluir este recado?')) return;
+  const client = requireSupabaseSession();
+  if (!client) return;
+  const { error } = await client.from('crm_recados').delete().eq('id', recadoId);
+  if (error) { alert('Não consegui excluir o recado: ' + error.message); return; }
+  document.getElementById('modal-recado').classList.remove('show');
+  renderRecados();
 }
 
 function computeMensal() {
@@ -19211,7 +19392,11 @@ function trashIconSvg() {
 function renderVendas() {
   normalizeSellerNames();
   ensureSaleNumbers();
-  document.getElementById('vendas-count').textContent = state.vendas.length.toLocaleString('pt-BR');
+  // Usuário comum só vê vendas de clientes Consumidor Final — Direto Lab fica restrito
+  // a administradores, junto com o cadastro dele (mesma regra em renderClientes).
+  const nomesDiretoLab = isAdminUser() ? null : new Set(state.clientes.filter(c => c.tipoCliente === 'Direto Lab').map(c => nameKey(c.nome)));
+  const vendasVisiveis = nomesDiretoLab ? state.vendas.filter(v => !nomesDiretoLab.has(nameKey(v.cliente))) : state.vendas;
+  document.getElementById('vendas-count').textContent = vendasVisiveis.length.toLocaleString('pt-BR');
 
   // Filtros fixos + dinâmicos de vendas
   const anos = saleYearFilterOptions();
@@ -19241,7 +19426,7 @@ function renderVendas() {
   // (a última venda lançada aparece em cima) — numeroVenda nunca muda ao editar uma venda,
   // então essa ordem fica estável mesmo depois de alterar valor/produto/etc., só muda se
   // a Data da venda for realmente alterada.
-  let rows = [...state.vendas].sort((a, b) => {
+  let rows = [...vendasVisiveis].sort((a, b) => {
     const diffData = new Date(b.data) - new Date(a.data);
     if (diffData) return diffData;
     return (parseInt(b.numeroVenda, 10) || 0) - (parseInt(a.numeroVenda, 10) || 0);
@@ -19675,8 +19860,18 @@ function salvarLojistaCadastro() {
   const originalNome = document.getElementById('mlj-original-nome')?.value.trim() || '';
   const nomeInformado = document.getElementById('mlj-nome').value.trim();
   if (!nomeInformado) { alert('Informe o nome do lojista.'); return; }
-  const duplicate = state.lojistas.find(l => nameKey(l.nome) === nameKey(nomeInformado) && nameKey(l.nome) !== nameKey(originalNome));
-  if (duplicate) { alert('Já existe outro lojista cadastrado com esse nome. Use Editar naquele cadastro, ou escolha um nome diferente.'); return; }
+  const cpfInformado = document.getElementById('mlj-cpf').value.trim();
+  const cnpjInformado = document.getElementById('mlj-cnpj').value.trim();
+  const telInformado = document.getElementById('mlj-tel').value.trim();
+  const match = buscarCadastroPorNomeOuDocumento(nomeInformado, cpfInformado, cnpjInformado, telInformado, originalNome);
+  if (match) {
+    const prosseguir = confirm(`Já existe um cadastro para "${match.nome}" com o mesmo ${match.campo}.\n\nOK = cadastrar mesmo assim uma pessoa/empresa separada.\nCancelar = abrir o cadastro de "${match.nome}" que já existe.`);
+    if (!prosseguir) {
+      document.getElementById('modal-lojista-cadastro').classList.remove('show');
+      if (match.tipo === 'lojista') openLojistaCadastroModal(match.nome); else openClienteModal(match.nome);
+      return;
+    }
+  }
 
   const payload = {
     nome: nomeInformado,
@@ -20035,6 +20230,13 @@ function switchClienteTab(tab) {
   if (tab === 'fiscal') renderFiscal();
 }
 
+function switchLojistaTab(tab) {
+  document.querySelectorAll('#view-lojista .subtab').forEach(s => s.classList.toggle('active', s.dataset.lojistaSubtab === tab));
+  document.getElementById('sub-lojista-vendas').classList.toggle('hidden', tab !== 'vendas');
+  document.getElementById('sub-lojista-cadastros').classList.toggle('hidden', tab !== 'cadastros');
+  if (tab === 'vendas') renderVendasLojista(); else renderLojistasCadastro();
+}
+
 function clienteCidadeUf(metadata = {}) {
   const cidade = metadata.cidade || '';
   const estado = metadata.estado || '';
@@ -20224,23 +20426,79 @@ function openClienteModal(nome = '') {
   document.getElementById('mc-nasc-dia').value = meta.nascimentoDia || fiscal.nascimentoDia || '';
   document.getElementById('mc-nasc-mes').value = meta.nascimentoMes || fiscal.nascimentoMes || '';
   document.getElementById('mc-inativo-manual').checked = Boolean(clienteBase.inativoManual);
-  setTipoClienteForm(clienteBase.tipoCliente || '');
-  const converterBtn = document.getElementById('mc-converter-lojista-btn');
-  if (converterBtn) converterBtn.classList.toggle('hidden', !(foundExisting && typeof isAdminUser === 'function' && isAdminUser()));
+  setTipoClienteForm(clienteBase.tipoCliente === 'Direto Lab' ? 'Direto Lab' : '');
   document.getElementById('modal-cliente').classList.add('show');
 }
+function selecionarTipoClienteLojista() {
+  const originalNome = document.getElementById('mc-original-nome')?.value.trim() || '';
+  const dados = {
+    nome: document.getElementById('mc-nome')?.value.trim() || '',
+    tel: document.getElementById('mc-tel')?.value.trim() || '',
+    email: document.getElementById('mc-email')?.value.trim() || '',
+    cpf: document.getElementById('mc-cpf')?.value.trim() || '',
+    cnpj: document.getElementById('mc-cnpj')?.value.trim() || '',
+    cep: document.getElementById('mc-cep')?.value.trim() || '',
+    rua: document.getElementById('mc-rua')?.value.trim() || '',
+    numero: document.getElementById('mc-numero')?.value.trim() || '',
+    bairro: document.getElementById('mc-bairro')?.value.trim() || '',
+    cidade: document.getElementById('mc-cidade')?.value.trim() || '',
+    estado: document.getElementById('mc-estado')?.value.trim() || '',
+    nascDia: document.getElementById('mc-nasc-dia')?.value.trim() || '',
+    nascMes: document.getElementById('mc-nasc-mes')?.value.trim() || ''
+  };
+  document.getElementById('modal-cliente').classList.remove('show');
+  if (originalNome) {
+    // Já existe um cadastro de cliente comum salvo — vira uma conversão de verdade
+    // (apaga o cliente comum depois de criar o lojista), reaproveitando o fluxo existente.
+    converterClienteEmLojista(originalNome);
+    return;
+  }
+  openLojistaCadastroModal();
+  document.getElementById('mlj-nome').value = dados.nome;
+  document.getElementById('mlj-tel').value = dados.tel;
+  document.getElementById('mlj-email').value = dados.email;
+  document.getElementById('mlj-cpf').value = dados.cpf;
+  document.getElementById('mlj-cnpj').value = dados.cnpj;
+  document.getElementById('mlj-cep').value = dados.cep;
+  document.getElementById('mlj-rua').value = dados.rua;
+  document.getElementById('mlj-numero').value = dados.numero;
+  document.getElementById('mlj-bairro').value = dados.bairro;
+  document.getElementById('mlj-cidade').value = dados.cidade;
+  document.getElementById('mlj-estado').value = dados.estado;
+  document.getElementById('mlj-nasc-dia').value = dados.nascDia;
+  document.getElementById('mlj-nasc-mes').value = dados.nascMes;
+}
 
+function onlyDigits(v) { return String(v || '').replace(/\D/g, ''); }
+
+// Busca por nome, CPF, CNPJ ou telefone em Clientes, Dados fiscais e Lojistas juntos —
+// usada antes de salvar um cadastro novo pra avisar quando o dado já existe em outra
+// pessoa, em vez de deixar duplicar em silêncio.
+function buscarCadastroPorNomeOuDocumento(nome, cpf, cnpj, telefone, excluirNome) {
+  const nk = nameKey(nome);
+  const ek = nameKey(excluirNome || '');
+  const cpfD = onlyDigits(cpf);
+  const cnpjD = onlyDigits(cnpj);
+  const telD = onlyDigits(telefone);
+  const candidatos = [
+    ...state.clientes.map(c => ({ nome: c.nome, telefone: c.telefone, tipo: 'cliente' })),
+    ...state.fiscais.map(f => ({ nome: f.nome, cpf: f.cpf, cnpj: f.cnpj, tipo: 'cliente' })),
+    ...state.lojistas.map(l => ({ nome: l.nome, telefone: l.telefone, cpf: l.cpf, cnpj: l.cnpj, tipo: 'lojista' }))
+  ];
+  for (const c of candidatos) {
+    if (!c.nome || nameKey(c.nome) === ek) continue;
+    if (nameKey(c.nome) === nk) return { nome: c.nome, campo: 'nome', tipo: c.tipo };
+    if (cpfD && onlyDigits(c.cpf) === cpfD) return { nome: c.nome, campo: 'CPF', tipo: c.tipo };
+    if (cnpjD && onlyDigits(c.cnpj) === cnpjD) return { nome: c.nome, campo: 'CNPJ', tipo: c.tipo };
+    if (telD && telD.length >= 8 && onlyDigits(c.telefone) === telD) return { nome: c.nome, campo: 'telefone', tipo: c.tipo };
+  }
+  return null;
+}
 
 async function salvarCliente() {
   const originalNome = document.getElementById('mc-original-nome')?.value.trim() || '';
   const nomeInformado = document.getElementById('mc-nome').value.trim();
   const nome = nomeInformado || `Cliente sem nome ${new Date().toLocaleString('pt-BR')}`;
-  const duplicateCliente = state.clientes.find(c => nameKey(c.nome) === nameKey(nome) && nameKey(c.nome) !== nameKey(originalNome));
-  const duplicateFiscal = state.fiscais.find(f => nameKey(f.nome) === nameKey(nome) && nameKey(f.nome) !== nameKey(originalNome));
-  if (duplicateCliente || duplicateFiscal) {
-    alert('Já existe outro cliente cadastrado com esse nome. Use Editar naquele cadastro, ou escolha um nome diferente.');
-    return;
-  }
 
   const cpf = document.getElementById('mc-cpf').value.trim();
   const cnpj = document.getElementById('mc-cnpj').value.trim();
@@ -20255,6 +20513,16 @@ async function salvarCliente() {
   const nascimentoDia = document.getElementById('mc-nasc-dia').value.trim();
   const nascimentoMes = document.getElementById('mc-nasc-mes').value.trim();
   const endereco = [rua, numero].filter(Boolean).join(', ');
+
+  const match = buscarCadastroPorNomeOuDocumento(nome, cpf, cnpj, telefone, originalNome);
+  if (match) {
+    const prosseguir = confirm(`Já existe um cadastro para "${match.nome}" com o mesmo ${match.campo}.\n\nOK = cadastrar mesmo assim uma pessoa/empresa separada.\nCancelar = abrir o cadastro de "${match.nome}" que já existe.`);
+    if (!prosseguir) {
+      document.getElementById('modal-cliente').classList.remove('show');
+      if (match.tipo === 'lojista') openLojistaCadastroModal(match.nome); else openClienteModal(match.nome);
+      return;
+    }
+  }
 
   const inativoManual = document.getElementById('mc-inativo-manual').checked;
   const tipoCliente = document.getElementById('mc-tipo-cliente')?.value || '';
@@ -23675,6 +23943,10 @@ const LOJISTA_PRECOS = {
   'Top Up - Lentes e Telas Cristalinas|120mL': 15.89
 };
 function lojistaPrecoUnitario(produto, tamanho) {
+  if (window.gsoCalc && typeof window.gsoCalc._precoEntrada === 'function') {
+    const daEstrategia = window.gsoCalc._precoEntrada(produto, tamanho, 'UN', 'Revendedor (Lojista)');
+    if (typeof daEstrategia === 'number' && daEstrategia > 0) return daEstrategia;
+  }
   const preco = LOJISTA_PRECOS[produto + '|' + tamanho];
   return typeof preco === 'number' ? preco : null;
 }
@@ -23778,9 +24050,12 @@ function currentSaleItem() {
     const custom = document.getElementById('f-aroma-custom').value.trim();
     if (custom) aroma = custom;
   }
-  const preco = p
-    ? (tipo === 'CX' && unCx > 0 && p.caixa2026 > 0 ? qtdEntrada * p.caixa2026 : qtdEntrada * (p.unit2026 || 0))
-    : 0;
+  const precoEstrategia = (window.gsoCalc && typeof window.gsoCalc._precoEntrada === 'function')
+    ? window.gsoCalc._precoEntrada(produto, tamanho, tipo, 'Consumidor final')
+    : null;
+  const preco = (typeof precoEstrategia === 'number' && precoEstrategia > 0)
+    ? qtdEntrada * precoEstrategia
+    : (p ? (tipo === 'CX' && unCx > 0 && p.caixa2026 > 0 ? qtdEntrada * p.caixa2026 : qtdEntrada * (p.unit2026 || 0)) : 0);
   return {
     produto,
     tamanho,
@@ -24668,20 +24943,17 @@ init();
 
   window.renderClientes = function() {
     ensureClientesFinalSemFavorito();
-    const podeVerLojistas = isAdminUser();
-    const tipoPessoa = podeVerLojistas ? (document.getElementById('filterTipoPessoa')?.value || '') : 'cliente';
-    // Quem já é lojista não aparece de novo como "cliente comum" mesmo tendo vendas
-    // antigas em state.vendas (de antes da conversão) — vira só a linha de Lojista,
-    // com o histórico completo (computeLojistasParaClientes já soma as duas origens).
+    // Lojistas têm cadastro próprio na aba Lojistas > Cadastros — não aparecem mais
+    // misturados aqui em Clientes, mesmo pra admin. Direto Lab só aparece pra admin —
+    // usuário comum só vê Consumidor Final, tanto cadastro quanto vendas.
+    const tipoPessoa = isAdminUser() ? (document.getElementById('filterTipoPessoa')?.value || '') : 'consumidor';
     const nomesLojistas = new Set(state.lojistas.map(l => nameKey(l.nome)));
-    const clis = tipoPessoa === 'lojista' ? [] : (typeof computeClientes === 'function' ? computeClientes().filter(c => !nomesLojistas.has(nameKey(c.nome))).map(c => {
+    let todos = (typeof computeClientes === 'function' ? computeClientes().filter(c => !nomesLojistas.has(nameKey(c.nome))).map(c => {
       const cadastro = state.clientes.find(sc => nameKey(sc.nome) === nameKey(c.nome));
       return { ...c, tipoPessoa: 'cliente', tipoCliente: cadastro?.tipoCliente || '' };
     }) : []);
-    const lojistas = (!podeVerLojistas || tipoPessoa === 'cliente' || tipoPessoa === 'direto' || tipoPessoa === 'revendedor') ? [] : (typeof computeLojistasParaClientes === 'function' ? computeLojistasParaClientes() : []);
-    let todos = clis.concat(lojistas);
-    if (tipoPessoa === 'direto') todos = todos.filter(c => c.tipoCliente === 'Direto');
-    if (tipoPessoa === 'revendedor') todos = todos.filter(c => c.tipoCliente === 'Revendedor');
+    if (tipoPessoa === 'consumidor') todos = todos.filter(c => c.tipoCliente !== 'Direto Lab');
+    if (tipoPessoa === 'direto-lab') todos = todos.filter(c => c.tipoCliente === 'Direto Lab');
     const countEl = document.getElementById('clientes-count');
     if (countEl) countEl.textContent = todos.length.toLocaleString('pt-BR');
 
@@ -24692,7 +24964,7 @@ init();
     let rows = todos;
     if (term) {
       rows = rows.filter(r => {
-        const doc = (r.tipoPessoa === 'lojista' ? [r.cpf, r.cnpj].filter(Boolean).join(' ') : clienteDocResumoCompleto(r.nome)).toLowerCase();
+        const doc = clienteDocResumoCompleto(r.nome).toLowerCase();
         return String(r.nome || '').toLowerCase().includes(term) || String(r.telefone || '').toLowerCase().includes(term) || doc.includes(term);
       });
     }
@@ -24723,25 +24995,22 @@ init();
     if (typeof gsoRenderPagination === 'function') gsoRenderPagination('clientesPagination', 'clientes', pageInfo);
     tbody.innerHTML = pageInfo.rows.map(c => {
       const nomeAttr = typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '');
-      const isLojista = c.tipoPessoa === 'lojista';
-      const doc = isLojista ? [c.cpf, c.cnpj].filter(Boolean).join(' / ') : clienteDocResumoCompleto(c.nome);
-      const tipoLetra = isLojista ? 'L' : (c.tipoCliente === 'Revendedor' ? 'R' : (c.tipoCliente === 'Direto' ? 'D' : 'C'));
-      const tipoLabel = isLojista ? 'Lojista' : (c.tipoCliente === 'Revendedor' ? 'Revendedor' : (c.tipoCliente === 'Direto' ? 'Direto' : 'Cliente normal'));
+      const doc = clienteDocResumoCompleto(c.nome);
+      const isDiretoLab = c.tipoCliente === 'Direto Lab';
+      const tipoLetra = isDiretoLab ? 'DL' : 'CF';
+      const tipoLabel = isDiretoLab ? 'Direto Lab' : 'Consumidor Final';
       const tipoBadge = '<span class="cli-tipo-badge cli-tipo-' + tipoLetra.toLowerCase() + '" data-tip="Tipo de cadastro: ' + tipoLabel + '">' + tipoLetra + '</span>';
       return '<tr onclick="gsoToggleMobileCard(event, this)">' +
         '<td data-label="Selecionar"><input type="checkbox" class="chk-unificar-linha" ' + (typeof unificarSelecionados !== 'undefined' && unificarSelecionados.has(nameKey(c.nome)) ? 'checked' : '') + ' onchange="atualizarSelecaoUnificar(this, ' + nomeAttr + ')"></td>' +
-        '<td data-label="Cliente" data-preview="1"><strong>' + esc(c.nome || '—') + '</strong>' + (isLojista ? ' <span class="pill pill-blue">Lojista</span>' : '') + '</td>' +
+        '<td data-label="Cliente" data-preview="1"><strong>' + esc(c.nome || '—') + '</strong></td>' +
         '<td data-label="Telefone">' + esc(c.telefone || '—') + '</td>' +
         '<td data-label="CPF/CNPJ">' + esc(doc) + '</td>' +
         '<td data-label="Última compra" data-preview="1">' + (c.ultima && typeof fmtDate === 'function' ? fmtDate(c.ultima) : '—') + '</td>' +
         '<td data-label="Status" data-preview="1"><span class="pill ' + (typeof pillClass === 'function' ? pillClass(c.status) : '') + '">' + esc(c.status || '—') + '</span></td>' +
         '<td data-label="Ações"><div class="row-actions">' + tipoBadge +
-        (isLojista
-          ? '<button class="btn btn-small" onclick="openLojistaCadastroModal(' + nomeAttr + ')">Editar</button>' +
-            '<button class="btn btn-small btn-danger" onclick="excluirLojistaCadastro(' + nomeAttr + ')" data-tip="Apagar cadastro" aria-label="Apagar cadastro">' + trashIconSvg() + '</button>'
-          : '<button class="btn btn-small" onclick="openClienteModal(' + nomeAttr + ')">Editar</button>' +
-            '<button class="btn btn-small btn-danger" onclick="excluirCliente(' + nomeAttr + ')" data-tip="Apagar cadastro" aria-label="Apagar cadastro">' + trashIconSvg() + '</button>' +
-            '<button class="btn btn-small" onclick="verMaisCliente(' + nomeAttr + ')">Ver mais</button>') +
+        '<button class="btn btn-small" onclick="openClienteModal(' + nomeAttr + ')">Editar</button>' +
+        '<button class="btn btn-small btn-danger" onclick="excluirCliente(' + nomeAttr + ')" data-tip="Apagar cadastro" aria-label="Apagar cadastro">' + trashIconSvg() + '</button>' +
+        '<button class="btn btn-small" onclick="verMaisCliente(' + nomeAttr + ')">Ver mais</button>' +
         '</div></td></tr>';
     }).join('');
   };
@@ -28978,7 +29247,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       };
     }
   }
-  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _params: params, _materiais: materiais, _materiaisLabels: function () { return Object.assign({}, store.materiaisLabels); }, refresh: function () { renderPedido(); renderFormulacao(); renderEstrategia(); renderML(); } };
+  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _params: params, _materiais: materiais, _materiaisLabels: function () { return Object.assign({}, store.materiaisLabels); }, _precoEntrada: precoEntradaPara, refresh: function () { renderPedido(); renderFormulacao(); renderEstrategia(); renderML(); } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 0);
 })();
@@ -31437,7 +31706,7 @@ async function renderIndicadores() {
   --gso-ink:#16181B; --gso-muted:#5E5E5E; --gso-faint:#8E8E8E;
   --gso-accent:#1C1F23; --gso-accent-hover:#000000; --gso-accent-soft:rgba(28,31,35,.08);
   --gso-accent-ink:#FFFFFF; --gso-neon:rgba(0,0,0,0);
-  --gso-ok:#2F343A; --gso-ok-soft:rgba(47,52,58,.10);
+  --gso-ok:#2F343A; --gso-ok-soft:rgba(47,52,58,.10); --gso-ok-ink:#FFFFFF;
   --gso-warn:#757575; --gso-warn-soft:rgba(117, 117, 117,.12);
   --gso-bad:#A0A0A0; --gso-bad-soft:rgba(160, 160, 160,.14);
   --gso-radius:16px; --gso-radius-sm:10px;
@@ -31449,7 +31718,7 @@ body.theme-dark {
   --gso-ink:#F4F4F4; --gso-muted:#b2b2b2; --gso-faint:#888888;
   --gso-accent:#C9C9C9; --gso-accent-hover:#E0E0E0; --gso-accent-soft:rgba(201,201,201,.16);
   --gso-accent-ink:#15181B; --gso-neon:rgba(201,201,201,.20);
-  --gso-ok:#C0C0C0; --gso-ok-soft:rgba(192,192,192,.14);
+  --gso-ok:#C0C0C0; --gso-ok-soft:rgba(192,192,192,.14); --gso-ok-ink:#06251a;
   --gso-warn:#8C8C8C; --gso-warn-soft:rgba(140,140,140,.16);
   --gso-bad:#6E6E6E; --gso-bad-soft:rgba(110,110,110,.16);
   --gso-radius:16px; --gso-radius-sm:10px;
@@ -31588,7 +31857,7 @@ body:not(.theme-dark) .btn:hover, body.theme-dark .btn:hover { background:var(--
 body:not(.theme-dark) .btn-primary, body.theme-dark .btn-primary,
 body:not(.theme-dark) .btn.btn-primary, body.theme-dark .btn.btn-primary { background:var(--gso-accent)!important; border-color:var(--gso-accent)!important; color:var(--gso-accent-ink)!important; font-weight:600!important; }
 body:not(.theme-dark) .btn-primary:hover, body.theme-dark .btn-primary:hover { background:var(--gso-accent-hover)!important; border-color:var(--gso-accent-hover)!important; box-shadow:0 0 20px var(--gso-neon)!important; transform:translateY(-1px)!important; }
-body:not(.theme-dark) .btn-green, body.theme-dark .btn-green { background:var(--gso-ok)!important; border-color:var(--gso-ok)!important; color:#06251a!important; }
+body:not(.theme-dark) .btn-green, body.theme-dark .btn-green { background:var(--gso-ok)!important; border-color:var(--gso-ok)!important; color:var(--gso-ok-ink)!important; font-weight:600!important; }
 body:not(.theme-dark) .btn-danger, body.theme-dark .btn-danger { background:var(--gso-bad)!important; border-color:var(--gso-bad)!important; color:#2a0c0c!important; }
 
 /* subtabs / pílulas */
@@ -31993,16 +32262,12 @@ body:not(.theme-dark) .login-left, body.theme-dark .login-left {
 .sales-table .row-actions { gap: 5px; flex-wrap: wrap; max-width: 150px; }
 .sales-table .payment-cell { white-space: normal; }
 
-/* --- CLIENTES: badge de tipo de cadastro (L/D/R/C) no lugar do botão Converter em Lojista --- */
-.cli-tipo-badge { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: 700; border: 1.5px solid; flex-shrink: 0; cursor: default; }
-.cli-tipo-badge.cli-tipo-l { background: #EAF1FB; color: #1D4E8F; border-color: #A9C7EE; }
-.cli-tipo-badge.cli-tipo-d { background: #EAF6EF; color: #137A43; border-color: #BFE3CD; }
-.cli-tipo-badge.cli-tipo-r { background: #F1E8FB; color: #6B3FA0; border-color: #D9C2F0; }
-.cli-tipo-badge.cli-tipo-c { background: #F0F0F0; color: #6B6B6B; border-color: #DDDDDD; }
-body.theme-dark .cli-tipo-badge.cli-tipo-l { background: rgba(122,168,231,.16); color: #9CC1F2; border-color: rgba(122,168,231,.5); }
-body.theme-dark .cli-tipo-badge.cli-tipo-d { background: rgba(70,170,100,.16); color: #86D9A6; border-color: rgba(70,170,100,.42); }
-body.theme-dark .cli-tipo-badge.cli-tipo-r { background: rgba(155,110,202,.18); color: #CBA6E8; border-color: rgba(155,110,202,.48); }
-body.theme-dark .cli-tipo-badge.cli-tipo-c { background: rgba(255,255,255,.08); color: #B0B0B0; border-color: rgba(255,255,255,.2); }
+/* --- CLIENTES: badge de tipo de cadastro (CF/DL) no lugar do botão Converter em Lojista --- */
+.cli-tipo-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 22px; padding: 0 6px; border-radius: 11px; font-size: 10.5px; font-weight: 700; border: 1.5px solid; flex-shrink: 0; cursor: default; }
+.cli-tipo-badge.cli-tipo-cf { background: #F0F0F0; color: #6B6B6B; border-color: #DDDDDD; }
+.cli-tipo-badge.cli-tipo-dl { background: #F1E8FB; color: #6B3FA0; border-color: #D9C2F0; }
+body.theme-dark .cli-tipo-badge.cli-tipo-cf { background: rgba(255,255,255,.08); color: #B0B0B0; border-color: rgba(255,255,255,.2); }
+body.theme-dark .cli-tipo-badge.cli-tipo-dl { background: rgba(155,110,202,.18); color: #CBA6E8; border-color: rgba(155,110,202,.48); }
 
 /* números dos cards voltam a ter cor (legível) */
 #view-clientes { --green-text: #137A43; --amber-text: #9A6206; --red-text: #B0322F; }
@@ -32053,6 +32318,33 @@ body.theme-dark .fin-lucro-final.fin-lucro-neg { background: rgba(216,108,108,.1
 .fin-pendencia-btn:hover { background: #F5E6C4 !important; }
 body.theme-dark .fin-pendencia-btn { background: rgba(224,163,62,.18) !important; color: #E7B765 !important; border-color: rgba(224,163,62,.42) !important; }
 body.theme-dark .fin-pendencia-btn:hover { background: rgba(224,163,62,.28) !important; }
+
+/* --- RECADOS: mural em formato de post-it --- */
+.recados-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 22px; padding: 6px 4px 24px; }
+.postit { border-radius: 3px 3px 26px 3px !important; padding: 16px 16px 12px !important; min-height: 150px; display: flex; flex-direction: column; box-shadow: 3px 5px 12px rgba(0,0,0,.16) !important; font-size: 13px; transition: transform .18s ease, box-shadow .18s ease; position: relative; border: none !important; }
+.postit:nth-child(5n+1) { transform: rotate(-1.4deg); }
+.postit:nth-child(5n+2) { transform: rotate(1.1deg); }
+.postit:nth-child(5n+3) { transform: rotate(-0.6deg); }
+.postit:nth-child(5n+4) { transform: rotate(1.6deg); }
+.postit:nth-child(5n+5) { transform: rotate(-1deg); }
+.postit:hover { transform: rotate(0deg) scale(1.03) !important; box-shadow: 4px 8px 18px rgba(0,0,0,.22) !important; z-index: 2; }
+.postit-cor-0 { background: #FFF3B0 !important; }
+.postit-cor-1 { background: #FFD6E8 !important; }
+.postit-cor-2 { background: #C9E7FF !important; }
+.postit-cor-3 { background: #D7F5D0 !important; }
+.postit-cor-4 { background: #FFE0C2 !important; }
+.postit.postit-privado { outline: 2px dashed rgba(0,0,0,.28); outline-offset: 3px; }
+.postit-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.postit-autor { font-weight: 700; font-size: 12px; color: #2a2a1e; }
+.postit-data { font-size: 10px; color: rgba(0,0,0,.5); white-space: nowrap; }
+.postit-texto { flex: 1; white-space: pre-wrap; word-break: break-word; color: #2a2a1e; line-height: 1.45; margin-bottom: 12px; }
+.postit-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+.postit-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.postit-tag { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,.55); color: rgba(0,0,0,.55); }
+.postit-tag-priv { background: rgba(0,0,0,.14); color: rgba(0,0,0,.72); }
+.postit-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.postit-actions button { background: rgba(255,255,255,.55); border: none; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; font-size: 12px; line-height: 1; }
+.postit-actions button:hover { background: rgba(255,255,255,.9); }
 
 /* ================= v20: tags de AROMA coloridas (suaves) na tabela de Vendas ================= */
 .pill-aroma { border: 1px solid transparent !important; font-weight: 600 !important; }
