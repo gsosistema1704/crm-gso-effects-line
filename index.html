@@ -12017,7 +12017,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
             <div class="card table-card">
               <table class="sales-table mobile-card-table">
-                <colgroup><col style="width:10%"><col style="width:20%"><col style="width:20%"><col style="width:9%"><col style="width:6%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:5%"></colgroup>
+                <colgroup><col style="width:10%"><col style="width:20%"><col style="width:20%"><col style="width:8%"><col style="width:5%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:10%"></colgroup>
                 <thead>
                   <tr>
                     <th>Data</th>
@@ -19269,8 +19269,11 @@ function renderDash() {
   const vendasSemana = dashboardSalesInRange(weekStart, today);
   const vendasMes = dashboardSalesInRange(monthStart, monthEnd);
 
-  const valorHoje = vendasHoje.reduce((sum, venda) => sum + Number(venda.valor || 0), 0);
-  const ticketHoje = vendasHoje.length ? valorHoje / vendasHoje.length : 0;
+  // Toda venda de hoje conta na quantidade (o produto já saiu do estoque), mas o valor
+  // faturado só entra quando o boleto/anotado for de fato recebido.
+  const vendasHojeComReceita = vendasHoje.filter(saleCountsInRevenue);
+  const valorHoje = vendasHojeComReceita.reduce((sum, venda) => sum + (saleIsBoleto(venda) ? saleBoletoValorTotal(venda) : Number(venda.valor || 0)), 0);
+  const ticketHoje = vendasHojeComReceita.length ? valorHoje / vendasHojeComReceita.length : 0;
 
   const finance = dashboardFinanceStats();
   const boletoMes = dashboardBoletoMonthStats(finance, now);
@@ -23945,6 +23948,47 @@ function printSaleLabelById(id) {
   const venda = state.vendas.find(v => v.id === id);
   if (venda) printSaleLabel(venda);
 }
+// Monta as linhas de item da Nota simplificada a partir de venda.items (que já carrega o
+// valor de cada linha em "preco") — não usar saleCatalogItems() aqui, que é feito pra
+// relatório e devolve "fat" (rateio proporcional), não o valor real cobrado por item.
+// Item em Caixa fechada: mostra o valor normal do galão + o desconto de caixa fechada dado.
+function receiptItemRows(venda) {
+  const itemsSource = (venda.items && venda.items.length) ? venda.items : [{
+    produto: venda.produto, tamanho: venda.tamanho, catalogProduto: venda.produto, catalogTamanho: venda.tamanho,
+    formato: 'UN', qtdUnidades: venda.qtd, qtd: venda.qtd, preco: venda.valor,
+    descricao: [venda.qtd, venda.produto, venda.tamanho].filter(Boolean).join(' ')
+  }];
+  return itemsSource.map(item => {
+    const produto = item.catalogProduto || item.produto || '';
+    const tamanho = item.catalogTamanho || item.tamanho || '';
+    const formato = item.formato || 'UN';
+    const qtd = item.qtdUnidades || item.qtd || venda.qtd || 1;
+    const total = Number(item.preco) || 0;
+    const descricao = item.descricao || [produto, tamanho].filter(Boolean).join(' ');
+    let valorUnitario = qtd ? round2(total / qtd) : 0;
+    let notaDesconto = '';
+    if (formato === 'CX') {
+      const p = state.produtos.find(x => x.produto === produto && x.tamanho === tamanho);
+      const unCx = getUnCx(tamanho);
+      if (p && p.unit2026 > 0 && unCx > 0) {
+        const precoCheio = round2(qtd * p.unit2026);
+        const desconto = round2(precoCheio - total);
+        if (desconto > 0.004) {
+          valorUnitario = p.unit2026;
+          const qtdCaixas = Math.max(1, Math.round(qtd / unCx));
+          notaDesconto = `<tr class="nota-desconto"><td colspan="4">Desconto de caixa fechada (${qtdCaixas} ${qtdCaixas === 1 ? 'caixa' : 'caixas'}): -${fmtBR(desconto)} — cada galão saiu por ${fmtBR(round2(total / qtd))}</td></tr>`;
+        }
+      }
+    }
+    return `<tr>
+      <td>${escapeHtml(descricao)}</td>
+      <td class="num">${escapeHtml(qtd)}</td>
+      <td class="num">${fmtBR(valorUnitario)}</td>
+      <td class="num">${fmtBR(total)}</td>
+    </tr>${notaDesconto}`;
+  }).join('');
+}
+
 function printSaleLabel(venda) {
   const win = window.open('', '_blank', 'width=720,height=880');
   if (!win) {
@@ -23952,16 +23996,7 @@ function printSaleLabel(venda) {
     return;
   }
   const numero = venda.numeroVenda || '';
-  const itens = saleCatalogItems(venda);
-  const itensHtml = itens.length
-    ? itens.map(item => `
-        <tr>
-          <td>${escapeHtml(item.descricao || [item.produto, item.tamanho].filter(Boolean).join(' '))}</td>
-          <td class="num">${escapeHtml(item.qtdUnidades || item.qtd || venda.qtd || 1)}</td>
-          <td class="num">${fmtBR(item.preco || 0)}</td>
-        </tr>
-      `).join('')
-    : `<tr><td>${escapeHtml(venda.produto || '-')}</td><td class="num">${escapeHtml(venda.qtd || 1)}</td><td class="num">${fmtBR(venda.valor || 0)}</td></tr>`;
+  const itensHtml = receiptItemRows(venda);
   const nfNumero = saleNfNumber(venda);
   win.document.write(`
     <!DOCTYPE html>
@@ -23986,6 +24021,7 @@ function printSaleLabel(venda) {
         th { text-align: left; background: #F3F6FA; color: #535353; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; padding: 10px; border: 1px solid #E5EAF0; }
         td { padding: 11px 10px; border: 1px solid #E5EAF0; }
         .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .nota-desconto td { background: #FBFCFE; color: #6F6F6F; font-size: 11px; font-style: italic; padding: 6px 10px; border-top: none; }
         .total { display: flex; justify-content: space-between; align-items: center; padding: 18px 26px; background: #FBFCFE; }
         .total span { color: #6F6F6F; font-weight: 700; }
         .total strong { font-size: 24px; color: #191919; }
@@ -24012,7 +24048,7 @@ function printSaleLabel(venda) {
         <div class="section">
           <div class="field"><small>Itens</small></div>
           <table>
-            <thead><tr><th>Descrição</th><th class="num">Qtd</th><th class="num">Valor</th></tr></thead>
+            <thead><tr><th>Descrição</th><th class="num">Qtd</th><th class="num">Valor unit.</th><th class="num">Total</th></tr></thead>
             <tbody>${itensHtml}</tbody>
           </table>
         </div>
@@ -26011,7 +26047,10 @@ function intelRenderOverview() {
   if (!d.clientes.length) { pane.innerHTML = '<div class="card"><div class="intel-empty">Sem vendas registradas ainda.</div></div>'; return; }
 
   const hoje = dashboardStartOfDay();
-  const vendasHoje = dashboardSalesInRange(hoje, hoje).filter(saleCountsInRevenue);
+  // Todas as vendas de hoje contam como venda (produto sai do estoque na hora, boleto ou
+  // não) — só o dinheiro (valor, ticket médio, lucro) espera o boleto ser marcado como pago.
+  const vendasHojeTodas = dashboardSalesInRange(hoje, hoje);
+  const vendasHoje = vendasHojeTodas.filter(saleCountsInRevenue);
   const valorHoje = vendasHoje.reduce((sum, venda) => sum + (saleIsBoleto(venda) ? saleBoletoValorTotal(venda) : Number(venda.valor || 0)), 0);
   const ticketHoje = vendasHoje.length ? valorHoje / vendasHoje.length : 0;
   let lucroHoje = 0, lucroHojeIncompleto = false;
@@ -26094,7 +26133,7 @@ function intelRenderOverview() {
       </div>
       <div class="dash-hero-value">${fmtBR(valorHoje)}</div>
       <div class="dash-stat-strip three">
-        <div><span>Quantidade</span><strong>${vendasHoje.length.toLocaleString('pt-BR')} venda${vendasHoje.length === 1 ? '' : 's'}</strong></div>
+        <div><span>Quantidade</span><strong>${vendasHojeTodas.length.toLocaleString('pt-BR')} venda${vendasHojeTodas.length === 1 ? '' : 's'}</strong></div>
         <div><span>Ticket médio</span><strong>${fmtBR(ticketHoje)}</strong></div>
         <div${lucroHojeIncompleto ? ' data-tooltip="Alguma venda de hoje tem produto sem custo cadastrado — o lucro pode estar abaixo do real"' : ''}><span>Lucro líquido${lucroHojeIncompleto ? ' *' : ''}</span><strong>${fmtBR(lucroHoje)}</strong></div>
       </div>
