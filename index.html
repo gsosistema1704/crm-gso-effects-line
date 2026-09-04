@@ -18329,6 +18329,7 @@ async function removerPagamentoDespesaAnotada(despesaId, idx) {
 
 // ============ RECADOS (mural em formato de post-it) ============
 state.recados = [];
+state.recadosRespostas = [];
 
 function fmtDataHora(value) {
   if (!value) return '—';
@@ -18343,6 +18344,16 @@ async function loadRecados() {
   if (error) { console.error(error); state.recados = []; return state.recados; }
   state.recados = data || [];
   return state.recados;
+}
+
+async function loadRecadosRespostas() {
+  const client = getSupabaseClient();
+  const session = await getSupabaseSession();
+  if (!client || !session) { state.recadosRespostas = []; return state.recadosRespostas; }
+  const { data, error } = await client.from('crm_recados_respostas').select('*').order('criado_em', { ascending: true });
+  if (error) { console.error(error); state.recadosRespostas = []; return state.recadosRespostas; }
+  state.recadosRespostas = data || [];
+  return state.recadosRespostas;
 }
 
 const RECADOS_ULTIMO_VISTO_KEY = 'gso_recados_ultimo_visto';
@@ -18379,8 +18390,22 @@ async function updateRecadosBadge() {
   }
 }
 
+function recadoRespostaHtml(resp, meuId) {
+  const podeExcluir = meuId && resp.autor_id === meuId;
+  const conteudo = resp.tipo === 'check'
+    ? `<span class="postit-resposta-check-ic" data-tip="Reagiu com check">${checkIconSvg()}</span>`
+    : `<span class="postit-resposta-texto">${escapeHtml(resp.texto || '')}</span>`;
+  return `<div class="postit-resposta${resp.tipo === 'check' ? ' postit-resposta-check' : ''}">
+    <span class="postit-resposta-autor">${escapeHtml(resp.autor_nome || 'Alguém')}</span>
+    ${conteudo}
+    <span class="postit-resposta-data">${formatTime(resp.criado_em)}</span>
+    ${podeExcluir ? `<button type="button" class="postit-resposta-del" onclick="excluirRespostaRecado('${resp.id}')" data-tip="Excluir resposta" aria-label="Excluir resposta">${closeIconSvg()}</button>` : ''}
+  </div>`;
+}
+
 async function renderRecados() {
   await loadRecados();
+  await loadRecadosRespostas();
   marcarRecadosComoVistos();
   const grid = document.getElementById('recados-grid');
   if (!grid) return;
@@ -18389,11 +18414,12 @@ async function renderRecados() {
     return;
   }
   const meuId = currentUserId();
-  const souAdmin = isAdminUser();
   grid.innerHTML = state.recados.map((r, i) => {
     const editado = Boolean(r.editado_em) && r.editado_em !== r.criado_em;
-    const podeGerenciar = souAdmin || (meuId && r.autor_id === meuId);
+    // Só quem escreveu o recado pode editar/apagar — mesmo administradores não mexem no recado alheio.
+    const podeGerenciar = Boolean(meuId) && r.autor_id === meuId;
     const ehPrivado = r.visibilidade === 'admins';
+    const respostas = state.recadosRespostas.filter(resp => resp.recado_id === r.id);
     return `<div class="postit postit-cor-${i % 5}${ehPrivado ? ' postit-privado' : ''}">
       <div class="postit-top">
         <span class="postit-autor">${escapeHtml(r.autor_nome || 'Alguém')}</span>
@@ -18407,8 +18433,41 @@ async function renderRecados() {
         </div>
         ${podeGerenciar ? `<div class="postit-actions"><button type="button" onclick="openRecadoModal('${r.id}')" data-tip="Editar" aria-label="Editar">${pencilIconSvg()}</button><button type="button" onclick="excluirRecado('${r.id}')" data-tip="Excluir" aria-label="Excluir">${trashIconSvg()}</button></div>` : ''}
       </div>
+      ${respostas.length ? `<div class="postit-respostas">${respostas.map(resp => recadoRespostaHtml(resp, meuId)).join('')}</div>` : ''}
+      <div class="postit-responder">
+        <input type="text" class="postit-responder-input" placeholder="Responder..." maxlength="300" onkeydown="if(event.key==='Enter'){event.preventDefault();enviarRespostaRecado('${r.id}', this);}">
+        <button type="button" class="postit-check-btn" onclick="reagirCheckRecado('${r.id}')" data-tip="Reagir com check" aria-label="Reagir com check">${checkIconSvg()}</button>
+      </div>
     </div>`;
   }).join('');
+}
+
+async function enviarRespostaRecado(recadoId, inputEl) {
+  const texto = (inputEl.value || '').trim();
+  if (!texto) return;
+  const client = requireSupabaseSession();
+  if (!client) return;
+  inputEl.disabled = true;
+  const { error } = await client.from('crm_recados_respostas').insert({ recado_id: recadoId, autor_nome: currentUserName(), tipo: 'texto', texto });
+  if (error) { inputEl.disabled = false; alert('Não consegui enviar a resposta: ' + error.message); return; }
+  renderRecados();
+}
+
+async function reagirCheckRecado(recadoId) {
+  const client = requireSupabaseSession();
+  if (!client) return;
+  const { error } = await client.from('crm_recados_respostas').insert({ recado_id: recadoId, autor_nome: currentUserName(), tipo: 'check' });
+  if (error) { alert('Não consegui reagir: ' + error.message); return; }
+  renderRecados();
+}
+
+async function excluirRespostaRecado(id) {
+  if (!confirm('Excluir esta resposta?')) return;
+  const client = requireSupabaseSession();
+  if (!client) return;
+  const { error } = await client.from('crm_recados_respostas').delete().eq('id', id);
+  if (error) { alert('Não consegui excluir a resposta: ' + error.message); return; }
+  renderRecados();
 }
 
 function setRecadoVisibilidade(v) {
@@ -19430,6 +19489,12 @@ function trashIconSvg() {
 }
 function pencilIconSvg() {
   return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path><path d="M15 5l4 4"></path></svg>';
+}
+function checkIconSvg() {
+  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+}
+function closeIconSvg() {
+  return '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M18 6 6 18"></path><path d="M6 6l12 12"></path></svg>';
 }
 
 function renderVendas() {
@@ -32390,6 +32455,22 @@ body.theme-dark .fin-pendencia-btn:hover { background: rgba(224,163,62,.28) !imp
 .postit-actions button { display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.55); border: none; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; color: rgba(0,0,0,.62); }
 .postit-actions button svg { width: 14px; height: 14px; flex-shrink: 0; }
 .postit-actions button:hover { background: rgba(255,255,255,.9); color: rgba(0,0,0,.85); }
+
+/* --- RECADOS: respostas e reação de check --- */
+.postit-respostas { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto; }
+.postit-resposta { font-size: 11px; background: rgba(255,255,255,.5); border-radius: 7px; padding: 4px 7px; display: flex; align-items: center; gap: 5px; }
+.postit-resposta-autor { font-weight: 700; flex-shrink: 0; }
+.postit-resposta-texto { flex: 1; min-width: 0; word-break: break-word; }
+.postit-resposta-check-ic { color: #2f8f4e; display: inline-flex; align-items: center; flex: 1; }
+.postit-resposta-data { font-size: 9.5px; color: rgba(0,0,0,.42); white-space: nowrap; flex-shrink: 0; }
+.postit-resposta-del { background: none; border: none; cursor: pointer; color: rgba(0,0,0,.32); padding: 0; display: inline-flex; align-items: center; flex-shrink: 0; }
+.postit-resposta-del:hover { color: rgba(0,0,0,.7); }
+.postit-responder { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+.postit-responder-input { flex: 1; min-width: 0; font-size: 11.5px; padding: 6px 8px; border-radius: 7px; border: 1px solid rgba(0,0,0,.12); background: rgba(255,255,255,.65); color: rgba(0,0,0,.85); }
+.postit-responder-input::placeholder { color: rgba(0,0,0,.4); }
+.postit-check-btn { display: inline-flex; align-items: center; justify-content: center; width: 27px; height: 27px; border-radius: 7px; border: none; background: rgba(255,255,255,.55); cursor: pointer; color: rgba(0,0,0,.55); flex-shrink: 0; }
+.postit-check-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+.postit-check-btn:hover { background: rgba(255,255,255,.9); color: #2f8f4e; }
 
 /* ================= v20: tags de AROMA coloridas (suaves) na tabela de Vendas ================= */
 .pill-aroma { border: 1px solid transparent !important; font-weight: 600 !important; }
