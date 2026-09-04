@@ -13396,8 +13396,11 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               <option>Luísa Oliveira</option>
               <option>Thiago Santana</option>
               <option>Cleide Oliveira</option>
+              <option>Beto Oliveira</option>
+              <option>Roberto Mattiello</option>
               <option>GSO Effects Line</option>
               <option>GSO Eletrônica</option>
+              <option>Outro</option>
             </select>
           </div>
         </div>
@@ -13793,7 +13796,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 	      </div>
 	      <div>
 	        <label class="form-label">CEP</label>
-	        <input type="text" class="form-input" id="mc-cep" placeholder="00000-000">
+	        <input type="text" class="form-input" id="mc-cep" placeholder="00000-000" onblur="autoPreencherEnderecoPorCep('mc')">
 	      </div>
 	    </div>
 	    <div class="form-row form-r3">
@@ -13868,7 +13871,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       </div>
       <div>
         <label class="form-label">CEP</label>
-        <input type="text" class="form-input" id="mf-cep" placeholder="00000-000">
+        <input type="text" class="form-input" id="mf-cep" placeholder="00000-000" onblur="autoPreencherEnderecoFiscalPorCep()">
       </div>
     </div>
     <div class="form-row">
@@ -14050,8 +14053,11 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <option>Luísa Oliveira</option>
           <option>Thiago Santana</option>
           <option>Cleide Oliveira</option>
+          <option>Beto Oliveira</option>
+          <option>Roberto Mattiello</option>
           <option>GSO Effects Line</option>
           <option>GSO Eletrônica</option>
+          <option>Outro</option>
         </select>
       </div>
     </div>
@@ -14100,7 +14106,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       </div>
       <div>
         <label class="form-label">CEP</label>
-        <input type="text" class="form-input" id="mlj-cep" placeholder="00000-000">
+        <input type="text" class="form-input" id="mlj-cep" placeholder="00000-000" onblur="autoPreencherEnderecoPorCep('mlj')">
       </div>
     </div>
     <div class="form-row form-r3">
@@ -20581,6 +20587,51 @@ function selecionarTipoClienteLojista() {
 }
 
 function onlyDigits(v) { return String(v || '').replace(/\D/g, ''); }
+
+// Busca o endereço na API pública ViaCEP (sem chave, sem custo) e preenche os campos de
+// endereço automaticamente — usada nos CEPs de Cliente e Lojista (campos separados:
+// rua/número/bairro/cidade/estado).
+async function autoPreencherEnderecoPorCep(prefixo) {
+  const cepInput = document.getElementById(prefixo + '-cep');
+  if (!cepInput) return;
+  const cep = onlyDigits(cepInput.value);
+  if (cep.length !== 8) return;
+  try {
+    const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const data = await resp.json();
+    if (!data || data.erro) return;
+    const ruaEl = document.getElementById(prefixo + '-rua');
+    const bairroEl = document.getElementById(prefixo + '-bairro');
+    const cidadeEl = document.getElementById(prefixo + '-cidade');
+    const estadoEl = document.getElementById(prefixo + '-estado');
+    if (ruaEl && data.logradouro) ruaEl.value = data.logradouro;
+    if (bairroEl && data.bairro) bairroEl.value = data.bairro;
+    if (cidadeEl && data.localidade) cidadeEl.value = data.localidade;
+    if (estadoEl && data.uf) estadoEl.value = data.uf;
+  } catch (err) {
+    console.warn('Não consegui buscar o CEP:', err);
+  }
+}
+
+// Mesma ideia, mas pro cadastro Fiscal, que guarda o endereço em 2 campos combinados
+// ("Endereço" e "Cidade/UF") em vez de rua/bairro/cidade/estado separados.
+async function autoPreencherEnderecoFiscalPorCep() {
+  const cepInput = document.getElementById('mf-cep');
+  if (!cepInput) return;
+  const cep = onlyDigits(cepInput.value);
+  if (cep.length !== 8) return;
+  try {
+    const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const data = await resp.json();
+    if (!data || data.erro) return;
+    const endEl = document.getElementById('mf-end');
+    const cidadeEl = document.getElementById('mf-cidade');
+    if (endEl) endEl.value = [data.logradouro, data.bairro].filter(Boolean).join(', ');
+    if (cidadeEl && data.localidade) cidadeEl.value = [data.localidade, data.uf].filter(Boolean).join('/');
+  } catch (err) {
+    console.warn('Não consegui buscar o CEP:', err);
+  }
+}
 
 // Busca por nome, CPF, CNPJ ou telefone em Clientes, Dados fiscais e Lojistas juntos —
 // usada antes de salvar um cadastro novo pra avisar quando o dado já existe em outra
