@@ -13385,6 +13385,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               <option>Crédito à vista</option>
               <option>Anotado</option>
               <option>Boleto</option>
+              <option>Mercado Livre</option>
             </select>
           </div>
           <div>
@@ -13433,6 +13434,29 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
             </div>
           </div>
           <div id="boleto-parcelas-campos" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+        <div class="conditional-row hidden" id="ml-row">
+          <div class="form-row form-r2" style="margin-bottom:0;">
+            <div>
+              <label class="form-label">Tarifa de venda do ML (R$)</label>
+              <input type="number" class="form-input" id="f-ml-tarifa" step="0.01" placeholder="0,00">
+            </div>
+            <div>
+              <label class="form-label">Frete (R$)</label>
+              <input type="number" class="form-input" id="f-ml-frete" step="0.01" placeholder="0,00">
+            </div>
+          </div>
+          <div class="form-row form-r2" style="margin-bottom:0;margin-top:10px;">
+            <div>
+              <label class="form-label"><input type="checkbox" id="f-ml-tem-desconto" onchange="toggleMlDescontoField()" style="width:auto;margin-right:6px;">Teve desconto aplicado no anúncio?</label>
+            </div>
+            <div class="hidden" id="f-ml-desconto-wrap">
+              <label class="form-label">Valor do desconto (R$)</label>
+              <input type="number" class="form-input" id="f-ml-desconto-valor" step="0.01" placeholder="0,00">
+            </div>
+          </div>
+          <div class="form-help" style="margin-top:6px;">"Valor cobrado" acima é o preço do produto no anúncio. A tarifa e o frete são descontados pelo próprio Mercado Livre — o que cai na conta é calculado automaticamente.</div>
         </div>
 
         <div class="form-row form-r2" id="nf-row">
@@ -24166,6 +24190,11 @@ function initEditVenda(id) {
   document.getElementById('f-parcelas').value = venda.pagamentoDetalhes?.parcelas || '';
   const parcelasBoletoExistentes = venda.pagamento === 'Boleto' ? saleBoletoParcelas(venda) : [];
   document.getElementById('f-boleto-parcelas').value = parcelasBoletoExistentes.length || 1;
+  document.getElementById('f-ml-tarifa').value = venda.pagamentoDetalhes?.mlTarifaVenda ?? '';
+  document.getElementById('f-ml-frete').value = venda.pagamentoDetalhes?.mlFrete ?? '';
+  document.getElementById('f-ml-tem-desconto').checked = Boolean(venda.pagamentoDetalhes?.mlTemDesconto);
+  document.getElementById('f-ml-desconto-valor').value = venda.pagamentoDetalhes?.mlDesconto || '';
+  document.getElementById('f-ml-desconto-wrap').classList.toggle('hidden', !venda.pagamentoDetalhes?.mlTemDesconto);
   document.getElementById('f-nf-pdf').value = '';
   document.getElementById('f-boleto-pdf').value = '';
   document.getElementById('f-aroma-custom').value = '';
@@ -24309,12 +24338,22 @@ function togglePaymentFields() {
   const pagamento = document.getElementById('f-pag')?.value || '';
   const creditoRow = document.getElementById('credito-row');
   const boletoRow = document.getElementById('boleto-row');
+  const mlRow = document.getElementById('ml-row');
   const nfRow = document.getElementById('nf-row');
   if (creditoRow) creditoRow.classList.toggle('hidden', pagamento !== 'Crédito');
   if (boletoRow) boletoRow.classList.toggle('hidden', pagamento !== 'Boleto');
+  if (mlRow) mlRow.classList.toggle('hidden', pagamento !== 'Mercado Livre');
   if (nfRow) nfRow.classList.toggle('hidden', pagamento === 'Dinheiro');
   if (pagamento === 'Dinheiro') document.getElementById('f-nf-pdf').value = '';
   if (pagamento === 'Boleto') renderBoletoParcelasCampos();
+}
+// Some da conta o valor do desconto só quando a usuária marca que teve desconto — sem
+// isso o campo ficaria sempre visível mesmo pra vendas sem desconto no anúncio.
+function toggleMlDescontoField() {
+  const marcado = document.getElementById('f-ml-tem-desconto')?.checked;
+  const wrap = document.getElementById('f-ml-desconto-wrap');
+  if (wrap) wrap.classList.toggle('hidden', !marcado);
+  if (!marcado) { const inp = document.getElementById('f-ml-desconto-valor'); if (inp) inp.value = ''; }
 }
 // Desenha um par de campos (vencimento + valor) por parcela do boleto — 1 parcela é o
 // caso comum (boleto único), mas dá pra abrir mais quando a venda foi parcelada em vários
@@ -24358,6 +24397,11 @@ function initNova() {
   document.getElementById('f-parcelas').value = '';
   document.getElementById('f-boleto-parcelas').value = '1';
   document.getElementById('boleto-parcelas-campos').innerHTML = '';
+  document.getElementById('f-ml-tarifa').value = '';
+  document.getElementById('f-ml-frete').value = '';
+  document.getElementById('f-ml-tem-desconto').checked = false;
+  document.getElementById('f-ml-desconto-valor').value = '';
+  document.getElementById('f-ml-desconto-wrap').classList.add('hidden');
   document.getElementById('f-nf-pdf').value = '';
   document.getElementById('f-boleto-pdf').value = '';
   document.getElementById('f-aroma').value = 'Neutro';
@@ -24470,6 +24514,21 @@ async function salvarVenda() {
         dataRecebimento: anterior.dataRecebimento || null
       };
     });
+  }
+  if (pagamento === 'Mercado Livre') {
+    const tarifa = parseFloat(document.getElementById('f-ml-tarifa').value) || 0;
+    const frete = parseFloat(document.getElementById('f-ml-frete').value) || 0;
+    const temDesconto = document.getElementById('f-ml-tem-desconto').checked;
+    const desconto = temDesconto ? (parseFloat(document.getElementById('f-ml-desconto-valor').value) || 0) : 0;
+    pagamentoDetalhes.mlTarifaVenda = tarifa;
+    pagamentoDetalhes.mlFrete = frete;
+    pagamentoDetalhes.mlTemDesconto = temDesconto;
+    pagamentoDetalhes.mlDesconto = desconto;
+    // "o que caiu na conta": valor do produto menos tarifa e frete do próprio ML — sem
+    // saber o custo do produto não dá pra calcular lucro (isso já é feito à parte, em
+    // vendaMLCalc, quando o produto do catálogo tem custo cadastrado).
+    pagamentoDetalhes.mlValorLiquido = round2(valor - tarifa - frete);
+    pagamentoDetalhes.mlManual = true;
   }
 
   const isEditing = Boolean(editingVendaId);
