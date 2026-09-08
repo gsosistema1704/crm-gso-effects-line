@@ -12135,6 +12135,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
             <option value="">Todos os tipos</option>
             <option value="consumidor">Só Consumidor Final</option>
             <option value="direto-lab">Só Direto Lab</option>
+            <option value="mercado-livre">Só Cliente Mercado Livre</option>
           </select>
           <select class="input" id="filterStatus" onchange="renderClientes()">
             <option value="">Todos os status</option>
@@ -25217,10 +25218,11 @@ init();
     const nomesLojistas = new Set(state.lojistas.map(l => nameKey(l.nome)));
     let todos = (typeof computeClientes === 'function' ? computeClientes().filter(c => !nomesLojistas.has(nameKey(c.nome))).map(c => {
       const cadastro = state.clientes.find(sc => nameKey(sc.nome) === nameKey(c.nome));
-      return { ...c, tipoPessoa: 'cliente', tipoCliente: cadastro?.tipoCliente || '' };
+      return { ...c, tipoPessoa: 'cliente', tipoCliente: cadastro?.tipoCliente || '', origem: cadastro?.metadata?.origem || '' };
     }) : []);
     if (tipoPessoa === 'consumidor') todos = todos.filter(c => c.tipoCliente !== 'Direto Lab');
     if (tipoPessoa === 'direto-lab') todos = todos.filter(c => c.tipoCliente === 'Direto Lab');
+    if (tipoPessoa === 'mercado-livre') todos = todos.filter(c => c.origem === 'Mercado Livre');
     const countEl = document.getElementById('clientes-count');
     if (countEl) countEl.textContent = todos.length.toLocaleString('pt-BR');
 
@@ -25264,8 +25266,9 @@ init();
       const nomeAttr = typeof attrJsString === 'function' ? attrJsString(c.nome) : JSON.stringify(c.nome || '');
       const doc = clienteDocResumoCompleto(c.nome);
       const isDiretoLab = c.tipoCliente === 'Direto Lab';
-      const tipoLetra = isDiretoLab ? 'DL' : 'CF';
-      const tipoLabel = isDiretoLab ? 'Direto Lab' : 'Consumidor Final';
+      const isMercadoLivre = c.origem === 'Mercado Livre';
+      const tipoLetra = isDiretoLab ? 'DL' : (isMercadoLivre ? 'ML' : 'CF');
+      const tipoLabel = isDiretoLab ? 'Direto Lab' : (isMercadoLivre ? 'Cliente Mercado Livre' : 'Consumidor Final');
       const tipoBadge = '<span class="cli-tipo-badge cli-tipo-' + tipoLetra.toLowerCase() + '" data-tip="Tipo de cadastro: ' + tipoLabel + '">' + tipoLetra + '</span>';
       return '<tr onclick="gsoToggleMobileCard(event, this)">' +
         '<td data-label="Selecionar"><input type="checkbox" class="chk-unificar-linha" ' + (typeof unificarSelecionados !== 'undefined' && unificarSelecionados.has(nameKey(c.nome)) ? 'checked' : '') + ' onchange="atualizarSelecaoUnificar(this, ' + nomeAttr + ')"></td>' +
@@ -32462,8 +32465,10 @@ body:not(.theme-dark) .login-left, body.theme-dark .login-left {
 .cli-tipo-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 22px; padding: 0 6px; border-radius: 11px; font-size: 10.5px; font-weight: 700; border: 1.5px solid; flex-shrink: 0; cursor: default; }
 .cli-tipo-badge.cli-tipo-cf { background: #F0F0F0; color: #6B6B6B; border-color: #DDDDDD; }
 .cli-tipo-badge.cli-tipo-dl { background: #F1E8FB; color: #6B3FA0; border-color: #D9C2F0; }
+.cli-tipo-badge.cli-tipo-ml { background: #E6F0FA; color: #1F5C99; border-color: #BFDBF5; }
 body.theme-dark .cli-tipo-badge.cli-tipo-cf { background: rgba(255,255,255,.08); color: #B0B0B0; border-color: rgba(255,255,255,.2); }
 body.theme-dark .cli-tipo-badge.cli-tipo-dl { background: rgba(155,110,202,.18); color: #CBA6E8; border-color: rgba(155,110,202,.48); }
+body.theme-dark .cli-tipo-badge.cli-tipo-ml { background: rgba(63,140,214,.18); color: #8FC1EE; border-color: rgba(63,140,214,.48); }
 
 /* números dos cards voltam a ter cor (legível) */
 #view-clientes { --green-text: #137A43; --amber-text: #9A6206; --red-text: #B0322F; }
