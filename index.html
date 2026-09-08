@@ -27628,7 +27628,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var P = params();
     var head = '<div class="gc-status"><div><div class="lab">TOTAL DO PEDIDO</div><div class="big">' + fmt(r.valor) + '</div></div><span class="gc-pill ' + r.status.cls + '" style="margin-left:auto">' + r.status.label + '</span></div>';
     var kvTop = '<div class="gc-kv"><span class="l">Lucro estimado</span><b>' + fmt(r.lucro) + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Mínimo recomendado</span><b>' + fmt(r.minimo) + '</b></div>';
+      '<div class="gc-kv"><span class="l">Custo total</span><b>' + fmt(r.custoTotal) + '</b></div>';
     var msg = r.frase ? '<div class="gc-msg ' + (r.status.cls === 'gray' ? 'warn' : r.status.cls) + '">' + esc(r.frase) + '</div>' : '';
     var al = r.alertas.map(function (a) { return '<div class="gc-msg warn">' + esc(a) + '</div>'; }).join('');
     var materiaisRows = Object.keys(r.materiais || {})
