@@ -28712,6 +28712,79 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '</div>'
     ) : '');
   }
+  // ============ MERCADO LIVRE — VENDAS REAIS (sub-aba) ============
+  // Diferente de mlVendas (gso_ml_vendas, tabela própria de lucro por anúncio): aqui é o
+  // relatório oficial de vendas do Mercado Livre que o usuário baixa toda semana e manda
+  // pra eu aplicar — entram como state.vendas normais com pagamento='Mercado Livre', então
+  // já contam no faturamento oficial do CRM (diferente de mlVendas, de propósito).
+  function vendasMLReais() {
+    return (state.vendas || []).filter(function (v) { return v.pagamento === 'Mercado Livre'; });
+  }
+  function vendasMLPrecisamAtencao() {
+    return vendasMLReais().filter(function (v) {
+      var d = v.pagamentoDetalhes;
+      return d && (d.mlReclamacaoAberta || d.mlEmMediacao);
+    });
+  }
+  function renderMLVendasReaisHtml() {
+    var vendas = vendasMLReais().slice().sort(function (a, b) {
+      return (b.data || '').localeCompare(a.data || '') || (Number(b.numeroVenda) || 0) - (Number(a.numeroVenda) || 0);
+    });
+    var atencao = vendasMLPrecisamAtencao();
+    var totalValor = vendas.reduce(function (s, v) { return s + (Number(v.valor) || 0); }, 0);
+    var ticketMedio = vendas.length ? totalValor / vendas.length : 0;
+    var datas = vendas.map(function (v) { return v.data; }).filter(Boolean).slice().sort();
+    var periodo = datas.length ? (fmtDate(datas[0]) + ' — ' + fmtDate(datas[datas.length - 1])) : '—';
+    var semCatalogo = vendas.filter(function (v) { return !v.catalogProduto; }).length;
+
+    var painelAtencao = '<div class="gc-blk">' +
+      '<h2>Precisa de atenção' + (atencao.length ? '<span>' + atencao.length + (atencao.length === 1 ? ' venda com reclamação/mediação em aberto' : ' vendas com reclamação/mediação em aberto') + '</span>' : '') + '</h2>' +
+      (atencao.length ? atencao.map(function (v) {
+        var d = v.pagamentoDetalhes || {};
+        return '<div class="gc-kv" style="align-items:flex-start">' +
+          '<span class="l">' + esc(fmtDate(v.data)) + ' · ' + esc(v.cliente || '') + (d.mlStatusDescricao ? '<div class="gc-hint" style="padding:2px 0 0">' + esc(d.mlStatusDescricao) + '</div>' : '') + '</span>' +
+          '<b>' + (d.mlEmMediacao ? '<span class="gc-pill bad">Em mediação</span>' : '<span class="gc-pill warn">Reclamação aberta</span>') + '</b>' +
+        '</div>';
+      }).join('') : '<div class="gc-hint">Nenhuma reclamação ou mediação em aberto nas vendas importadas. 👍</div>') +
+    '</div>';
+
+    var linhas = vendas.map(function (v) {
+      var d = v.pagamentoDetalhes || {};
+      var badge = d.mlEmMediacao ? '<span class="gc-pill bad">Mediação</span>'
+        : d.mlReclamacaoAberta ? '<span class="gc-pill warn">Reclamação</span>'
+        : d.mlReclamacaoEncerrada ? '<span class="gc-pill gray">Reclamação encerrada</span>'
+        : '<span class="gc-pill ok">OK</span>';
+      return '<tr>' +
+        '<td class="stack-title">' + esc(fmtDate(v.data)) + '</td>' +
+        '<td data-label="Cliente">' + esc(v.cliente || '') + '</td>' +
+        '<td data-label="Produto">' + esc(v.produto || '') + (v.tamanho ? ' ' + esc(v.tamanho) : '') + (!v.catalogProduto ? ' <span class="gc-pill gray" title="Produto não identificado automaticamente no catálogo">?</span>' : '') + '</td>' +
+        '<td class="num" data-label="Qtd">' + (v.qtd || 1) + '</td>' +
+        '<td class="num" data-label="Valor">' + fmt(v.valor) + '</td>' +
+        '<td data-label="Status">' + badge + '</td>' +
+      '</tr>';
+    }).join('');
+
+    return '<div class="gc-blk">' +
+      '<h2>Vendas reais do Mercado Livre <span>importadas do relatório oficial do ML — já contam no faturamento do CRM</span></h2>' +
+      '<div class="gc-ml-venda-stats">' +
+        '<div class="gc-ml-venda-stat"><span class="l">Vendas importadas</span><b>' + vendas.length + '</b></div>' +
+        '<div class="gc-ml-venda-stat"><span class="l">Total vendido</span><b>' + fmt(totalValor) + '</b></div>' +
+        '<div class="gc-ml-venda-stat"><span class="l">Ticket médio</span><b>' + fmt(ticketMedio) + '</b></div>' +
+        '<div class="gc-ml-venda-stat"><span class="l">Período</span><b style="font-size:13px">' + esc(periodo) + '</b></div>' +
+      '</div>' +
+      (semCatalogo ? '<div class="gc-hint" style="margin-top:10px">' + semCatalogo + ' venda(s) com produto não identificado automaticamente no catálogo — aparecem com <span class="gc-pill gray">?</span> na tabela abaixo.</div>' : '') +
+    '</div>' +
+    painelAtencao +
+    '<div class="gc-blk">' +
+      '<h2>Todas as vendas<span>' + vendas.length + (vendas.length === 1 ? ' venda' : ' vendas') + '</span></h2>' +
+      (vendas.length ? (
+        '<div class="gc-table-wrap gc-ml-venda-table-wrap"><table class="gct">' +
+        '<thead><tr><th>Data</th><th>Cliente</th><th>Produto</th><th class="num">Qtd</th><th class="num">Valor</th><th>Status</th></tr></thead>' +
+        '<tbody>' + linhas + '</tbody></table></div>'
+      ) : '<div class="gc-hint">Nenhuma venda do Mercado Livre importada ainda. Baixe o relatório semanal no Mercado Livre e me mande aqui que eu aplico.</div>') +
+    '</div>' +
+    '<div class="gc-hint" style="margin-top:4px">Toda semana, baixe o relatório de vendas do Mercado Livre e me envie — eu leio, evito duplicar vendas já importadas e adiciono só as novas aqui.</div>';
+  }
   function abrirVendaMLForm() {
     document.body.classList.add('gc-dr-flutuante');
     var anuncios = (store.anuncios || []).slice().sort(function (a, b) { return (a.nome || '').localeCompare(b.nome || ''); });
@@ -28787,14 +28860,17 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
 
   function mlSubtabsHtml() {
+    var atencao = vendasMLPrecisamAtencao().length;
     return '<div class="gc-ml-subtabs">' +
-      '<button type="button" class="gc-ml-subtab' + (UI.mlView !== 'vendas' ? ' on' : '') + '" data-ml-view="anuncios">Anúncios</button>' +
-      '<button type="button" class="gc-ml-subtab' + (UI.mlView === 'vendas' ? ' on' : '') + '" data-ml-view="vendas">Vendas</button>' +
+      '<button type="button" class="gc-ml-subtab' + (UI.mlView !== 'vendas' && UI.mlView !== 'real' ? ' on' : '') + '" data-ml-view="anuncios">Anúncios</button>' +
+      '<button type="button" class="gc-ml-subtab' + (UI.mlView === 'vendas' ? ' on' : '') + '" data-ml-view="vendas">Lucro por anúncio</button>' +
+      '<button type="button" class="gc-ml-subtab' + (UI.mlView === 'real' ? ' on' : '') + '" data-ml-view="real">Vendas reais' + (atencao ? ' <span class="gc-pill bad" style="margin-left:4px">' + atencao + '</span>' : '') + '</button>' +
     '</div>';
   }
   function renderML() {
     var el = $('#gc-ml'); if (!el) return;
     if (UI.mlView === 'vendas') { el.innerHTML = mlSubtabsHtml() + renderMLVendasHtml(); return; }
+    if (UI.mlView === 'real') { el.innerHTML = mlSubtabsHtml() + renderMLVendasReaisHtml(); return; }
     var anuncios = store.anuncios || [];
     var blocos = blocosAtuais();
     var porChave = {}; blocos.forEach(function (b) { porChave[b.chave] = []; });
