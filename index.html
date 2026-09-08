@@ -11941,10 +11941,9 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <option value="">Todos os vendedores</option>
         </select>
         <select class="input hidden" id="filterTipoVenda" onchange="renderVendas()">
-          <option value="">Todos os tipos de venda</option>
-          <option value="Lojista">Lojista</option>
-          <option value="Direto">Direto</option>
-          <option value="Revendedor">Revendedor</option>
+          <option value="">Todos os tipos de cliente</option>
+          <option value="consumidor">Consumidor Final</option>
+          <option value="direto-lab">Direto Lab</option>
         </select>
         <select class="input" id="filterNF" onchange="renderVendas()">
           <option value="">Todas as NFs</option>
@@ -13288,7 +13287,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           </div>
           <div>
             <label class="form-label">Cliente</label>
-            <input type="text" class="form-input" id="f-cliente" placeholder="Nome ou CPF/CNPJ do cliente" list="clientesList" oninput="buscarClientePorDocumentoNoInput(this)">
+            <input type="text" class="form-input" id="f-cliente" placeholder="Nome ou CPF/CNPJ do cliente" list="clientesList" oninput="buscarClientePorDocumentoNoInput(this); atualizarTipoVendaPeloCliente();" onchange="atualizarTipoVendaPeloCliente()">
             <datalist id="clientesList"></datalist>
             <div id="f-cliente-doc-hint" class="form-help hidden" style="cursor:pointer;color:var(--primary);"></div>
           </div>
@@ -13407,13 +13406,9 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
         <div class="form-row hidden" id="f-tipo-venda-row">
           <div>
-            <label class="form-label">Tipo de venda</label>
-            <input type="hidden" id="f-tipo-venda" value="Direto">
-            <div class="intel-chips">
-              <span class="intel-chip on" data-tipo="Direto" onclick="setTipoVendaForm('Direto')">Direto</span>
-              <span class="intel-chip" data-tipo="Lojista" onclick="setTipoVendaForm('Lojista')">Lojista</span>
-              <span class="intel-chip" data-tipo="Revendedor" onclick="setTipoVendaForm('Revendedor')">Revendedor</span>
-            </div>
+            <label class="form-label">Tipo de cliente</label>
+            <input type="hidden" id="f-tipo-venda" value="">
+            <div id="f-tipo-venda-indicador" class="pill pill-blue" data-tip="Detectado automaticamente pelo cadastro do cliente — mude o tipo dele em Clientes se estiver errado.">Consumidor Final</div>
           </div>
         </div>
 
@@ -14933,7 +14928,7 @@ function saleToRow(v) {
       revisaoCliente: Boolean(v.revisaoCliente),
       revisaoCandidatos: v.revisaoCandidatos || null,
       estoqueBaixado: v.estoqueBaixado || null,
-      tipoVenda: v.tipoVenda || 'Direto'
+      tipoVenda: v.tipoVenda || ''
     }
   };
 }
@@ -14974,7 +14969,7 @@ function rowToSale(r) {
     revisaoCliente: Boolean(r.metadata?.revisaoCliente),
     revisaoCandidatos: Array.isArray(r.metadata?.revisaoCandidatos) ? r.metadata.revisaoCandidatos : null,
     estoqueBaixado: Array.isArray(r.metadata?.estoqueBaixado) ? r.metadata.estoqueBaixado : null,
-    tipoVenda: r.metadata?.tipoVenda || 'Direto'
+    tipoVenda: r.metadata?.tipoVenda || ''
   };
 }
 
@@ -19510,9 +19505,11 @@ function renderVendas() {
   normalizeSellerNames();
   ensureSaleNumbers();
   // Usuário comum só vê vendas de clientes Consumidor Final — Direto Lab fica restrito
-  // a administradores, junto com o cadastro dele (mesma regra em renderClientes).
-  const nomesDiretoLab = isAdminUser() ? null : new Set(state.clientes.filter(c => c.tipoCliente === 'Direto Lab').map(c => nameKey(c.nome)));
-  const vendasVisiveis = nomesDiretoLab ? state.vendas.filter(v => !nomesDiretoLab.has(nameKey(v.cliente))) : state.vendas;
+  // a administradores, junto com o cadastro dele (mesma regra em renderClientes). O tipo é
+  // sempre lido ao vivo do cadastro do cliente (não de um campo salvo na venda), pra refletir
+  // reclassificações feitas depois da venda.
+  const nomesDiretoLab = new Set(state.clientes.filter(c => c.tipoCliente === 'Direto Lab').map(c => nameKey(c.nome)));
+  const vendasVisiveis = isAdminUser() ? state.vendas : state.vendas.filter(v => !nomesDiretoLab.has(nameKey(v.cliente)));
   document.getElementById('vendas-count').textContent = vendasVisiveis.length.toLocaleString('pt-BR');
 
   // Filtros fixos + dinâmicos de vendas
@@ -19561,7 +19558,8 @@ function renderVendas() {
   if (aromaFiltro) rows = rows.filter(r => saleAromaValues(r).some(aroma => nameKey(aroma) === nameKey(aromaFiltro)));
   if (pagamentoFiltro) rows = rows.filter(r => canonicalPayment(r.pagamento || '') === pagamentoFiltro);
   if (vendedorFiltro) rows = rows.filter(r => canonicalSellerName(r.vendedor || 'Sem vendedor') === vendedorFiltro);
-  if (tipoVendaFiltro) rows = rows.filter(r => (r.tipoVenda || 'Direto') === tipoVendaFiltro);
+  if (tipoVendaFiltro === 'direto-lab') rows = rows.filter(r => nomesDiretoLab.has(nameKey(r.cliente)));
+  if (tipoVendaFiltro === 'consumidor') rows = rows.filter(r => !nomesDiretoLab.has(nameKey(r.cliente)));
   if (nfFiltro === 'com') rows = rows.filter(saleHasNf);
   if (nfFiltro === 'sem') rows = rows.filter(r => !saleHasNf(r));
   if (revisarFiltro) rows = rows.filter(r => r.revisaoCliente);
@@ -24172,7 +24170,7 @@ function initEditVenda(id) {
   document.getElementById('f-boleto-pdf').value = '';
   document.getElementById('f-aroma-custom').value = '';
   document.getElementById('f-aroma-custom-row').classList.add('hidden');
-  setTipoVendaForm(venda.tipoVenda || 'Direto');
+  atualizarTipoVendaPeloCliente();
   document.getElementById('f-tipo-venda-row').classList.toggle('hidden', !isAdminUser());
   const nfNumeroInput = document.getElementById('f-nf-numero');
   if (nfNumeroInput) nfNumeroInput.value = saleNfNumber(venda) || '';
@@ -24366,7 +24364,7 @@ function initNova() {
   document.getElementById('f-tipo').value = 'UN';
   document.getElementById('f-aroma-custom').value = '';
   document.getElementById('f-aroma-custom-row').classList.add('hidden');
-  setTipoVendaForm('Direto');
+  setTipoVendaForm('');
   document.getElementById('f-tipo-venda-row').classList.toggle('hidden', !isAdminUser());
   currentSaleItems = [];
   renderSaleItemsList();
@@ -24379,9 +24377,23 @@ function initNova() {
   togglePaymentFields();
 }
 
+// Detecta sozinho, pelo cadastro do cliente digitado no campo Cliente, se a venda é de um
+// cliente Direto Lab ou Consumidor Final — substitui a escolha manual que existia antes
+// (Direto/Lojista/Revendedor), que não tinha mais relação com o tipo real do cadastro.
 function setTipoVendaForm(tipo) {
-  document.getElementById('f-tipo-venda').value = tipo;
-  document.querySelectorAll('#f-tipo-venda-row .intel-chip').forEach(el => el.classList.toggle('on', el.dataset.tipo === tipo));
+  const tipoFinal = tipo === 'Direto Lab' ? 'Direto Lab' : '';
+  const hidden = document.getElementById('f-tipo-venda');
+  if (hidden) hidden.value = tipoFinal;
+  const indicador = document.getElementById('f-tipo-venda-indicador');
+  if (indicador) {
+    indicador.textContent = tipoFinal === 'Direto Lab' ? 'Direto Lab' : 'Consumidor Final';
+    indicador.className = 'pill ' + (tipoFinal === 'Direto Lab' ? 'pill-amber' : 'pill-blue');
+  }
+}
+function atualizarTipoVendaPeloCliente() {
+  const nome = document.getElementById('f-cliente')?.value.trim() || '';
+  const cliente = state.clientes.find(c => nameKey(c.nome) === nameKey(nome));
+  setTipoVendaForm(cliente?.tipoCliente === 'Direto Lab' ? 'Direto Lab' : '');
 }
 function setTipoClienteForm(tipo) {
   document.getElementById('mc-tipo-cliente').value = tipo;
@@ -24505,7 +24517,7 @@ async function salvarVenda() {
     desconto,
     pagamento,
     pagamentoDetalhes,
-    tipoVenda: document.getElementById('f-tipo-venda').value || 'Direto',
+    tipoVenda: document.getElementById('f-tipo-venda').value || '',
     vendedor: canonicalSellerName(document.getElementById('f-vend').value),
     nfNumber: document.getElementById('f-nf-numero')?.value.trim() || '',
     obs: document.getElementById('f-obs').value.trim(),
@@ -33575,6 +33587,10 @@ body.theme-dark #view-inteligencia .dash-inline-metrics > div, body.theme-dark #
 #view-vendas .nf-inline-input.nf-inline-alert, #view-vendas .nf-inline-input.nf-inline-alert::placeholder { color: #B0322F !important; }
 body.theme-dark #view-vendas .nf-inline-input.nf-inline-alert { border-color: rgba(216,108,108,.44) !important; background: rgba(216,108,108,.18) !important; }
 body.theme-dark #view-vendas .nf-inline-input.nf-inline-alert, body.theme-dark #view-vendas .nf-inline-input.nf-inline-alert::placeholder { color: #E89A9A !important; }
+
+/* --- NOVA VENDA: indicador de tipo de cliente (Direto Lab com cor real) --- */
+#view-nova #f-tipo-venda-indicador.pill-amber { background: #FBF1DD !important; color: #8A5800 !important; border: 1px solid #F0DBA9 !important; }
+body.theme-dark #view-nova #f-tipo-venda-indicador.pill-amber { background: rgba(224,163,62,.18) !important; color: #E7B765 !important; border-color: rgba(224,163,62,.42) !important; }
 .nf-inline-pdf-btn { font-size: 10.5px; font-weight: 700; padding: 4px 7px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2, #eef3f7); color: var(--text-2); cursor: pointer; white-space: nowrap; }
 .nf-inline-pdf-btn:hover { color: var(--text); }
 .cliente-link { cursor: pointer; }
