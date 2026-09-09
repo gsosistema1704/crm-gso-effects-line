@@ -12335,7 +12335,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </div>
 
         <div class="card table-card">
-          <table class="estoque-table">
+          <table class="estoque-table stack-table">
             <thead>
               <tr>
                 <th>Título</th>
@@ -13742,7 +13742,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="card-title">Evolução mensal</div>
         <div class="card-sub">Receita = o que entra na conta com as vendas (boleto/anotado só quando pago). Despesas = suas despesas cadastradas + custo do produto e imposto de cada venda (boleto só quando quitado, anotado por pagamento, crédito parcelado dividido mês a mês). Lucro líquido = o que sobra depois de pagar tudo isso. Clique nos valores de Receita/Despesas para ajustar manualmente.</div>
         <div style="overflow-x:auto;margin-top:12px;">
-          <table class="intel-table" id="fin-evolucao-table">
+          <table class="intel-table stack-table" id="fin-evolucao-table">
             <thead><tr><th>Mês</th><th class="num">Receita</th><th class="num">Despesas</th><th class="num">Lucro líquido</th><th class="num">Variação</th></tr></thead>
             <tbody id="fin-evolucao-body"></tbody>
           </table>
@@ -14269,7 +14269,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div class="modal-title">Movimentação de estoque</div>
     <div class="info-banner estoque-history-summary" id="estoque-historico-resumo"></div>
     <div class="card table-card">
-      <table class="estoque-history-table">
+      <table class="estoque-history-table stack-table">
         <thead>
           <tr>
             <th>Data</th>
@@ -18061,11 +18061,11 @@ function renderEvolucaoMensal() {
     }
     lucroLiquidoAnterior = lucroLiquido;
     return `<tr>
-      <td class="strong">${reportMonthLabel(mes)}</td>
-      <td class="num">${finAjusteCellHtml(mes, 'receita_ajustada', receita, receitaComputada)}</td>
-      <td class="num">${finAjusteCellHtml(mes, 'despesas_ajustada', despesa, despesaComputada)}</td>
-      <td class="num"><span class="fin-lucro-final${lucroLiquido < 0 ? ' fin-lucro-neg' : ''}">${fmtBR(lucroLiquido)}</span></td>
-      <td class="num">${variacaoHtml}</td>
+      <td class="strong stack-title">${reportMonthLabel(mes)}</td>
+      <td class="num" data-label="Receita">${finAjusteCellHtml(mes, 'receita_ajustada', receita, receitaComputada)}</td>
+      <td class="num" data-label="Despesas">${finAjusteCellHtml(mes, 'despesas_ajustada', despesa, despesaComputada)}</td>
+      <td class="num" data-label="Lucro líquido"><span class="fin-lucro-final${lucroLiquido < 0 ? ' fin-lucro-neg' : ''}">${fmtBR(lucroLiquido)}</span></td>
+      <td class="num" data-label="Variação">${variacaoHtml}</td>
     </tr>`;
   }).join('');
 }
@@ -21963,7 +21963,7 @@ function renderEstoque() {
     const low = estoqueIsLow(item);
     return `
       <tr>
-        <td>
+        <td class="stack-title">
           <div class="estoque-title-cell">
             <span class="product-thumb">${estoqueThumbHtml(item)}</span>
             <div>
@@ -21972,11 +21972,11 @@ function renderEstoque() {
             </div>
           </div>
         </td>
-        <td class="num">${fmtBR(parseFloat(item.preco) || 0)}</td>
-        <td>${escapeHtml(item.categoria || 'Produto')}</td>
-        <td>${low ? '<span class="pill pill-red">Sim</span>' : '<span class="pill pill-blue">Não</span>'}</td>
-        <td>${item.criadoEm ? fmtDate(item.criadoEm) : '—'}</td>
-        <td class="num actions-cell">
+        <td class="num" data-label="Preço">${fmtBR(parseFloat(item.preco) || 0)}</td>
+        <td data-label="Categoria">${escapeHtml(item.categoria || 'Produto')}</td>
+        <td data-label="Baixo estoque">${low ? '<span class="pill pill-red">Sim</span>' : '<span class="pill pill-blue">Não</span>'}</td>
+        <td data-label="Cadastro">${item.criadoEm ? fmtDate(item.criadoEm) : '—'}</td>
+        <td class="num actions-cell stack-actions" data-label="Ações">
           <div class="stock-actions">
             <button class="stock-action-btn stock-in up" title="Entrada" data-tooltip="Entrada de estoque" onclick="ajustarEstoque('${item.id}', 'entrada')"><span>↑</span></button>
             <button class="stock-action-btn stock-out down" title="Saída" data-tooltip="Saída de estoque" onclick="ajustarEstoque('${item.id}', 'saida')"><span>↓</span></button>
@@ -22132,12 +22132,12 @@ function openEstoqueHistorico(id) {
   } else {
     tbody.innerHTML = movimentos.map(m => `
       <tr>
-        <td>${m.data ? new Date(m.data).toLocaleString('pt-BR') : '—'}</td>
-        <td><span class="pill ${estoqueMovementPill(m.tipo)}">${estoqueMovementLabel(m.tipo)}</span></td>
-        <td class="num">${estoqueNumber(m.quantidade).toLocaleString('pt-BR')}</td>
-        <td class="num">${estoqueNumber(m.antes).toLocaleString('pt-BR')}</td>
-        <td class="num">${estoqueNumber(m.depois).toLocaleString('pt-BR')}</td>
-        <td>${escapeHtml(m.origem || 'Manual')}</td>
+        <td class="stack-title">${m.data ? new Date(m.data).toLocaleString('pt-BR') : '—'}</td>
+        <td data-label="Movimento"><span class="pill ${estoqueMovementPill(m.tipo)}">${estoqueMovementLabel(m.tipo)}</span></td>
+        <td class="num" data-label="Qtd">${estoqueNumber(m.quantidade).toLocaleString('pt-BR')}</td>
+        <td class="num" data-label="Antes">${estoqueNumber(m.antes).toLocaleString('pt-BR')}</td>
+        <td class="num" data-label="Depois">${estoqueNumber(m.depois).toLocaleString('pt-BR')}</td>
+        <td data-label="Origem">${escapeHtml(m.origem || 'Manual')}</td>
       </tr>
     `).join('');
   }
@@ -26265,12 +26265,12 @@ function intelRenderOverview() {
       ? `${escapeHtml(v.cliente || '—')}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">parcela ${parcela.numero || (idx + 1)} de ${l.totalParcelas}</small>`
       : escapeHtml(v.cliente || '—');
     return `<tr onclick="if(!event.target.closest('button')) abrirParcelaBoletoModal('${v.id}',${idx})" style="cursor:pointer">
-      <td>${dataCell}</td>
-      <td>${clienteCell}</td>
-      <td>${vencCell}</td>
-      <td class="num">${valorCell}</td>
-      <td>${pago ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>'}</td>
-      <td style="white-space:nowrap"><div style="display:flex;gap:6px;align-items:center;">${acaoPrincipal}<button class="btn btn-small" onclick="openEditVenda('${v.id}')" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button><button class="btn btn-small" onclick="ocultarVendaBoleto('${v.id}')" data-tooltip="Tirar esta venda daqui" aria-label="Tirar esta venda daqui">✕</button></div></td>
+      <td class="stack-title">${dataCell}</td>
+      <td data-label="Cliente">${clienteCell}</td>
+      <td data-label="Vencimento">${vencCell}</td>
+      <td class="num" data-label="Valor">${valorCell}</td>
+      <td data-label="Status">${pago ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>'}</td>
+      <td class="stack-actions" data-label="Ação"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${acaoPrincipal}<button class="btn btn-small" onclick="openEditVenda('${v.id}')" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button><button class="btn btn-small" onclick="ocultarVendaBoleto('${v.id}')" data-tooltip="Tirar esta venda daqui" aria-label="Tirar esta venda daqui">✕</button></div></td>
     </tr>`;
   }).join('');
 
@@ -26280,12 +26280,12 @@ function intelRenderOverview() {
     const pago = saleAnotadoTotalPago(v);
     const saldo = saleAnotadoSaldoDevedor(v);
     return `<tr onclick="if(!event.target.closest('button')) abrirAnotadoModal('${v.id}')" style="cursor:pointer">
-      <td>${fmtDate(v.data)}</td>
-      <td>${escapeHtml(v.cliente || '—')}</td>
-      <td class="num">${fmtBR(v.valor)}</td>
-      <td class="num">${fmtBR(pago)}</td>
-      <td class="num">${fmtBR(saldo)}</td>
-      <td style="white-space:nowrap"><div style="display:flex;gap:6px;align-items:center;"><button class="btn btn-small" onclick="abrirAnotadoModal('${v.id}')">Registrar pagamento</button><button class="btn btn-small" onclick="openEditVenda('${v.id}')" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button></div></td>
+      <td class="stack-title">${fmtDate(v.data)}</td>
+      <td data-label="Cliente">${escapeHtml(v.cliente || '—')}</td>
+      <td class="num" data-label="Valor total">${fmtBR(v.valor)}</td>
+      <td class="num" data-label="Pago">${fmtBR(pago)}</td>
+      <td class="num" data-label="Saldo devedor">${fmtBR(saldo)}</td>
+      <td class="stack-actions" data-label="Ação"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><button class="btn btn-small" onclick="abrirAnotadoModal('${v.id}')">Registrar pagamento</button><button class="btn btn-small" onclick="openEditVenda('${v.id}')" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button></div></td>
     </tr>`;
   }).join('');
 
@@ -26315,14 +26315,14 @@ function intelRenderOverview() {
           return `<span class="pill pill-amber">${boletosPendentes.length} pendente${boletosPendentes.length === 1 ? '' : 's'}</span>`;
         })() : ''}
       </div>
-      ${boletoLinhas.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table"><thead><tr><th>Data</th><th>Cliente</th><th>Vencimento</th><th class="num">Valor</th><th>Status</th><th style="width:1%;white-space:nowrap">Ação</th></tr></thead><tbody>${boletoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda em boleto registrada.</div>`}
+      ${boletoLinhas.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table stack-table"><thead><tr><th>Data</th><th>Cliente</th><th>Vencimento</th><th class="num">Valor</th><th>Status</th><th style="width:1%;white-space:nowrap">Ação</th></tr></thead><tbody>${boletoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda em boleto registrada.</div>`}
     </div>
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div><div class="card-title">Vendas anotadas</div><div class="card-sub">O valor só entra no faturamento nos meses em que cada pagamento for registrado. Fica na lista até quitar o valor todo.</div></div>
         ${anotadoVendas.length ? `<span class="pill pill-amber">${anotadoVendas.length} pendente${anotadoVendas.length === 1 ? '' : 's'}</span>` : ''}
       </div>
-      ${anotadoVendas.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table"><thead><tr><th>Data</th><th>Cliente</th><th class="num">Valor total</th><th class="num">Pago</th><th class="num">Saldo devedor</th><th style="width:1%;white-space:nowrap">Ação</th></tr></thead><tbody>${anotadoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda anotada pendente.</div>`}
+      ${anotadoVendas.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table stack-table"><thead><tr><th>Data</th><th>Cliente</th><th class="num">Valor total</th><th class="num">Pago</th><th class="num">Saldo devedor</th><th style="width:1%;white-space:nowrap">Ação</th></tr></thead><tbody>${anotadoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda anotada pendente.</div>`}
     </div>
   `;
 }
@@ -26392,7 +26392,7 @@ function intelRenderCall() {
   const prioRows = prioridades.map(c => {
     const wa = intelWaDigits(c.telefone);
     const waBtn = wa ? `<a class="intel-wa" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(intelWaMessage(c))}">WhatsApp</a>` : '<span class="intel-wa is-disabled">Sem telefone</span>';
-    return `<tr><td class="strong">${escapeHtml(c.nome)}</td><td><span class="intel-tag">${escapeHtml(c.acao)}</span></td><td class="intel-muted">${escapeHtml(c.motivo)}</td><td class="num">${fmtBR(c.total)}</td><td>${intelStatusPill(c.status)}</td><td>${waBtn}</td></tr>`;
+    return `<tr><td class="strong stack-title">${escapeHtml(c.nome)}</td><td data-label="Ação"><span class="intel-tag">${escapeHtml(c.acao)}</span></td><td class="intel-muted" data-label="Motivo">${escapeHtml(c.motivo)}</td><td class="num" data-label="Total">${fmtBR(c.total)}</td><td data-label="Status">${intelStatusPill(c.status)}</td><td data-label="Contato">${waBtn}</td></tr>`;
   }).join('');
 
   pane.innerHTML = `
@@ -26409,7 +26409,7 @@ function intelRenderCall() {
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div><div class="card-title">Prioridades de hoje</div><div class="card-sub">Quem contatar primeiro — por valor do cliente e ciclo de recompra</div></div>
       </div>
-      ${prioridades.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table"><thead><tr><th>Cliente</th><th>Ação</th><th>Motivo</th><th class="num">Total</th><th>Status</th><th>Contato</th></tr></thead><tbody>${prioRows}</tbody></table></div>` : `<div class="intel-empty">Tudo em dia — nenhuma ação prioritária agora.</div>`}
+      ${prioridades.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table stack-table"><thead><tr><th>Cliente</th><th>Ação</th><th>Motivo</th><th class="num">Total</th><th>Status</th><th>Contato</th></tr></thead><tbody>${prioRows}</tbody></table></div>` : `<div class="intel-empty">Tudo em dia — nenhuma ação prioritária agora.</div>`}
     </div>
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
@@ -26435,7 +26435,7 @@ function intelRenderClientes() {
       <div class="card-sub">${lista.length} clientes com compras · <span class="intel-pill intel-abc-A">A</span> 80% do faturamento, <span class="intel-pill intel-abc-B">B</span> próximos 15%, <span class="intel-pill intel-abc-C">C</span> cauda. Ciclo "~" = estimado.</div>
       ${intelToolbar('intel-q-cli', 'Buscar cliente...')}
       <div style="overflow-x:auto;">
-      <table id="intel-tbl-clientes" class="intel-table">
+      <table id="intel-tbl-clientes" class="intel-table stack-table">
         <thead><tr>
           <th class="intel-sortable" onclick="intelSortTable('intel-tbl-clientes',0,'text',this)">Cliente<span class="intel-sort-ic"></span></th>
           <th>ABC</th>
@@ -26449,16 +26449,16 @@ function intelRenderClientes() {
         <tbody>
           ${lista.map(c => `
             <tr>
-              <td class="strong">${escapeHtml(c.nome)}</td>
-              <td><span class="intel-pill intel-abc-${c.abc}">${c.abc}</span></td>
-              <td class="num" data-sort="${c.total}">${fmtBR(c.total)}</td>
-              <td class="num">${c.pedidos}</td>
-              <td class="num" data-sort="${c.ticket}">${fmtBR(c.ticket)}</td>
-              <td class="num">${c.intervalo ? c.intervalo + 'd' : '~' + c.cicloUsado + 'd'}</td>
-              <td class="intel-muted" data-sort="${intelTs(c.ultima)}">${fmtDate(c.ultima)}</td>
-              <td>${intelStatusPill(c.status)}</td>
-              <td class="intel-muted">${c.proxima ? (c.cicloEstimado ? '~' : '') + fmtDate(c.proxima) : '—'}</td>
-              <td class="intel-muted">${c.favProdValido ? escapeHtml(c.favProd) : '—'}</td>
+              <td class="strong stack-title">${escapeHtml(c.nome)}</td>
+              <td data-label="ABC"><span class="intel-pill intel-abc-${c.abc}">${c.abc}</span></td>
+              <td class="num" data-label="Total" data-sort="${c.total}">${fmtBR(c.total)}</td>
+              <td class="num" data-label="Pedidos">${c.pedidos}</td>
+              <td class="num" data-label="Ticket" data-sort="${c.ticket}">${fmtBR(c.ticket)}</td>
+              <td class="num" data-label="Ciclo">${c.intervalo ? c.intervalo + 'd' : '~' + c.cicloUsado + 'd'}</td>
+              <td class="intel-muted" data-label="Última" data-sort="${intelTs(c.ultima)}">${fmtDate(c.ultima)}</td>
+              <td data-label="Status">${intelStatusPill(c.status)}</td>
+              <td class="intel-muted" data-label="Próxima compra">${c.proxima ? (c.cicloEstimado ? '~' : '') + fmtDate(c.proxima) : '—'}</td>
+              <td class="intel-muted" data-label="Favorito">${c.favProdValido ? escapeHtml(c.favProd) : '—'}</td>
             </tr>`).join('')}
         </tbody>
       </table>
@@ -26484,7 +26484,7 @@ function intelRenderProdutos() {
       <div class="card-sub">${agg.length} itens · curva ABC por faturamento</div>
       ${intelToolbar('intel-q-prod', 'Buscar produto...')}
       <div style="overflow-x:auto;">
-      <table id="intel-tbl-produtos" class="intel-table">
+      <table id="intel-tbl-produtos" class="intel-table stack-table">
         <thead><tr>
           <th class="intel-sortable" onclick="intelSortTable('intel-tbl-produtos',0,'text',this)">Produto<span class="intel-sort-ic"></span></th>
           <th>ABC</th>
@@ -26498,14 +26498,14 @@ function intelRenderProdutos() {
         <tbody>
           ${agg.map(p => `
             <tr>
-              <td class="strong">${escapeHtml(p.nome)}</td>
-              <td><span class="intel-pill intel-abc-${p.abc}">${p.abc}</span></td>
-              <td class="num" data-sort="${p.fat}">${fmtBR(p.fat)}</td>
-              <td class="num">${(p.share * 100).toFixed(1)}%</td>
-              <td class="num">${p.qtd}</td>
-              <td class="num">${p.pedidos}</td>
-              <td class="num">${fmtBR(p.pedidos ? p.fat / p.pedidos : 0)}</td>
-              <td class="intel-muted" data-sort="${intelTs(p.ultima)}">${fmtDate(p.ultima)}</td>
+              <td class="strong stack-title">${escapeHtml(p.nome)}</td>
+              <td data-label="ABC"><span class="intel-pill intel-abc-${p.abc}">${p.abc}</span></td>
+              <td class="num" data-label="Faturamento" data-sort="${p.fat}">${fmtBR(p.fat)}</td>
+              <td class="num" data-label="% do total">${(p.share * 100).toFixed(1)}%</td>
+              <td class="num" data-label="Qtd (un)">${p.qtd}</td>
+              <td class="num" data-label="Pedidos">${p.pedidos}</td>
+              <td class="num" data-label="Ticket/ped.">${fmtBR(p.pedidos ? p.fat / p.pedidos : 0)}</td>
+              <td class="intel-muted" data-label="Última venda" data-sort="${intelTs(p.ultima)}">${fmtDate(p.ultima)}</td>
             </tr>`).join('')}
         </tbody>
       </table>
@@ -26580,7 +26580,7 @@ function intelRenderSegmentos() {
       <div class="card-sub">Use como lista de transmissão — clique para abrir o WhatsApp do cliente.</div>
       ${intelToolbar('intel-q-seg', 'Buscar cliente...', `<select class="intel-select" onchange="intelFilterColumn('intel-tbl-segmentos','seg',this.value)">${selOptions}</select>`)}
       <div style="overflow-x:auto;">
-      <table id="intel-tbl-segmentos" class="intel-table">
+      <table id="intel-tbl-segmentos" class="intel-table stack-table">
         <thead><tr>
           <th class="intel-sortable" onclick="intelSortTable('intel-tbl-segmentos',0,'text',this)">Cliente<span class="intel-sort-ic"></span></th>
           <th>Segmento</th>
@@ -26594,12 +26594,12 @@ function intelRenderSegmentos() {
             const wa = intelWaDigits(c.telefone);
             const waBtn = wa ? `<a class="intel-wa" target="_blank" rel="noopener" href="https://wa.me/${wa}">WhatsApp</a>` : `<span class="intel-wa is-disabled">Sem telefone</span>`;
             return `<tr data-seg="${escapeHtml(c.segmento)}">
-              <td class="strong">${escapeHtml(c.nome)}</td>
-              <td><span class="intel-tag">${escapeHtml(c.segmento)}</span></td>
-              <td class="num" data-sort="${c.total}">${fmtBR(c.total)}</td>
-              <td class="num">${c.pedidos}</td>
-              <td class="intel-muted" data-sort="${intelTs(c.ultima)}">${fmtDate(c.ultima)}</td>
-              <td>${waBtn}</td>
+              <td class="strong stack-title">${escapeHtml(c.nome)}</td>
+              <td data-label="Segmento"><span class="intel-tag">${escapeHtml(c.segmento)}</span></td>
+              <td class="num" data-label="Total" data-sort="${c.total}">${fmtBR(c.total)}</td>
+              <td class="num" data-label="Pedidos">${c.pedidos}</td>
+              <td class="intel-muted" data-label="Última" data-sort="${intelTs(c.ultima)}">${fmtDate(c.ultima)}</td>
+              <td data-label="Contato">${waBtn}</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -26662,18 +26662,18 @@ function openSegDrawer(segNome) {
       <div class="intel-seg-advice" style="background:color-mix(in srgb, ${sd.cor} 14%, transparent);border-color:color-mix(in srgb, ${sd.cor} 35%, transparent);">
         <strong style="color:${sd.cor};">Estratégia.</strong> ${escapeHtml(sd.desc)}
       </div>
-      ${lista.length ? `<div class="tbl-wrap" style="margin-top:16px;overflow:auto;"><table class="intel-table"><thead><tr>
+      ${lista.length ? `<div class="tbl-wrap" style="margin-top:16px;overflow:auto;"><table class="intel-table stack-table"><thead><tr>
         <th>Cliente</th><th class="num">Gasto</th><th class="num">Dias</th><th>Favorito</th><th>Contato</th>
       </tr></thead><tbody>
         ${lista.slice(0, 200).map(c => {
           const wa = intelWaDigits(c.telefone);
           const waBtn = wa ? `<a class="intel-wa" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(intelWaMessage(c))}">WhatsApp</a>` : `<span class="intel-wa is-disabled">Sem telefone</span>`;
           return `<tr>
-            <td class="strong">${escapeHtml(c.nome)}</td>
-            <td class="num">${fmtBR(c.total)}</td>
-            <td class="num">${c.dias}</td>
-            <td class="intel-muted">${escapeHtml(c.favProdValido ? c.favProd : '—')}</td>
-            <td>${waBtn}</td>
+            <td class="strong stack-title">${escapeHtml(c.nome)}</td>
+            <td class="num" data-label="Gasto">${fmtBR(c.total)}</td>
+            <td class="num" data-label="Dias">${c.dias}</td>
+            <td class="intel-muted" data-label="Favorito">${escapeHtml(c.favProdValido ? c.favProd : '—')}</td>
+            <td data-label="Contato">${waBtn}</td>
           </tr>`;
         }).join('')}
       </tbody></table></div>` : `<div class="intel-empty" style="margin-top:16px;">Nenhum cliente neste segmento.</div>`}
@@ -26778,7 +26778,7 @@ function intelRenderVendedores() {
       <div class="card-sub">Faturamento, número de vendas, ticket médio e participação${intelPeriod === 'all' ? '' : ' — ' + intelPeriod}</div>
       ${intelToolbar('intel-q-vend', 'Buscar vendedor...')}
       <div style="overflow-x:auto;">
-      <table id="intel-tbl-vendedores" class="intel-table">
+      <table id="intel-tbl-vendedores" class="intel-table stack-table">
         <thead><tr>
           <th class="intel-sortable" onclick="intelSortTable('intel-tbl-vendedores',0,'text',this)">Vendedor<span class="intel-sort-ic"></span></th>
           <th class="num intel-sortable" onclick="intelSortTable('intel-tbl-vendedores',1,'num',this)">Faturamento<span class="intel-sort-ic"></span></th>
@@ -26789,11 +26789,11 @@ function intelRenderVendedores() {
         <tbody>
           ${lista.map(function (s) { const part = (s.fat / tg) * 100; return `
             <tr>
-              <td class="strong">${escapeHtml(s.nome)}</td>
-              <td class="num" data-sort="${s.fat}">${fmtBR(s.fat)}</td>
-              <td class="num">${s.qtd}</td>
-              <td class="num">${fmtBR(s.qtd ? s.fat / s.qtd : 0)}</td>
-              <td class="num">${part.toFixed(1)}%<div class="intel-score-bar" style="margin-top:4px;"><div class="intel-score-fill" style="width:${part}%;"></div></div></td>
+              <td class="strong stack-title">${escapeHtml(s.nome)}</td>
+              <td class="num" data-label="Faturamento" data-sort="${s.fat}">${fmtBR(s.fat)}</td>
+              <td class="num" data-label="Vendas">${s.qtd}</td>
+              <td class="num" data-label="Ticket médio">${fmtBR(s.qtd ? s.fat / s.qtd : 0)}</td>
+              <td class="num" data-label="Participação">${part.toFixed(1)}%<div class="intel-score-bar" style="margin-top:4px;"><div class="intel-score-fill" style="width:${part}%;"></div></div></td>
             </tr>`; }).join('')}
         </tbody>
       </table>
