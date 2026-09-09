@@ -26270,7 +26270,7 @@ function intelRenderOverview() {
       <td data-label="Vencimento">${vencCell}</td>
       <td class="num" data-label="Valor">${valorCell}</td>
       <td data-label="Status">${pago ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>'}</td>
-      <td class="stack-actions" data-label="Ação"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${acaoPrincipal}<button class="btn btn-small" onclick="openEditVenda('${v.id}')" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button><button class="btn btn-small" onclick="ocultarVendaBoleto('${v.id}')" data-tooltip="Tirar esta venda daqui" aria-label="Tirar esta venda daqui">✕</button></div></td>
+      <td class="stack-actions" data-label="Ação"><div class="stack-actions-row" style="display:flex;gap:6px;align-items:center;">${acaoPrincipal}<button class="btn btn-small" onclick="openEditVenda('${v.id}')" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button><button class="btn btn-small" onclick="ocultarVendaBoleto('${v.id}')" data-tooltip="Tirar esta venda daqui" aria-label="Tirar esta venda daqui">✕</button></div></td>
     </tr>`;
   }).join('');
 
@@ -26285,7 +26285,7 @@ function intelRenderOverview() {
       <td class="num" data-label="Valor total">${fmtBR(v.valor)}</td>
       <td class="num" data-label="Pago">${fmtBR(pago)}</td>
       <td class="num" data-label="Saldo devedor">${fmtBR(saldo)}</td>
-      <td class="stack-actions" data-label="Ação"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><button class="btn btn-small" onclick="abrirAnotadoModal('${v.id}')">Registrar pagamento</button><button class="btn btn-small" onclick="openEditVenda('${v.id}')" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button></div></td>
+      <td class="stack-actions" data-label="Ação"><div class="stack-actions-row" style="display:flex;gap:6px;align-items:center;"><button class="btn btn-small" onclick="abrirAnotadoModal('${v.id}')">Registrar pagamento</button><button class="btn btn-small" onclick="openEditVenda('${v.id}')" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button></div></td>
     </tr>`;
   }).join('');
 
