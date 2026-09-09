@@ -11164,6 +11164,46 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
   }
 </style>
 
+<style id="gso-vendas-clientes-filtros-uniformes">
+  /* Vendas e Clientes usavam grids diferentes (colunas/larguras distintas), o que deixava
+     os blocos de filtro com tamanhos desiguais e cortava texto de opção mais longa
+     ("Cliente Mercado Livre", "Acima de R$ 10.000" etc). Unifica os dois num layout flex
+     com o mesmo min-width por bloco, em vez de grid com número fixo de colunas. */
+  #view-vendas .filter-panel,
+  #view-clientes .filter-panel.clients {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    align-items: center !important;
+  }
+  #view-vendas .filter-panel > select.input,
+  #view-vendas .filter-panel > input.input,
+  #view-clientes .filter-panel.clients > select.input,
+  #view-clientes .filter-panel.clients > input.input {
+    flex: 0 1 200px !important;
+    min-width: 180px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+  #view-vendas .filter-panel .filter-date-range {
+    flex: 1 1 260px !important;
+    min-width: 240px !important;
+  }
+  #view-vendas .filter-panel .filter-revisar-toggle,
+  #view-vendas .filter-panel .btn,
+  #view-clientes .filter-panel.clients .btn {
+    flex: 0 0 auto !important;
+  }
+  @media (max-width: 760px) {
+    #view-vendas .filter-panel > select.input,
+    #view-vendas .filter-panel > input.input,
+    #view-clientes .filter-panel.clients > select.input,
+    #view-clientes .filter-panel.clients > input.input {
+      flex-basis: 100% !important;
+    }
+  }
+</style>
+
 <style id="gso-helvetica-neue-weight-system">
   :root {
     --gso-font-ui: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -11944,6 +11984,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <option value="">Todos os tipos de cliente</option>
           <option value="consumidor">Consumidor Final</option>
           <option value="direto-lab">Direto Lab</option>
+          <option value="mercado-livre">Cliente Mercado Livre</option>
         </select>
         <select class="input" id="filterNF" onchange="renderVendas()">
           <option value="">Todas as NFs</option>
@@ -19534,6 +19575,7 @@ function renderVendas() {
   // sempre lido ao vivo do cadastro do cliente (não de um campo salvo na venda), pra refletir
   // reclassificações feitas depois da venda.
   const nomesDiretoLab = new Set(state.clientes.filter(c => c.tipoCliente === 'Direto Lab').map(c => nameKey(c.nome)));
+  const nomesMercadoLivre = new Set(state.clientes.filter(c => c.metadata?.origem === 'Mercado Livre').map(c => nameKey(c.nome)));
   const vendasVisiveis = isAdminUser() ? state.vendas : state.vendas.filter(v => !nomesDiretoLab.has(nameKey(v.cliente)));
   document.getElementById('vendas-count').textContent = vendasVisiveis.length.toLocaleString('pt-BR');
 
@@ -19585,6 +19627,7 @@ function renderVendas() {
   if (vendedorFiltro) rows = rows.filter(r => canonicalSellerName(r.vendedor || 'Sem vendedor') === vendedorFiltro);
   if (tipoVendaFiltro === 'direto-lab') rows = rows.filter(r => nomesDiretoLab.has(nameKey(r.cliente)));
   if (tipoVendaFiltro === 'consumidor') rows = rows.filter(r => !nomesDiretoLab.has(nameKey(r.cliente)));
+  if (tipoVendaFiltro === 'mercado-livre') rows = rows.filter(r => nomesMercadoLivre.has(nameKey(r.cliente)));
   if (nfFiltro === 'com') rows = rows.filter(saleHasNf);
   if (nfFiltro === 'sem') rows = rows.filter(r => !saleHasNf(r));
   if (revisarFiltro) rows = rows.filter(r => r.revisaoCliente);
