@@ -13107,7 +13107,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="form-row"><div><label class="form-label">Nome</label><input class="form-input" id="cot-forn-nome" placeholder="ex: Nova Quimica do Sul"></div></div>
         <div class="form-row form-r2">
           <div><label class="form-label">Contato</label><input class="form-input" id="cot-forn-contato"></div>
-          <div><label class="form-label">Telefone / WhatsApp</label><input class="form-input" id="cot-forn-telefone"></div>
+          <div><label class="form-label">Telefone / WhatsApp</label><input class="form-input" id="cot-forn-telefone" oninput="aplicarMascara(this, maskTelefone)"></div>
         </div>
         <div class="form-row"><div><label class="form-label">Endereço</label><input class="form-input" id="cot-forn-endereco"></div></div>
         <div class="form-actions">
@@ -13837,17 +13837,17 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 	      </div>
 	      <div>
 	        <label class="form-label">Telefone/Celular</label>
-	        <input type="text" class="form-input" id="mc-tel" placeholder="(51) 99999-9999">
+	        <input type="text" class="form-input" id="mc-tel" placeholder="(51) 99999-9999" oninput="aplicarMascara(this, maskTelefone)">
 	      </div>
 	    </div>
 	    <div class="form-row form-r2">
 	      <div>
 	        <label class="form-label">CPF</label>
-	        <input type="text" class="form-input" id="mc-cpf" placeholder="000.000.000-00">
+	        <input type="text" class="form-input" id="mc-cpf" placeholder="000.000.000-00" oninput="aplicarMascara(this, maskCPF)">
 	      </div>
 	      <div>
 	        <label class="form-label">CNPJ</label>
-	        <input type="text" class="form-input" id="mc-cnpj" placeholder="00.000.000/0000-00">
+	        <input type="text" class="form-input" id="mc-cnpj" placeholder="00.000.000/0000-00" oninput="aplicarMascara(this, maskCNPJ)">
 	      </div>
 	    </div>
 	    <div class="form-row form-r2">
@@ -13928,7 +13928,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div class="form-row form-r2">
       <div>
         <label class="form-label">CPF/CNPJ</label>
-        <input type="text" class="form-input" id="mf-doc" placeholder="00.000.000/0000-00">
+        <input type="text" class="form-input" id="mf-doc" placeholder="00.000.000/0000-00" oninput="aplicarMascara(this, maskCpfCnpj)">
       </div>
       <div>
         <label class="form-label">CEP</label>
@@ -14147,17 +14147,17 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       </div>
       <div>
         <label class="form-label">Telefone/Celular</label>
-        <input type="text" class="form-input" id="mlj-tel" placeholder="(51) 99999-9999">
+        <input type="text" class="form-input" id="mlj-tel" placeholder="(51) 99999-9999" oninput="aplicarMascara(this, maskTelefone)">
       </div>
     </div>
     <div class="form-row form-r2">
       <div>
         <label class="form-label">CPF</label>
-        <input type="text" class="form-input" id="mlj-cpf" placeholder="000.000.000-00">
+        <input type="text" class="form-input" id="mlj-cpf" placeholder="000.000.000-00" oninput="aplicarMascara(this, maskCPF)">
       </div>
       <div>
         <label class="form-label">CNPJ</label>
-        <input type="text" class="form-input" id="mlj-cnpj" placeholder="00.000.000/0000-00">
+        <input type="text" class="form-input" id="mlj-cnpj" placeholder="00.000.000/0000-00" oninput="aplicarMascara(this, maskCNPJ)">
       </div>
     </div>
     <div class="form-row form-r2">
@@ -14659,7 +14659,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       </div>
       <div>
         <label class="form-label">CNPJ/CPF</label>
-        <input type="text" class="form-input" id="nota-cnpj" placeholder="00.000.000/0000-00">
+        <input type="text" class="form-input" id="nota-cnpj" placeholder="00.000.000/0000-00" oninput="aplicarMascara(this, maskCpfCnpj)">
       </div>
     </div>
     <div class="form-row form-r2">
@@ -20653,6 +20653,42 @@ function selecionarTipoClienteLojista() {
 }
 
 function onlyDigits(v) { return String(v || '').replace(/\D/g, ''); }
+
+// Máscaras de CPF/CNPJ/telefone aplicadas ao vivo enquanto a usuária digita (oninput) —
+// funciona mesmo colando o número todo de uma vez, sem pontuação. CPF e CNPJ só formatam
+// como o próprio nome do campo diz; o campo único de documento fiscal (mf-doc) decide
+// sozinho pela quantidade de dígitos (≤11 = CPF, senão CNPJ).
+function maskCPF(v) {
+  const d = onlyDigits(v).slice(0, 11);
+  if (d.length > 9) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+  if (d.length > 6) return d.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+  if (d.length > 3) return d.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+  return d;
+}
+function maskCNPJ(v) {
+  const d = onlyDigits(v).slice(0, 14);
+  if (d.length > 12) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{1,2})/, '$1.$2.$3/$4-$5');
+  if (d.length > 8) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{1,4})/, '$1.$2.$3/$4');
+  if (d.length > 5) return d.replace(/(\d{2})(\d{3})(\d{1,3})/, '$1.$2.$3');
+  if (d.length > 2) return d.replace(/(\d{2})(\d{1,3})/, '$1.$2');
+  return d;
+}
+function maskCpfCnpj(v) {
+  const d = onlyDigits(v);
+  return d.length > 11 ? maskCNPJ(v) : maskCPF(v);
+}
+function maskTelefone(v) {
+  const d = onlyDigits(v).slice(0, 11);
+  if (d.length > 10) return d.replace(/(\d{2})(\d)(\d{4})(\d{4})/, '($1) $2 $3-$4');
+  if (d.length > 6) return d.replace(/(\d{2})(\d{4})(\d{1,4})/, '($1) $2-$3');
+  if (d.length > 2) return d.replace(/(\d{2})(\d{1,4})/, '($1) $2');
+  if (d.length > 0) return '(' + d;
+  return d;
+}
+function aplicarMascara(input, fn) {
+  if (!input) return;
+  input.value = fn(input.value);
+}
 
 // Busca o endereço na API pública ViaCEP (sem chave, sem custo) e preenche os campos de
 // endereço automaticamente — usada nos CEPs de Cliente e Lojista (campos separados:
