@@ -11170,7 +11170,8 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
      ("Cliente Mercado Livre", "Acima de R$ 10.000" etc). Unifica os dois num layout flex
      com o mesmo min-width por bloco, em vez de grid com número fixo de colunas. */
   #view-vendas .filter-panel,
-  #view-clientes .filter-panel.clients {
+  #view-clientes .filter-panel.clients,
+  #view-lojista .filter-panel.lojista {
     display: flex !important;
     flex-wrap: wrap !important;
     gap: 10px !important;
@@ -11179,26 +11180,32 @@ body.theme-dark .calc-unit-line { border-color: var(--crm-border, #3C3C3C); }
   #view-vendas .filter-panel > select.input,
   #view-vendas .filter-panel > input.input,
   #view-clientes .filter-panel.clients > select.input,
-  #view-clientes .filter-panel.clients > input.input {
+  #view-clientes .filter-panel.clients > input.input,
+  #view-lojista .filter-panel.lojista > select.input,
+  #view-lojista .filter-panel.lojista > input.input {
     flex: 0 1 200px !important;
     min-width: 180px !important;
     width: auto !important;
     max-width: none !important;
   }
-  #view-vendas .filter-panel .filter-date-range {
+  #view-vendas .filter-panel .filter-date-range,
+  #view-lojista .filter-panel.lojista .filter-date-range {
     flex: 1 1 260px !important;
     min-width: 240px !important;
   }
   #view-vendas .filter-panel .filter-revisar-toggle,
   #view-vendas .filter-panel .btn,
-  #view-clientes .filter-panel.clients .btn {
+  #view-clientes .filter-panel.clients .btn,
+  #view-lojista .filter-panel.lojista .btn {
     flex: 0 0 auto !important;
   }
   @media (max-width: 760px) {
     #view-vendas .filter-panel > select.input,
     #view-vendas .filter-panel > input.input,
     #view-clientes .filter-panel.clients > select.input,
-    #view-clientes .filter-panel.clients > input.input {
+    #view-clientes .filter-panel.clients > input.input,
+    #view-lojista .filter-panel.lojista > select.input,
+    #view-lojista .filter-panel.lojista > input.input {
       flex-basis: 100% !important;
     }
   }
@@ -12051,8 +12058,28 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <div id="sub-lojista-vendas">
             <div class="filter-panel lojista">
               <input type="text" class="input" id="searchLojista" placeholder="Buscar lojista, produto..." oninput="renderVendasLojista()">
-              <input type="date" class="input" id="filterDataLojista" title="Filtrar por dia" aria-label="Filtrar por dia" onchange="renderVendasLojista()">
-              <button class="btn btn-soft" onclick="document.getElementById('searchLojista').value='';document.getElementById('filterDataLojista').value='';renderVendasLojista();">Limpar</button>
+              <div class="filter-date-range" title="Filtrar vendas por período">
+                <span>De</span>
+                <input type="date" class="input" id="filterDataLojista" aria-label="Data inicial do período" onchange="renderVendasLojista()">
+                <span>até</span>
+                <input type="date" class="input" id="filterDataLojistaAte" aria-label="Data final do período" onchange="renderVendasLojista()">
+              </div>
+              <select class="input" id="filterAnoLojista" onchange="renderVendasLojista()">
+                <option value="">Todos os anos</option>
+              </select>
+              <select class="input" id="filterProdutoLojista" onchange="renderVendasLojista()">
+                <option value="">Todos os produtos</option>
+              </select>
+              <select class="input" id="filterAromaLojista" onchange="renderVendasLojista()">
+                <option value="">Todos os aromas</option>
+              </select>
+              <select class="input" id="filterPagamentoLojista" onchange="renderVendasLojista()">
+                <option value="">Todos os pagamentos</option>
+              </select>
+              <select class="input" id="filterVendedorLojista" onchange="renderVendasLojista()">
+                <option value="">Todos os vendedores</option>
+              </select>
+              <button class="btn btn-soft" onclick="limparFiltrosLojista()">Limpar</button>
             </div>
 
             <div class="card table-card">
@@ -14090,12 +14117,13 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <div>
         <label class="form-label">Valor total cobrado (R$)</label>
         <input type="number" class="form-input" id="ml-valor" placeholder="0,00" step="0.01" oninput="this.dataset.tocado='1'">
+        <div class="form-help">Baseado na tabela lojista acima, mas pode ajustar — alguns lojistas têm valor negociado diferente da tabela.</div>
       </div>
     </div>
     <div class="form-row form-r2">
       <div>
         <label class="form-label">Pagamento</label>
-        <select class="form-input" id="ml-pag">
+        <select class="form-input" id="ml-pag" onchange="toggleLojistaPaymentFields()">
           <option>Dinheiro</option>
           <option>Pix Chave</option>
           <option>Pix Qr Code</option>
@@ -14122,6 +14150,30 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </select>
       </div>
     </div>
+
+    <div class="conditional-row hidden" id="ml-credito-row">
+      <div class="form-row" style="margin-bottom:0;">
+        <div>
+          <label class="form-label">Crédito em quantas vezes?</label>
+          <input type="number" class="form-input" id="ml-parcelas" min="1" placeholder="Ex: 3">
+        </div>
+      </div>
+    </div>
+
+    <div class="conditional-row hidden" id="ml-boleto-row">
+      <div class="form-row form-r2" style="margin-bottom:0;">
+        <div>
+          <label class="form-label">Parcelas do boleto</label>
+          <input type="number" class="form-input" id="ml-boleto-parcelas" min="1" value="1" oninput="renderBoletoParcelasCamposLojista()">
+        </div>
+        <div>
+          <label class="form-label">Boleto em PDF</label>
+          <div class="file-input-actions"><input type="file" class="form-input" id="ml-boleto-pdf" accept="application/pdf"><button type="button" class="btn btn-small" onclick="clearSaleFileInput('ml-boleto-pdf')" data-tip="Remove o boleto selecionado antes de salvar a venda.">Apagar PDF</button></div>
+        </div>
+      </div>
+      <div id="ml-boleto-parcelas-campos" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
     <div class="form-row">
       <div>
         <label class="form-label">Observações</label>
@@ -14355,6 +14407,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div class="modal-title" id="bv-modal-title">Venda em boleto</div>
     <input type="hidden" id="bv-id">
     <input type="hidden" id="bv-idx">
+    <input type="hidden" id="bv-origem" value="vendas">
     <div class="form-row form-r2">
       <div>
         <label class="form-label">Cliente</label>
@@ -14424,6 +14477,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
   <div class="modal" style="max-width:420px">
     <div class="modal-title">Venda anotada</div>
     <input type="hidden" id="an-id">
+    <input type="hidden" id="an-origem" value="vendas">
     <div class="form-row form-r2">
       <div>
         <label class="form-label">Cliente</label>
@@ -18787,63 +18841,83 @@ function saleBoletoVencimentoStatus(venda) {
   return boletoParcelaVencimentoStatus({ pago: false, vencimento: saleBoletoVencimento(venda) });
 }
 
-async function salvarParcelasBoleto(venda, parcelas) {
+// Vendas cliente final (state.vendas / crm_vendas) e vendas lojista (state.vendasLojista /
+// crm_vendas_lojista) são dois arrays/tabelas separados, mas compartilham o mesmo formato de
+// venda (saleToRow/rowToSale) — essas três funções deixam as ações de boleto/anotado abaixo
+// funcionarem com as duas origens, sem duplicar a lógica de cada uma. "origem" por padrão é
+// 'vendas', então todo código antigo que não passa esse parâmetro continua funcionando igual.
+function saleArrayByOrigem(origem) {
+  return origem === 'vendasLojista' ? state.vendasLojista : state.vendas;
+}
+function saleTableByOrigem(origem) {
+  return origem === 'vendasLojista' ? 'crm_vendas_lojista' : 'crm_vendas';
+}
+function saleLocalStorageKeyByOrigem(origem) {
+  return origem === 'vendasLojista' ? 'gso_vendasLojista' : 'gso_vendas';
+}
+function saleRerenderByOrigem(origem) {
+  if (typeof renderInteligencia === 'function') renderInteligencia();
+  if (origem === 'vendasLojista') {
+    if (typeof renderVendasLojista === 'function' && !document.getElementById('view-lojista')?.classList.contains('hidden')) renderVendasLojista();
+  } else if (typeof renderVendas === 'function' && !document.getElementById('view-vendas')?.classList.contains('hidden')) renderVendas();
+}
+async function salvarParcelasBoleto(venda, parcelas, origem) {
   const client = requireSupabaseSession();
   if (!client) return false;
   const anterior = venda.pagamentoDetalhes;
   venda.pagamentoDetalhes = { ...(venda.pagamentoDetalhes || {}), parcelasBoleto: parcelas };
   const row = saleToRow(venda);
-  const { error } = await client.from('crm_vendas').update({ metadata: row.metadata }).eq('id', venda.id);
+  const { error } = await client.from(saleTableByOrigem(origem)).update({ metadata: row.metadata }).eq('id', venda.id);
   if (error) {
     venda.pagamentoDetalhes = anterior;
     alert('Não consegui atualizar o boleto: ' + error.message);
     return false;
   }
-  try { localStorage.setItem('gso_vendas', JSON.stringify(state.vendas)); } catch (e) {}
-  if (typeof renderInteligencia === 'function') renderInteligencia();
-  if (typeof renderVendas === 'function' && !document.getElementById('view-vendas')?.classList.contains('hidden')) renderVendas();
+  try { localStorage.setItem(saleLocalStorageKeyByOrigem(origem), JSON.stringify(saleArrayByOrigem(origem))); } catch (e) {}
+  saleRerenderByOrigem(origem);
   return true;
 }
-function marcarParcelaBoletoPago(vendaId, idx) {
-  const venda = state.vendas.find(v => String(v.id) === String(vendaId));
+function marcarParcelaBoletoPago(vendaId, idx, origem) {
+  const venda = saleArrayByOrigem(origem).find(v => String(v.id) === String(vendaId));
   if (!venda) return;
   const parcelas = saleBoletoParcelas(venda).map(p => ({ ...p }));
   if (!parcelas[idx]) return;
   parcelas[idx].pago = true;
   if (!parcelas[idx].dataRecebimento) parcelas[idx].dataRecebimento = isoToday();
-  return salvarParcelasBoleto(venda, parcelas);
+  return salvarParcelasBoleto(venda, parcelas, origem);
 }
-function desfazerParcelaBoletoPago(vendaId, idx) {
-  const venda = state.vendas.find(v => String(v.id) === String(vendaId));
+function desfazerParcelaBoletoPago(vendaId, idx, origem) {
+  const venda = saleArrayByOrigem(origem).find(v => String(v.id) === String(vendaId));
   if (!venda) return;
   const parcelas = saleBoletoParcelas(venda).map(p => ({ ...p }));
   if (!parcelas[idx]) return;
   parcelas[idx].pago = false;
-  return salvarParcelasBoleto(venda, parcelas);
+  return salvarParcelasBoleto(venda, parcelas, origem);
 }
-async function ocultarVendaBoleto(id) {
-  if (!confirm('Tirar esta venda do bloco de boletos? Ela continua normalmente na aba Vendas.')) return;
+async function ocultarVendaBoleto(id, origem) {
+  if (!confirm('Tirar esta venda do bloco de boletos? Ela continua normalmente na lista de vendas.')) return;
   const client = requireSupabaseSession();
   if (!client) return;
-  const venda = state.vendas.find(v => String(v.id) === String(id));
+  const venda = saleArrayByOrigem(origem).find(v => String(v.id) === String(id));
   if (!venda) return;
   const anterior = venda.boletoOculto;
   venda.boletoOculto = true;
   const row = saleToRow(venda);
-  const { error } = await client.from('crm_vendas').update({ metadata: row.metadata }).eq('id', id);
+  const { error } = await client.from(saleTableByOrigem(origem)).update({ metadata: row.metadata }).eq('id', id);
   if (error) { venda.boletoOculto = anterior; alert('Não consegui atualizar o boleto: ' + error.message); return; }
-  try { localStorage.setItem('gso_vendas', JSON.stringify(state.vendas)); } catch (e) {}
+  try { localStorage.setItem(saleLocalStorageKeyByOrigem(origem), JSON.stringify(saleArrayByOrigem(origem))); } catch (e) {}
   if (typeof renderInteligencia === 'function') renderInteligencia();
 }
 
-function abrirParcelaBoletoModal(vendaId, idx) {
-  const venda = state.vendas.find(v => String(v.id) === String(vendaId));
+function abrirParcelaBoletoModal(vendaId, idx, origem) {
+  const venda = saleArrayByOrigem(origem).find(v => String(v.id) === String(vendaId));
   if (!venda) return;
   const parcelas = saleBoletoParcelas(venda);
   const parcela = parcelas[idx];
   if (!parcela) return;
   document.getElementById('bv-id').value = venda.id;
   document.getElementById('bv-idx').value = idx;
+  document.getElementById('bv-origem').value = origem || 'vendas';
   document.getElementById('bv-modal-title').textContent = parcelas.length > 1 ? `Venda em boleto — parcela ${parcela.numero || (idx + 1)} de ${parcelas.length}` : 'Venda em boleto';
   document.getElementById('bv-cliente').textContent = venda.cliente || '—';
   document.getElementById('bv-data').textContent = fmtDate(venda.data);
@@ -18861,7 +18935,8 @@ function abrirParcelaBoletoModal(vendaId, idx) {
 function bvAtualizarTotal() {
   const id = document.getElementById('bv-id').value;
   const idx = parseInt(document.getElementById('bv-idx').value, 10) || 0;
-  const venda = state.vendas.find(v => String(v.id) === String(id));
+  const origem = document.getElementById('bv-origem')?.value || 'vendas';
+  const venda = saleArrayByOrigem(origem).find(v => String(v.id) === String(id));
   if (!venda) return;
   const parcela = saleBoletoParcelas(venda)[idx];
   if (!parcela) return;
@@ -18872,7 +18947,8 @@ function bvAtualizarTotal() {
 async function salvarMultaJurosParcelaBoleto() {
   const id = document.getElementById('bv-id').value;
   const idx = parseInt(document.getElementById('bv-idx').value, 10) || 0;
-  const venda = state.vendas.find(v => String(v.id) === String(id));
+  const origem = document.getElementById('bv-origem')?.value || 'vendas';
+  const venda = saleArrayByOrigem(origem).find(v => String(v.id) === String(id));
   if (!venda) return;
   const parcelas = saleBoletoParcelas(venda).map(p => ({ ...p }));
   if (!parcelas[idx]) return;
@@ -18882,41 +18958,41 @@ async function salvarMultaJurosParcelaBoleto() {
   const recebimento = document.getElementById('bv-recebimento').value || null;
   parcelas[idx] = { ...parcelas[idx], multa, juros, vencimento, dataRecebimento: recebimento };
   document.getElementById('modal-boleto-venda').classList.remove('show');
-  await salvarParcelasBoleto(venda, parcelas);
+  await salvarParcelasBoleto(venda, parcelas, origem);
 }
 
-async function salvarPagamentosAnotado(venda, pagamentos) {
+async function salvarPagamentosAnotado(venda, pagamentos, origem) {
   const client = requireSupabaseSession();
   if (!client) return false;
   const anterior = venda.pagamentoDetalhes;
   venda.pagamentoDetalhes = { ...(venda.pagamentoDetalhes || {}), anotadoPagamentos: pagamentos };
   const row = saleToRow(venda);
-  const { error } = await client.from('crm_vendas').update({ metadata: row.metadata }).eq('id', venda.id);
+  const { error } = await client.from(saleTableByOrigem(origem)).update({ metadata: row.metadata }).eq('id', venda.id);
   if (error) {
     venda.pagamentoDetalhes = anterior;
     alert('Não consegui atualizar o pagamento anotado: ' + error.message);
     return false;
   }
-  try { localStorage.setItem('gso_vendas', JSON.stringify(state.vendas)); } catch (e) {}
-  if (typeof renderInteligencia === 'function') renderInteligencia();
-  if (typeof renderVendas === 'function' && !document.getElementById('view-vendas')?.classList.contains('hidden')) renderVendas();
+  try { localStorage.setItem(saleLocalStorageKeyByOrigem(origem), JSON.stringify(saleArrayByOrigem(origem))); } catch (e) {}
+  saleRerenderByOrigem(origem);
   return true;
 }
 
-function abrirAnotadoModal(vendaId) {
-  const venda = state.vendas.find(v => String(v.id) === String(vendaId));
+function abrirAnotadoModal(vendaId, origem) {
+  const venda = saleArrayByOrigem(origem).find(v => String(v.id) === String(vendaId));
   if (!venda) return;
   document.getElementById('an-id').value = venda.id;
+  document.getElementById('an-origem').value = origem || 'vendas';
   document.getElementById('an-cliente').textContent = venda.cliente || '—';
   document.getElementById('an-data').textContent = fmtDate(venda.data);
   document.getElementById('an-produto').textContent = venda.produto || '—';
   document.getElementById('an-valor').textContent = fmtBR(venda.valor);
   document.getElementById('an-novo-valor').value = '';
   document.getElementById('an-novo-data').value = isoToday();
-  anRenderPagamentos(venda);
+  anRenderPagamentos(venda, origem);
   document.getElementById('modal-anotado-venda').classList.add('show');
 }
-function anRenderPagamentos(venda) {
+function anRenderPagamentos(venda, origem) {
   const pagamentos = saleAnotadoPagamentos(venda);
   const pago = saleAnotadoTotalPago(venda);
   const saldo = saleAnotadoSaldoDevedor(venda);
@@ -18932,31 +19008,32 @@ function anRenderPagamentos(venda) {
     <div class="an-pagamento-row">
       <span>${fmtDate(p.data)}</span>
       <span class="num">${fmtBR(p.valor)}</span>
-      <button type="button" class="btn btn-small btn-danger" onclick="removerPagamentoAnotado('${venda.id}', ${idx})" data-tooltip="Remover este pagamento">Remover</button>
+      <button type="button" class="btn btn-small btn-danger" onclick="removerPagamentoAnotado('${venda.id}', ${idx}, ${attrJsString(origem || 'vendas')})" data-tooltip="Remover este pagamento">Remover</button>
     </div>
   `).join('');
 }
 async function adicionarPagamentoAnotado() {
   const id = document.getElementById('an-id').value;
-  const venda = state.vendas.find(v => String(v.id) === String(id));
+  const origem = document.getElementById('an-origem')?.value || 'vendas';
+  const venda = saleArrayByOrigem(origem).find(v => String(v.id) === String(id));
   if (!venda) return;
   const valor = parseFloat((document.getElementById('an-novo-valor').value || '0').replace(',', '.')) || 0;
   const data = document.getElementById('an-novo-data').value || isoToday();
   if (valor <= 0) { alert('Informe um valor de pagamento maior que zero.'); return; }
   const pagamentos = [...saleAnotadoPagamentos(venda), { valor: round2(valor), data }];
-  const ok = await salvarPagamentosAnotado(venda, pagamentos);
+  const ok = await salvarPagamentosAnotado(venda, pagamentos, origem);
   if (!ok) return;
   document.getElementById('an-novo-valor').value = '';
-  anRenderPagamentos(venda);
+  anRenderPagamentos(venda, origem);
 }
-async function removerPagamentoAnotado(vendaId, idx) {
-  const venda = state.vendas.find(v => String(v.id) === String(vendaId));
+async function removerPagamentoAnotado(vendaId, idx, origem) {
+  const venda = saleArrayByOrigem(origem).find(v => String(v.id) === String(vendaId));
   if (!venda) return;
   if (!confirm('Remover este pagamento?')) return;
   const pagamentos = saleAnotadoPagamentos(venda).filter((_, i) => i !== idx);
-  const ok = await salvarPagamentosAnotado(venda, pagamentos);
+  const ok = await salvarPagamentosAnotado(venda, pagamentos, origem);
   if (!ok) return;
-  anRenderPagamentos(venda);
+  anRenderPagamentos(venda, origem);
 }
 
 function saleHasNf(venda) {
@@ -19432,9 +19509,12 @@ function saleAromaValues(venda) {
   }
   return [...new Set(values.map(value => String(value || '').trim()).filter(Boolean))];
 }
-function saleAromaFilterValues() {
+// As três funções abaixo aceitam um array de vendas opcional (padrão state.vendas) pra
+// poder gerar as mesmas opções de filtro também pra Vendas Lojista (state.vendasLojista),
+// sem duplicar a lógica de cada uma.
+function saleAromaFilterValues(vendasArr) {
   const values = ['Neutro', 'Tropical', 'Tutti Frutti'];
-  (state.vendas || []).forEach(venda => saleAromaValues(venda).forEach(aroma => values.push(aroma)));
+  (vendasArr || state.vendas || []).forEach(venda => saleAromaValues(venda).forEach(aroma => values.push(aroma)));
   return values;
 }
 
@@ -19448,17 +19528,17 @@ const DEFAULT_SELLER_FILTER_OPTIONS = [
   'GSO Effects Line',
   'GSO Eletrônica'
 ];
-function saleYearFilterOptions() {
+function saleYearFilterOptions(vendasArr) {
   const years = new Set(DEFAULT_SALES_YEAR_FILTERS);
-  (state.vendas || []).forEach(venda => {
+  (vendasArr || state.vendas || []).forEach(venda => {
     const year = new Date(venda?.data).getFullYear();
     if (Number.isFinite(year)) years.add(year);
   });
   return [...years].sort((a, b) => b - a);
 }
-function saleSellerFilterOptions() {
+function saleSellerFilterOptions(vendasArr) {
   const values = [...DEFAULT_SELLER_FILTER_OPTIONS];
-  (state.vendas || []).forEach(venda => {
+  (vendasArr || state.vendas || []).forEach(venda => {
     const name = canonicalSellerName(venda?.vendedor || 'Sem vendedor');
     if (name) values.push(name);
   });
@@ -19713,11 +19793,39 @@ function nextSaleNumberLojista() {
   return state.vendasLojista.reduce((max, v) => Math.max(max, parseInt(v.numeroVenda, 10) || 0), 0) + 1;
 }
 
+function limparFiltrosLojista() {
+  ['searchLojista','filterDataLojista','filterDataLojistaAte','filterAnoLojista','filterProdutoLojista','filterAromaLojista','filterPagamentoLojista','filterVendedorLojista'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  renderVendasLojista();
+}
+
 function renderVendasLojista() {
   const countEl = document.getElementById('lojista-count');
   if (countEl) countEl.textContent = state.vendasLojista.length.toLocaleString('pt-BR');
+
+  // Mesmas opções de filtro da lista de Vendas (cliente final), geradas a partir das
+  // vendas lojista em vez de state.vendas — mesma lógica, outra origem de dados.
+  const anosLojista = saleYearFilterOptions(state.vendasLojista);
+  const filterAnoLojista = document.getElementById('filterAnoLojista');
+  if (filterAnoLojista) {
+    const curr = filterAnoLojista.value;
+    filterAnoLojista.innerHTML = '<option value="">Todos os anos</option>' + anosLojista.map(a => `<option value="${a}" ${String(a)===curr?'selected':''}>${a}</option>`).join('');
+  }
+  setSelectOptionPairs(document.getElementById('filterProdutoLojista'), catalogProductSizeFilterOptions(), 'Todos os produtos');
+  setSelectOptions(document.getElementById('filterAromaLojista'), saleAromaFilterValues(state.vendasLojista), 'Todos os aromas');
+  setSelectOptions(document.getElementById('filterPagamentoLojista'), PAYMENT_OPTIONS, 'Todos os pagamentos');
+  setSelectOptions(document.getElementById('filterVendedorLojista'), saleSellerFilterOptions(state.vendasLojista), 'Todos os vendedores');
+
   const term = document.getElementById('searchLojista')?.value.toLowerCase() || '';
   const dataFiltro = document.getElementById('filterDataLojista')?.value || '';
+  const dataFiltroAte = document.getElementById('filterDataLojistaAte')?.value || '';
+  const ano = document.getElementById('filterAnoLojista')?.value || '';
+  const produtoFiltro = document.getElementById('filterProdutoLojista')?.value || '';
+  const aromaFiltro = document.getElementById('filterAromaLojista')?.value || '';
+  const pagamentoFiltro = document.getElementById('filterPagamentoLojista')?.value || '';
+  const vendedorFiltro = document.getElementById('filterVendedorLojista')?.value || '';
   // Mesma ordem estável da lista de Vendas: por dia, e dentro do dia por ordem de
   // registro (numeroVenda não muda ao editar).
   let rows = [...state.vendasLojista].sort((a, b) => {
@@ -19728,9 +19836,16 @@ function renderVendasLojista() {
   if (term) rows = rows.filter(r =>
     (r.cliente || '').toLowerCase().includes(term) ||
     (r.produto || '').toLowerCase().includes(term) ||
-    (r.vendedor || '').toLowerCase().includes(term)
+    (r.vendedor || '').toLowerCase().includes(term) ||
+    (r.pagamento || '').toLowerCase().includes(term)
   );
-  if (dataFiltro) rows = rows.filter(r => dashboardDateKey(r.data) === dataFiltro);
+  if (dataFiltro) rows = rows.filter(r => dashboardDateKey(r.data) >= dataFiltro);
+  if (dataFiltroAte) rows = rows.filter(r => dashboardDateKey(r.data) <= dataFiltroAte);
+  if (ano) rows = rows.filter(r => (dashboardDateObj(r.data)?.getFullYear()) === parseInt(ano));
+  if (produtoFiltro) rows = rows.filter(r => vendaMatchesProductFilter(r, produtoFiltro));
+  if (aromaFiltro) rows = rows.filter(r => saleAromaValues(r).some(aroma => nameKey(aroma) === nameKey(aromaFiltro)));
+  if (pagamentoFiltro) rows = rows.filter(r => canonicalPayment(r.pagamento || '') === pagamentoFiltro);
+  if (vendedorFiltro) rows = rows.filter(r => canonicalSellerName(r.vendedor || 'Sem vendedor') === vendedorFiltro);
   const tbody = document.getElementById('lojistaTable');
   if (!tbody) return;
   if (rows.length === 0) {
@@ -19745,7 +19860,7 @@ function renderVendasLojista() {
         <td data-label="Aroma"><span class="pill pill-aroma ${typeof gsoAromaClass==='function'?gsoAromaClass(r.aroma):''}">${escapeHtml(r.aroma || 'Neutro')}</span></td>
         <td data-label="Qtd" class="num">${r.qtd}</td>
         <td data-label="Valor" class="num">${fmtBR(r.valor)}</td>
-        <td data-label="Pagamento">${escapeHtml(r.pagamento || '')}</td>
+        <td data-label="Pagamento">${paymentDisplay(r)}</td>
         <td data-label="Vendedor"><span class="pill pill-blue">${escapeHtml(r.vendedor || '')}</span></td>
         <td data-label="Ações">
           <div class="row-actions">
@@ -19839,6 +19954,10 @@ function openVendaLojistaModal(id = '') {
   document.getElementById('ml-pag').value = venda?.pagamento || 'Dinheiro';
   document.getElementById('ml-vend').value = venda?.vendedor || 'Luísa Oliveira';
   document.getElementById('ml-obs').value = venda?.obs || '';
+  document.getElementById('ml-parcelas').value = venda?.pagamentoDetalhes?.parcelas || '';
+  const parcelasBoletoExistentesLojista = venda ? saleBoletoParcelas(venda) : [];
+  document.getElementById('ml-boleto-parcelas').value = (venda && saleIsBoleto(venda) && parcelasBoletoExistentesLojista.length) ? parcelasBoletoExistentesLojista.length : 1;
+  document.getElementById('ml-boleto-pdf').value = '';
   currentLojistaItems = venda
     ? (Array.isArray(venda.items) && venda.items.length
         ? venda.items.map(it => ({ ...it, precoUnit: it.precoUnit != null ? it.precoUnit : lojistaPrecoUnitario(it.produto, it.tamanho) }))
@@ -19847,6 +19966,7 @@ function openVendaLojistaModal(id = '') {
   if (venda) valorInput.dataset.tocado = '1';
   renderLojistaItemsList();
   updateLojistaPreview();
+  toggleLojistaPaymentFields(venda && saleIsBoleto(venda) ? parcelasBoletoExistentesLojista : null);
   const title = document.getElementById('modal-lojista-title');
   if (title) title.textContent = venda ? 'Editar venda lojista' : 'Nova venda lojista';
   document.getElementById('modal-lojista').classList.add('show');
@@ -19864,7 +19984,38 @@ async function salvarVendaLojista() {
     alert('Preencha o lojista, adicione ao menos um produto ao pedido e informe o valor cobrado.');
     return;
   }
+  const pagamento = document.getElementById('ml-pag').value;
+  const pagamentoDetalhes = {};
+  if (pagamento === 'Crédito') {
+    const parcelas = parseInt(document.getElementById('ml-parcelas').value, 10);
+    if (!parcelas || parcelas < 1) {
+      alert('Informe em quantas vezes será o crédito.');
+      return;
+    }
+    pagamentoDetalhes.parcelas = parcelas;
+  }
   const existing = isEditing ? state.vendasLojista.find(v => v.id === id) : null;
+  if (pagamento === 'Boleto') {
+    const vencimentoInputs = Array.from(document.querySelectorAll('.lojista-boleto-parcela-vencimento'));
+    const valorInputs = Array.from(document.querySelectorAll('.lojista-boleto-parcela-valor'));
+    if (!vencimentoInputs.length || vencimentoInputs.some(inp => !inp.value)) {
+      alert('Informe a data de vencimento de todas as parcelas do boleto.');
+      return;
+    }
+    const parcelasAnteriores = existing ? saleBoletoParcelas(existing) : [];
+    pagamentoDetalhes.parcelasBoleto = vencimentoInputs.map((inp, i) => {
+      const anterior = parcelasAnteriores[i] || {};
+      return {
+        numero: i + 1,
+        valor: parseFloat(valorInputs[i]?.value) || 0,
+        vencimento: inp.value,
+        pago: Boolean(anterior.pago),
+        multa: Number(anterior.multa) || 0,
+        juros: Number(anterior.juros) || 0,
+        dataRecebimento: anterior.dataRecebimento || null
+      };
+    });
+  }
   const numeroVenda = isEditing ? existing.numeroVenda : nextSaleNumberLojista();
   const items = [...currentLojistaItems];
   const descricaoProduto = items.map(item => item.descricao).join(' + ');
@@ -19884,7 +20035,8 @@ async function salvarVendaLojista() {
     valor,
     precoSugerido,
     items,
-    pagamento: document.getElementById('ml-pag').value,
+    pagamento,
+    pagamentoDetalhes,
     vendedor: canonicalSellerName(document.getElementById('ml-vend').value),
     obs: document.getElementById('ml-obs').value.trim()
   };
@@ -19897,6 +20049,17 @@ async function salvarVendaLojista() {
   } else {
     vendaLojista = { id: 'vl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), ...vendaFields };
     state.vendasLojista.push(vendaLojista);
+  }
+  const boletoFile = pagamento === 'Boleto' ? document.getElementById('ml-boleto-pdf').files[0] : null;
+  try {
+    const boleto = await saveSalePdf(vendaLojista, boletoFile, 'boleto');
+    if (boleto) {
+      vendaLojista.boleto = boleto;
+      vendaLojista.boletoUpdatedAt = new Date().toISOString();
+    }
+  } catch (err) {
+    alert(err.message);
+    return;
   }
   const avisoEstoqueLojista = await ajustarEstoqueLaboratorioNaVenda(vendaLojista, vendaAnteriorLojista, 'Venda lojista nº ' + numeroVenda);
   STORE.save('vendasLojista', state.vendasLojista);
@@ -20314,6 +20477,13 @@ function openEditVenda(id) {
   if (!venda) return;
   editingVendaId = id;
   navTo('nova');
+}
+// Botão "Ver venda" das listas de Boleto/Anotado na Visão geral, que agora juntam vendas
+// cliente final e vendas lojista — cada origem abre no lugar certo (a venda cliente final
+// tem uma página própria de edição, a venda lojista abre num modal).
+function abrirVendaOrigem(id, origem) {
+  if (origem === 'vendasLojista') { openVendaLojistaModal(id); return; }
+  openEditVenda(id);
 }
 
 function closeVerMais() {
@@ -24437,26 +24607,52 @@ function toggleMlDescontoField() {
 }
 // Desenha um par de campos (vencimento + valor) por parcela do boleto — 1 parcela é o
 // caso comum (boleto único), mas dá pra abrir mais quando a venda foi parcelada em vários
-// boletos com vencimentos diferentes (ex.: "2x de 780").
-function renderBoletoParcelasCampos(parcelasExistentes) {
-  const n = Math.max(1, parseInt(document.getElementById('f-boleto-parcelas')?.value, 10) || 1);
-  const el = document.getElementById('boleto-parcelas-campos');
+// boletos com vencimentos diferentes (ex.: "2x de 780"). Genérica pra funcionar tanto no
+// formulário de venda cliente final (prefixo "f") quanto no de venda lojista (prefixo "ml"),
+// mantendo os dois formulários com o mesmo comportamento de boleto.
+function renderBoletoParcelasCamposGeneric(cfg) {
+  const n = Math.max(1, parseInt(document.getElementById(cfg.parcelasInputId)?.value, 10) || 1);
+  const el = document.getElementById(cfg.containerId);
   if (!el) return;
-  const valorTotal = parseMoneyValue(document.getElementById('f-valor')?.value) || 0;
+  const valorTotal = parseMoneyValue(document.getElementById(cfg.valorInputId)?.value) || 0;
   const valorParcelaPadrao = round2(valorTotal / n);
   let html = '';
   for (let i = 0; i < n; i++) {
-    const existente = (parcelasExistentes || [])[i];
+    const existente = (cfg.parcelasExistentes || [])[i];
     const venc = existente?.vencimento || '';
     const val = existente?.valor != null ? existente.valor : valorParcelaPadrao;
     html += '<div class="form-row form-r2" style="margin-bottom:0">' +
       '<div><label class="form-label">Vencimento' + (n > 1 ? ' — parcela ' + (i + 1) + '/' + n : '') + '</label>' +
-      '<input type="date" class="form-input boleto-parcela-vencimento" value="' + escapeHtml(venc) + '"></div>' +
+      '<input type="date" class="form-input ' + cfg.vencimentoClass + '" value="' + escapeHtml(venc) + '"></div>' +
       '<div><label class="form-label">Valor desta parcela (R$)</label>' +
-      '<input type="number" class="form-input boleto-parcela-valor" step="0.01" value="' + val + '"></div>' +
+      '<input type="number" class="form-input ' + cfg.valorClass + '" step="0.01" value="' + val + '"></div>' +
     '</div>';
   }
   el.innerHTML = html;
+}
+function renderBoletoParcelasCampos(parcelasExistentes) {
+  renderBoletoParcelasCamposGeneric({
+    parcelasInputId: 'f-boleto-parcelas', valorInputId: 'f-valor', containerId: 'boleto-parcelas-campos',
+    vencimentoClass: 'boleto-parcela-vencimento', valorClass: 'boleto-parcela-valor', parcelasExistentes
+  });
+}
+function renderBoletoParcelasCamposLojista(parcelasExistentes) {
+  renderBoletoParcelasCamposGeneric({
+    parcelasInputId: 'ml-boleto-parcelas', valorInputId: 'ml-valor', containerId: 'ml-boleto-parcelas-campos',
+    vencimentoClass: 'lojista-boleto-parcela-vencimento', valorClass: 'lojista-boleto-parcela-valor', parcelasExistentes
+  });
+}
+// Mesmo comportamento de mostrar/esconder os campos condicionais de pagamento do
+// formulário de venda cliente final (togglePaymentFields), só que pro de venda lojista —
+// só Crédito (parcelas) e Boleto (parcelas + vencimentos) existem aqui, sem os campos
+// específicos de Mercado Livre/NF que só fazem sentido pra venda cliente final.
+function toggleLojistaPaymentFields(parcelasBoletoExistentes) {
+  const pagamento = document.getElementById('ml-pag')?.value || '';
+  const creditoRow = document.getElementById('ml-credito-row');
+  const boletoRow = document.getElementById('ml-boleto-row');
+  if (creditoRow) creditoRow.classList.toggle('hidden', pagamento !== 'Crédito');
+  if (boletoRow) boletoRow.classList.toggle('hidden', pagamento !== 'Boleto');
+  if (pagamento === 'Boleto') renderBoletoParcelasCamposLojista(parcelasBoletoExistentes);
 }
 
 function initNova() {
@@ -26264,10 +26460,17 @@ function intelRenderOverview() {
     lucroHoje += l;
   });
   lucroHoje = round2(lucroHoje);
+  // As listas de boleto/anotado juntam venda cliente final e venda lojista — cada uma
+  // fica marcada com sua "origem" pra saber em qual array/tabela salvar e onde abrir a
+  // venda original (openEditVenda pra cliente final, o modal de lojista pra lojista).
+  const vendasParaListasDashboard = [
+    ...state.vendas.map(v => ({ v, origem: 'vendas' })),
+    ...state.vendasLojista.map(v => ({ v, origem: 'vendasLojista' }))
+  ];
   const boletoLinhas = [];
-  state.vendas.filter(v => saleIsBoleto(v) && !saleBoletoOculto(v)).forEach(v => {
+  vendasParaListasDashboard.filter(({ v }) => saleIsBoleto(v) && !saleBoletoOculto(v)).forEach(({ v, origem }) => {
     const parcelas = saleBoletoParcelas(v);
-    parcelas.forEach((parcela, idx) => boletoLinhas.push({ venda: v, parcela, idx, totalParcelas: parcelas.length }));
+    parcelas.forEach((parcela, idx) => boletoLinhas.push({ venda: v, origem, parcela, idx, totalParcelas: parcelas.length }));
   });
   boletoLinhas.sort((a, b) => {
     const pagoA = a.parcela.pago ? 1 : 0, pagoB = b.parcela.pago ? 1 : 0;
@@ -26280,11 +26483,12 @@ function intelRenderOverview() {
   });
   const boletosPendentes = boletoLinhas.filter(l => !l.parcela.pago);
   const boletoRowsHtml = boletoLinhas.map(l => {
-    const v = l.venda, parcela = l.parcela, idx = l.idx;
+    const v = l.venda, parcela = l.parcela, idx = l.idx, origem = l.origem;
+    const origemAttr = attrJsString(origem);
     const pago = parcela.pago;
     const acaoPrincipal = pago
-      ? `<button class="btn btn-small" onclick="desfazerParcelaBoletoPago('${v.id}',${idx})" data-tooltip="Voltar para pendente">Desfazer</button>`
-      : `<button class="btn btn-small" onclick="marcarParcelaBoletoPago('${v.id}',${idx})">Marcar pago</button>`;
+      ? `<button class="btn btn-small" onclick="desfazerParcelaBoletoPago('${v.id}',${idx},${origemAttr})" data-tooltip="Voltar para pendente">Desfazer</button>`
+      : `<button class="btn btn-small" onclick="marcarParcelaBoletoPago('${v.id}',${idx},${origemAttr})">Marcar pago</button>`;
     const extra = (Number(parcela.multa) || 0) || (Number(parcela.juros) || 0);
     const valorCell = extra
       ? `${fmtBR(boletoParcelaValorTotal(parcela))}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">${fmtBR(parcela.valor)} + multa/juros</small>`
@@ -26297,31 +26501,35 @@ function intelRenderOverview() {
     const vencCell = parcela.vencimento
       ? `${fmtDate(parcela.vencimento)}<br><span class="pill pill-${vencStatus.cls}" style="margin-top:2px">${escapeHtml(vencStatus.phrase)}</span>`
       : '<span style="color:var(--text-2,#8A8A8A)">—</span>';
+    const lojistaTag = origem === 'vendasLojista' ? '<span class="pill pill-blue" style="margin-right:4px">Lojista</span>' : '';
     const clienteCell = l.totalParcelas > 1
-      ? `${escapeHtml(v.cliente || '—')}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">parcela ${parcela.numero || (idx + 1)} de ${l.totalParcelas}</small>`
-      : escapeHtml(v.cliente || '—');
-    return `<tr onclick="if(!event.target.closest('button')) abrirParcelaBoletoModal('${v.id}',${idx})" style="cursor:pointer">
+      ? `${lojistaTag}${escapeHtml(v.cliente || '—')}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">parcela ${parcela.numero || (idx + 1)} de ${l.totalParcelas}</small>`
+      : `${lojistaTag}${escapeHtml(v.cliente || '—')}`;
+    return `<tr onclick="if(!event.target.closest('button')) abrirParcelaBoletoModal('${v.id}',${idx},${origemAttr})" style="cursor:pointer">
       <td class="stack-title">${dataCell}</td>
       <td data-label="Cliente">${clienteCell}</td>
       <td data-label="Vencimento">${vencCell}</td>
       <td class="num" data-label="Valor">${valorCell}</td>
       <td data-label="Status">${pago ? '<span class="pill pill-green">Pago</span>' : '<span class="pill pill-amber">Pendente</span>'}</td>
-      <td class="stack-actions" data-label="Ação"><div class="stack-actions-row" style="display:flex;gap:6px;align-items:center;">${acaoPrincipal}<button class="btn btn-small" onclick="openEditVenda('${v.id}')" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button><button class="btn btn-small" onclick="ocultarVendaBoleto('${v.id}')" data-tooltip="Tirar esta venda daqui" aria-label="Tirar esta venda daqui">✕</button></div></td>
+      <td class="stack-actions" data-label="Ação"><div class="stack-actions-row" style="display:flex;gap:6px;align-items:center;">${acaoPrincipal}<button class="btn btn-small" onclick="abrirVendaOrigem('${v.id}',${origemAttr})" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button><button class="btn btn-small" onclick="ocultarVendaBoleto('${v.id}',${origemAttr})" data-tooltip="Tirar esta venda daqui" aria-label="Tirar esta venda daqui">✕</button></div></td>
     </tr>`;
   }).join('');
 
-  const anotadoVendas = state.vendas.filter(v => saleIsAnotado(v) && saleAnotadoSaldoDevedor(v) > 0.001);
-  anotadoVendas.sort((a, b) => new Date(a.data) - new Date(b.data));
-  const anotadoRowsHtml = anotadoVendas.map(v => {
+  const anotadoVendasComOrigem = vendasParaListasDashboard.filter(({ v }) => saleIsAnotado(v) && saleAnotadoSaldoDevedor(v) > 0.001);
+  anotadoVendasComOrigem.sort((a, b) => new Date(a.v.data) - new Date(b.v.data));
+  const anotadoVendas = anotadoVendasComOrigem.map(({ v }) => v);
+  const anotadoRowsHtml = anotadoVendasComOrigem.map(({ v, origem }) => {
+    const origemAttr = attrJsString(origem);
     const pago = saleAnotadoTotalPago(v);
     const saldo = saleAnotadoSaldoDevedor(v);
-    return `<tr onclick="if(!event.target.closest('button')) abrirAnotadoModal('${v.id}')" style="cursor:pointer">
+    const lojistaTag = origem === 'vendasLojista' ? '<span class="pill pill-blue" style="margin-right:4px">Lojista</span>' : '';
+    return `<tr onclick="if(!event.target.closest('button')) abrirAnotadoModal('${v.id}',${origemAttr})" style="cursor:pointer">
       <td class="stack-title">${fmtDate(v.data)}</td>
-      <td data-label="Cliente">${escapeHtml(v.cliente || '—')}</td>
+      <td data-label="Cliente">${lojistaTag}${escapeHtml(v.cliente || '—')}</td>
       <td class="num" data-label="Valor total">${fmtBR(v.valor)}</td>
       <td class="num" data-label="Pago">${fmtBR(pago)}</td>
       <td class="num" data-label="Saldo devedor">${fmtBR(saldo)}</td>
-      <td class="stack-actions" data-label="Ação"><div class="stack-actions-row" style="display:flex;gap:6px;align-items:center;"><button class="btn btn-small" onclick="abrirAnotadoModal('${v.id}')">Registrar pagamento</button><button class="btn btn-small" onclick="openEditVenda('${v.id}')" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button></div></td>
+      <td class="stack-actions" data-label="Ação"><div class="stack-actions-row" style="display:flex;gap:6px;align-items:center;"><button class="btn btn-small" onclick="abrirAnotadoModal('${v.id}',${origemAttr})">Registrar pagamento</button><button class="btn btn-small" onclick="abrirVendaOrigem('${v.id}',${origemAttr})" data-tooltip="Abrir a venda original" aria-label="Abrir a venda original">Ver venda</button></div></td>
     </tr>`;
   }).join('');
 
