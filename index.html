@@ -875,6 +875,9 @@
   .sale-item-main { font-size: 13px; font-weight: 700; color: var(--text); }
   .sale-item-sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
   .sale-item-value { font-size: 13px; font-weight: 700; color: var(--primary-dark); white-space: nowrap; }
+  .sale-item-value-edit { width: 130px; }
+  .sale-item-value-edit .form-label { font-size: 10px; }
+  .sale-item-value-input { font-size: 13px; font-weight: 700; color: var(--primary-dark); padding: 6px 8px; }
 
   /* ===== TRANSMISSION CARDS ===== */
   .trans-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
@@ -13429,6 +13432,22 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <span class="preview-label">Preço de tabela sugerido do pedido</span>
           <span class="preview-value" id="precoSugerido">R$ 0,00</span>
         </div>
+        <div class="preview hidden" id="f-frete-linha">
+          <span class="preview-label">+ Frete</span>
+          <span class="preview-value" id="f-frete-valor-preview">R$ 0,00</span>
+        </div>
+        <div class="preview hidden" id="f-total-com-frete-linha">
+          <span class="preview-label">= Total sugerido com frete</span>
+          <span class="preview-value" id="f-total-com-frete-valor">R$ 0,00</span>
+        </div>
+
+        <div class="form-row form-r2">
+          <div>
+            <label class="form-label">Frete (R$)</label>
+            <input type="number" class="form-input" id="f-frete" placeholder="0,00" step="0.01" oninput="updatePreview()">
+            <div class="form-help">Preencha só se a venda tiver frete cobrado do cliente — soma no total sugerido, sem contar como desconto.</div>
+          </div>
+        </div>
 
         <div class="form-row form-r2">
           <div>
@@ -14112,8 +14131,21 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <span class="preview-label">Total pela tabela lojista</span>
       <span class="preview-value" id="ml-preco-sugerido">R$ 0,00</span>
     </div>
+    <div class="preview hidden" id="ml-frete-linha">
+      <span class="preview-label">+ Frete</span>
+      <span class="preview-value" id="ml-frete-valor-preview">R$ 0,00</span>
+    </div>
+    <div class="preview hidden" id="ml-total-com-frete-linha">
+      <span class="preview-label">= Total com frete</span>
+      <span class="preview-value" id="ml-total-com-frete-valor">R$ 0,00</span>
+    </div>
 
     <div class="form-row form-r2">
+      <div>
+        <label class="form-label">Frete (R$)</label>
+        <input type="number" class="form-input" id="ml-frete" placeholder="0,00" step="0.01" oninput="atualizarTotalLojista()">
+        <div class="form-help">Preencha só se a venda tiver frete cobrado do lojista.</div>
+      </div>
       <div>
         <label class="form-label">Valor total cobrado (R$)</label>
         <input type="number" class="form-input" id="ml-valor" placeholder="0,00" step="0.01" oninput="this.dataset.tocado='1'">
@@ -15032,6 +15064,7 @@ function saleToRow(v) {
       items: v.items || null,
       pagamentoDetalhes: v.pagamentoDetalhes || null,
       precoSugerido: v.precoSugerido || null,
+      frete: Number(v.frete) || 0,
       desconto: v.desconto || null,
       nfNumber: saleNfNumber(v) || null,
       boleto: v.boleto ? {
@@ -15077,6 +15110,7 @@ function rowToSale(r) {
     items: Array.isArray(r.metadata?.items) ? r.metadata.items : null,
     pagamentoDetalhes: r.metadata?.pagamentoDetalhes || null,
     precoSugerido: r.metadata?.precoSugerido || null,
+    frete: Number(r.metadata?.frete) || 0,
     desconto: r.metadata?.desconto || null,
     nfNumber: r.metadata?.nfNumber || r.metadata?.notaFiscalNumero || r.numero_nota_fiscal || null,
     boleto: r.metadata?.boleto?.path ? { name: r.metadata.boleto.name || 'boleto.pdf', path: r.metadata.boleto.path } : null,
@@ -19902,16 +19936,46 @@ function renderLojistaItemsList() {
           <div class="sale-item-main">${escapeHtml(item.descricao)}</div>
           <div class="sale-item-sub">${escapeHtml(item.aroma || 'Neutro')} • ${item.precoUnit != null ? fmtBR(item.precoUnit) + '/un (tabela lojista)' : 'Sem preço de tabela'}</div>
         </div>
-        <div class="sale-item-value">${item.preco ? fmtBR(item.preco) : 'Sem preço'}</div>
+        <div class="sale-item-value-edit">
+          <label class="form-label" style="margin-bottom:2px;">Valor cobrado</label>
+          <input type="number" class="form-input sale-item-value-input" step="0.01" value="${item.preco || ''}" placeholder="0,00" oninput="atualizarPrecoItemLojista(${index}, this.value)">
+        </div>
         <button type="button" class="btn btn-small btn-danger" onclick="removerProdutoLojista(${index})">Remover</button>
       </div>
     `).join('');
   }
+  atualizarTotalLojista();
+}
+
+// Some do total dos itens (já com preços possivelmente editados) + frete, e mantém "Valor
+// total cobrado" em dia enquanto a usuária não digitar um valor manualmente nele (mesma
+// lógica de "tocado" usada para não sobrescrever um valor já editado à mão). Separado de
+// renderLojistaItemsList pra poder rodar sozinho a cada tecla digitada no preço de um item
+// ou no frete, sem recriar a lista toda (o que perderia o foco do campo sendo editado).
+function atualizarTotalLojista() {
   const total = currentLojistaItems.reduce((sum, item) => sum + (item.preco || 0), 0);
+  const frete = parseMoneyValue(document.getElementById('ml-frete')?.value) || 0;
+  const totalComFrete = total + frete;
   const sugeridoEl = document.getElementById('ml-preco-sugerido');
   if (sugeridoEl) sugeridoEl.textContent = fmtBR(total);
+  const freteLinha = document.getElementById('ml-frete-linha');
+  const totalLinha = document.getElementById('ml-total-com-frete-linha');
+  if (freteLinha) freteLinha.classList.toggle('hidden', frete <= 0);
+  if (totalLinha) totalLinha.classList.toggle('hidden', frete <= 0);
+  const freteValorEl = document.getElementById('ml-frete-valor-preview');
+  if (freteValorEl) freteValorEl.textContent = fmtBR(frete);
+  const totalValorEl = document.getElementById('ml-total-com-frete-valor');
+  if (totalValorEl) totalValorEl.textContent = fmtBR(totalComFrete);
   const valorInput = document.getElementById('ml-valor');
-  if (valorInput && !valorInput.dataset.tocado) valorInput.value = total ? total.toFixed(2) : '';
+  if (valorInput && !valorInput.dataset.tocado) valorInput.value = totalComFrete ? totalComFrete.toFixed(2) : '';
+}
+
+// Mesma ideia de mudar o valor cobrado de cada produto individualmente que existe na venda
+// cliente final — atualiza só o total, sem re-renderizar a lista de itens.
+function atualizarPrecoItemLojista(index, value) {
+  if (!currentLojistaItems[index]) return;
+  currentLojistaItems[index].preco = parseMoneyValue(value) || 0;
+  atualizarTotalLojista();
 }
 
 function updateLojistaPreview() {
@@ -19954,6 +20018,7 @@ function openVendaLojistaModal(id = '') {
   document.getElementById('ml-pag').value = venda?.pagamento || 'Dinheiro';
   document.getElementById('ml-vend').value = venda?.vendedor || 'Luísa Oliveira';
   document.getElementById('ml-obs').value = venda?.obs || '';
+  document.getElementById('ml-frete').value = venda?.frete || '';
   document.getElementById('ml-parcelas').value = venda?.pagamentoDetalhes?.parcelas || '';
   const parcelasBoletoExistentesLojista = venda ? saleBoletoParcelas(venda) : [];
   document.getElementById('ml-boleto-parcelas').value = (venda && saleIsBoleto(venda) && parcelasBoletoExistentesLojista.length) ? parcelasBoletoExistentesLojista.length : 1;
@@ -19980,6 +20045,7 @@ async function salvarVendaLojista() {
   if (isEditing && !isAdminUser()) { alert('Apenas administradores podem editar vendas de lojistas.'); return; }
   const cliente = document.getElementById('ml-cliente').value.trim();
   const valor = parseMoneyValue(document.getElementById('ml-valor').value);
+  const frete = parseMoneyValue(document.getElementById('ml-frete').value) || 0;
   if (!cliente || currentLojistaItems.length === 0 || isNaN(valor) || valor <= 0) {
     alert('Preencha o lojista, adicione ao menos um produto ao pedido e informe o valor cobrado.');
     return;
@@ -20033,6 +20099,7 @@ async function salvarVendaLojista() {
     aroma: aromas.join(' + ') || 'Neutro',
     qtd: qtdUnidades,
     valor,
+    frete,
     precoSugerido,
     items,
     pagamento,
@@ -20533,6 +20600,7 @@ function renderVerMaisVenda(id) {
       <div class="s"><div class="l">Aroma</div><div class="v">${escapeHtml(r.aroma || 'Neutro')}</div></div>
       <div class="s"><div class="l">Qtd</div><div class="v">${r.qtd ?? '—'}</div></div>
       <div class="s"><div class="l">Valor</div><div class="v">${fmtBR(r.valor)}</div></div>
+      ${r.frete > 0 ? `<div class="s"><div class="l">Frete</div><div class="v">${fmtBR(r.frete)}</div></div>` : ''}
       <div class="s"><div class="l">Pagamento</div><div class="v">${escapeHtml(paymentDisplay(r))}</div></div>
       <div class="s"><div class="l">Vendedor</div><div class="v">${escapeHtml(r.vendedor || '—')}</div></div>
     </div>
@@ -24435,6 +24503,7 @@ function initEditVenda(id) {
   document.getElementById('f-data').value = String(venda.data || '').slice(0, 10) || dashboardDateKey(new Date());
   document.getElementById('f-cliente').value = venda.cliente || '';
   document.getElementById('f-valor').value = venda.valor || '';
+  document.getElementById('f-frete').value = venda.frete || '';
   document.getElementById('f-obs').value = venda.obs || '';
   document.getElementById('f-pag').value = venda.pagamento || 'Dinheiro';
   document.getElementById('f-parcelas').value = venda.pagamentoDetalhes?.parcelas || '';
@@ -24555,10 +24624,22 @@ function renderSaleItemsList() {
         <div class="sale-item-main">${escapeHtml(item.descricao)}</div>
         <div class="sale-item-sub">${escapeHtml(item.aroma || 'Neutro')} • ${item.qtdUnidades} unidade(s) contabilizadas</div>
       </div>
-      <div class="sale-item-value">${item.preco ? fmtBR(item.preco) : 'Sem preço'}</div>
+      <div class="sale-item-value-edit">
+        <label class="form-label" style="margin-bottom:2px;">Valor cobrado</label>
+        <input type="number" class="form-input sale-item-value-input" step="0.01" value="${item.preco || ''}" placeholder="0,00" oninput="atualizarPrecoItemVenda(${index}, this.value)">
+      </div>
       <button class="btn btn-small btn-danger" onclick="removerProdutoVenda(${index})">Remover</button>
     </div>
   `).join('');
+}
+
+// Deixa mudar o valor cobrado de cada produto do pedido individualmente (alguns produtos
+// do mesmo pedido podem ter preço negociado diferente da tabela) — atualiza só o total do
+// preview, sem re-renderizar a lista (senão perde o foco do campo enquanto digita).
+function atualizarPrecoItemVenda(index, value) {
+  if (!currentSaleItems[index]) return;
+  currentSaleItems[index].preco = parseMoneyValue(value) || 0;
+  updatePreview();
 }
 
 function adicionarProdutoVenda() {
@@ -24666,8 +24747,11 @@ function initNova() {
   document.getElementById('f-data').value = lastVendaDataUsada || dashboardDateKey(new Date());
   document.getElementById('f-cliente').value = '';
   document.getElementById('f-valor').value = '';
+  document.getElementById('f-frete').value = '';
+  document.getElementById('f-frete-linha').classList.add('hidden');
+  document.getElementById('f-total-com-frete-linha').classList.add('hidden');
   document.getElementById('f-desconto').value = 'R$ 0,00';
-  document.getElementById('f-desconto-note').textContent = 'Comparado ao preço sugerido.';
+  document.getElementById('f-desconto-note').textContent = 'Comparado ao preço sugerido (já com frete, se houver).';
   document.getElementById('f-obs').value = '';
   document.getElementById('f-pag').value = 'Dinheiro';
   document.getElementById('f-parcelas').value = '';
@@ -24725,11 +24809,25 @@ function toggleAromaCustom() {
   document.getElementById('f-aroma-custom-row').classList.toggle('hidden', !isOutro);
 }
 
+function currentFreteVenda() {
+  return parseMoneyValue(document.getElementById('f-frete')?.value) || 0;
+}
+
 function updatePreview() {
   const preco = currentSuggestedPrice();
+  const frete = currentFreteVenda();
+  const totalComFrete = preco + frete;
   document.getElementById('precoSugerido').textContent = preco > 0 ? fmtBR(preco) : 'Sem preço cadastrado';
-  if (preco > 0 && !document.getElementById('f-valor').value) {
-    document.getElementById('f-valor').placeholder = preco.toFixed(2).replace('.', ',');
+  const freteLinha = document.getElementById('f-frete-linha');
+  const totalLinha = document.getElementById('f-total-com-frete-linha');
+  if (freteLinha) freteLinha.classList.toggle('hidden', frete <= 0);
+  if (totalLinha) totalLinha.classList.toggle('hidden', frete <= 0);
+  const freteValorEl = document.getElementById('f-frete-valor-preview');
+  if (freteValorEl) freteValorEl.textContent = fmtBR(frete);
+  const totalValorEl = document.getElementById('f-total-com-frete-valor');
+  if (totalValorEl) totalValorEl.textContent = fmtBR(totalComFrete);
+  if (totalComFrete > 0 && !document.getElementById('f-valor').value) {
+    document.getElementById('f-valor').placeholder = totalComFrete.toFixed(2).replace('.', ',');
   }
   updateDiscountPreview();
 }
@@ -24742,19 +24840,20 @@ function currentSuggestedPrice() {
 }
 
 function updateDiscountPreview() {
-  const suggested = currentSuggestedPrice();
+  const suggested = currentSuggestedPrice() + currentFreteVenda();
   const charged = parseMoneyValue(document.getElementById('f-valor')?.value);
   const discount = suggested > 0 && charged > 0 && charged < suggested ? suggested - charged : 0;
   const percent = suggested > 0 && discount > 0 ? (discount / suggested) * 100 : 0;
   const field = document.getElementById('f-desconto');
   const note = document.getElementById('f-desconto-note');
   if (field) field.value = discount > 0 ? `${fmtBR(discount)} (${percent.toFixed(1).replace('.', ',')}%)` : 'R$ 0,00';
-  if (note) note.textContent = discount > 0 ? 'Calculado automaticamente pelo valor final informado.' : 'Comparado ao preço sugerido.';
+  if (note) note.textContent = discount > 0 ? 'Calculado automaticamente pelo valor final informado.' : 'Comparado ao preço sugerido (já com frete, se houver).';
 }
 
 async function salvarVenda() {
   const cliente = document.getElementById('f-cliente').value.trim();
   const valor = parseMoneyValue(document.getElementById('f-valor').value);
+  const frete = parseMoneyValue(document.getElementById('f-frete').value) || 0;
   if (!cliente || isNaN(valor) || valor <= 0) {
     alert('Preencha cliente e valor.');
     return;
@@ -24826,7 +24925,8 @@ async function salvarVenda() {
   const numeroVenda = isEditing ? existingVenda.numeroVenda : nextSaleNumber();
   const items = currentSaleItems.length > 0 ? [...currentSaleItems] : [currentSaleItem()];
   const precoSugerido = items.reduce((sum, item) => sum + (parseFloat(item.preco) || 0), 0);
-  const desconto = precoSugerido > 0 && valor < precoSugerido ? precoSugerido - valor : 0;
+  const precoSugeridoComFrete = precoSugerido + frete;
+  const desconto = precoSugeridoComFrete > 0 && valor < precoSugeridoComFrete ? precoSugeridoComFrete - valor : 0;
   const descricaoProduto = items.map(item => item.descricao).join(' + ');
   const qtdUnidades = items.reduce((sum, item) => sum + (parseInt(item.qtdUnidades, 10) || 0), 0);
   const tamanhos = [...new Set(items.map(item => item.tamanho).filter(Boolean))];
@@ -24848,6 +24948,7 @@ async function salvarVenda() {
     aroma: aromas.join(' + ') || 'Neutro',
     qtd: qtdUnidades,
     valor,
+    frete,
     precoSugerido,
     desconto,
     pagamento,
