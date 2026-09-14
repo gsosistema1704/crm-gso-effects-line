@@ -24460,6 +24460,35 @@ function printSaleLabel(venda) {
 let currentSaleItems = [];
 let currentLojistaItems = [];
 let editingVendaId = null;
+// Guarda sku/título do anúncio quando a venda é aberta a partir de "Registrar venda" num
+// anúncio do Mercado Livre (Calculadora) — some ao pagamentoDetalhes ao salvar, pra manter
+// o vínculo com o anúncio real (usado no ranking "Anúncio mais vendido"), e é limpo depois.
+let anuncioOrigemVenda = null;
+// Abre "Nova venda" já preenchida com o(s) produto(s) do kit do anúncio, preço final,
+// tarifa e frete conhecidos — só falta a usuária informar cliente, data e NF.
+function prefillVendaDoAnuncio(itens, precoFinal, tarifa, frete, origem) {
+  currentSaleItems = (itens || []).map(function (it) {
+    const p = state.produtos.find(x => x.produto === it.produto && x.tamanho === it.tamanho);
+    const precoTabela = p ? (p.unit2026 || 0) * (it.qtd || 1) : 0;
+    return {
+      produto: it.produto, tamanho: it.tamanho, catalogProduto: it.produto, catalogTamanho: it.tamanho,
+      formato: 'UN', aroma: 'Neutro', qtdEntrada: it.qtd || 1, qtdUnidades: it.qtd || 1,
+      preco: precoTabela, descricao: (it.qtd || 1) + ' UN ' + it.produto + ' ' + it.tamanho
+    };
+  });
+  renderSaleItemsList();
+  const pagSelect = document.getElementById('f-pag');
+  if (pagSelect) pagSelect.value = 'Mercado Livre';
+  togglePaymentFields();
+  const tarifaInput = document.getElementById('f-ml-tarifa');
+  if (tarifaInput) tarifaInput.value = tarifa || '';
+  const freteInput = document.getElementById('f-ml-frete');
+  if (freteInput) freteInput.value = frete || '';
+  const valorInput = document.getElementById('f-valor');
+  if (valorInput) valorInput.value = precoFinal ? precoFinal.toFixed(2) : '';
+  anuncioOrigemVenda = origem || null;
+  updatePreview();
+}
 
 // Tabela de valores lojista (2026) — preço unitário cobrado do lojista/revendedor por produto+tamanho.
 const LOJISTA_PRECOS = {
@@ -24499,6 +24528,7 @@ function cancelarNovaOuEdicaoVenda() {
 function initEditVenda(id) {
   const venda = state.vendas.find(v => v.id === id);
   if (!venda) { editingVendaId = null; initNova(); return; }
+  anuncioOrigemVenda = null;
 
   document.getElementById('f-data').value = String(venda.data || '').slice(0, 10) || dashboardDateKey(new Date());
   document.getElementById('f-cliente').value = venda.cliente || '';
@@ -24738,6 +24768,7 @@ function toggleLojistaPaymentFields(parcelasBoletoExistentes) {
 
 function initNova() {
   editingVendaId = null;
+  anuncioOrigemVenda = null;
   const titleEl = document.getElementById('nova-h-title');
   const subEl = document.getElementById('nova-h-sub');
   const saveBtn = document.getElementById('nova-save-btn');
@@ -24904,6 +24935,10 @@ async function salvarVenda() {
     // vendaMLCalc, quando o produto do catálogo tem custo cadastrado).
     pagamentoDetalhes.mlValorLiquido = round2(valor - tarifa - frete);
     pagamentoDetalhes.mlManual = true;
+    if (anuncioOrigemVenda) {
+      pagamentoDetalhes.mlSku = anuncioOrigemVenda.sku || '';
+      pagamentoDetalhes.mlTituloAnuncio = anuncioOrigemVenda.titulo || '';
+    }
   }
 
   const isEditing = Boolean(editingVendaId);
@@ -29417,7 +29452,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<div class="gc-row" style="margin-top:10px">' +
           '<button class="gc-btn dark" id="gc-ml-save">' + (isNovo ? 'Criar anúncio' : 'Salvar alterações') + '</button>' +
           (isNovo ? '' : '<button class="gc-btn" id="gc-ml-del" style="color:#B0322F">Apagar anúncio</button>') +
-        '</div>';
+        '</div>' +
+        (isNovo ? '' :
+          '<div class="gc-row" style="margin-top:8px">' +
+            '<button class="gc-btn dark" id="gc-ml-registrar-venda">Registrar venda deste anúncio</button>' +
+          '</div>' +
+          '<div class="gc-hint" style="margin-top:4px">Abre "Nova venda" já com produto, preço, tarifa e frete deste anúncio preenchidos — só falta informar cliente, data e NF.</div>'
+        );
       drOpen(isNovo ? 'Novo anúncio' : (draft.nome || 'Anúncio'), html);
       wire();
     }
@@ -29504,6 +29545,17 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         save();
         drClose();
         renderML();
+      });
+      var vendaBtn = $('#gc-ml-registrar-venda');
+      if (vendaBtn) vendaBtn.addEventListener('click', function () {
+        lerCamposSimples();
+        if (!draft.itensCatalogo.length) { alert('Vincule ao menos um produto do catálogo a este anúncio (seção "Produtos do kit") antes de registrar a venda — preciso saber qual produto/tamanho foi vendido.'); return; }
+        var c = anuncioCalc(draft);
+        var itens = draft.itensCatalogo.map(function (it) { return { produto: it.produto, tamanho: it.tamanho, qtd: it.qtd }; });
+        var origem = { sku: draft.codigo || '', titulo: draft.nome || '' };
+        drClose();
+        if (typeof navTo === 'function') navTo('nova');
+        if (typeof prefillVendaDoAnuncio === 'function') prefillVendaDoAnuncio(itens, c.precoFinal, c.tarifaVenda, c.custoExtra, origem);
       });
     }
 
