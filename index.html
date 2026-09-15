@@ -32737,8 +32737,14 @@ body:not(.theme-dark) .btn:hover, body.theme-dark .btn:hover { background:var(--
 body:not(.theme-dark) .btn-primary, body.theme-dark .btn-primary,
 body:not(.theme-dark) .btn.btn-primary, body.theme-dark .btn.btn-primary { background:var(--gso-accent)!important; border-color:var(--gso-accent)!important; color:var(--gso-accent-ink)!important; font-weight:600!important; }
 body:not(.theme-dark) .btn-primary:hover, body.theme-dark .btn-primary:hover { background:var(--gso-accent-hover)!important; border-color:var(--gso-accent-hover)!important; box-shadow:0 0 20px var(--gso-neon)!important; transform:translateY(-1px)!important; }
-body:not(.theme-dark) .btn-green, body.theme-dark .btn-green { background:var(--gso-ok)!important; border-color:var(--gso-ok)!important; color:var(--gso-ok-ink)!important; font-weight:600!important; }
-body:not(.theme-dark) .btn-danger, body.theme-dark .btn-danger { background:var(--gso-bad)!important; border-color:var(--gso-bad)!important; color:#2a0c0c!important; }
+body:not(.theme-dark) .btn-green { background:var(--gso-ok-soft)!important; border-color:#8FCDAA!important; color:var(--gso-ok)!important; font-weight:600!important; }
+body.theme-dark .btn-green { background:var(--gso-ok-soft)!important; border-color:rgba(127,211,154,.45)!important; color:var(--gso-ok)!important; font-weight:600!important; }
+body:not(.theme-dark) .btn-green:hover { background:#DCEEE2!important; border-color:#6BB98F!important; color:var(--gso-ok)!important; }
+body.theme-dark .btn-green:hover { background:rgba(63,166,107,.24)!important; border-color:rgba(127,211,154,.6)!important; color:var(--gso-ok)!important; }
+body:not(.theme-dark) .btn-danger { background:var(--gso-bad-soft)!important; border-color:#EFAFAC!important; color:var(--gso-bad)!important; }
+body.theme-dark .btn-danger { background:var(--gso-bad-soft)!important; border-color:rgba(242,160,158,.45)!important; color:var(--gso-bad)!important; }
+body:not(.theme-dark) .btn-danger:hover { background:#F9DEDD!important; border-color:#E08581!important; color:var(--gso-bad)!important; }
+body.theme-dark .btn-danger:hover { background:rgba(212,90,82,.26)!important; border-color:rgba(242,160,158,.6)!important; color:var(--gso-bad)!important; }
 
 /* subtabs / pílulas */
 body:not(.theme-dark) .subtabs, body.theme-dark .subtabs { border-bottom:1px solid var(--gso-line)!important; }
@@ -33322,7 +33328,7 @@ body.theme-dark .pill-aroma.arm-outro    { background:rgba(159, 159, 159,.16) !i
 .sales-table .row-actions { flex-direction:column !important; align-items:stretch !important; gap:5px !important; max-width:100% !important; }
 .sales-table .row-actions .btn-small { width:100%; min-width:0; font-size:11px !important; padding:6px 8px !important; border-radius:7px !important; text-align:center; justify-content:center; }
 /* Excluir: vermelho claro, texto vermelho */
-.sales-table .row-actions .btn-danger { background:#FBE8E8 !important; color:#B0322F !important; border:1px solid #F2C9CC !important; box-shadow:none !important; }
+.sales-table .row-actions .btn-danger { background:#FBE8E8 !important; color:#C9514D !important; border:1px solid #F2C9CC !important; box-shadow:none !important; }
 body.theme-dark .sales-table .row-actions .btn-danger { background:rgba(216,108,108,.18) !important; color:#E89A9A !important; border-color:rgba(216,108,108,.40) !important; }
 
 /* espaçamento confortável entre linhas */
@@ -34209,11 +34215,8 @@ body.modo-anonimo .main {
 </script>
 
 <style id="gso-fix-salvar">
-/* v40: botao Salvar — letra BRANCA no tema claro, PRETA no tema escuro */
-.btn-green, #mc-save-btn, #mf-save-btn{ color:#FFFFFF !important; }
-body.theme-dark .btn-green, body.theme-dark #mc-save-btn, body.theme-dark #mf-save-btn{ color:#111111 !important; }
-/* Meu Perfil: sempre letra branca, nos dois temas */
-#perfil-save-btn, body.theme-dark #perfil-save-btn{ color:#FFFFFF !important; }
+/* v41: botao Salvar — fundo pastel, letra verde (adapta ao tema via --gso-ok) */
+.btn-green, #mc-save-btn, #mf-save-btn, #perfil-save-btn{ color:var(--gso-ok) !important; }
 /* Vendas: "Dinheiro sem NF" numa linha só, sem quebrar */
 .sales-table .nf-muted{ white-space:nowrap !important; display:inline-block; }
 /* Botão WhatsApp: mesmo verde no modo claro e no modo escuro */
