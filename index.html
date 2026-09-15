@@ -18545,28 +18545,24 @@ function decodeRecadoTexto(raw) {
   try { meta = JSON.parse(m[1]); } catch (e) {}
   return { texto: m[2], cor: meta.cor != null ? meta.cor : null, mencao: Array.isArray(meta.mencao) ? meta.mencao : [] };
 }
-// Conta duplicada/antiga da Luísa (luisa.oliveiras@hotmail.com) — não deve aparecer como
-// alguém "diferente" pra mencionar, já que é a mesma pessoa da conta luisa1909@icloud.com.
-const RECADO_USUARIOS_OCULTOS = ['luisa.oliveiras@hotmail.com'];
-// crm_usuarios.nome guarda o nome de usuário (login), não o nome real da pessoa — troca
-// pelo nome de verdade só na exibição dos Recados (menção e etiqueta "@Nome").
-const RECADO_NOMES_AMIGAVEIS = {
-  'gsoeffectsline@outlook.com': 'Bianca',
-  'thiagoolitex2198@icloud.com': 'Thiago',
-  'tutuzinha1992@gmail.com': 'Tuanny',
-  'luisa1909@icloud.com': 'Luísa'
-};
+// Lista fixa de quem pode ser mencionado nos Recados — não vem do banco (crm_usuarios só
+// pode ser lido por administradores, e não dá pra mudar essa regra agora), então cadastra
+// aqui direto quem pode aparecer. Assim toda usuária consegue ver e mencionar essas pessoas,
+// sem abrir acesso a mais nada do cadastro de usuários. Pra adicionar alguém, é só somar uma
+// linha aqui.
+const RECADO_USUARIOS_MENCIONAVEIS = [
+  { nome: 'Bianca', email: 'gsoeffectsline@outlook.com' },
+  { nome: 'Thiago', email: 'thiagoolitex2198@icloud.com' },
+  { nome: 'Tuanny', email: 'tutuzinha1992@gmail.com' },
+  { nome: 'Luísa', email: 'luisa1909@icloud.com' }
+];
 function nomeAmigavelRecadoUsuario(u) {
   const email = String(u?.email || '').toLowerCase();
-  return RECADO_NOMES_AMIGAVEIS[email] || u?.nome || u?.email || '';
+  const conhecido = RECADO_USUARIOS_MENCIONAVEIS.find(r => r.email === email);
+  return conhecido ? conhecido.nome : (u?.nome || u?.email || '');
 }
 async function loadRecadosUsuarios() {
-  const client = getSupabaseClient();
-  const session = await getSupabaseSession();
-  if (!client || !session) { state.recadosUsuarios = []; return state.recadosUsuarios; }
-  const { data, error } = await client.from('crm_usuarios').select('nome,email').order('nome', { ascending: true });
-  if (error) { console.warn('Não consegui carregar usuários pra menção:', error); state.recadosUsuarios = []; return state.recadosUsuarios; }
-  state.recadosUsuarios = (data || []).filter(u => !RECADO_USUARIOS_OCULTOS.includes(String(u.email || '').toLowerCase()));
+  state.recadosUsuarios = RECADO_USUARIOS_MENCIONAVEIS;
   return state.recadosUsuarios;
 }
 
