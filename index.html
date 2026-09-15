@@ -13427,6 +13427,14 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               <input type="number" class="form-input" id="f-qtd" value="1" min="1" oninput="updatePreview()">
             </div>
           </div>
+          <div class="form-row" style="margin-bottom:10px;">
+            <div>
+              <label class="form-label">Produto do estoque a descontar <span style="font-weight:400;color:var(--text-2)">(opcional — use quando a embalagem/variante usada for diferente da automática)</span></label>
+              <select class="form-input" id="f-estoque-produto">
+                <option value="">Automático (pelo nome do produto)</option>
+              </select>
+            </div>
+          </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <button class="btn btn-soft" onclick="adicionarProdutoVenda()">Adicionar produto ao pedido</button>
             <span class="card-sub">Use o botão para montar pedidos com vários produtos.</span>
@@ -18537,13 +18545,16 @@ function decodeRecadoTexto(raw) {
   try { meta = JSON.parse(m[1]); } catch (e) {}
   return { texto: m[2], cor: meta.cor != null ? meta.cor : null, mencao: Array.isArray(meta.mencao) ? meta.mencao : [] };
 }
+// Conta duplicada/antiga da Luísa (luisa.oliveiras@hotmail.com) — não deve aparecer como
+// alguém "diferente" pra mencionar, já que é a mesma pessoa da conta luisa1909@icloud.com.
+const RECADO_USUARIOS_OCULTOS = ['luisa.oliveiras@hotmail.com'];
 async function loadRecadosUsuarios() {
   const client = getSupabaseClient();
   const session = await getSupabaseSession();
   if (!client || !session) { state.recadosUsuarios = []; return state.recadosUsuarios; }
   const { data, error } = await client.from('crm_usuarios').select('nome,email').order('nome', { ascending: true });
   if (error) { console.warn('Não consegui carregar usuários pra menção:', error); state.recadosUsuarios = []; return state.recadosUsuarios; }
-  state.recadosUsuarios = data || [];
+  state.recadosUsuarios = (data || []).filter(u => !RECADO_USUARIOS_OCULTOS.includes(String(u.email || '').toLowerCase()));
   return state.recadosUsuarios;
 }
 
@@ -24599,7 +24610,8 @@ function prefillVendaDoAnuncio(itens, precoFinal, tarifa, frete, origem) {
     return {
       produto: it.produto, tamanho: it.tamanho, catalogProduto: it.produto, catalogTamanho: it.tamanho,
       formato: 'UN', aroma: 'Neutro', qtdEntrada: it.qtd || 1, qtdUnidades: it.qtd || 1,
-      preco: precoTabela, descricao: (it.qtd || 1) + ' UN ' + it.produto + ' ' + it.tamanho
+      preco: precoTabela, produtoEnvasadoId: it.produtoEnvasadoId || null,
+      descricao: (it.qtd || 1) + ' UN ' + it.produto + ' ' + it.tamanho
     };
   });
   renderSaleItemsList();
@@ -24655,6 +24667,7 @@ function initEditVenda(id) {
   const venda = state.vendas.find(v => v.id === id);
   if (!venda) { editingVendaId = null; initNova(); return; }
   anuncioOrigemVenda = null;
+  popularSelectProdutoEstoque('f-estoque-produto', null);
 
   document.getElementById('f-data').value = String(venda.data || '').slice(0, 10) || dashboardDateKey(new Date());
   document.getElementById('f-cliente').value = venda.cliente || '';
@@ -24763,8 +24776,34 @@ function currentSaleItem() {
     qtdEntrada,
     qtdUnidades,
     preco,
+    produtoEnvasadoId: document.getElementById('f-estoque-produto')?.value || null,
     descricao: `${qtdEntrada} ${tipo} ${produto} ${tamanho}`
   };
+}
+
+// Lista de "produtos envasados" do Laboratório (cada linha já é uma combinação específica
+// de produto + embalagem/garrafa usada) — usada pra deixar escolher manualmente qual delas
+// deve ser descontada do estoque, em vez de sempre confiar na correspondência automática
+// por nome. Reaproveita o que o módulo do Laboratório já carregou, se disponível.
+let __produtosEnvasadosCache = null;
+async function loadProdutosEnvasadosParaSelecao(forceRefresh) {
+  if (!forceRefresh && window.Lab?.state?.produtos?.length) return window.Lab.state.produtos;
+  if (!forceRefresh && __produtosEnvasadosCache) return __produtosEnvasadosCache;
+  const client = getSupabaseClient();
+  const session = await getSupabaseSession();
+  if (!client || !session) return [];
+  const { data, error } = await client.from('gso_produtos_envasados').select('*').eq('ativo', true).order('ordem', { ascending: true });
+  if (error) { console.warn('Não consegui carregar produtos envasados:', error); return []; }
+  __produtosEnvasadosCache = data || [];
+  return __produtosEnvasadosCache;
+}
+async function popularSelectProdutoEstoque(selectId, valorAtual) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  const lista = await loadProdutosEnvasadosParaSelecao();
+  select.innerHTML = '<option value="">Automático (pelo nome do produto)</option>' +
+    lista.map(p => `<option value="${escapeHtml(p.id)}"${p.id === valorAtual ? ' selected' : ''}>${escapeHtml(p.nome)}</option>`).join('');
+  if (valorAtual) select.value = valorAtual;
 }
 
 function renderSaleItemsList() {
@@ -24774,11 +24813,14 @@ function renderSaleItemsList() {
     el.innerHTML = '<div class="card-sub">Nenhum produto adicionado ao pedido ainda.</div>';
     return;
   }
-  el.innerHTML = currentSaleItems.map((item, index) => `
+  const listaEstoque = window.Lab?.state?.produtos?.length ? window.Lab.state.produtos : (__produtosEnvasadosCache || []);
+  el.innerHTML = currentSaleItems.map((item, index) => {
+    const produtoEstoque = item.produtoEnvasadoId ? listaEstoque.find(p => p.id === item.produtoEnvasadoId) : null;
+    return `
     <div class="sale-item-row">
       <div>
         <div class="sale-item-main">${escapeHtml(item.descricao)}</div>
-        <div class="sale-item-sub">${escapeHtml(item.aroma || 'Neutro')} • ${item.qtdUnidades} unidade(s) contabilizadas</div>
+        <div class="sale-item-sub">${escapeHtml(item.aroma || 'Neutro')} • ${item.qtdUnidades} unidade(s) contabilizadas${produtoEstoque ? ` • estoque: ${escapeHtml(produtoEstoque.nome)}` : ''}</div>
       </div>
       <div class="sale-item-value-edit">
         <label class="form-label" style="margin-bottom:2px;">Valor cobrado</label>
@@ -24786,7 +24828,8 @@ function renderSaleItemsList() {
       </div>
       <button class="btn btn-small btn-danger" onclick="removerProdutoVenda(${index})">Remover</button>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // Deixa mudar o valor cobrado de cada produto do pedido individualmente (alguns produtos
@@ -24806,6 +24849,8 @@ function adicionarProdutoVenda() {
   }
   currentSaleItems.push(item);
   document.getElementById('f-qtd').value = 1;
+  const estoqueSelect = document.getElementById('f-estoque-produto');
+  if (estoqueSelect) estoqueSelect.value = '';
   renderSaleItemsList();
   updatePreview();
 }
@@ -24929,6 +24974,7 @@ function initNova() {
   document.getElementById('f-tipo-venda-row').classList.toggle('hidden', !isAdminUser());
   currentSaleItems = [];
   renderSaleItemsList();
+  popularSelectProdutoEstoque('f-estoque-produto', null);
 
   // Datalist com clientes
   const clis = computeClientes();
@@ -25184,7 +25230,8 @@ async function ajustarEstoqueLaboratorioNaVenda(venda, vendaAnterior, origem) {
       nomeProduto: it.catalogProduto || it.produto || it.descricao,
       tamanho: it.tamanho,
       aroma: it.aroma,
-      qtd: it.qtdUnidades != null ? it.qtdUnidades : it.qtd
+      qtd: it.qtdUnidades != null ? it.qtdUnidades : it.qtd,
+      produtoEnvasadoId: it.produtoEnvasadoId || null
     }));
     const resultado = await Lab.baixarEstoquePorItens(itens, origem);
     venda.estoqueBaixado = resultado.baixas;
@@ -25620,7 +25667,7 @@ init();
       } else {
         if (pagination) gsoRenderPagination('boletosPagination', 'boletos', pageInfo);
         list.innerHTML = pageInfo.rows.map(b => `
-          <article class="industrial-card boleto-card">
+          <article class="industrial-card boleto-card${b.calc.status === 'Vencido' ? ' boleto-card-vencido' : ''}">
             <div class="doc-top">
               <div>
                 <div class="doc-title">${escapeHtml(b.titulo)}</div>
@@ -26770,7 +26817,8 @@ function intelRenderOverview() {
     const clienteCell = l.totalParcelas > 1
       ? `${lojistaTag}${escapeHtml(v.cliente || '—')}<br><small style="color:var(--text-2,#8A8A8A);font-weight:400">parcela ${parcela.numero || (idx + 1)} de ${l.totalParcelas}</small>`
       : `${lojistaTag}${escapeHtml(v.cliente || '—')}`;
-    return `<tr onclick="if(!event.target.closest('button')) abrirParcelaBoletoModal('${v.id}',${idx},${origemAttr})" style="cursor:pointer">
+    const vencida = !pago && vencStatus.phrase.startsWith('Vencido');
+    return `<tr class="${vencida ? 'venda-boleto-vencida' : ''}" onclick="if(!event.target.closest('button')) abrirParcelaBoletoModal('${v.id}',${idx},${origemAttr})" style="cursor:pointer">
       <td class="stack-title">${dataCell}</td>
       <td data-label="Cliente">${clienteCell}</td>
       <td data-label="Vencimento">${vencCell}</td>
@@ -29435,6 +29483,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     delete draft.produtoCatalogo; delete draft.tamanhoCatalogo; delete draft.custoExtra; delete draft.desconto;
     delete draft.comissaoPct; delete draft.custoExtraVendedor; delete draft.custoExtraComprador; delete draft.freteVendedorCobre;
     delete draft.flexPermitido; delete draft.flexValor;
+    draft.produtoEnvasadoId = base.produtoEnvasadoId || null;
+    // Lista de produtos do estoque do Laboratório (cada um já é uma combinação específica
+    // de produto + embalagem/garrafa usada) — carregada antes do primeiro render pra dar
+    // pra escolher qual variante este anúncio deve descontar.
+    var produtosEnvasadosParaEstoque = [];
 
     var campoNum = function (label, id2, val) {
       return '<div class="gc-kv"><span class="l">' + label + '</span><b><input id="' + id2 + '" type="text" inputmode="decimal" value="' + esc(String(val == null ? '' : val)) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>';
@@ -29465,6 +29518,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       draft.custoEnvio = num($('#gc-ml-envio').value) || 0;
       draft.custoManual = num($('#gc-ml-customanual').value) || 0;
       draft.obs = $('#gc-ml-obs').value.trim();
+      var estoqueSelect = $('#gc-ml-estoque-produto');
+      if (estoqueSelect) draft.produtoEnvasadoId = estoqueSelect.value || null;
     }
 
     function itensKitHtml() {
@@ -29559,6 +29614,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
             '<button type="button" class="gc-btn dark" id="gc-ml-item-add-btn">+ adicionar</button>' +
           '</div>' +
         '</div>' +
+        '<div class="gc-ml-edit-label" style="margin-top:10px">Produto do estoque a descontar <span style="font-weight:400;text-transform:none;letter-spacing:0">— use quando esse anúncio usa uma embalagem/variante específica</span></div>' +
+        '<select id="gc-ml-estoque-produto" style="width:100%;border:1px solid var(--gcln2);border-radius:7px;padding:6px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);margin-bottom:10px">' +
+          '<option value="">Automático (pelo nome do produto)</option>' +
+          produtosEnvasadosParaEstoque.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === draft.produtoEnvasadoId ? ' selected' : '') + '>' + esc(p.nome) + '</option>'; }).join('') +
+        '</select>' +
         campoMoeda('Custo do produto manual (R$) — só se não usar o kit acima', 'gc-ml-customanual', draft.custoManual) +
         campoTxtFull('Observações', 'gc-ml-obs', draft.obs) +
         '<div class="gc-kv" style="margin-top:10px;border-top:1px solid var(--gcln);padding-top:10px"><span class="l">Preço</span><b>' + fmt(draft.preco) + '</b></div>' +
@@ -29680,7 +29740,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         lerCamposSimples();
         if (!draft.itensCatalogo.length) { alert('Vincule ao menos um produto do catálogo a este anúncio (seção "Produtos do kit") antes de registrar a venda — preciso saber qual produto/tamanho foi vendido.'); return; }
         var c = anuncioCalc(draft);
-        var itens = draft.itensCatalogo.map(function (it) { return { produto: it.produto, tamanho: it.tamanho, qtd: it.qtd }; });
+        var itens = draft.itensCatalogo.map(function (it) { return { produto: it.produto, tamanho: it.tamanho, qtd: it.qtd, produtoEnvasadoId: draft.produtoEnvasadoId || null }; });
         var origem = { sku: draft.codigo || '', titulo: draft.nome || '' };
         drClose();
         if (typeof navTo === 'function') navTo('nova');
@@ -29688,7 +29748,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       });
     }
 
-    render();
+    if (typeof loadProdutosEnvasadosParaSelecao === 'function') {
+      loadProdutosEnvasadosParaSelecao().then(function (lista) {
+        produtosEnvasadosParaEstoque = lista || [];
+        render();
+      });
+    } else {
+      render();
+    }
   }
 
   /* ---------- edição inline ---------- */
@@ -31411,7 +31478,12 @@ async function renderIndicadores() {
       var it = itens[i];
       var qtd = Number(it.qtd) || 0;
       if (qtd <= 0) continue;
-      var produto = encontrarProdutoEnvasadoPara(it.nomeProduto, it.tamanho, it.aroma);
+      // Se a venda já veio com o produto do estoque escolhido manualmente (embalagem/
+      // variante específica), usa direto — sem isso, cai na correspondência automática
+      // por nome/tamanho/aroma, que pode errar quando há mais de uma embalagem cadastrada
+      // pro mesmo produto.
+      var produto = it.produtoEnvasadoId ? state.produtos.find(function (p) { return p.id === it.produtoEnvasadoId; }) : null;
+      if (!produto) produto = encontrarProdutoEnvasadoPara(it.nomeProduto, it.tamanho, it.aroma);
       if (!produto) {
         naoEncontrados.push([it.nomeProduto, it.tamanho, it.aroma].filter(Boolean).join(' '));
         continue;
@@ -33103,12 +33175,14 @@ body.theme-dark .fin-pendencia-btn:hover { background: rgba(224,163,62,.28) !imp
 .postit-cor-2 { background: #C9E7FF !important; }
 .postit-cor-3 { background: #D7F5D0 !important; }
 .postit-cor-4 { background: #FFE0C2 !important; }
-.postit-cor-picker { display: flex; gap: 8px; flex-wrap: wrap; }
-.postit-cor-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
-.postit-cor-swatch.on { border-color: var(--text); box-shadow: 0 0 0 2px var(--card); }
+.postit-cor-picker { display: flex; gap: 10px; flex-wrap: wrap; }
+.postit-cor-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; position: relative; transition: transform .12s ease; }
+.postit-cor-swatch.on { border: 3px solid #2F6FE0; box-shadow: 0 0 0 2px var(--card), 0 0 0 5px #2F6FE0; transform: scale(1.18); }
+.postit-cor-swatch.on::after { content: "✓"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #1a1a1a; font-weight: 900; font-size: 13px; text-shadow: 0 0 3px rgba(255,255,255,.95), 0 0 4px rgba(255,255,255,.95); }
 .postit-mencao-picker { display: flex; gap: 6px; flex-wrap: wrap; }
-.postit-mencao-opt { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font-size: 12px; cursor: pointer; color: var(--text-2); }
-.postit-mencao-opt.on { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 600; }
+.postit-mencao-opt { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--card); font-size: 12px; cursor: pointer; color: var(--text-2); transition: background .12s ease, border-color .12s ease; }
+.postit-mencao-opt.on { background: #2F6FE0; color: #fff; border-color: #2F6FE0; font-weight: 700; box-shadow: 0 0 0 2px rgba(47,111,224,.25); }
+.postit-mencao-opt.on::before { content: "✓ "; }
 .postit-mencao-tag { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: rgba(0,0,0,.14); color: rgba(0,0,0,.72); }
 .postit.postit-me-mencionada { outline: 2px solid #C93C37; outline-offset: 3px; }
 .postit.postit-privado { outline: 2px dashed rgba(0,0,0,.28); outline-offset: 3px; }
@@ -33368,6 +33442,14 @@ body.theme-dark .pill-green{ background:rgba(46,125,74,.20) !important; color:#7
 body.theme-dark .pill-amber{ background:rgba(138,100,16,.22) !important; color:#e6c469 !important; border-color:rgba(230,196,105,.35) !important; }
 body.theme-dark .pill-red{ background:rgba(176,50,47,.22) !important; color:#f2a09e !important; border-color:rgba(242,160,158,.35) !important; }
 body.theme-dark .pill-lightred{ background:rgba(176,50,47,.12) !important; color:#e0a29e !important; border-color:rgba(224,162,158,.30) !important; }
+
+/* -- boleto vencido: a tarja inteira do cartão fica vermelha, não só a etiqueta -- */
+.boleto-card-vencido{ background: rgba(201,60,55,.08) !important; border-color: rgba(201,60,55,.45) !important; border-left: 4px solid #C93C37 !important; }
+body.theme-dark .boleto-card-vencido{ background: rgba(212,90,82,.14) !important; border-color: rgba(212,90,82,.5) !important; border-left: 4px solid #D45A52 !important; }
+/* mesma ideia pra linha da tabela de "Vendas em boleto" quando a parcela está vencida */
+tr.venda-boleto-vencida{ background: rgba(201,60,55,.07) !important; }
+body.theme-dark tr.venda-boleto-vencida{ background: rgba(212,90,82,.12) !important; }
+tr.venda-boleto-vencida td{ background: transparent !important; }
 
 /* -- inputs: foco limpo e consistente -- */
 .form-input, .industrial-input, input[type="text"], input[type="date"], select, textarea{
