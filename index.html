@@ -32583,9 +32583,12 @@ async function renderIndicadores() {
   --gso-ink:#16181B; --gso-muted:#5E5E5E; --gso-faint:#8E8E8E;
   --gso-accent:#1C1F23; --gso-accent-hover:#000000; --gso-accent-soft:rgba(28,31,35,.08);
   --gso-accent-ink:#FFFFFF; --gso-neon:rgba(0,0,0,0);
-  --gso-ok:#2F343A; --gso-ok-soft:rgba(47,52,58,.10); --gso-ok-ink:#FFFFFF;
-  --gso-warn:#757575; --gso-warn-soft:rgba(117, 117, 117,.12);
-  --gso-bad:#A0A0A0; --gso-bad-soft:rgba(160, 160, 160,.14);
+  /* verde/laranja/vermelho de verdade — antes esses três ficavam em tons de cinza (bug
+     antigo, de outra sessão), o que deixava avisos de "vencido"/"pendente"/"ok" difíceis
+     de distinguir à primeira vista em qualquer tela que use esse sistema (não só boletos). */
+  --gso-ok:#2E8B57; --gso-ok-soft:rgba(46,139,87,.12); --gso-ok-ink:#FFFFFF;
+  --gso-warn:#D9A441; --gso-warn-soft:rgba(217,164,65,.14);
+  --gso-bad:#C93C37; --gso-bad-soft:rgba(201,60,55,.12);
   --gso-radius:16px; --gso-radius-sm:10px;
   --gso-shadow:0 10px 30px rgba(0,0,0,.06); --gso-shadow-hover:0 14px 32px rgba(0,0,0,.10);
 }
@@ -32595,9 +32598,9 @@ body.theme-dark {
   --gso-ink:#F4F4F4; --gso-muted:#b2b2b2; --gso-faint:#888888;
   --gso-accent:#C9C9C9; --gso-accent-hover:#E0E0E0; --gso-accent-soft:rgba(201,201,201,.16);
   --gso-accent-ink:#15181B; --gso-neon:rgba(201,201,201,.20);
-  --gso-ok:#C0C0C0; --gso-ok-soft:rgba(192,192,192,.14); --gso-ok-ink:#06251a;
-  --gso-warn:#8C8C8C; --gso-warn-soft:rgba(140,140,140,.16);
-  --gso-bad:#6E6E6E; --gso-bad-soft:rgba(110,110,110,.16);
+  --gso-ok:#3FA66B; --gso-ok-soft:rgba(63,166,107,.16); --gso-ok-ink:#06251a;
+  --gso-warn:#E0B860; --gso-warn-soft:rgba(224,184,96,.18);
+  --gso-bad:#D45A52; --gso-bad-soft:rgba(212,90,82,.18);
   --gso-radius:16px; --gso-radius-sm:10px;
   --gso-shadow:0 10px 30px rgba(0,0,0,.35); --gso-shadow-hover:0 16px 40px rgba(0,0,0,.5);
 }
