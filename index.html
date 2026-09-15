@@ -780,6 +780,7 @@
   .pill-green { background: var(--green-bg); color: var(--green-text); border: 1px solid #BFEAC9; }
   .pill-amber { background: var(--amber-bg); color: var(--amber-text); border: 1px solid #F3DA83; }
   .pill-red { background: var(--red-bg); color: var(--red-text); border: 1px solid #EFB4B4; }
+  .pill-lightred { background: var(--lightred-bg); color: var(--lightred-text); border: 1px solid #EFB4B4; }
   .pill-blue { background: var(--blue-bg); color: var(--blue-text); border: 1px solid #E3E3E3; }
   .pill-gray { background: #F2F4F7; color: #3F3F3F; border: 1px solid #E4E7EC; }
 
@@ -1467,6 +1468,7 @@
 	  .status-chip.blue { background: var(--primary-soft); border-color: #E3E3E3; color: var(--blue-text); }
 	  .status-chip.amber { background: var(--amber-bg); border-color: #F3DA83; color: var(--amber-text); }
 	  .status-chip.red { background: var(--red-bg); border-color: #EFB4B4; color: var(--red-text); }
+	  .status-chip.lightred { background: var(--lightred-bg); border-color: #F5D9D6; color: var(--lightred-text); }
 	  .status-chip.green { background: var(--green-bg); border-color: #BFEAC9; color: var(--green-text); }
   .notes-toolbar {
     display: grid;
@@ -2731,6 +2733,8 @@ body.dark-mode .nav-item.active,
   --red: #C93C37 !important;
   --red-bg: #FCEBEA !important;
   --red-text: #A8302C !important;
+  --lightred-bg: #FBEFEE !important;
+  --lightred-text: #B85C56 !important;
   --amber: #D9A441 !important;
   --amber-bg: #FFF5DF !important;
   --amber-text: #8A6519 !important;
@@ -3765,6 +3769,8 @@ body.dark-mode,
   --red: #D45A52 !important;
   --red-bg: #351D20 !important;
   --red-text: #F2AAA5 !important;
+  --lightred-bg: #2A1C1D !important;
+  --lightred-text: #D98F89 !important;
   --amber: #D9A441 !important;
   --amber-bg: #332817 !important;
   --amber-text: #F0D18A !important;
@@ -5597,6 +5603,13 @@ tbody tr:last-child td {
   background: rgba(201, 60, 55, 0.10) !important;
   color: var(--crm-danger) !important;
   border-color: rgba(201, 60, 55, 0.16) !important;
+}
+
+.status-chip.lightred,
+.pill-lightred {
+  background: rgba(201, 60, 55, 0.05) !important;
+  color: #C06B65 !important;
+  border-color: rgba(201, 60, 55, 0.12) !important;
 }
 
 .conversation-item {
@@ -14715,6 +14728,19 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </div>
       </div>
     </div>
+    <div class="form-row">
+      <div>
+        <label class="form-label">Cor do bloco</label>
+        <input type="hidden" id="rec-cor" value="">
+        <div class="postit-cor-picker" id="rec-cor-picker"></div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label class="form-label">Chamar atenção de alguém (opcional)</label>
+        <div class="postit-mencao-picker" id="rec-mencao-picker"></div>
+      </div>
+    </div>
     <div class="form-actions">
       <button class="btn btn-danger hidden" id="rec-excluir-btn" onclick="excluirRecado()">Excluir</button>
       <button class="btn" onclick="document.getElementById('modal-recado').classList.remove('show')">Cancelar</button>
@@ -16140,6 +16166,8 @@ async function startConversationFromSelect() {
 }
 
 // ============ BOLETOS ============
+// Cores por urgência: vermelho claro = ainda longe (mais de 5 dias), laranja = perto de
+// vencer (até 5 dias), vermelho forte = vence hoje ou já venceu, verde = pago (some da lista).
 function boletoComputed(boleto) {
   if (boleto.status === 'Pago') return { status: 'Pago', phrase: 'Pago', diff: 999999, cls: 'green' };
   const due = dateOnly(boleto.data_vencimento);
@@ -16147,8 +16175,9 @@ function boletoComputed(boleto) {
   if (!due) return { status: 'A vencer', phrase: 'Sem vencimento', diff: 99999, cls: 'blue' };
   const diff = Math.round((due - today) / (1000 * 60 * 60 * 24));
   if (diff < 0) return { status: 'Vencido', phrase: `Vencido há ${Math.abs(diff)} dia(s)`, diff, cls: 'red' };
-  if (diff === 0) return { status: 'Vence hoje', phrase: 'Vence hoje', diff, cls: 'amber' };
-  return { status: 'A vencer', phrase: `Faltam ${diff} dia(s) para vencer`, diff, cls: 'blue' };
+  if (diff === 0) return { status: 'Vence hoje', phrase: 'Vence hoje', diff, cls: 'red' };
+  if (diff <= 5) return { status: 'A vencer', phrase: `Faltam ${diff} dia(s) para vencer`, diff, cls: 'amber' };
+  return { status: 'A vencer', phrase: `Faltam ${diff} dia(s) para vencer`, diff, cls: 'lightred' };
 }
 
 function boletoSortValue(boleto) {
@@ -16195,7 +16224,10 @@ async function renderBoletos() {
     document.querySelectorAll('#boletoFilters .finance-filter').forEach(btn => btn.classList.toggle('active', btn.dataset.filter === docsState.boletoFilter));
 
     let rows = computed;
-    if (docsState.boletoFilter !== 'todos') rows = rows.filter(b => b.calc.status === docsState.boletoFilter);
+    // "Todos" mostra tudo que ainda precisa de atenção — pago já resolveu, então some da
+    // lista por padrão (só aparece de novo se clicar no filtro "Pagos").
+    if (docsState.boletoFilter === 'todos') rows = rows.filter(b => b.calc.status !== 'Pago');
+    else rows = rows.filter(b => b.calc.status === docsState.boletoFilter);
     rows.sort((a, b) => boletoSortValue(a) - boletoSortValue(b));
     if (!rows.length) {
       list.innerHTML = '<div class="industrial-card boleto-card"><div class="doc-sub">Nenhum boleto neste filtro.</div></div>';
@@ -18485,6 +18517,35 @@ async function removerPagamentoDespesaAnotada(despesaId, idx) {
 // ============ RECADOS (mural em formato de post-it) ============
 state.recados = [];
 state.recadosRespostas = [];
+state.recadosUsuarios = [];
+
+// A tabela crm_recados não tem colunas pra cor/menção (não dá pra alterar o schema por
+// aqui) — então guardamos essas duas coisas num cabeçalho escondido no início do próprio
+// texto salvo, e tiramos ele de volta na hora de exibir. Recados antigos (sem cabeçalho)
+// continuam funcionando normalmente, só sem cor/menção definidas.
+function encodeRecadoTexto(texto, cor, mencao) {
+  const meta = {};
+  if (cor !== null && cor !== undefined && cor !== '') meta.cor = cor;
+  if (Array.isArray(mencao) && mencao.length) meta.mencao = mencao;
+  if (!Object.keys(meta).length) return texto;
+  return '§§' + JSON.stringify(meta) + '§§\n' + texto;
+}
+function decodeRecadoTexto(raw) {
+  const m = String(raw || '').match(/^§§([\s\S]*?)§§\n?([\s\S]*)$/);
+  if (!m) return { texto: raw || '', cor: null, mencao: [] };
+  let meta = {};
+  try { meta = JSON.parse(m[1]); } catch (e) {}
+  return { texto: m[2], cor: meta.cor != null ? meta.cor : null, mencao: Array.isArray(meta.mencao) ? meta.mencao : [] };
+}
+async function loadRecadosUsuarios() {
+  const client = getSupabaseClient();
+  const session = await getSupabaseSession();
+  if (!client || !session) { state.recadosUsuarios = []; return state.recadosUsuarios; }
+  const { data, error } = await client.from('crm_usuarios').select('nome,email').order('nome', { ascending: true });
+  if (error) { console.warn('Não consegui carregar usuários pra menção:', error); state.recadosUsuarios = []; return state.recadosUsuarios; }
+  state.recadosUsuarios = data || [];
+  return state.recadosUsuarios;
+}
 
 function fmtDataHora(value) {
   if (!value) return '—';
@@ -18561,6 +18622,7 @@ function recadoRespostaHtml(resp, meuId) {
 async function renderRecados() {
   await loadRecados();
   await loadRecadosRespostas();
+  await loadRecadosUsuarios();
   marcarRecadosComoVistos();
   const grid = document.getElementById('recados-grid');
   if (!grid) return;
@@ -18569,24 +18631,37 @@ async function renderRecados() {
     return;
   }
   const meuId = currentUserId();
+  const meuEmail = (state.session?.email || '').toLowerCase();
+  const usuariosPorEmail = {};
+  state.recadosUsuarios.forEach(u => { usuariosPorEmail[String(u.email || '').toLowerCase()] = u.nome || u.email; });
   grid.innerHTML = state.recados.map((r, i) => {
     const editado = Boolean(r.editado_em) && r.editado_em !== r.criado_em;
-    // Só quem escreveu o recado pode editar/apagar — mesmo administradores não mexem no recado alheio.
-    const podeGerenciar = Boolean(meuId) && r.autor_id === meuId;
+    const decoded = decodeRecadoTexto(r.texto);
+    // Editar continua só de quem escreveu — mas apagar, qualquer administrador pode,
+    // independente de quem escreveu o recado.
+    const podeEditar = Boolean(meuId) && r.autor_id === meuId;
+    const podeExcluir = podeEditar || isAdminUser();
     const ehPrivado = r.visibilidade === 'admins';
+    const corIdx = decoded.cor != null ? decoded.cor : (i % 5);
+    const mencionados = decoded.mencao.map(email => usuariosPorEmail[String(email).toLowerCase()] || email);
+    const souMencionada = decoded.mencao.some(email => String(email).toLowerCase() === meuEmail);
     const respostas = state.recadosRespostas.filter(resp => resp.recado_id === r.id);
-    return `<div class="postit postit-cor-${i % 5}${ehPrivado ? ' postit-privado' : ''}">
+    return `<div class="postit postit-cor-${corIdx}${ehPrivado ? ' postit-privado' : ''}${souMencionada ? ' postit-me-mencionada' : ''}">
       <div class="postit-top">
         <span class="postit-autor">${escapeHtml(r.autor_nome || 'Alguém')}</span>
         <span class="postit-data">${fmtDataHora(r.criado_em)}</span>
       </div>
-      <div class="postit-texto">${escapeHtml(r.texto)}</div>
+      <div class="postit-texto">${escapeHtml(decoded.texto)}</div>
       <div class="postit-bottom">
         <div class="postit-tags">
           ${editado ? '<span class="postit-tag">editado</span>' : ''}
           ${ehPrivado ? '<span class="postit-tag postit-tag-priv">Só administradores</span>' : ''}
+          ${mencionados.map(nome => `<span class="postit-mencao-tag">@${escapeHtml(nome)}</span>`).join('')}
         </div>
-        ${podeGerenciar ? `<div class="postit-actions"><button type="button" onclick="openRecadoModal('${r.id}')" data-tip="Editar" aria-label="Editar">${pencilIconSvg()}</button><button type="button" onclick="excluirRecado('${r.id}')" data-tip="Excluir" aria-label="Excluir">${trashIconSvg()}</button></div>` : ''}
+        <div class="postit-actions">
+          ${podeEditar ? `<button type="button" onclick="openRecadoModal('${r.id}')" data-tip="Editar" aria-label="Editar">${pencilIconSvg()}</button>` : ''}
+          ${podeExcluir ? `<button type="button" onclick="excluirRecado('${r.id}')" data-tip="Excluir" aria-label="Excluir">${trashIconSvg()}</button>` : ''}
+        </div>
       </div>
       ${respostas.length ? `<div class="postit-respostas">${respostas.map(resp => recadoRespostaHtml(resp, meuId)).join('')}</div>` : ''}
       <div class="postit-responder">
@@ -18630,15 +18705,50 @@ function setRecadoVisibilidade(v) {
   document.querySelectorAll('#rec-visibilidade-row .intel-chip').forEach(el => el.classList.toggle('on', el.dataset.vis === v));
 }
 
-function openRecadoModal(id = '') {
+const RECADO_CORES = ['Amarelo', 'Rosa', 'Azul', 'Verde', 'Laranja'];
+let recadoCorSelecionada = null;
+let recadoMencaoSelecionada = [];
+
+function renderRecadoCorPicker() {
+  const el = document.getElementById('rec-cor-picker');
+  if (!el) return;
+  el.innerHTML = RECADO_CORES.map((nome, idx) => `<button type="button" class="postit-cor-swatch postit-cor-${idx}${recadoCorSelecionada === idx ? ' on' : ''}" onclick="setRecadoCor(${idx})" data-tip="${escapeHtml(nome)}" aria-label="${escapeHtml(nome)}"></button>`).join('');
+}
+function setRecadoCor(idx) {
+  recadoCorSelecionada = recadoCorSelecionada === idx ? null : idx;
+  document.getElementById('rec-cor').value = recadoCorSelecionada == null ? '' : recadoCorSelecionada;
+  renderRecadoCorPicker();
+}
+function renderRecadoMencaoPicker() {
+  const el = document.getElementById('rec-mencao-picker');
+  if (!el) return;
+  const meuEmail = (state.session?.email || '').toLowerCase();
+  const opcoes = state.recadosUsuarios.filter(u => String(u.email || '').toLowerCase() !== meuEmail);
+  if (!opcoes.length) { el.innerHTML = '<span class="form-help" style="padding:0">Nenhum outro usuário cadastrado ainda.</span>'; return; }
+  el.innerHTML = opcoes.map(u => `<button type="button" class="postit-mencao-opt${recadoMencaoSelecionada.includes(u.email) ? ' on' : ''}" onclick="toggleRecadoMencao(${attrJsString(u.email)})">${escapeHtml(u.nome || u.email)}</button>`).join('');
+}
+function toggleRecadoMencao(email) {
+  const idx = recadoMencaoSelecionada.indexOf(email);
+  if (idx >= 0) recadoMencaoSelecionada.splice(idx, 1); else recadoMencaoSelecionada.push(email);
+  renderRecadoMencaoPicker();
+}
+
+async function openRecadoModal(id = '') {
   const recado = id ? state.recados.find(r => String(r.id) === String(id)) : null;
+  const decoded = recado ? decodeRecadoTexto(recado.texto) : { texto: '', cor: null, mencao: [] };
   document.getElementById('rec-id').value = recado ? recado.id : '';
-  document.getElementById('rec-texto').value = recado ? recado.texto : '';
+  document.getElementById('rec-texto').value = decoded.texto;
   document.getElementById('modal-recado-title').textContent = recado ? 'Editar recado' : 'Novo recado';
   document.getElementById('rec-excluir-btn').classList.toggle('hidden', !recado);
   const visRow = document.getElementById('rec-visibilidade-row');
   if (visRow) visRow.classList.toggle('hidden', !isAdminUser());
   setRecadoVisibilidade(recado?.visibilidade === 'admins' ? 'admins' : 'todos');
+  recadoCorSelecionada = decoded.cor != null ? decoded.cor : null;
+  document.getElementById('rec-cor').value = recadoCorSelecionada == null ? '' : recadoCorSelecionada;
+  recadoMencaoSelecionada = [...decoded.mencao];
+  await loadRecadosUsuarios();
+  renderRecadoCorPicker();
+  renderRecadoMencaoPicker();
   document.getElementById('modal-recado').classList.add('show');
 }
 
@@ -18646,9 +18756,10 @@ async function salvarRecado() {
   const client = requireSupabaseSession();
   if (!client) return;
   const id = document.getElementById('rec-id').value;
-  const texto = document.getElementById('rec-texto').value.trim();
-  if (!texto) { alert('Escreva o recado antes de salvar.'); return; }
+  const textoDigitado = document.getElementById('rec-texto').value.trim();
+  if (!textoDigitado) { alert('Escreva o recado antes de salvar.'); return; }
   const visibilidade = isAdminUser() ? (document.getElementById('rec-visibilidade').value || 'todos') : 'todos';
+  const texto = encodeRecadoTexto(textoDigitado, recadoCorSelecionada, recadoMencaoSelecionada);
   if (id) {
     const row = { texto, visibilidade, editado_em: new Date().toISOString() };
     const { error } = await client.from('crm_recados').update(row).eq('id', id);
@@ -18795,10 +18906,10 @@ function boletoParcelaVencimentoStatus(parcela) {
   const today = dateOnly(isoToday());
   const diff = Math.round((due - today) / (1000 * 60 * 60 * 24));
   if (diff < 0) return { phrase: `Vencido há ${Math.abs(diff)} dia${Math.abs(diff) === 1 ? '' : 's'}`, cls: 'red' };
-  if (diff === 0) return { phrase: 'Vence hoje', cls: 'amber' };
+  if (diff === 0) return { phrase: 'Vence hoje', cls: 'red' };
   if (diff === 1) return { phrase: 'Vence amanhã', cls: 'amber' };
   if (diff <= 5) return { phrase: `Vence em ${diff} dias`, cls: 'amber' };
-  return { phrase: `Vence em ${diff} dias`, cls: 'blue' };
+  return { phrase: `Vence em ${diff} dias`, cls: 'lightred' };
 }
 function saleBoletoPago(venda) {
   const parcelas = saleBoletoParcelas(venda);
@@ -20391,6 +20502,12 @@ async function saveSalePdf(venda, file, kind) {
   return readPdfAsDataUrl(file);
 }
 
+// Atualiza só esta venda no Supabase (update direto por id) em vez de mandar a tabela
+// inteira de vendas de novo — a sincronização completa (syncCollectionToSupabase) é lenta
+// com muitas vendas e, se cair bem no meio de uma hidratação em tempo real, é descartada
+// silenciosamente (fica só na fila), deixando o campo vermelho por um tempo ou até perdendo
+// o número digitado quando os dados do servidor chegam por cima do que ainda não foi salvo.
+// Re-renderiza a lista IMEDIATAMENTE com o valor local, sem esperar a rede.
 async function salvarNfNumeroInline(id, valor) {
   const venda = state.vendas.find(v => v.id === id);
   if (!venda) return;
@@ -20398,9 +20515,18 @@ async function salvarNfNumeroInline(id, valor) {
   if ((saleNfNumber(venda) || '') === novo) return;
   venda.nfNumber = novo;
   STORE.save('vendas', state.vendas);
-  await syncCollectionToSupabase('vendas', state.vendas);
   renderVendas();
   if (!document.getElementById('view-notas')?.classList.contains('hidden')) renderNotasFiscais();
+  try {
+    const client = getSupabaseClient();
+    const session = await getSupabaseSession();
+    if (!client || !session) return;
+    const row = saleToRow(venda);
+    const { error } = await client.from('crm_vendas').update({ metadata: row.metadata }).eq('id', id);
+    if (error) throw error;
+  } catch (err) {
+    console.warn('Não consegui salvar o número da NF no Supabase agora (vai tentar de novo na próxima sincronização):', err);
+  }
 }
 
 async function uploadNF(id, ev) {
@@ -25476,7 +25602,10 @@ init();
       document.querySelectorAll('#boletoFilters .finance-filter').forEach(btn => btn.classList.toggle('active', btn.dataset.filter === docsState.boletoFilter));
 
       let rows = computed;
-      if (docsState.boletoFilter !== 'todos') rows = rows.filter(b => b.calc.status === docsState.boletoFilter);
+      // "Todos" mostra tudo que ainda precisa de atenção — pago já resolveu, então some da
+      // lista por padrão (só aparece de novo se clicar no filtro "Pagos").
+      if (docsState.boletoFilter === 'todos') rows = rows.filter(b => b.calc.status !== 'Pago');
+      else rows = rows.filter(b => b.calc.status === docsState.boletoFilter);
       if (docsState.boletosCliente) {
         const clienteKey = nameKey(docsState.boletosCliente);
         rows = rows.filter(b => nameKey(b.nome_fornecedor_cliente || '').includes(clienteKey) || clienteKey.includes(nameKey(b.nome_fornecedor_cliente || '')));
@@ -32974,6 +33103,14 @@ body.theme-dark .fin-pendencia-btn:hover { background: rgba(224,163,62,.28) !imp
 .postit-cor-2 { background: #C9E7FF !important; }
 .postit-cor-3 { background: #D7F5D0 !important; }
 .postit-cor-4 { background: #FFE0C2 !important; }
+.postit-cor-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+.postit-cor-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.postit-cor-swatch.on { border-color: var(--text); box-shadow: 0 0 0 2px var(--card); }
+.postit-mencao-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+.postit-mencao-opt { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font-size: 12px; cursor: pointer; color: var(--text-2); }
+.postit-mencao-opt.on { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 600; }
+.postit-mencao-tag { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: rgba(0,0,0,.14); color: rgba(0,0,0,.72); }
+.postit.postit-me-mencionada { outline: 2px solid #C93C37; outline-offset: 3px; }
 .postit.postit-privado { outline: 2px dashed rgba(0,0,0,.28); outline-offset: 3px; }
 .postit-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
 .postit-autor { font-weight: 700; font-size: 12px; color: #2a2a1e; }
@@ -33215,20 +33352,22 @@ body.theme-dark .btn:hover, body.theme-dark .gc-btn:hover, body.theme-dark .indu
 .btn-green, .whatsapp-link, .intel-wa{ background:#25D366 !important; border-color:#25D366 !important; color:#fff !important; }
 
 /* -- status em destaque (verde / amarelo / vermelho) em TODO o sistema, com ponto -- */
-.pill-green, .pill-amber, .pill-red{
+.pill-green, .pill-amber, .pill-red, .pill-lightred{
   border-radius:999px !important; font-weight:600 !important;
   padding:3px 10px 3px 9px !important; border:1px solid transparent !important;
 }
-.pill-green::before, .pill-amber::before, .pill-red::before{
+.pill-green::before, .pill-amber::before, .pill-red::before, .pill-lightred::before{
   content:""; display:inline-block; width:6px; height:6px; border-radius:999px;
   background: currentColor; margin-right:6px; vertical-align:1px;
 }
 .pill-green{ background:#EAF6EE !important; color:#1E6B3A !important; border-color:#CBE8D4 !important; }
 .pill-amber{ background:#FCF5E3 !important; color:#8A6410 !important; border-color:#F0E2B6 !important; }
 .pill-red{ background:#FCECEC !important; color:#B0322F !important; border-color:#F2CFCE !important; }
+.pill-lightred{ background:#FDF2F1 !important; color:#C06B65 !important; border-color:#F5D9D6 !important; }
 body.theme-dark .pill-green{ background:rgba(46,125,74,.20) !important; color:#7fd39a !important; border-color:rgba(127,211,154,.35) !important; }
 body.theme-dark .pill-amber{ background:rgba(138,100,16,.22) !important; color:#e6c469 !important; border-color:rgba(230,196,105,.35) !important; }
 body.theme-dark .pill-red{ background:rgba(176,50,47,.22) !important; color:#f2a09e !important; border-color:rgba(242,160,158,.35) !important; }
+body.theme-dark .pill-lightred{ background:rgba(176,50,47,.12) !important; color:#e0a29e !important; border-color:rgba(224,162,158,.30) !important; }
 
 /* -- inputs: foco limpo e consistente -- */
 .form-input, .industrial-input, input[type="text"], input[type="date"], select, textarea{
