@@ -5487,7 +5487,7 @@ body,
 }
 
 .industrial-btn.secondary,
-.btn:not(.btn-primary):not(.btn-green):not(.btn-danger) {
+.btn:not(.btn-primary):not(.btn-green):not(.btn-danger):not(.btn-recado-venda) {
   background: var(--crm-surface) !important;
   color: var(--crm-text) !important;
   border-color: var(--crm-border) !important;
@@ -18757,6 +18757,7 @@ function toggleRecadoMencao(email) {
 async function criarRecadoDaVenda(id) {
   const venda = (state.vendas || []).find(v => String(v.id) === String(id));
   if (!venda) { alert('Venda não encontrada.'); return; }
+  navTo('recados');
   await openRecadoModal();
   const partes = ['Sobre a venda nº ' + (venda.numeroVenda || venda.id)];
   if (venda.cliente) partes.push('de ' + venda.cliente);
@@ -19931,6 +19932,7 @@ function renderVendas() {
           <div class="row-actions">
             <button class="btn btn-small" onclick="openEditVenda('${r.id}')">Editar</button>
             <button class="btn btn-small btn-danger" onclick="excluirVenda('${r.id}')" data-tip="Apagar venda" aria-label="Apagar venda">${trashIconSvg()}</button>
+            <button class="btn btn-small btn-recado-venda" onclick="criarRecadoDaVenda('${r.id}')" data-tip="Criar recado sobre esta venda" aria-label="Criar recado sobre esta venda">R</button>
             <button class="btn btn-small" onclick="verMaisVenda('${r.id}')">Ver mais</button>
           </div>
         </td>
@@ -33617,7 +33619,7 @@ body.theme-dark #gso-calc .gc-tabs button.on, body.theme-dark #gso-calc .gc-ml-s
 body.theme-dark #gso-calc .gc-btn:not(.dark):not(.zap):not(.red){
   background:#3F3F3F !important; border-color:#585858 !important; color:#F2F2F2 !important;
 }
-body.theme-dark .btn:not(.btn-primary):not(.btn-green):not(.btn-danger):not(.gc-btn){
+body.theme-dark .btn:not(.btn-primary):not(.btn-green):not(.btn-danger):not(.gc-btn):not(.btn-recado-venda){
   background:#343434 !important; border-color:#525252 !important; color:#EDEDED !important; background-image:none !important;
 }
 /* FABs (voltar ao topo / tema) */
@@ -34297,7 +34299,11 @@ body.theme-dark #view-inteligencia .dash-inline-metrics > div, body.theme-dark #
 .nf-compact-missing { font-size: 11.5px; color: var(--text-2); }
 .nf-inline-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px; }
 .venda-data-cell { display: flex; flex-direction: column; }
-.venda-numero-linha { font-size: 11px; font-weight: 700; color: var(--text-2); margin-bottom: 2px; }
+.venda-numero-linha { font-size: 11px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+body:not(.theme-dark) .btn-recado-venda { background:#FFF5DF !important; border-color:#E8C87A !important; color:#8A6519 !important; font-weight:700 !important; }
+body:not(.theme-dark) .btn-recado-venda:hover { background:#FCEBC2 !important; border-color:#D9B354 !important; color:#8A6519 !important; }
+body.theme-dark .btn-recado-venda { background:rgba(224,184,96,.16) !important; border-color:rgba(224,184,96,.45) !important; color:#F0D18A !important; font-weight:700 !important; }
+body.theme-dark .btn-recado-venda:hover { background:rgba(224,184,96,.26) !important; border-color:rgba(224,184,96,.6) !important; color:#F0D18A !important; }
 .nf-inline-input { width: 74px; min-width: 0; padding: 5px 7px; font-size: 12px; border-radius: 6px; }
 #view-vendas .nf-inline-input.nf-inline-alert { border: 1.5px solid #F0C5C3 !important; background: #FBE8E8 !important; font-weight: 700 !important; }
 #view-vendas .nf-inline-input.nf-inline-alert, #view-vendas .nf-inline-input.nf-inline-alert::placeholder { color: #B0322F !important; }
