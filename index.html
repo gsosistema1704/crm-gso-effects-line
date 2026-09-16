@@ -19931,8 +19931,10 @@ function renderVendas() {
         <td data-label="Ações">
           <div class="row-actions">
             <button class="btn btn-small" onclick="openEditVenda('${r.id}')">Editar</button>
-            <button class="btn btn-small btn-danger" onclick="excluirVenda('${r.id}')" data-tip="Apagar venda" aria-label="Apagar venda">${trashIconSvg()}</button>
-            <button class="btn btn-small btn-recado-venda" onclick="criarRecadoDaVenda('${r.id}')" data-tip="Criar recado sobre esta venda" aria-label="Criar recado sobre esta venda">R</button>
+            <div class="row-actions-pair">
+              <button class="btn btn-small btn-recado-venda" onclick="criarRecadoDaVenda('${r.id}')" data-tip="Criar recado sobre esta venda" aria-label="Criar recado sobre esta venda">R</button>
+              <button class="btn btn-small btn-danger" onclick="excluirVenda('${r.id}')" data-tip="Apagar venda" aria-label="Apagar venda">${trashIconSvg()}</button>
+            </div>
             <button class="btn btn-small" onclick="verMaisVenda('${r.id}')">Ver mais</button>
           </div>
         </td>
@@ -34299,6 +34301,7 @@ body.theme-dark #view-inteligencia .dash-inline-metrics > div, body.theme-dark #
 .nf-compact-missing { font-size: 11.5px; color: var(--text-2); }
 .nf-inline-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px; }
 .venda-data-cell { display: flex; flex-direction: column; }
+.row-actions-pair { display: flex; flex-wrap: nowrap; gap: 6px; }
 .venda-numero-linha { font-size: 11px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
 body:not(.theme-dark) .btn-recado-venda { background:#FFF5DF !important; border-color:#E8C87A !important; color:#8A6519 !important; font-weight:700 !important; }
 body:not(.theme-dark) .btn-recado-venda:hover { background:#FCEBC2 !important; border-color:#D9B354 !important; color:#8A6519 !important; }
