@@ -13365,6 +13365,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       </div>
 
       <div class="card" style="max-width:720px;">
+        <div id="f-numero-venda" class="form-help" style="margin-bottom:10px;font-weight:700;font-size:13px;color:var(--text);"></div>
         <div class="form-row form-r2">
           <div>
             <label class="form-label">Data</label>
@@ -13588,6 +13589,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </div>
 
         <div class="form-actions">
+          <button class="btn hidden" id="nova-recado-btn" onclick="criarRecadoDaVenda(editingVendaId)">Criar recado sobre esta venda</button>
           <button class="btn" id="nova-cancel-btn" onclick="cancelarNovaOuEdicaoVenda()">Cancelar</button>
           <button class="btn btn-primary" id="nova-save-btn" onclick="salvarVenda()">Salvar venda</button>
         </div>
@@ -18750,6 +18752,19 @@ function toggleRecadoMencao(email) {
   const idx = recadoMencaoSelecionada.indexOf(email);
   if (idx >= 0) recadoMencaoSelecionada.splice(idx, 1); else recadoMencaoSelecionada.push(email);
   renderRecadoMencaoPicker();
+}
+
+async function criarRecadoDaVenda(id) {
+  const venda = (state.vendas || []).find(v => String(v.id) === String(id));
+  if (!venda) { alert('Venda não encontrada.'); return; }
+  await openRecadoModal();
+  const partes = ['Sobre a venda nº ' + (venda.numeroVenda || venda.id)];
+  if (venda.cliente) partes.push('de ' + venda.cliente);
+  if (venda.data) partes.push('(' + fmtDate(venda.data) + ')');
+  const textoEl = document.getElementById('rec-texto');
+  textoEl.value = partes.join(' ') + ':\n';
+  textoEl.focus();
+  textoEl.setSelectionRange(textoEl.value.length, textoEl.value.length);
 }
 
 async function openRecadoModal(id = '') {
@@ -24753,6 +24768,9 @@ function initEditVenda(id) {
   if (titleEl) titleEl.textContent = 'Editar venda nº ' + (venda.numeroVenda || '');
   if (subEl) subEl.textContent = 'Atualize os dados do pedido';
   if (saveBtn) saveBtn.textContent = 'Salvar alterações';
+  const numeroEl = document.getElementById('f-numero-venda');
+  if (numeroEl) numeroEl.textContent = 'Venda nº ' + (venda.numeroVenda || '—');
+  document.getElementById('nova-recado-btn')?.classList.remove('hidden');
 }
 
 function currentSaleItem() {
@@ -24954,6 +24972,9 @@ function initNova() {
   if (titleEl) titleEl.textContent = 'Nova venda';
   if (subEl) subEl.textContent = 'Registrar pedido';
   if (saveBtn) saveBtn.textContent = 'Salvar venda';
+  const numeroEl = document.getElementById('f-numero-venda');
+  if (numeroEl) numeroEl.textContent = 'Venda nº ' + nextSaleNumber() + ' (próximo número)';
+  document.getElementById('nova-recado-btn')?.classList.add('hidden');
   document.getElementById('f-data').value = lastVendaDataUsada || dashboardDateKey(new Date());
   document.getElementById('f-cliente').value = '';
   document.getElementById('f-valor').value = '';
