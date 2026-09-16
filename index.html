@@ -19918,7 +19918,7 @@ function renderVendas() {
       </div>`;
     return `
       <tr onclick="gsoToggleMobileCard(event, this)">
-        <td data-label="Data" data-preview="1"${saleCellClass(r, ['data'])}>${typeof gsoDateCell==='function'?gsoDateCell(r.data):fmtDate(r.data)}</td>
+        <td data-label="Data" data-preview="1"${saleCellClass(r, ['data'])}><div class="venda-data-cell"><div class="venda-numero-linha">nº ${r.numeroVenda || '—'}</div><div>${typeof gsoDateCell==='function'?gsoDateCell(r.data):fmtDate(r.data)}</div></div></td>
         <td data-label="Cliente" data-preview="1"${saleCellClass(r, ['cliente'])}>${r.revisaoCliente ? `<span class="revisao-dot gso-has-tip" data-tip="Cliente ambíguo — precisa revisar em Ver mais"></span> ` : ''}<span class="cliente-link" onclick="event.stopPropagation(); verMaisCliente(${attrJsString(r.cliente)})">${r.cliente}</span></td>
         <td data-label="Produto"${saleCellClass(r, ['produto','tamanho'])}>${r.produto}</td>
         <td data-label="Aroma"${saleCellClass(r, ['aroma'])}><span class="pill pill-aroma ${typeof gsoAromaClass==='function'?gsoAromaClass(r.aroma):''}">${r.aroma || 'Neutro'}</span></td>
@@ -34296,7 +34296,9 @@ body.theme-dark #view-inteligencia .dash-inline-metrics > div, body.theme-dark #
 /* Modal "Ver mais" (Vendas / Clientes) */
 .nf-compact-ok { font-size: 11.5px; font-weight: 600; color: var(--green-text); }
 .nf-compact-missing { font-size: 11.5px; color: var(--text-2); }
-.nf-inline-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.nf-inline-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px; }
+.venda-data-cell { display: flex; flex-direction: column; }
+.venda-numero-linha { font-size: 11px; font-weight: 700; color: var(--text-2); margin-bottom: 2px; }
 .nf-inline-input { width: 74px; min-width: 0; padding: 5px 7px; font-size: 12px; border-radius: 6px; }
 #view-vendas .nf-inline-input.nf-inline-alert { border: 1.5px solid #F0C5C3 !important; background: #FBE8E8 !important; font-weight: 700 !important; }
 #view-vendas .nf-inline-input.nf-inline-alert, #view-vendas .nf-inline-input.nf-inline-alert::placeholder { color: #B0322F !important; }
