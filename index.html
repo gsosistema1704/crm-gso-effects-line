@@ -743,7 +743,11 @@
   .card-collapse-btn { flex: none; width: 28px; height: 28px; border: 1px solid var(--border, #E2E2E2); border-radius: 8px; background: none; color: var(--text-2); cursor: pointer; font-size: 12px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: transform .15s ease; }
   .card-collapse-btn:hover { color: var(--text); border-color: var(--text-2); }
   .data-card.is-collapsed .card-collapse-btn { transform: rotate(-90deg); }
-  .data-card.is-collapsed table { display: none; }
+  .data-card.is-collapsed table,
+  .data-card.is-collapsed .stack-table,
+  .data-card.is-collapsed .stack-table tbody,
+  .data-card.is-collapsed .stack-table tr,
+  .data-card.is-collapsed .stack-table td { display: none !important; }
   .edited-cell { color: var(--primary-dark); font-weight: 700; }
   .edited-cell .pill { color: var(--primary-dark); border-color: var(--primary-dark); }
   .num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -26896,14 +26900,17 @@ function intelRenderOverview() {
         <div${lucroHojeIncompleto ? ' data-tooltip="Alguma venda de hoje tem produto sem custo cadastrado — o lucro pode estar abaixo do real"' : ''}><span>Lucro líquido${lucroHojeIncompleto ? ' *' : ''}</span><strong>${fmtBR(lucroHoje)}</strong></div>
       </div>
     </div>
-    <div class="card" style="margin-bottom:16px;">
+    <div class="card data-card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div><div class="card-title">Vendas em boleto</div><div class="card-sub">O valor só entra no faturamento depois de marcado como pago.</div></div>
-        ${boletosPendentes.length ? (() => {
-          const vencidoCount = boletosPendentes.filter(l => boletoParcelaVencimentoStatus(l.parcela).cls === 'red').length;
-          if (vencidoCount) return `<span class="pill pill-red">${vencidoCount} vencido${vencidoCount === 1 ? '' : 's'}</span>`;
-          return `<span class="pill pill-amber">${boletosPendentes.length} pendente${boletosPendentes.length === 1 ? '' : 's'}</span>`;
-        })() : ''}
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${boletosPendentes.length ? (() => {
+            const vencidoCount = boletosPendentes.filter(l => boletoParcelaVencimentoStatus(l.parcela).cls === 'red').length;
+            if (vencidoCount) return `<span class="pill pill-red">${vencidoCount} vencido${vencidoCount === 1 ? '' : 's'}</span>`;
+            return `<span class="pill pill-amber">${boletosPendentes.length} pendente${boletosPendentes.length === 1 ? '' : 's'}</span>`;
+          })() : ''}
+          <button type="button" class="card-collapse-btn" onclick="this.closest('.card').classList.toggle('is-collapsed')" aria-label="Minimizar">▾</button>
+        </div>
       </div>
       ${boletoLinhas.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table stack-table"><thead><tr><th>Data</th><th>Cliente</th><th>Vencimento</th><th class="num">Valor</th><th>Status</th><th style="width:1%;white-space:nowrap">Ação</th></tr></thead><tbody>${boletoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda em boleto registrada.</div>`}
     </div>
