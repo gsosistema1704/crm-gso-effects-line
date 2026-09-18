@@ -19916,8 +19916,8 @@ function renderVendas() {
     const nfWaTel = nfClienteCadastro ? intelWaDigits(nfClienteCadastro.telefone) : '';
     const nfWaMsg = `Olá ${r.cliente}, tudo bem?\nEsta é a sua nota fiscal referente a compra ${r.numeroVenda || ''}, feita no dia ${fmtDate(r.data)} !\nAtt Equipe GSO Effects Line 💨`;
     const nfWaBtn = !nfNumero ? '' : nfWaTel
-      ? `<a class="nf-wa-btn" target="_blank" rel="noopener" href="https://wa.me/${nfWaTel}?text=${encodeURIComponent(nfWaMsg)}" onclick="event.stopPropagation()" data-tip="Enviar a nota fiscal pelo WhatsApp do cliente">Enviar NF por WhatsApp</a>`
-      : `<span class="nf-wa-btn is-disabled" onclick="event.stopPropagation()" data-tip="Cliente sem telefone cadastrado">Enviar NF por WhatsApp</span>`;
+      ? `<a class="nf-wa-btn" target="_blank" rel="noopener" href="https://wa.me/${nfWaTel}?text=${encodeURIComponent(nfWaMsg)}" onclick="event.stopPropagation()" data-tip="Enviar a nota fiscal pelo WhatsApp do cliente">Enviar NF | Whatsapp</a>`
+      : `<span class="nf-wa-btn is-disabled" onclick="event.stopPropagation()" data-tip="Cliente sem telefone cadastrado">Enviar NF | Whatsapp</span>`;
     const nfCompact = `
       <div class="nf-inline-wrap" onclick="event.stopPropagation()">
         <input type="text" class="input nf-inline-input${nfNeedsAlert ? ' nf-inline-alert' : ''}"
@@ -34314,7 +34314,7 @@ body.theme-dark #view-inteligencia .dash-inline-metrics > div, body.theme-dark #
 .nf-compact-ok { font-size: 11.5px; font-weight: 600; color: var(--green-text); }
 .nf-compact-missing { font-size: 11.5px; color: var(--text-2); }
 .nf-inline-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px; }
-.nf-wa-btn { display: block; margin-top: 5px; padding: 3px 6px; border-radius: 6px; font-size: 10px; font-weight: 700; text-align: center; text-decoration: none; white-space: nowrap; background: #25D366 !important; color: #fff !important; border: 1px solid #1EBE5D; cursor: pointer; }
+.nf-wa-btn { display: block; box-sizing: border-box; width: 100%; margin-top: 5px; padding: 3px 4px; border-radius: 6px; font-size: 9.5px; line-height: 1.3; font-weight: 700; text-align: center; text-decoration: none; white-space: normal; overflow-wrap: break-word; background: #25D366 !important; color: #fff !important; border: 1px solid #1EBE5D; cursor: pointer; }
 .nf-wa-btn:hover { background: #1EBE5D !important; }
 .nf-wa-btn.is-disabled { background: #C9CDD3 !important; border-color: #C9CDD3; color: #6F6F6F !important; cursor: not-allowed; }
 body.theme-dark .nf-wa-btn.is-disabled { background: #444 !important; border-color: #444; color: #AAA !important; }
