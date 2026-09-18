@@ -28508,28 +28508,38 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<td style="text-align:right">' + fmt(it.precoEntrada) + '</td>' +
         '<td style="text-align:right">' + fmt(it.total) + '</td></tr>';
     }).join('');
-    var descontoBox = r.descontoValor > 0 ? '<div class="box"><span>Desconto' + (r.descontoPct != null ? ' (' + String(r.descontoPct).replace('.', ',') + '%)' : '') + '</span><strong>-' + fmt(r.descontoValor) + '</strong></div>' : '';
-    var subtotalRow = r.descontoValor > 0 ? '<div class="total" style="border:1px solid #d1d5db;margin-top:12px"><span>Subtotal (sem desconto)</span><strong style="font-size:16px">' + fmt(r.bruto) + '</strong></div>' : '';
     var freteBox = f.frete === 'Transportadora'
       ? '<div class="box"><span>Frete</span><strong>Transportadora' + (f.freteTransp ? ' — ' + esc(f.freteTransp) : '') + '</strong>' +
         (f.freteV ? '<span style="margin-top:4px">Valor: ' + fmt(num(f.freteV) || 0) + '</span>' : '') +
         (f.freteCotacao ? '<span>Cotação: ' + esc(f.freteCotacao) + '</span>' : '') + '</div>'
       : '<div class="box"><span>Frete</span><strong>' + esc(f.frete) + '</strong></div>';
+    var temDesconto = r.descontoValor > 0;
+    var totaisHtml = '<div class="totais">' +
+      (temDesconto ? '<div class="totais-row"><span>Subtotal</span><b>' + fmt(r.bruto) + '</b></div>' +
+        '<div class="totais-row desc"><span>Desconto' + (r.descontoPct != null ? ' (' + String(r.descontoPct).replace('.', ',') + '%)' : '') + '</span><b>-' + fmt(r.descontoValor) + '</b></div>' : '') +
+      '<div class="totais-row final"><span>TOTAL DO ORÇAMENTO</span><b>' + fmt(r.valor) + '</b></div>' +
+      '</div>';
     var hoje = new Date().toLocaleDateString('pt-BR');
     return '<!doctype html><html><head><meta charset="utf-8"><title>Orçamento' + (f.cliente ? ' - ' + esc(f.cliente) : '') + '</title>' +
-      '<style>body{font-family:Arial,sans-serif;padding:32px;color:#191919}h1{margin:0 0 4px;font-size:22px}p{color:#545454;margin:2px 0}' +
-      '.brand{font-weight:700;color:#6F6F6F;text-transform:uppercase;font-size:12px;letter-spacing:.08em}' +
+      '<style>body{font-family:Arial,sans-serif;padding:32px;color:#191919}h1{margin:18px 0 4px;font-size:22px}p{color:#545454;margin:2px 0}' +
+      '.doc-head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #191919;padding-bottom:16px}' +
+      '.doc-logo{height:56px;width:auto}' +
+      '.doc-empresa{font-size:12px;color:#545454;line-height:1.5}.doc-empresa strong{display:block;font-size:15px;color:#191919;text-transform:uppercase;letter-spacing:.04em}' +
       'table{border-collapse:collapse;width:100%;margin-top:18px}td,th{border:1px solid #d1d5db;padding:9px 10px;text-align:left}th{background:#f3f4f6;font-size:12px;text-transform:uppercase;letter-spacing:.03em}' +
       '.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:16px}.box{border:1px solid #d1d5db;border-radius:10px;padding:10px}.box span{display:block;color:#727272;font-size:12px}.box strong{font-size:15px}' +
-      '.total{margin-top:18px;border:2px solid #191919;border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}' +
-      '.total span{font-size:13px;color:#545454;text-transform:uppercase;letter-spacing:.05em}.total strong{font-size:24px}' +
+      '.totais{margin-top:18px;border:2px solid #191919;border-radius:10px;padding:14px 16px}' +
+      '.totais-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;color:#545454}' +
+      '.totais-row.desc b{color:#B85C56}' +
+      '.totais-row.final{border-top:1px solid #d1d5db;margin-top:6px;padding-top:12px;font-size:13px;text-transform:uppercase;letter-spacing:.05em}.totais-row.final b{font-size:24px;color:#191919}' +
       '.obs{margin-top:16px;font-size:13px;color:#545454;white-space:pre-wrap}</style></head><body>' +
-      '<div class="brand">GSO Effects Line</div><h1>Orçamento</h1>' +
+      '<div class="doc-head"><img class="doc-logo" src="assets/gso-logo-light.png" alt="GSO Effects Line">' +
+      '<div class="doc-empresa"><strong>GSO Effects Line</strong>Oliveira &amp; Oliveira Produtos para Artes Cênicas Ltda-ME<br>' +
+      'CNPJ: 24.769.324/0001-57 · Tel/WhatsApp: (51) 9 9992-9009</div></div>' +
+      '<h1>Orçamento</h1>' +
       '<p>Gerado em ' + hoje + (f.cliente ? ' · Cliente: ' + esc(f.cliente) : '') + '</p>' +
       '<table><thead><tr><th>Produto</th><th>Embalagem</th><th style="text-align:right">Qtd</th><th style="text-align:right">Unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>' + linhas + '</tbody></table>' +
-      '<div class="grid"><div class="box"><span>Pagamento</span><strong>' + esc(f.pag) + '</strong></div>' + freteBox + descontoBox + '</div>' +
-      subtotalRow +
-      '<div class="total"><span>Total do orçamento</span><strong>' + fmt(r.valor) + '</strong></div>' +
+      '<div class="grid"><div class="box"><span>Pagamento</span><strong>' + esc(f.pag) + '</strong></div>' + freteBox + '</div>' +
+      totaisHtml +
       (f.obs ? '<div class="obs">' + esc(f.obs) + '</div>' : '') +
       '<p style="margin-top:20px;font-size:12px;color:#8a8a8a">Orçamento sujeito à disponibilidade de estoque.</p>' +
       '</body></html>';
