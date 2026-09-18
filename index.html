@@ -28133,11 +28133,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       bruto += it.total;
       if (it.custoUn == null) semCusto = true; else custoProd += it.custoUn * it.unidades;
     });
-    var descontoValor = 0;
+    var descontoValor = 0, descontoPct = null;
     if (ctx.desconto) {
       var d = String(ctx.desconto).trim();
-      if (d.slice(-1) === '%') { var pc = num(d.slice(0, -1)) || 0; descontoValor = bruto * pc / 100; }
-      else descontoValor = num(d) || 0;
+      var ehPct = ctx.descontoTipo === 'pct' || d.slice(-1) === '%';
+      var dNum = ehPct ? (num(d.slice(-1) === '%' ? d.slice(0, -1) : d) || 0) : (num(d) || 0);
+      if (ehPct) { descontoPct = dNum; descontoValor = bruto * dNum / 100; }
+      else descontoValor = dNum;
     }
     var valor = Math.max(0, round2(bruto - descontoValor));
     var frete = (ctx.freteTipo === 'Subsidiado' || ctx.freteTipo === 'Grátis') ? (num(ctx.freteValor) || 0) : 0;
@@ -28178,7 +28180,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       sobraLitros: sobraLitros, sobraUn5: sobraUn5, sobraUn1: sobraUn1,
       un5: un5, un1: un1, caixas5: Math.floor(un5 / 4), restoUn5: un5 % 4, caixas1: Math.floor(un1 / 6), restoUn1: un1 % 6,
       caixas: caixas, unidades: unidades,
-      bruto: round2(bruto), descontoValor: round2(descontoValor), valor: valor,
+      bruto: round2(bruto), descontoValor: round2(descontoValor), descontoPct: descontoPct, valor: valor,
       custoProd: round2(custoProd), fiscal: fiscal, fin: fin, frete: frete, custoTotal: custoTotal,
       lucro: lucro, margem: margem, markup: markup, minimo: minimo, ideal: ideal, premium: premium,
       status: st, frase: frase, alertas: alertas, semCusto: semCusto, materiais: materiaisNecessarios(itens)
@@ -28186,7 +28188,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
 
   /* ---------- estado da UI ---------- */
-  var UI = { tab: 'pedido', itens: [], filtros: {}, estrTabela: 'consumidor', estrStatus: '', ordenar: 'menor', mlEditando: null, mlView: 'anuncios' };
+  var UI = { tab: 'pedido', itens: [], filtros: {}, estrTabela: 'consumidor', estrStatus: '', ordenar: 'menor', mlEditando: null, mlView: 'anuncios', descTipo: 'valor' };
 
   function prodRows() { return catalogo(); }
   function nomesUnicos() { var s = {}; prodRows().forEach(function (r) { s[r.produto] = 1; }); return Object.keys(s); }
@@ -28278,6 +28280,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       pag: ($('#gc-f-pag') || {}).value || 'Pix',
       frete: ($('#gc-f-frete') || {}).value || 'A combinar',
       freteV: ($('#gc-f-fretev') || {}).value || '',
+      freteTransp: (($('#gc-f-fretetransp') || {}).value || '').trim(),
+      freteCotacao: (($('#gc-f-fretecot') || {}).value || '').trim(),
       desc: ($('#gc-f-desc') || {}).value || '',
       cliente: (($('#gc-f-cli') || {}).value || '').trim(),
       vend: ($('#gc-f-vend') || {}).value || '',
@@ -28292,7 +28296,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function renderPedido() {
     var el = $('#gc-pedido'); if (!el) return;
-    var f = el.dataset.built ? fields() : { produto: nomesUnicos()[0] || '', embIdx: 0, aroma: 'Neutro', qtd: 1, tipo: 'Consumidor final', pag: 'Pix', frete: 'A combinar', freteV: '', desc: '', cliente: '', vend: usuarioAtual(), obs: '' };
+    var f = el.dataset.built ? fields() : { produto: nomesUnicos()[0] || '', embIdx: 0, aroma: 'Neutro', qtd: 1, tipo: 'Consumidor final', pag: 'Pix', frete: 'A combinar', freteV: '', freteTransp: '', freteCotacao: '', desc: '', cliente: '', vend: usuarioAtual(), obs: '' };
     var nomes = nomesUnicos();
     if (nomes.indexOf(f.produto) < 0) f.produto = nomes[0] || '';
     var embs = embOpcoes(f.produto); if (f.embIdx >= embs.length) f.embIdx = 0;
@@ -28300,7 +28304,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var aromaSel;
     if (!ac.usa) aromaSel = '<select id="gc-f-aroma" disabled><option>Neutro</option></select><div class="gc-hint">Sempre Neutro para este produto (liberável no cadastro).</div>';
     else aromaSel = '<select id="gc-f-aroma">' + ac.lista.map(function (a) { return '<option' + (a === f.aroma ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + (ac.novo ? '<option value="__novo">Cadastrar novo aroma…</option>' : '') + '</select>' + (ac.novo ? '<div class="gc-hint">Este produto permite cadastrar novos aromas.</div>' : '');
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
     el.innerHTML =
       '<div class="gc-pedido">' +
       '<div>' +
@@ -28311,9 +28315,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<label class="gcf">Quantidade<input id="gc-f-qtd" type="text" inputmode="numeric" value="' + esc(f.qtd) + '"></label>' +
       '<label class="gcf">Tipo de cliente<select id="gc-f-tipo">' + ['Consumidor final', 'Revendedor (Lojista)', 'Revendedor (10%)'].map(function (t) { return '<option' + (t === f.tipo ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf">Pagamento<select id="gc-f-pag">' + ['Pix', 'Crédito', 'Débito', 'Boleto', 'Dinheiro', 'A combinar'].map(function (t) { return '<option' + (t === f.pag ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
-      '<label class="gcf">Frete<select id="gc-f-frete">' + ['A combinar', 'Por conta do cliente', 'Subsidiado', 'Grátis'].map(function (t) { return '<option' + (t === f.frete ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
-      '<label class="gcf" id="gc-f-fretev-w" style="' + (f.frete === 'Subsidiado' || f.frete === 'Grátis' ? '' : 'display:none') + '">Custo do frete p/ GSO (R$)<input id="gc-f-fretev" type="text" inputmode="decimal" value="' + esc(f.freteV) + '"></label>' +
-      '<label class="gcf">Desconto<input id="gc-f-desc" type="text" inputmode="decimal" placeholder="ex.: 5% ou 50,00" value="' + esc(f.desc) + '"></label>' +
+      '<label class="gcf">Frete<select id="gc-f-frete">' + ['A combinar', 'Por conta do cliente', 'Subsidiado', 'Grátis', 'Transportadora'].map(function (t) { return '<option' + (t === f.frete ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
+      '<label class="gcf" id="gc-f-fretev-w" style="' + (f.frete === 'Subsidiado' || f.frete === 'Grátis' || f.frete === 'Transportadora' ? '' : 'display:none') + '">' + (f.frete === 'Transportadora' ? 'Valor do frete (R$)' : 'Custo do frete p/ GSO (R$)') + '<input id="gc-f-fretev" type="text" inputmode="decimal" value="' + esc(f.freteV) + '"></label>' +
+      '<label class="gcf" id="gc-f-fretetransp-w" style="' + (f.frete === 'Transportadora' ? '' : 'display:none') + '">Transportadora<input id="gc-f-fretetransp" type="text" value="' + esc(f.freteTransp) + '" placeholder="Nome da transportadora"></label>' +
+      '<label class="gcf" id="gc-f-fretecot-w" style="' + (f.frete === 'Transportadora' ? '' : 'display:none') + '">Cotação do frete<input id="gc-f-fretecot" type="text" value="' + esc(f.freteCotacao) + '" placeholder="Nº da cotação"></label>' +
+      '<label class="gcf">Desconto<span class="gc-un-toggle" style="margin-left:8px"><button type="button" class="gc-un-btn' + (UI.descTipo !== 'pct' ? ' on' : '') + '" data-desc-tipo="valor">R$</button><button type="button" class="gc-un-btn' + (UI.descTipo === 'pct' ? ' on' : '') + '" data-desc-tipo="pct">%</button></span><input id="gc-f-desc" type="text" inputmode="decimal" placeholder="0,00" value="' + esc(String(f.desc || '').replace('%', '')) + '"></label>' +
       '<label class="gcf">Vendedor<select id="gc-f-vend">' + vendedores().map(function (v) { return '<option' + (v === f.vend ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf full">Cliente <span style="color:var(--gcfnt)">(opcional na simulação)</span><input id="gc-f-cli" type="text" value="' + esc(f.cliente) + '" placeholder="Nome do cliente"></label>' +
       '<label class="gcf full">Observações comerciais<textarea id="gc-f-obs">' + esc(f.obs) + '</textarea></label>' +
@@ -28321,7 +28327,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<div class="gc-blk"><h2>Itens <span>' + UI.itens.length + '</span></h2>' + itensHTML() + '</div>' +
       '<div class="gc-blk"><h2>Simulações salvas <span>' + (store.sims || []).length + '</span></h2>' + simsHTML() + '</div>' +
       '</div>' +
-      '<div class="gc-blk" id="gc-res">' + resultadoHTML(r) + '</div>' +
+      '<div class="gc-blk" id="gc-res">' + resultadoHTML(r, f) + '</div>' +
       '</div>';
     el.dataset.built = '1';
   }
@@ -28333,11 +28339,20 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<div class="t">' + fmt(it.total) + '</div><button class="x" data-rm="' + i + '" title="Remover">×</button></div>';
     }).join('');
   }
-  function resultadoHTML(r) {
+  function resultadoHTML(r, f) {
     var P = params();
     var head = '<div class="gc-status"><div><div class="lab">TOTAL DO PEDIDO</div><div class="big">' + fmt(r.valor) + '</div></div><span class="gc-pill ' + r.status.cls + '" style="margin-left:auto">' + r.status.label + '</span></div>';
-    var kvTop = '<div class="gc-kv"><span class="l">Lucro estimado</span><b>' + fmt(r.lucro) + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Custo total</span><b>' + fmt(r.custoTotal) + '</b></div>';
+    var descontoRow = r.descontoValor > 0
+      ? '<div class="gc-kv"><span class="l">Subtotal (sem desconto)</span><b>' + fmt(r.bruto) + '</b></div>' +
+        '<div class="gc-kv"><span class="l">Desconto aplicado' + (r.descontoPct != null ? ' (' + String(r.descontoPct).replace('.', ',') + '%)' : '') + '</span><b>-' + fmt(r.descontoValor) + '</b></div>'
+      : '';
+    var freteTranspRow = (f && f.frete === 'Transportadora' && (f.freteTransp || f.freteCotacao))
+      ? '<div class="gc-kv"><span class="l">Transportadora</span><b>' + esc(f.freteTransp || '—') + (f.freteCotacao ? ' · cotação ' + esc(f.freteCotacao) : '') + '</b></div>'
+      : '';
+    var kvTop = descontoRow +
+      '<div class="gc-kv"><span class="l">Lucro estimado</span><b>' + fmt(r.lucro) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">Custo total</span><b>' + fmt(r.custoTotal) + '</b></div>' +
+      freteTranspRow;
     var msg = r.frase ? '<div class="gc-msg ' + (r.status.cls === 'gray' ? 'warn' : r.status.cls) + '">' + esc(r.frase) + '</div>' : '';
     var al = r.alertas.map(function (a) { return '<div class="gc-msg warn">' + esc(a) + '</div>'; }).join('');
     var materiaisRows = Object.keys(r.materiais || {})
@@ -28384,8 +28399,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function refreshResultado() {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
-    var res = $('#gc-res'); if (res) res.innerHTML = resultadoHTML(r);
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var res = $('#gc-res'); if (res) res.innerHTML = resultadoHTML(r, f);
     return r;
   }
   function addItem() {
@@ -28412,16 +28427,20 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function zapTexto() {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
     var linhas = ['Olá! Segue a simulação do seu pedido:', ''];
     UI.itens.forEach(function (it) {
       linhas.push('Produto: ' + it.produto + ' ' + it.tamanho + (aromaCfg(it.produto).usa ? ' ' + it.aroma : ''));
       linhas.push('Quantidade: ' + it.qtdEntrada + ' ' + (it.formato === 'CX' ? (it.qtdEntrada === 1 ? 'caixa' : 'caixas') + ' (' + it.fator + ' un cada)' : (it.qtdEntrada === 1 ? 'unidade' : 'unidades')));
       linhas.push('');
     });
+    if (r.descontoValor > 0) {
+      linhas.push('Subtotal: ' + fmt(r.bruto));
+      linhas.push('Desconto: -' + fmt(r.descontoValor) + (r.descontoPct != null ? ' (' + String(r.descontoPct).replace('.', ',') + '%)' : ''));
+    }
     linhas.push('Valor total: ' + fmt(r.valor));
     linhas.push('Pagamento: ' + f.pag);
-    linhas.push('Frete: ' + f.frete);
+    linhas.push('Frete: ' + f.frete + (f.frete === 'Transportadora' ? (f.freteTransp ? ' — ' + f.freteTransp : '') + (f.freteV ? ' — ' + fmt(num(f.freteV) || 0) : '') + (f.freteCotacao ? ' — cotação ' + f.freteCotacao : '') : ''));
     linhas.push('');
     linhas.push('Pedido sujeito à disponibilidade de estoque.');
     return linhas.join('\n');
@@ -28429,12 +28448,19 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function resumoTecnicoTexto() {
     var f = fields();
     var P = params();
-    var r = computeOrder(UI.itens, { params: P, desconto: f.desc, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: P, desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
     var linhas = ['Resumo técnico do pedido', ''];
     UI.itens.forEach(function (it) {
       linhas.push('- ' + it.produto + ' ' + it.tamanho + ' (' + it.embLabel + ') × ' + it.qtdEntrada + ' — ' + fmt(it.total));
     });
     linhas.push('');
+    if (r.descontoValor > 0) {
+      linhas.push('Subtotal (sem desconto): ' + fmt(r.bruto));
+      linhas.push('Desconto: -' + fmt(r.descontoValor) + (r.descontoPct != null ? ' (' + String(r.descontoPct).replace('.', ',') + '%)' : ''));
+    }
+    if (f.frete === 'Transportadora') {
+      linhas.push('Frete: Transportadora' + (f.freteTransp ? ' — ' + f.freteTransp : '') + (f.freteV ? ' — ' + fmt(num(f.freteV) || 0) : '') + (f.freteCotacao ? ' — cotação ' + f.freteCotacao : ''));
+    }
     linhas.push('Total do pedido: ' + fmt(r.valor) + ' (' + r.status.label + ')');
     linhas.push('Lucro estimado: ' + fmt(r.lucro));
     linhas.push('Mínimo recomendado: ' + fmt(r.minimo));
@@ -28469,7 +28495,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function orcamentoPdfHtml() {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
     var linhas = UI.itens.map(function (it) {
       return '<tr><td>' + esc(it.produto) + ' ' + esc(it.tamanho) + (aromaCfg(it.produto).usa ? ' · ' + esc(it.aroma) : '') + '</td>' +
         '<td>' + esc(it.embLabel) + '</td>' +
@@ -28477,7 +28503,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<td style="text-align:right">' + fmt(it.precoEntrada) + '</td>' +
         '<td style="text-align:right">' + fmt(it.total) + '</td></tr>';
     }).join('');
-    var descontoBox = r.descontoValor > 0 ? '<div class="box"><span>Desconto</span><strong>-' + fmt(r.descontoValor) + '</strong></div>' : '';
+    var descontoBox = r.descontoValor > 0 ? '<div class="box"><span>Desconto' + (r.descontoPct != null ? ' (' + String(r.descontoPct).replace('.', ',') + '%)' : '') + '</span><strong>-' + fmt(r.descontoValor) + '</strong></div>' : '';
+    var subtotalRow = r.descontoValor > 0 ? '<div class="total" style="border:1px solid #d1d5db;margin-top:12px"><span>Subtotal (sem desconto)</span><strong style="font-size:16px">' + fmt(r.bruto) + '</strong></div>' : '';
+    var freteBox = f.frete === 'Transportadora'
+      ? '<div class="box"><span>Frete</span><strong>Transportadora' + (f.freteTransp ? ' — ' + esc(f.freteTransp) : '') + '</strong>' +
+        (f.freteV ? '<span style="margin-top:4px">Valor: ' + fmt(num(f.freteV) || 0) + '</span>' : '') +
+        (f.freteCotacao ? '<span>Cotação: ' + esc(f.freteCotacao) + '</span>' : '') + '</div>'
+      : '<div class="box"><span>Frete</span><strong>' + esc(f.frete) + '</strong></div>';
     var hoje = new Date().toLocaleDateString('pt-BR');
     return '<!doctype html><html><head><meta charset="utf-8"><title>Orçamento' + (f.cliente ? ' - ' + esc(f.cliente) : '') + '</title>' +
       '<style>body{font-family:Arial,sans-serif;padding:32px;color:#191919}h1{margin:0 0 4px;font-size:22px}p{color:#545454;margin:2px 0}' +
@@ -28490,7 +28522,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<div class="brand">GSO Effects Line</div><h1>Orçamento</h1>' +
       '<p>Gerado em ' + hoje + (f.cliente ? ' · Cliente: ' + esc(f.cliente) : '') + '</p>' +
       '<table><thead><tr><th>Produto</th><th>Embalagem</th><th style="text-align:right">Qtd</th><th style="text-align:right">Unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>' + linhas + '</tbody></table>' +
-      '<div class="grid"><div class="box"><span>Pagamento</span><strong>' + esc(f.pag) + '</strong></div><div class="box"><span>Frete</span><strong>' + esc(f.frete) + '</strong></div>' + descontoBox + '</div>' +
+      '<div class="grid"><div class="box"><span>Pagamento</span><strong>' + esc(f.pag) + '</strong></div>' + freteBox + descontoBox + '</div>' +
+      subtotalRow +
       '<div class="total"><span>Total do orçamento</span><strong>' + fmt(r.valor) + '</strong></div>' +
       (f.obs ? '<div class="obs">' + esc(f.obs) + '</div>' : '') +
       '<p style="margin-top:20px;font-size:12px;color:#8a8a8a">Orçamento sujeito à disponibilidade de estoque.</p>' +
@@ -28507,11 +28540,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function salvarSim(convertida) {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
     if (!UI.itens.length) { alert('Adicione ao menos um item.'); return null; }
     var sim = {
       id: 's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      quando: hojeBR(), cliente: f.cliente || '—', tipo: f.tipo, pag: f.pag, frete: f.frete, freteV: f.freteV, desc: f.desc, obs: f.obs, vend: f.vend,
+      quando: hojeBR(), cliente: f.cliente || '—', tipo: f.tipo, pag: f.pag, frete: f.frete, freteV: f.freteV, freteTransp: f.freteTransp, freteCotacao: f.freteCotacao, desc: f.desc, descTipo: UI.descTipo, obs: f.obs, vend: f.vend,
       itens: JSON.parse(JSON.stringify(UI.itens)),
       valor: r.valor, margem: r.margem == null ? null : Math.round(r.margem * 10) / 10, statusLabel: r.status.label, statusCls: r.status.cls,
       conv: !!convertida
@@ -28542,7 +28575,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (irCadastrar && typeof openClienteModal === 'function') openClienteModal(f.cliente);
       return;
     }
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
     if (!(r.valor > 0)) { alert('O valor do pedido precisa ser maior que zero.'); return; }
     try {
       var itemsNat = UI.itens.map(function (it, i) {
@@ -29926,7 +29959,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (t.id === 'gc-limpar') { UI.itens = []; renderPedido(); return; }
       if (t.id === 'gc-dtec') {
         var f = fields();
-        var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+        var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
         var P = params();
         drOpen('Detalhes técnicos do pedido',
           UI.itens.map(function (it) {
@@ -29958,6 +29991,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var matAdd = t.closest('[data-mat-add]'); if (matAdd) { adicionarMaterial(); return; }
       var matDel = t.closest('[data-mat-del]'); if (matDel) { removerMaterial(matDel.dataset.matDel); return; }
       var mpUn = t.closest('[data-mp-un]'); if (mpUn) { var unParts = mpUn.dataset.mpUn.split('|'); setInsUnidade(unParts[0], unParts[1]); return; }
+      var descTipoBtn = t.closest('[data-desc-tipo]'); if (descTipoBtn) { UI.descTipo = descTipoBtn.dataset.descTipo; renderPedido(); return; }
       var recMatDel = t.closest('[data-rec-mat-del]'); if (recMatDel) { var rmParts = recMatDel.dataset.recMatDel.split('|'); removerMaterialDoProduto(rmParts[0], rmParts[1]); return; }
       var prodDel2 = t.closest('[data-receita-produto-del]'); if (prodDel2) { removerProdutoFormulacao(prodDel2.dataset.receitaProdutoDel); return; }
       var mp = t.closest('[data-mp]'); if (mp) { startEditMp(mp); return; }
@@ -30069,7 +30103,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         return;
       }
       if (t.id === 'gc-f-prod') { renderPedido(); return; }
-      if (t.id === 'gc-f-frete') { var w = $('#gc-f-fretev-w'); if (w) w.style.display = (t.value === 'Subsidiado' || t.value === 'Grátis') ? '' : 'none'; refreshResultado(); return; }
+      if (t.id === 'gc-f-frete') {
+        var ehTransp = t.value === 'Transportadora';
+        var w = $('#gc-f-fretev-w'); if (w) { w.style.display = (t.value === 'Subsidiado' || t.value === 'Grátis' || ehTransp) ? '' : 'none'; var lbl = w.querySelector('span') || w.firstChild; if (w.firstChild && w.firstChild.nodeType === 3) w.firstChild.textContent = ehTransp ? 'Valor do frete (R$)' : 'Custo do frete p/ GSO (R$)'; }
+        var wt = $('#gc-f-fretetransp-w'); if (wt) wt.style.display = ehTransp ? '' : 'none';
+        var wc = $('#gc-f-fretecot-w'); if (wc) wc.style.display = ehTransp ? '' : 'none';
+        refreshResultado(); return;
+      }
       if (t.id && t.id.indexOf('gc-f-') === 0) { refreshResultado(); return; }
     });
     root.addEventListener('input', function (e) {
@@ -30089,12 +30129,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function reabrirSim(id) {
     var s = (store.sims || []).filter(function (x) { return x.id === id; })[0]; if (!s) return;
     UI.itens = JSON.parse(JSON.stringify(s.itens || []));
+    UI.descTipo = s.descTipo || (String(s.desc || '').slice(-1) === '%' ? 'pct' : 'valor');
     renderPedido();
-    var m = { 'gc-f-cli': s.cliente === '—' ? '' : s.cliente, 'gc-f-desc': s.desc || '', 'gc-f-fretev': s.freteV || '', 'gc-f-obs': s.obs || '' };
+    var m = { 'gc-f-cli': s.cliente === '—' ? '' : s.cliente, 'gc-f-desc': String(s.desc || '').replace('%', ''), 'gc-f-fretev': s.freteV || '', 'gc-f-fretetransp': s.freteTransp || '', 'gc-f-fretecot': s.freteCotacao || '', 'gc-f-obs': s.obs || '' };
     Object.keys(m).forEach(function (idc) { var el = $('#' + idc); if (el) el.value = m[idc]; });
     var sels = { 'gc-f-tipo': s.tipo, 'gc-f-pag': s.pag, 'gc-f-frete': s.frete, 'gc-f-vend': s.vend };
     Object.keys(sels).forEach(function (idc) { var el = $('#' + idc); if (el && sels[idc]) el.value = sels[idc]; });
-    refreshResultado();
+    renderPedido();
     setTab('pedido');
   }
   function copiarSim(id) {
