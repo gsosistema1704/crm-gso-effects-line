@@ -28341,10 +28341,15 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function resultadoHTML(r, f) {
     var P = params();
-    var head = '<div class="gc-status"><div><div class="lab">TOTAL DO PEDIDO</div><div class="big">' + fmt(r.valor) + '</div></div><span class="gc-pill ' + r.status.cls + '" style="margin-left:auto">' + r.status.label + '</span></div>';
-    var descontoRow = r.descontoValor > 0
-      ? '<div class="gc-kv"><span class="l">Subtotal (sem desconto)</span><b>' + fmt(r.bruto) + '</b></div>' +
-        '<div class="gc-kv"><span class="l">Desconto aplicado' + (r.descontoPct != null ? ' (' + String(r.descontoPct).replace('.', ',') + '%)' : '') + '</span><b>-' + fmt(r.descontoValor) + '</b></div>'
+    var temDesconto = r.descontoValor > 0;
+    var head = temDesconto
+      ? '<div class="gc-status"><div>' +
+          '<div class="lab">VALOR TOTAL</div><div style="font-size:17px;font-weight:700;color:var(--gcfnt);text-decoration:line-through">' + fmt(r.bruto) + '</div>' +
+          '<div class="lab" style="margin-top:8px">VALOR TOTAL COM DESCONTO</div><div class="big">' + fmt(r.valor) + '</div>' +
+        '</div><span class="gc-pill ' + r.status.cls + '" style="margin-left:auto">' + r.status.label + '</span></div>'
+      : '<div class="gc-status"><div><div class="lab">TOTAL DO PEDIDO</div><div class="big">' + fmt(r.valor) + '</div></div><span class="gc-pill ' + r.status.cls + '" style="margin-left:auto">' + r.status.label + '</span></div>';
+    var descontoRow = temDesconto
+      ? '<div class="gc-kv"><span class="l">Desconto aplicado' + (r.descontoPct != null ? ' (' + String(r.descontoPct).replace('.', ',') + '%)' : '') + '</span><b>-' + fmt(r.descontoValor) + '</b></div>'
       : '';
     var freteTranspRow = (f && f.frete === 'Transportadora' && (f.freteTransp || f.freteCotacao))
       ? '<div class="gc-kv"><span class="l">Transportadora</span><b>' + esc(f.freteTransp || '—') + (f.freteCotacao ? ' · cotação ' + esc(f.freteCotacao) : '') + '</b></div>'
