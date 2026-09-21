@@ -30287,6 +30287,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     Object.keys(sels).forEach(function (idc) { var el = $('#' + idc); if (el && sels[idc]) el.value = sels[idc]; });
     renderPedido();
     setTab('pedido');
+    if (typeof scrollCrmToTop === 'function') scrollCrmToTop();
   }
   function copiarSim(id) {
     var s = (store.sims || []).filter(function (x) { return x.id === id; })[0]; if (!s) return;
