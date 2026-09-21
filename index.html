@@ -28579,7 +28579,16 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<button class="gc-lnk" data-sim-del="' + s.id + '" style="margin-left:8px;color:var(--gcbd)">Excluir</button></div>';
     }).join('');
   }
-  function transformarEmVenda() {
+  function abrirEscolhaVenda() {
+    var f = fields();
+    if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; }
+    if (!f.cliente) { alert('Informe o cliente/lojista para transformar em venda.'); return; }
+    var html = '<div class="gc-hint" style="margin-bottom:14px">Pra qual cadastro esta venda deve ser lançada?</div>' +
+      '<button type="button" class="gc-btn dark" style="width:100%;margin-bottom:10px" data-venda-tipo="cliente">Cliente final (aba Vendas)</button>' +
+      '<button type="button" class="gc-btn dark" style="width:100%" data-venda-tipo="lojista">Lojista / Revendedor (aba Lojistas)</button>';
+    drOpen('Transformar em venda', html);
+  }
+  function transformarEmVendaCliente() {
     var f = fields();
     if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; }
     if (!f.cliente) { alert('Informe o cliente para transformar em venda.'); return; }
@@ -28625,8 +28634,60 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       salvarSim(true);
       UI.itens = [];
       renderPedido();
+      drClose();
       alert('Venda nº ' + numero + ' registrada a partir da simulação!\n\n' + f.cliente + ' — ' + fmt(venda.valor));
       if (typeof navTo === 'function') navTo('vendas');
+    } catch (err) {
+      alert('Não foi possível criar a venda automaticamente: ' + err.message);
+    }
+  }
+  function transformarEmVendaLojista() {
+    var f = fields();
+    if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; }
+    if (!f.cliente) { alert('Informe o lojista para transformar em venda.'); return; }
+    var cadastrado = false;
+    try { cadastrado = (state.lojistas || []).some(function (c) { return (typeof nameKey === 'function' ? nameKey(c.nome) === nameKey(f.cliente) : c.nome === f.cliente); }); } catch (e) {}
+    if (!cadastrado) {
+      var irCadastrar = confirm('Lojista "' + f.cliente + '" ainda não está cadastrado.\n\nCadastre o lojista antes de lançar a venda.\n\nAbrir o cadastro agora?');
+      if (irCadastrar && typeof openLojistaCadastroModal === 'function') openLojistaCadastroModal(f.cliente);
+      return;
+    }
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    if (!(r.valor > 0)) { alert('O valor do pedido precisa ser maior que zero.'); return; }
+    try {
+      var itemsLoj = UI.itens.map(function (it) {
+        return {
+          produto: it.produto, tamanho: it.tamanho, aroma: it.aroma || 'Neutro', qtd: it.qtdEntrada,
+          precoUnit: it.precoEntrada, preco: it.total,
+          descricao: it.qtdEntrada + ' ' + it.produto + ' ' + it.tamanho + (it.embLabel && it.embLabel.indexOf('Caixa') === 0 ? ' (' + it.embLabel + ')' : '')
+        };
+      });
+      var tamanhos = []; UI.itens.forEach(function (it) { if (tamanhos.indexOf(it.tamanho) < 0) tamanhos.push(it.tamanho); });
+      var aromas = []; UI.itens.forEach(function (it) { var a = it.aroma || 'Neutro'; if (aromas.indexOf(a) < 0) aromas.push(a); });
+      var numero = (typeof nextSaleNumberLojista === 'function') ? nextSaleNumberLojista() : ((state.vendasLojista || []).reduce(function (m, v) { return Math.max(m, Number(v.numeroVenda) || 0); }, 0) + 1);
+      var single = UI.itens.length === 1 ? UI.itens[0] : null;
+      var vendaLojista = {
+        id: 'vl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        numeroVenda: numero, data: hoje(),
+        cliente: f.cliente,
+        produto: itemsLoj.map(function (x) { return x.descricao; }).join(' + '),
+        tamanho: single ? single.tamanho : (tamanhos.length === 1 ? tamanhos[0] : 'Misto'),
+        aroma: aromas.join(' + ') || 'Neutro',
+        qtd: r.unidades, valor: r.valor, frete: (f.frete === 'Transportadora' ? (num(f.freteV) || 0) : 0),
+        precoSugerido: r.bruto, items: itemsLoj,
+        pagamento: f.pag, pagamentoDetalhes: {},
+        vendedor: f.vend || usuarioAtual(), obs: (f.obs ? f.obs + ' · ' : '') + 'Origem: Calculadora (simulação)' +
+          (f.frete === 'Transportadora' ? ' · Transportadora' + (f.freteTransp ? ' ' + f.freteTransp : '') + (f.freteCotacao ? ' · cotação ' + f.freteCotacao : '') : '')
+      };
+      state.vendasLojista = state.vendasLojista || [];
+      state.vendasLojista.push(vendaLojista);
+      if (typeof STORE !== 'undefined' && STORE && STORE.save) STORE.save('vendasLojista', state.vendasLojista);
+      salvarSim(true);
+      UI.itens = [];
+      renderPedido();
+      drClose();
+      alert('Venda lojista nº ' + numero + ' registrada a partir da simulação!\n\n' + f.cliente + ' — ' + fmt(vendaLojista.valor));
+      if (typeof navTo === 'function') navTo('lojista');
     } catch (err) {
       alert('Não foi possível criar a venda automaticamente: ' + err.message);
     }
@@ -29970,7 +30031,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (t.id === 'gc-copiar') { if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; } moOpen(resumoTecnicoTexto(), 'Resumo técnico do pedido'); return; }
       if (t.id === 'gc-pdf') { if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; } salvarOrcamentoPDF(); return; }
       if (t.id === 'gc-salvar') { if (salvarSim(false)) renderPedido(); return; }
-      if (t.id === 'gc-venda') { transformarEmVenda(); return; }
+      if (t.id === 'gc-venda') { abrirEscolhaVenda(); return; }
       if (t.id === 'gc-limpar') { UI.itens = []; renderPedido(); return; }
       if (t.id === 'gc-dtec') {
         var f = fields();
@@ -30007,6 +30068,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var matDel = t.closest('[data-mat-del]'); if (matDel) { removerMaterial(matDel.dataset.matDel); return; }
       var mpUn = t.closest('[data-mp-un]'); if (mpUn) { var unParts = mpUn.dataset.mpUn.split('|'); setInsUnidade(unParts[0], unParts[1]); return; }
       var descTipoBtn = t.closest('[data-desc-tipo]'); if (descTipoBtn) { UI.descTipo = descTipoBtn.dataset.descTipo; renderPedido(); return; }
+      var vendaTipoBtn = t.closest('[data-venda-tipo]'); if (vendaTipoBtn) { if (vendaTipoBtn.dataset.vendaTipo === 'lojista') transformarEmVendaLojista(); else transformarEmVendaCliente(); return; }
       var recMatDel = t.closest('[data-rec-mat-del]'); if (recMatDel) { var rmParts = recMatDel.dataset.recMatDel.split('|'); removerMaterialDoProduto(rmParts[0], rmParts[1]); return; }
       var prodDel2 = t.closest('[data-receita-produto-del]'); if (prodDel2) { removerProdutoFormulacao(prodDel2.dataset.receitaProdutoDel); return; }
       var mp = t.closest('[data-mp]'); if (mp) { startEditMp(mp); return; }
