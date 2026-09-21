@@ -28350,6 +28350,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     ['Luísa Oliveira', 'Guilherme Oliveira', 'Tuanny Santana'].forEach(function (n) { s[n] = 1; });
     return Object.keys(s).sort();
   }
+  function clienteSugestoesOptions() {
+    var admin = typeof isAdminUser === 'function' && isAdminUser();
+    var nomes = {};
+    try { (state.clientes || []).forEach(function (c) { if (c && c.nome && (admin || c.tipoCliente !== 'Direto Lab')) nomes[c.nome] = true; }); } catch (e) {}
+    if (admin) { try { (state.lojistas || []).forEach(function (l) { if (l && l.nome) nomes[l.nome] = true; }); } catch (e) {} }
+    return Object.keys(nomes).sort(function (a, b) { return a.localeCompare(b, 'pt-BR'); })
+      .map(function (n) { return '<option value="' + esc(n) + '">'; }).join('');
+  }
   function renderPedido() {
     var el = $('#gc-pedido'); if (!el) return;
     var f = el.dataset.built ? fields() : { produto: nomesUnicos()[0] || '', embIdx: 0, aroma: 'Neutro', qtd: 1, tipo: 'Consumidor final', pag: 'Pix', frete: 'A combinar', freteV: '', freteTransp: '', freteCotacao: '', desc: '', cliente: '', vend: usuarioAtual(), obs: '' };
@@ -28377,7 +28385,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<label class="gcf" id="gc-f-fretecot-w" style="' + (f.frete === 'Transportadora' ? '' : 'display:none') + '">Cotação do frete<input id="gc-f-fretecot" type="text" value="' + esc(f.freteCotacao) + '" placeholder="Nº da cotação"></label>' +
       '<label class="gcf">Desconto<span class="gc-un-toggle" style="margin-left:8px"><button type="button" class="gc-un-btn' + (UI.descTipo !== 'pct' ? ' on' : '') + '" data-desc-tipo="valor">R$</button><button type="button" class="gc-un-btn' + (UI.descTipo === 'pct' ? ' on' : '') + '" data-desc-tipo="pct">%</button></span><input id="gc-f-desc" type="text" inputmode="decimal" placeholder="0,00" value="' + esc(String(f.desc || '').replace('%', '')) + '"></label>' +
       '<label class="gcf">Vendedor<select id="gc-f-vend">' + vendedores().map(function (v) { return '<option' + (v === f.vend ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '</select></label>' +
-      '<label class="gcf full">Cliente <span style="color:var(--gcfnt)">(opcional na simulação)</span><input id="gc-f-cli" type="text" value="' + esc(f.cliente) + '" placeholder="Nome do cliente"></label>' +
+      '<label class="gcf full">Cliente <span style="color:var(--gcfnt)">(opcional na simulação)</span><input id="gc-f-cli" type="text" value="' + esc(f.cliente) + '" placeholder="Nome do cliente" list="gc-cli-list" autocomplete="off"><datalist id="gc-cli-list">' + clienteSugestoesOptions() + '</datalist></label>' +
       '<label class="gcf full">Observações comerciais<textarea id="gc-f-obs">' + esc(f.obs) + '</textarea></label>' +
       '</div><div class="gc-row"><button class="gc-btn dark" id="gc-add">Adicionar ao pedido</button></div></div>' +
       '<div class="gc-blk"><h2>Itens <span>' + UI.itens.length + '</span></h2>' + itensHTML() + '</div>' +
