@@ -28124,6 +28124,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function computeOrder(itens, ctx) {
     var P = ctx.params;
     var litros = 0, un5 = 0, un1 = 0, caixas = 0, unidades = 0, bruto = 0, custoProd = 0, semCusto = false;
+    // Peso estimado do pedido pra cotar frete: uma caixa de 4 galões de 5L pesa 22kg e uma
+    // caixa de 6 garrafas de 1L pesa 7kg — usamos essas referências pra achar o peso por
+    // unidade (22/4 e 7/6) e multiplicar pelo total de unidades, sejam elas vendidas em
+    // caixa fechada ou soltas. Produtos que não são vendidos em litros (ex.: Top Up em mL/g)
+    // não têm peso de referência, então entram em pesoSemPeso pra avisar que ficaram de fora.
+    var CAIXA_5L_KG = 22, CAIXA_1L_KG = 7;
+    var pesoKg = 0, pesoSemPeso = [];
     itens.forEach(function (it) {
       var L = litrosDe(it.tamanho);
       litros += L * it.unidades;
@@ -28132,6 +28139,12 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       unidades += it.unidades;
       bruto += it.total;
       if (it.custoUn == null) semCusto = true; else custoProd += it.custoUn * it.unidades;
+      if (L > 0) {
+        var caixaKg = L >= 5 ? CAIXA_5L_KG : CAIXA_1L_KG;
+        pesoKg += it.unidades * (caixaKg / fatorCaixa(it.tamanho));
+      } else if (pesoSemPeso.indexOf(it.produto + ' ' + it.tamanho) < 0) {
+        pesoSemPeso.push(it.produto + ' ' + it.tamanho);
+      }
     });
     var descontoValor = 0, descontoPct = null;
     if (ctx.desconto) {
@@ -28179,7 +28192,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       litros: round2(litros), bateladas: bateladas,
       sobraLitros: sobraLitros, sobraUn5: sobraUn5, sobraUn1: sobraUn1,
       un5: un5, un1: un1, caixas5: Math.floor(un5 / 4), restoUn5: un5 % 4, caixas1: Math.floor(un1 / 6), restoUn1: un1 % 6,
-      caixas: caixas, unidades: unidades,
+      caixas: caixas, unidades: unidades, pesoKg: round2(pesoKg), pesoSemPeso: pesoSemPeso,
       bruto: round2(bruto), descontoValor: round2(descontoValor), descontoPct: descontoPct, valor: valor,
       custoProd: round2(custoProd), fiscal: fiscal, fin: fin, frete: frete, custoTotal: custoTotal,
       lucro: lucro, margem: margem, markup: markup, minimo: minimo, ideal: ideal, premium: premium,
@@ -28364,7 +28377,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       .filter(function (k) { return (r.materiais[k] || 0) > 0.001; })
       .map(function (k) { return '<div class="gc-kv"><span class="l">Matéria-prima: ' + esc(insLabel(k)) + '</span><b>' + round2(r.materiais[k]).toLocaleString('pt-BR') + ' L</b></div>'; })
       .join('');
-    var prodRowsHtml = '<div class="gc-kv"><span class="l">Litros · bateladas (até ' + (P.batelada || 200) + 'L)</span><b>' + (r.litros || 0).toLocaleString('pt-BR') + ' L · ' + r.bateladas + '</b></div>';
+    var prodRowsHtml = (r.pesoKg > 0 ? '<div class="gc-kv"><span class="l">Peso estimado do pedido</span><b>' + r.pesoKg.toLocaleString('pt-BR', { minimumFractionDigits: r.pesoKg % 1 ? 1 : 0 }) + ' kg</b></div>' +
+      (r.pesoSemPeso.length ? '<div class="gc-hint" style="padding:2px 0 6px">Não inclui: ' + esc(r.pesoSemPeso.join(', ')) + ' (sem peso de referência cadastrado)</div>' : '')
+      : '') +
+      '<div class="gc-kv"><span class="l">Litros · bateladas (até ' + (P.batelada || 200) + 'L)</span><b>' + (r.litros || 0).toLocaleString('pt-BR') + ' L · ' + r.bateladas + '</b></div>';
     if (r.sobraLitros > 0) {
       var galoesHtml = [];
       if (r.un5 > 0) galoesHtml.push(r.sobraUn5 + ' galões de 5L');
@@ -28465,6 +28481,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     }
     if (f.frete === 'Transportadora') {
       linhas.push('Frete: Transportadora' + (f.freteTransp ? ' — ' + f.freteTransp : '') + (f.freteV ? ' — ' + fmt(num(f.freteV) || 0) : '') + (f.freteCotacao ? ' — cotação ' + f.freteCotacao : ''));
+    }
+    if (r.pesoKg > 0) {
+      linhas.push('Peso estimado: ' + r.pesoKg.toLocaleString('pt-BR') + ' kg' + (r.pesoSemPeso.length ? ' (não inclui: ' + r.pesoSemPeso.join(', ') + ')' : ''));
     }
     linhas.push('Total do pedido: ' + fmt(r.valor) + ' (' + r.status.label + ')');
     linhas.push('Lucro estimado: ' + fmt(r.lucro));
