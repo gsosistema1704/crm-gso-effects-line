@@ -27626,6 +27626,16 @@ body.gc-dro #gso-calc-dr{ right:0; }
 body.gc-mo #gso-calc-mbg{ display:flex; }
 #gso-calc-mbg .mod{ background:var(--gcsf,#fff); border-radius:14px; width:min(520px,100%); padding:20px; color:var(--gcink,#191B1E); border:1px solid var(--gcln,#ECEEF0); }
 #gso-calc-mbg textarea{ width:100%; min-height:220px; border:1px solid var(--gcln2,#DFE2E6); border-radius:10px; padding:12px; font:500 13px/1.5 inherit; font-family:inherit; margin-top:10px; color:var(--gcink); background:var(--gcsf); }
+.gc-vt-opts{ display:flex; flex-direction:column; gap:10px; }
+.gc-vt-opt{ display:flex; align-items:center; gap:12px; width:100%; padding:14px 16px; border-radius:12px; border:1.5px solid var(--gcln,#ECEEF0); background:var(--gcsf,#fff); cursor:pointer; text-align:left; transition:border-color .15s, background .15s, transform .12s, opacity .15s; }
+.gc-vt-opt:hover{ border-color:var(--gcac,#1C1F23); }
+.gc-vt-opt .gc-vt-ic{ font-size:22px; line-height:1; }
+.gc-vt-opt .gc-vt-tx{ display:flex; flex-direction:column; gap:2px; }
+.gc-vt-opt .gc-vt-tx b{ font-size:14px; color:var(--gcink,#191B1E); }
+.gc-vt-opt .gc-vt-tx small{ font-size:11.5px; color:var(--gcmut,#6F6F6F); }
+.gc-vt-opt.picked{ border-color:var(--gcok,#1E6B3A); background:var(--gcokbg,#EAF6EE); transform:scale(.98); }
+.gc-vt-opt.picked .gc-vt-tx small{ color:var(--gcok,#1E6B3A); font-weight:700; }
+.gc-vt-opt.dimmed{ opacity:.4; }
 body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{ --gcsf:#272727; --gcln:#3c3c3c; --gcln2:#4a4a4a; --gcink:#F4F4F4; --gcmut:#b2b2b2; --gcfnt:#8E8E8E; --gcgrbg:rgba(255,255,255,.08); --gcokbg:rgba(46,125,74,.22); --gcok:#7fd39a; --gcwabg:rgba(138,100,16,.22); --gcwa:#e6c469; --gcbdbg:rgba(176,50,47,.22); --gcbd:#f2a09e; }
 /* #gso-calc-dr fica fora do #gso-calc no DOM (é anexado direto no body), então não herda
    as variáveis --gc* de lá — sem isto, qualquer var(--gcXXX) sem fallback explícito dentro
@@ -28245,15 +28255,41 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     if (!$('#gso-calc-ovl')) {
       var ovl = document.createElement('div'); ovl.id = 'gso-calc-ovl'; document.body.appendChild(ovl);
       var dr = document.createElement('aside'); dr.id = 'gso-calc-dr'; dr.innerHTML = '<header><span id="gc-dr-t"></span><button class="gc-btn" id="gc-dr-x">Fechar</button></header><div class="b" id="gc-dr-b"></div>'; document.body.appendChild(dr);
-      var mb = document.createElement('div'); mb.id = 'gso-calc-mbg'; mb.innerHTML = '<div class="mod"><b id="gc-mo-t">Orçamento para WhatsApp</b><div class="gc-hint">Edite antes de copiar, se quiser.</div><textarea id="gc-mo-tx"></textarea><div class="gc-row"><button class="gc-btn zap" id="gc-mo-copy">Copiar mensagem</button><button class="gc-btn" id="gc-mo-x">Fechar</button></div></div>'; document.body.appendChild(mb);
+      var mb = document.createElement('div'); mb.id = 'gso-calc-mbg'; mb.innerHTML = '<div class="mod" id="gc-mo-box"></div>'; document.body.appendChild(mb);
       ovl.addEventListener('click', drClose);
       dr.querySelector('#gc-dr-x').addEventListener('click', drClose);
-      mb.addEventListener('click', function (e) { if (e.target === mb) moClose(); });
-      mb.querySelector('#gc-mo-x').addEventListener('click', moClose);
-      mb.querySelector('#gc-mo-copy').addEventListener('click', function () {
-        var t = $('#gc-mo-tx'); t.select();
-        try { navigator.clipboard.writeText(t.value); } catch (e) { try { document.execCommand('copy'); } catch (e2) {} }
-        this.textContent = 'Copiado!'; var b = this; setTimeout(function () { b.textContent = 'Copiar mensagem'; }, 1600);
+      mb.addEventListener('click', function (e) {
+        if (e.target === mb) { moClose(); return; }
+        if (e.target.closest('[data-mo-x]')) { moClose(); return; }
+        var copyBtn = e.target.closest('[data-mo-copy]');
+        if (copyBtn) {
+          var t = $('#gc-mo-tx');
+          if (t) {
+            t.select();
+            try { navigator.clipboard.writeText(t.value); } catch (e1) { try { document.execCommand('copy'); } catch (e2) {} }
+            copyBtn.textContent = 'Copiado!'; setTimeout(function () { copyBtn.textContent = 'Copiar mensagem'; }, 1600);
+          }
+          return;
+        }
+        var vtBtn = e.target.closest('[data-venda-tipo]');
+        if (vtBtn) {
+          if (vtBtn.classList.contains('picked')) return;
+          var cards = mb.querySelectorAll('[data-venda-tipo]');
+          cards.forEach(function (c) {
+            var isPicked = c === vtBtn;
+            c.classList.toggle('picked', isPicked);
+            c.classList.toggle('dimmed', !isPicked);
+            var sm = c.querySelector('small');
+            if (isPicked && sm) sm.textContent = 'Selecionado — lançando venda...';
+          });
+          var cancelBtn = mb.querySelector('[data-mo-x]'); if (cancelBtn) cancelBtn.style.visibility = 'hidden';
+          var tipo = vtBtn.dataset.vendaTipo;
+          setTimeout(function () {
+            moClose();
+            if (tipo === 'lojista') transformarEmVendaLojista(); else transformarEmVendaCliente();
+          }, 380);
+          return;
+        }
       });
     }
     bind(root);
@@ -28261,8 +28297,15 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function drOpen(t, html) { $('#gc-dr-t').textContent = t; $('#gc-dr-b').innerHTML = html; document.body.classList.add('gc-dro'); }
   function drClose() { document.body.classList.remove('gc-dro', 'gc-dr-flutuante'); var b = $('#gc-dr-b'); if (b) b.innerHTML = ''; }
-  function moOpen(txt, titulo) { $('#gc-mo-t').textContent = titulo || 'Orçamento para WhatsApp'; $('#gc-mo-tx').value = txt; document.body.classList.add('gc-mo'); }
+  function moOpen(html) { $('#gc-mo-box').innerHTML = html; document.body.classList.add('gc-mo'); }
   function moClose() { document.body.classList.remove('gc-mo'); }
+  function moOpenTexto(txt, titulo) {
+    moOpen('<b id="gc-mo-t">' + esc(titulo || 'Orçamento para WhatsApp') + '</b>' +
+      '<div class="gc-hint">Edite antes de copiar, se quiser.</div>' +
+      '<textarea id="gc-mo-tx"></textarea>' +
+      '<div class="gc-row"><button type="button" class="gc-btn zap" data-mo-copy>Copiar mensagem</button><button type="button" class="gc-btn" data-mo-x>Fechar</button></div>');
+    $('#gc-mo-tx').value = txt;
+  }
 
   function setTab(t) {
     UI.tab = t;
@@ -28602,10 +28645,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var f = fields();
     if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; }
     if (!f.cliente) { alert('Informe o cliente/lojista para transformar em venda.'); return; }
-    var html = '<div class="gc-hint" style="margin-bottom:14px">Pra qual cadastro esta venda deve ser lançada?</div>' +
-      '<button type="button" class="gc-btn dark" style="width:100%;margin-bottom:10px" data-venda-tipo="cliente">Cliente final (aba Vendas)</button>' +
-      '<button type="button" class="gc-btn dark" style="width:100%" data-venda-tipo="lojista">Lojista / Revendedor (aba Lojistas)</button>';
-    drOpen('Transformar em venda', html);
+    var html = '<b id="gc-mo-t">Transformar em venda</b>' +
+      '<div class="gc-hint" style="margin-bottom:14px">Pra qual cadastro esta venda deve ser lançada?</div>' +
+      '<div class="gc-vt-opts">' +
+      '<button type="button" class="gc-vt-opt" data-venda-tipo="cliente"><span class="gc-vt-ic">🧾</span><span class="gc-vt-tx"><b>Cliente final</b><small>Vai para a aba Vendas</small></span></button>' +
+      '<button type="button" class="gc-vt-opt" data-venda-tipo="lojista"><span class="gc-vt-ic">🏪</span><span class="gc-vt-tx"><b>Lojista / Revendedor</b><small>Vai para a aba Lojistas</small></span></button>' +
+      '</div>' +
+      '<button type="button" class="gc-btn" data-mo-x style="width:100%;margin-top:14px">Cancelar</button>';
+    moOpen(html);
   }
   function transformarEmVendaCliente() {
     var f = fields();
@@ -30046,8 +30093,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (t.id === 'gc-add') { addItem(); return; }
       var rm = t.closest('[data-rm]'); if (rm) { UI.itens.splice(parseInt(rm.dataset.rm, 10), 1); renderPedido(); return; }
       var pe = t.closest('[data-preco]'); if (pe) { editPrecoItem(parseInt(pe.dataset.preco, 10)); return; }
-      if (t.id === 'gc-zap') { if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; } moOpen(zapTexto()); return; }
-      if (t.id === 'gc-copiar') { if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; } moOpen(resumoTecnicoTexto(), 'Resumo técnico do pedido'); return; }
+      if (t.id === 'gc-zap') { if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; } moOpenTexto(zapTexto()); return; }
+      if (t.id === 'gc-copiar') { if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; } moOpenTexto(resumoTecnicoTexto(), 'Resumo técnico do pedido'); return; }
       if (t.id === 'gc-pdf') { if (!UI.itens.length) { alert('Adicione ao menos um item.'); return; } salvarOrcamentoPDF(); return; }
       if (t.id === 'gc-salvar') { if (salvarSim(false)) renderPedido(); return; }
       if (t.id === 'gc-venda') { abrirEscolhaVenda(); return; }
@@ -30087,7 +30134,6 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var matDel = t.closest('[data-mat-del]'); if (matDel) { removerMaterial(matDel.dataset.matDel); return; }
       var mpUn = t.closest('[data-mp-un]'); if (mpUn) { var unParts = mpUn.dataset.mpUn.split('|'); setInsUnidade(unParts[0], unParts[1]); return; }
       var descTipoBtn = t.closest('[data-desc-tipo]'); if (descTipoBtn) { UI.descTipo = descTipoBtn.dataset.descTipo; renderPedido(); return; }
-      var vendaTipoBtn = t.closest('[data-venda-tipo]'); if (vendaTipoBtn) { if (vendaTipoBtn.dataset.vendaTipo === 'lojista') transformarEmVendaLojista(); else transformarEmVendaCliente(); return; }
       var recMatDel = t.closest('[data-rec-mat-del]'); if (recMatDel) { var rmParts = recMatDel.dataset.recMatDel.split('|'); removerMaterialDoProduto(rmParts[0], rmParts[1]); return; }
       var prodDel2 = t.closest('[data-receita-produto-del]'); if (prodDel2) { removerProdutoFormulacao(prodDel2.dataset.receitaProdutoDel); return; }
       var mp = t.closest('[data-mp]'); if (mp) { startEditMp(mp); return; }
@@ -30238,7 +30284,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var s = (store.sims || []).filter(function (x) { return x.id === id; })[0]; if (!s) return;
     var salvo = UI.itens; UI.itens = s.itens || [];
     var txt = zapTexto(); UI.itens = salvo;
-    moOpen(txt);
+    moOpenTexto(txt);
   }
   function simularProduto(k) {
     var parts = k.split('|');
