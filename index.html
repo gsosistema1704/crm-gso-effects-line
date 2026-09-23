@@ -28856,6 +28856,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           : '<span class="gc-pill warn" title="Diferente da batelada de ' + bat + 'L">' + cl.litros + ' L</span>');
       var liq5 = cl.custoLitro > 0 ? fmt(round2(cl.custoLitro * 5)) : '—';
       var liq1 = cl.custoLitro > 0 ? fmt(round2(cl.custoLitro * 1)) : '—';
+      var liq100ml = cl.custoLitro > 0 ? fmt(round2(cl.custoLitro * 0.1)) : '—';
       var tamanhosCatalogo = []; prodRows().forEach(function (row) { if (row.produto === nomeDisplay && row.tamanho && tamanhosCatalogo.indexOf(row.tamanho) < 0) tamanhosCatalogo.push(row.tamanho); });
       var temLitro = tamanhosCatalogo.some(function (t) { return litrosDe(t) > 0; });
       var temML = tamanhosCatalogo.some(function (t) { return /mL$/i.test(t); });
@@ -28888,15 +28889,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           '<span class="gc-custo-item"><i>Custo total</i><b>' + fmt(ci.total) + '</b></span>' +
           '<button type="button" class="gc-lnk" data-open-custo="' + esc(ck) + '">Editar</button></div>';
       }).join('');
-      // Produtos em litros (Palco, Snow etc.) mantêm o rodapé completo. Produtos só em mL
-      // (ex.: Top Up Lentes) mostram só o custo por litro, como referência do líquido puro.
-      // Produtos só em gramas (ex.: Top Up Limpeza a Seco) não usam litro nenhum: sem rodapé,
-      // só as linhas de custo por formato (150g/250g/500g) abaixo.
+      // Mostra o custo de referência em L, 5L, 1L e 100mL pra qualquer produto medido em
+      // litro ou mL (Palco, Snow, Top Up Lentes etc.), mesmo que o catálogo dele só tenha
+      // um desses tamanhos — assim dá pra comparar custo em qualquer escala. Produtos só em
+      // gramas (ex.: Top Up Limpeza a Seco) não usam litro nenhum: sem rodapé, só as linhas
+      // de custo por formato (150g/250g/500g) abaixo.
       var footHtml = '';
-      if (temLitro || (!temML && tamanhosCatalogo.length === 0)) {
-        footHtml = '<div class="gc-receita-foot">Custo/L: <b>' + (cl.custoLitro > 0 ? fmt(round2(cl.custoLitro)) : '—') + '</b> · Líquido 5L: <b>' + liq5 + '</b> · Líquido 1L: <b>' + liq1 + '</b></div>';
-      } else if (temML) {
-        footHtml = '<div class="gc-receita-foot">Custo/L: <b>' + (cl.custoLitro > 0 ? fmt(round2(cl.custoLitro)) : '—') + '</b></div>';
+      if (temLitro || temML || tamanhosCatalogo.length === 0) {
+        footHtml = '<div class="gc-receita-foot">Custo/L: <b>' + (cl.custoLitro > 0 ? fmt(round2(cl.custoLitro)) : '—') + '</b> · Líquido 5L: <b>' + liq5 + '</b> · Líquido 1L: <b>' + liq1 + '</b> · Líquido 100mL: <b>' + liq100ml + '</b></div>';
       }
       return '<div class="gc-receita-card">' +
         '<div class="gc-receita-head"><b>' + esc(nomeDisplay) + '</b>' + totPill + potePill +
