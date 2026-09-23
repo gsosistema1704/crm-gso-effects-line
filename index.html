@@ -28007,8 +28007,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var c = store.custos[k] || {};
     var parts = k.split('|');
     var nome = parts[0], tam = parts[1] || '';
+    // "1.100mL" é um tamanho de referência (1L + 100mL, ex.: promoção "1L + brinde de 100ml"),
+    // não existe garrafa própria — reaproveita a embalagem de 1L e soma o líquido de 1,1L.
+    var is1100 = (tam === '1.100mL');
     var L = litrosDe(tam);
-    var Lliq = qtdEquivalenteDe(tam);
+    var Lliq = is1100 ? 1.1 : qtdEquivalenteDe(tam);
     // líquido: manual > receita (matéria-prima) > semente
     var liquido = c.liquido;
     var origem = 'manual';
@@ -28022,7 +28025,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var m = materiais();
     var is5 = L >= 5;
     var defGar, defRot, defCx;
-    if (L > 0) {
+    if (is1100) {
+      defGar = m.gar1; defRot = m.rot1; defCx = m.cx1 / 6;
+    } else if (L > 0) {
       defGar = is5 ? m.gar5 : m.gar1;
       defRot = is5 ? m.rot5 : m.rot1;
       defCx = is5 ? (m.cx5 / 4) : (m.cx1 / 6);
@@ -28891,6 +28896,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       }
       var tamanhos = tamanhosCatalogo.slice();
       (TAMANHOS_EXTRA_CUSTO[k] || []).forEach(function (t) { if (tamanhos.indexOf(t) < 0) tamanhos.push(t); });
+      // Referência "1L + 100ml de brinde": embalagem de 1L (mesma garrafa) + custo do
+      // líquido pra 1,1L — só faz sentido pra produtos que realmente usam garrafa de 1L/5L.
+      if (temLitro && tamanhos.indexOf('1.100mL') < 0) tamanhos.push('1.100mL');
       var custoRows = tamanhos.map(function (tam) {
         var ck = keyOf(nomeDisplay, tam); var ci = custoInfo(ck);
         return '<div class="gc-custo-row"><span class="gc-custo-tam">' + esc(tam) + '</span>' +
