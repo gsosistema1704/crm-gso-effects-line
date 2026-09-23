@@ -30540,7 +30540,7 @@ function abrirCategoriaModal(cat) {
   document.getElementById('modal-categoria-insumos-body').innerHTML = `
     <table class="stack-table">
       <thead><tr>
-        <th>Título</th><th>Tipo</th><th>Obs</th><th>Fornecedor</th>
+        <th>Título</th><th>Tipo</th><th style="width:200px">Obs</th><th>Fornecedor</th>
         <th class="num">Custo</th><th class="num">Estoque</th><th>Baixo estoque</th><th>Ações</th>
       </tr></thead>
       <tbody>${items.map(insumoRowHtml).join('')}</tbody>
@@ -30567,7 +30567,7 @@ function insumoRowHtml(i) {
     <tr>
       <td class="stack-title">${escapeHtml(i.titulo)}</td>
       <td data-label="Tipo">${tipoLabel(i.tipo)}</td>
-      <td data-label="Obs">${escapeHtml(i.observacao || '—')}</td>
+      <td data-label="Obs" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(i.observacao || '')}">${escapeHtml(i.observacao || '—')}</td>
       <td data-label="Fornecedor">${escapeHtml(i.fornecedor || '—')}</td>
       <td class="num" data-label="Custo">R$ ${fmtBR(i.custo)}</td>
       <td class="num" data-label="Estoque">${fmtNum(i.estoque)} ${escapeHtml(i.unidade || 'un')}${caixaInfo(i) ? `<div class="form-help" style="margin-top:2px;">${escapeHtml(caixaLabel(i))}</div>` : ''}</td>
