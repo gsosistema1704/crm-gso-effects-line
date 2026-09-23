@@ -28963,20 +28963,55 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
 
   /* ---------- ABA ESTRATÉGIA ---------- */
-  function estrDados() {
+  function estrLinhaDe(r, aromaDisplay, rotuloDisplay) {
     var P = params();
-    return prodRows().map(function (r) {
-      var k = keyOf(r.produto, r.tamanho); var ci = custoInfo(k); var pr = precos(k, r);
-      var preco = UI.estrTabela === 'revendedor' ? pr.revendedor : (UI.estrTabela === 'revendedor10' ? pr.revendedor10 : pr.consumidor);
-      var m = margemDe(preco, ci.total, P.fiscal);
-      var temCusto = ci.total != null, temPreco = preco != null;
-      var reaj = (pr.v2425 != null && pr.vigente != null && pr.vigente <= pr.v2425);
-      var margemSt = margemStatusDe(m, temCusto, temPreco);
-      var faixa = faixaDe(m, temCusto, temPreco);
-      var pendencias = pendenciasDe(temCusto, temPreco, reaj);
-      var lucro = (preco != null && ci.total != null) ? preco - ci.total - preco * P.fiscal / 100 : null;
-      return { r: r, k: k, ci: ci, pr: pr, preco: preco, margem: m, margemSt: margemSt, faixa: faixa, pendencias: pendencias, reaj: reaj, lucro: lucro, revisado: store.revisados[k] || null };
-    });
+    var k = keyOf(r.produto, r.tamanho); var ci = custoInfo(k); var pr = precos(k, r);
+    var preco = UI.estrTabela === 'revendedor' ? pr.revendedor : (UI.estrTabela === 'revendedor10' ? pr.revendedor10 : pr.consumidor);
+    var m = margemDe(preco, ci.total, P.fiscal);
+    var temCusto = ci.total != null, temPreco = preco != null;
+    var reaj = (pr.v2425 != null && pr.vigente != null && pr.vigente <= pr.v2425);
+    var margemSt = margemStatusDe(m, temCusto, temPreco);
+    var faixa = faixaDe(m, temCusto, temPreco);
+    var pendencias = pendenciasDe(temCusto, temPreco, reaj);
+    var lucro = (preco != null && ci.total != null) ? preco - ci.total - preco * P.fiscal / 100 : null;
+    var rDisplay = rotuloDisplay ? { produto: rotuloDisplay, tamanho: r.tamanho } : r;
+    return { r: rDisplay, aroma: aromaDisplay, k: k, ci: ci, pr: pr, preco: preco, margem: m, margemSt: margemSt, faixa: faixa, pendencias: pendencias, reaj: reaj, lucro: lucro, revisado: store.revisados[k] || null };
+  }
+  // Converte o tamanho do estoque do Laboratório ("1 litro", "5 litros") pro formato compacto
+  // usado no catálogo de preços ("1L", "5L") — "120mL"/"150g" já vêm compactos.
+  function tamanhoParaEstrategia(tamanho) {
+    var t = String(tamanho || '').toLowerCase().trim();
+    var m = t.match(/^([\d.,]+)\s*(litros|litro|l)$/);
+    if (m) return m[1].replace(',', '.') + 'L';
+    var m2 = t.match(/^([\d.,]+)\s*(ml|g)$/);
+    if (m2) return m2[1].replace(',', '.') + (m2[2] === 'ml' ? 'mL' : 'g');
+    return null;
+  }
+  function estrDados() {
+    var base = prodRows().map(function (r) { return estrLinhaDe(r, r.aroma || 'Neutro'); });
+    // O catálogo de preços só admite um preço por produto+tamanho (sem variar por aroma) —
+    // por isso acrescenta aqui, como linhas extras compartilhando o mesmo preço/custo, cada
+    // variante de aroma ou edição especial (ex.: "(Astro)") cadastrada no estoque do
+    // Laboratório, pra que todo produto do estoque apareça na Estratégia.
+    var vistos = {};
+    base.forEach(function (d) { vistos[normNome(d.r.produto) + '|' + normNome(d.r.tamanho)] = true; });
+    var extras = [];
+    if (window.Lab && Array.isArray(window.Lab.state.produtos)) {
+      window.Lab.state.produtos.forEach(function (p) {
+        if (p.ativo === false || !p.linha || !p.tamanho) return;
+        var tamComp = tamanhoParaEstrategia(p.tamanho);
+        if (!tamComp) return;
+        var chaveBase = normNome(p.linha) + '|' + normNome(tamComp);
+        if (!vistos[chaveBase]) return;
+        var aroma = p.aroma || 'Neutro';
+        var rotulo = String(p.nome || '').split(' - ')[0].trim() || p.linha;
+        var chaveVariante = chaveBase + '|' + normNome(aroma) + '|' + normNome(rotulo);
+        if (vistos[chaveVariante]) return;
+        vistos[chaveVariante] = true;
+        extras.push(estrLinhaDe({ produto: p.linha, tamanho: tamComp }, aroma, rotulo));
+      });
+    }
+    return base.concat(extras);
   }
   function renderEstrategia() {
     var el = $('#gc-estrategia'); if (!el) return;
@@ -29008,7 +29043,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (d.faixa) fParts.push(d.faixa.label);
       if (d.pendencias.length) fParts.push('Pendência');
       return '<tr data-f="' + esc(fParts.join('|')) + '">' +
-        '<td>' + esc(d.r.produto) + '</td><td>' + esc(d.r.tamanho) + '</td>' +
+        '<td>' + esc(d.r.produto) + '</td><td>' + esc(d.r.tamanho) + '</td><td>' + esc(d.aroma || 'Neutro') + '</td>' +
         '<td class="num">' + fmt(d.ci.total) + '</td>' +
         '<td class="num" data-ed="tab" data-campo="' + UI.estrTabela + '" data-k="' + esc(d.k) + '">' + fmt(d.preco) + '</td>' +
         '<td>' + faixaHtml + '</td>' +
@@ -29028,8 +29063,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<select data-estrtab>' + [['consumidor', 'Tabela: Consumidor final'], ['revendedor', 'Tabela: Revendedor (Lojista)'], ['revendedor10', 'Tabela: Revendedor (10%)']].map(function (o) { return '<option value="' + o[0] + '"' + (UI.estrTabela === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<select data-ord>' + [['menor', 'Ordenar: menor margem'], ['maior', 'Ordenar: maior margem'], ['lucro', 'Ordenar: maior lucro']].map(function (o) { return '<option value="' + o[0] + '"' + (UI.ordenar === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<button class="clear" data-clr="te">limpar filtros</button><span class="gc-hint-ed">· Clique no preço para editar</span></div>' +
-      '<div class="gc-table-wrap"><table class="gct" id="gc-te"><colgroup><col style="width:19%"><col style="width:7%"><col style="width:11%"><col style="width:12%"><col style="width:11%"><col style="width:12%"><col style="width:5%"><col style="width:23%"></colgroup>' +
-      '<thead><tr><th>PRODUTO</th><th>EMB.</th><th class="num">CUSTO</th><th class="num">PREÇO</th><th>FAIXA</th><th>MARGEM</th><th></th><th>AÇÕES</th></tr></thead>' +
+      '<div class="gc-table-wrap"><table class="gct" id="gc-te"><colgroup><col style="width:14%"><col style="width:7%"><col style="width:9%"><col style="width:11%"><col style="width:12%"><col style="width:11%"><col style="width:12%"><col style="width:5%"><col style="width:19%"></colgroup>' +
+      '<thead><tr><th>PRODUTO</th><th>EMB.</th><th>AROMA</th><th class="num">CUSTO</th><th class="num">PREÇO</th><th>FAIXA</th><th>MARGEM</th><th></th><th>AÇÕES</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div><div class="gc-empty" id="gc-te-e">Nada com esses filtros.</div></div>' +
       '<div class="gc-blk gc-params-grid" style="margin-top:14px"><h2>Parâmetros globais <span>clique em um valor para editar</span></h2>' + paramsKvHTML() + '</div>';
     if (UI.estrStatus) filtraStatus('te', UI.estrStatus);
