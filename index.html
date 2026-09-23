@@ -28994,7 +28994,12 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     // variante de aroma ou edição especial (ex.: "(Astro)") cadastrada no estoque do
     // Laboratório, pra que todo produto do estoque apareça na Estratégia.
     var vistos = {};
-    base.forEach(function (d) { vistos[normNome(d.r.produto) + '|' + normNome(d.r.tamanho)] = true; });
+    base.forEach(function (d) {
+      vistos[normNome(d.r.produto) + '|' + normNome(d.r.tamanho)] = true;
+      // marca também a variante completa (aroma + rótulo = produto) pra não duplicar quando
+      // o Laboratório tiver um cadastro "normal" (sem edição especial) do mesmo Neutro.
+      vistos[normNome(d.r.produto) + '|' + normNome(d.r.tamanho) + '|' + normNome(d.aroma) + '|' + normNome(d.r.produto)] = true;
+    });
     var extras = [];
     if (window.Lab && Array.isArray(window.Lab.state.produtos)) {
       window.Lab.state.produtos.forEach(function (p) {
