@@ -28054,30 +28054,28 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   // Tabela de valores (2026) — seeds das 3 tabelas comerciais (consumidor final / revenda / revenda 10%).
   // Servem só de valor inicial: qualquer edição feita direto na tabela (clique no valor) tem prioridade.
   var CONSUMIDOR_SEED = {
-    'Palco|1L': 30.00, 'Palco|5L': 90.00, 'DJs and Clubs|5L': 120.00, 'Haze|5L': 120.00, 'Haze Oil|5L': 290.00,
-    'CO₂ Simulator|5L': 240.00, 'Low Fog|5L': 240.00, 'Snow|5L': 90.00, 'Bubble|1L': 40.00, 'Clean|1L': 20.00,
-    'Top Up - Limpeza a Seco|150g': 50.00, 'Top Up - Lentes e Telas Cristalinas|120mL': 30.00, 'Álcool Isopropílico|1L': 40.00,
-    // 1.100mL = 1L + 100ml de brinde. Quem tem 1L e 5L: preço do 1L + 10% do preço do litro no 5L.
-    // Quem só tem 5L: preço do litro no 5L × 1,1. Quem só tem 1L: preço do 1L × 1,1.
-    'Palco|1.100mL': 31.80, 'DJs and Clubs|1.100mL': 37.40, 'Haze|1.100mL': 26.40, 'Haze Oil|1.100mL': 63.80,
-    'CO₂ Simulator|1.100mL': 52.80, 'Low Fog|1.100mL': 52.80, 'Snow|1.100mL': 19.80, 'Bubble|1.100mL': 44.00,
-    'Clean|1.100mL': 22.00, 'Álcool Isopropílico|1.100mL': 33.00
+    // 1L unificado com o antigo "1.100mL" (1L + 100ml de brinde): quem tinha 1L e 5L cobra o
+    // preço do 1L antigo + 10% do preço do litro no 5L; quem só tinha 5L cobra o litro do 5L
+    // × 1,1; quem só tinha 1L cobra o 1L antigo × 1,1.
+    'Palco|1L': 31.80, 'Palco|5L': 90.00, 'DJs and Clubs|1L': 37.40, 'DJs and Clubs|5L': 120.00,
+    'Haze|1L': 26.40, 'Haze|5L': 120.00, 'Haze Oil|1L': 63.80, 'Haze Oil|5L': 290.00,
+    'CO₂ Simulator|1L': 52.80, 'CO₂ Simulator|5L': 240.00, 'Low Fog|1L': 52.80, 'Low Fog|5L': 240.00,
+    'Snow|1L': 19.80, 'Snow|5L': 90.00, 'Bubble|1L': 44.00, 'Clean|1L': 22.00,
+    'Top Up - Limpeza a Seco|150g': 50.00, 'Top Up - Lentes e Telas Cristalinas|120mL': 30.00, 'Álcool Isopropílico|1L': 33.00
   };
   var REVENDEDOR_SEED = {
-    'Palco|1L': 15.40, 'Palco|5L': 56.90, 'DJs and Clubs|5L': 78.35, 'Haze|5L': 62.90, 'Haze Oil|5L': 233.00,
-    'CO₂ Simulator|5L': 167.90, 'Low Fog|5L': 167.90, 'Snow|5L': 46.80, 'Bubble|1L': 29.90, 'Clean|1L': 8.90,
-    'Top Up - Limpeza a Seco|150g': 28.75, 'Top Up - Lentes e Telas Cristalinas|120mL': 15.89,
-    'Palco|1.100mL': 16.54, 'DJs and Clubs|1.100mL': 17.24, 'Haze|1.100mL': 13.84, 'Haze Oil|1.100mL': 51.26,
-    'CO₂ Simulator|1.100mL': 36.94, 'Low Fog|1.100mL': 36.94, 'Snow|1.100mL': 10.30, 'Bubble|1.100mL': 32.89,
-    'Clean|1.100mL': 9.79
+    'Palco|1L': 16.54, 'Palco|5L': 56.90, 'DJs and Clubs|1L': 17.24, 'DJs and Clubs|5L': 78.35,
+    'Haze|1L': 13.84, 'Haze|5L': 62.90, 'Haze Oil|1L': 51.26, 'Haze Oil|5L': 233.00,
+    'CO₂ Simulator|1L': 36.94, 'CO₂ Simulator|5L': 167.90, 'Low Fog|1L': 36.94, 'Low Fog|5L': 167.90,
+    'Snow|1L': 10.30, 'Snow|5L': 46.80, 'Bubble|1L': 32.89, 'Clean|1L': 9.79,
+    'Top Up - Limpeza a Seco|150g': 28.75, 'Top Up - Lentes e Telas Cristalinas|120mL': 15.89
   };
   var REVENDEDOR10_SEED = {
-    'Palco|1L': 13.86, 'Palco|5L': 51.20, 'DJs and Clubs|5L': 70.50, 'Haze|5L': 55.90, 'Haze Oil|5L': 209.00,
-    'CO₂ Simulator|5L': 151.11, 'Low Fog|5L': 151.11, 'Snow|5L': 46.80, 'Bubble|1L': 29.90, 'Clean|1L': 8.90,
-    'Top Up - Limpeza a Seco|150g': 28.75, 'Top Up - Lentes e Telas Cristalinas|120mL': 15.89,
-    'Palco|1.100mL': 14.88, 'DJs and Clubs|1.100mL': 15.51, 'Haze|1.100mL': 12.30, 'Haze Oil|1.100mL': 45.98,
-    'CO₂ Simulator|1.100mL': 33.24, 'Low Fog|1.100mL': 33.24, 'Snow|1.100mL': 10.30, 'Bubble|1.100mL': 32.89,
-    'Clean|1.100mL': 9.79
+    'Palco|1L': 14.88, 'Palco|5L': 51.20, 'DJs and Clubs|1L': 15.51, 'DJs and Clubs|5L': 70.50,
+    'Haze|1L': 12.30, 'Haze|5L': 55.90, 'Haze Oil|1L': 45.98, 'Haze Oil|5L': 209.00,
+    'CO₂ Simulator|1L': 33.24, 'CO₂ Simulator|5L': 151.11, 'Low Fog|1L': 33.24, 'Low Fog|5L': 151.11,
+    'Snow|1L': 10.30, 'Snow|5L': 46.80, 'Bubble|1L': 32.89, 'Clean|1L': 9.79,
+    'Top Up - Limpeza a Seco|150g': 28.75, 'Top Up - Lentes e Telas Cristalinas|120mL': 15.89
   };
   function precos(k, row) {
     var o = store.tabelas[k] || {};
