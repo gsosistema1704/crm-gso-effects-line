@@ -31810,7 +31810,15 @@ async function renderIndicadores() {
       var tamanhoOk = !pTamanhoNorm || pTamanhoNorm === tamanhoNorm;
       return tamanhoOk && pAromaNorm === aromaNorm;
     }
-    var porLinha = ativos.filter(function (p) {
+    // Uma "linha" que bate EXATAMENTE com o nome da venda (ex.: "Haze") tem prioridade sobre
+    // uma que só contém o nome como substring (ex.: "Haze Oil" também contém "Haze" no
+    // início) — sem isso, "Haze" e "Haze Oil" ficavam ambíguos entre si e a baixa de
+    // estoque falhava ("não encontrado") mesmo com o produto certo cadastrado.
+    var porLinhaExata = ativos.filter(function (p) {
+      var linhaNorm = normalizeTexto(p.linha || '');
+      return linhaNorm && linhaNorm === nomeNorm && bateTamanhoEAroma(p);
+    });
+    var porLinha = porLinhaExata.length ? porLinhaExata : ativos.filter(function (p) {
       var linhaNorm = normalizeTexto(p.linha || '');
       if (!linhaNorm) return false;
       var linhaOk = nomeNorm.indexOf(linhaNorm) !== -1 || linhaNorm.indexOf(nomeNorm) !== -1;
