@@ -29027,6 +29027,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function renderEstrategia() {
     var el = $('#gc-estrategia'); if (!el) return;
     var dados = estrDados();
+    // "Valor Sugerido" (faixa de preço de revenda sugerida ao lojista) só faz sentido nas
+    // tabelas de revendedor — é a mesma faixa nas duas (a diferença de 10% é só no valor que
+    // o lojista paga pra GSO, não no que ele sugere cobrar do cliente dele).
+    var mostraSugerido = UI.estrTabela === 'revendedor' || UI.estrTabela === 'revendedor10';
     var n = { saudavel: 0, premium: 0, atencao: 0, baixo: 0, pendencia: 0 };
     dados.forEach(function (d) {
       if (d.margemSt) {
@@ -29053,10 +29057,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (d.margemSt) fParts.push(d.margemSt.label);
       if (d.faixa) fParts.push(d.faixa.label);
       if (d.pendencias.length) fParts.push('Pendência');
+      var sugeridoHtml = mostraSugerido
+        ? '<td data-ed="tab-text" data-campo="sugeridoTexto" data-k="' + esc(d.k) + '">' + esc((store.tabelas[d.k] && store.tabelas[d.k].sugeridoTexto) || '—') + '</td>'
+        : '';
       return '<tr data-f="' + esc(fParts.join('|')) + '">' +
         '<td>' + esc(d.r.produto) + '</td><td>' + esc(d.r.tamanho) + '</td><td>' + esc(d.aroma || 'Neutro') + '</td>' +
         '<td class="num">' + fmt(d.ci.total) + '</td>' +
         '<td class="num" data-ed="tab" data-campo="' + UI.estrTabela + '" data-k="' + esc(d.k) + '">' + fmt(d.preco) + '</td>' +
+        sugeridoHtml +
         '<td>' + faixaHtml + '</td>' +
         '<td>' + margemHtml + revisadoHtml + '</td>' +
         '<td class="gc-warn-cell">' + warnHtml + '</td>' +
@@ -29074,8 +29082,12 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<select data-estrtab>' + [['consumidor', 'Tabela: Consumidor final'], ['revendedor', 'Tabela: Revendedor (Lojista)'], ['revendedor10', 'Tabela: Revendedor (10%)']].map(function (o) { return '<option value="' + o[0] + '"' + (UI.estrTabela === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<select data-ord>' + [['menor', 'Ordenar: menor margem'], ['maior', 'Ordenar: maior margem'], ['lucro', 'Ordenar: maior lucro']].map(function (o) { return '<option value="' + o[0] + '"' + (UI.ordenar === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<button class="clear" data-clr="te">limpar filtros</button><span class="gc-hint-ed">· Clique no preço para editar</span></div>' +
-      '<div class="gc-table-wrap"><table class="gct" id="gc-te"><colgroup><col style="width:14%"><col style="width:7%"><col style="width:9%"><col style="width:11%"><col style="width:12%"><col style="width:11%"><col style="width:12%"><col style="width:5%"><col style="width:19%"></colgroup>' +
-      '<thead><tr><th>PRODUTO</th><th>EMB.</th><th>AROMA</th><th class="num">CUSTO</th><th class="num">PREÇO</th><th>FAIXA</th><th>MARGEM</th><th></th><th>AÇÕES</th></tr></thead>' +
+      '<div class="gc-table-wrap"><table class="gct" id="gc-te"><colgroup>' +
+      (mostraSugerido
+        ? '<col style="width:12%"><col style="width:6%"><col style="width:8%"><col style="width:10%"><col style="width:11%"><col style="width:13%"><col style="width:10%"><col style="width:11%"><col style="width:4%"><col style="width:15%">'
+        : '<col style="width:14%"><col style="width:7%"><col style="width:9%"><col style="width:11%"><col style="width:12%"><col style="width:11%"><col style="width:12%"><col style="width:5%"><col style="width:19%">') +
+      '</colgroup>' +
+      '<thead><tr><th>PRODUTO</th><th>EMB.</th><th>AROMA</th><th class="num">CUSTO</th><th class="num">PREÇO</th>' + (mostraSugerido ? '<th>VALOR SUGERIDO</th>' : '') + '<th>FAIXA</th><th>MARGEM</th><th></th><th>AÇÕES</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div><div class="gc-empty" id="gc-te-e">Nada com esses filtros.</div></div>' +
       '<div class="gc-blk gc-params-grid" style="margin-top:14px"><h2>Parâmetros globais <span>clique em um valor para editar</span></h2>' + paramsKvHTML() + '</div>';
     if (UI.estrStatus) filtraStatus('te', UI.estrStatus);
@@ -30096,14 +30108,24 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function startEdit(td) {
     if (td.querySelector('input')) return;
     var tipo = td.dataset.ed, k = td.dataset.k, campo = td.dataset.campo;
+    var isTexto = (tipo === 'tab-text');
     var old = td.textContent.trim();
-    var raw = old === '—' ? '' : old.replace('R$', '').trim();
+    var raw = old === '—' ? '' : (isTexto ? old : old.replace('R$', '').trim());
     td.dataset.old = old;
-    td.innerHTML = '<input class="gc-edin" type="text" inputmode="decimal" value="' + esc(raw) + '">';
+    td.innerHTML = '<input class="gc-edin" type="text"' + (isTexto ? ' style="width:140px"' : ' inputmode="decimal"') + ' value="' + esc(raw) + '"' + (isTexto ? ' placeholder="ex.: 240,00 a 300,00"' : '') + '>';
     var inp = td.querySelector('input'); inp.focus(); try { inp.select(); } catch (e) {}
     var fin = false;
     function done(salvar) {
       if (fin) return; fin = true;
+      if (isTexto) {
+        var vt = inp.value.trim();
+        if (!salvar || vt === raw) { td.innerHTML = old; return; }
+        var ot = store.tabelas[k] || {};
+        ot[campo] = vt || null; ot.em = hojeBR(); ot.por = usuarioAtual();
+        store.tabelas[k] = ot; save();
+        renderEstrategia(); refreshResultado();
+        return;
+      }
       var v = num(inp.value);
       if (!salvar || v == null || inp.value.trim() === raw) { td.innerHTML = old; return; }
       if (tipo === 'tab') {
