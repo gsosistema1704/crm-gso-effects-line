@@ -27565,6 +27565,13 @@ body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gc
 #gso-calc .gc-pill.gray{ background:var(--gcgrbg); color:var(--gcgr); }
 #gso-calc .gc-pill.blue{ background:var(--gcblbg); color:var(--gcbl); }
 
+#gso-calc .gc-dot{ display:inline-block; width:10px; height:10px; border-radius:50%; vertical-align:middle; cursor:help; }
+#gso-calc .gc-dot.ok{ background:var(--gcok); }
+#gso-calc .gc-dot.warn{ background:var(--gcwa); }
+#gso-calc .gc-dot.bad{ background:var(--gcbd); }
+#gso-calc .gc-dot.gray{ background:var(--gcgr); }
+#gso-calc .gc-dot.blue{ background:var(--gcbl); }
+
 #gso-calc .gc-status{ display:flex; align-items:center; gap:10px; padding-bottom:14px; border-bottom:1px solid var(--gcln); }
 #gso-calc .gc-status .lab{ font-weight:600; font-size:11px; color:var(--gcfnt); }
 #gso-calc .gc-status .big{ font-size:26px; font-weight:800; }
@@ -29049,10 +29056,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       return ma - mb;
     });
     var rows = dados.map(function (d) {
-      var faixaHtml = d.faixa ? '<span class="gc-pill ' + d.faixa.cls + '">' + d.faixa.label + '</span>' : '<span class="gc-pill gray">—</span>';
-      var margemHtml = d.margemSt ? '<span class="gc-pill ' + d.margemSt.cls + '">' + d.margemSt.label + '</span>' : '<span class="gc-pill gray">—</span>';
+      var faixaHtml = d.faixa ? '<span class="gc-dot ' + d.faixa.cls + '" title="' + esc(d.faixa.label) + '"></span>' : '<span class="gc-dot gray" title="Sem faixa"></span>';
+      var margemHtml = d.margemSt ? '<span class="gc-dot ' + d.margemSt.cls + '" title="' + esc(d.margemSt.label) + '"></span>' : '<span class="gc-dot gray" title="Sem margem"></span>';
       var revisadoHtml = d.revisado ? ' <span class="gc-pill gray" title="Revisado em ' + esc(d.revisado.em) + '">Revisado</span>' : '';
-      var warnHtml = d.pendencias.length ? '<span class="gc-warn-ico" title="' + esc(d.pendencias.join(' · ')) + '">⚠</span>' : '';
       var fParts = [d.r.produto];
       if (d.margemSt) fParts.push(d.margemSt.label);
       if (d.faixa) fParts.push(d.faixa.label);
@@ -29067,7 +29073,6 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         sugeridoHtml +
         '<td>' + faixaHtml + '</td>' +
         '<td>' + margemHtml + revisadoHtml + '</td>' +
-        '<td class="gc-warn-cell">' + warnHtml + '</td>' +
         '<td><button class="gc-lnk" data-prod-det="' + esc(d.ciKey) + '">Composição</button> · <button class="gc-lnk" data-simular="' + esc(d.k) + '">Simular</button> · <button class="gc-lnk" data-rev="' + esc(d.k) + '">' + (d.revisado ? 'Desmarcar' : 'Revisado') + '</button></td></tr>';
     }).join('');
     el.innerHTML =
@@ -29084,10 +29089,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<button class="clear" data-clr="te">limpar filtros</button><span class="gc-hint-ed">· Clique no preço para editar</span></div>' +
       '<div class="gc-table-wrap"><table class="gct" id="gc-te"><colgroup>' +
       (mostraSugerido
-        ? '<col style="width:12%"><col style="width:6%"><col style="width:8%"><col style="width:10%"><col style="width:11%"><col style="width:13%"><col style="width:10%"><col style="width:11%"><col style="width:4%"><col style="width:15%">'
-        : '<col style="width:14%"><col style="width:7%"><col style="width:9%"><col style="width:11%"><col style="width:12%"><col style="width:11%"><col style="width:12%"><col style="width:5%"><col style="width:19%">') +
+        ? '<col style="width:16%"><col style="width:7%"><col style="width:9%"><col style="width:11%"><col style="width:12%"><col style="width:15%"><col style="width:6%"><col style="width:6%"><col style="width:18%">'
+        : '<col style="width:20%"><col style="width:8%"><col style="width:11%"><col style="width:13%"><col style="width:14%"><col style="width:6%"><col style="width:6%"><col style="width:22%">') +
       '</colgroup>' +
-      '<thead><tr><th>PRODUTO</th><th>EMB.</th><th>AROMA</th><th class="num">CUSTO</th><th class="num">PREÇO</th>' + (mostraSugerido ? '<th>VALOR SUGERIDO</th>' : '') + '<th>FAIXA</th><th>MARGEM</th><th></th><th>AÇÕES</th></tr></thead>' +
+      '<thead><tr><th>PRODUTO</th><th>EMB.</th><th>AROMA</th><th class="num">CUSTO</th><th class="num">PREÇO</th>' + (mostraSugerido ? '<th>VALOR SUGERIDO</th>' : '') + '<th>FAIXA</th><th>MARGEM</th><th>AÇÕES</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div><div class="gc-empty" id="gc-te-e">Nada com esses filtros.</div></div>' +
       '<div class="gc-blk gc-params-grid" style="margin-top:14px"><h2>Parâmetros globais <span>clique em um valor para editar</span></h2>' + paramsKvHTML() + '</div>';
     if (UI.estrStatus) filtraStatus('te', UI.estrStatus);
