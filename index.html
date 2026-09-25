@@ -29058,7 +29058,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var rows = dados.map(function (d) {
       var faixaHtml = d.faixa ? '<span class="gc-dot ' + d.faixa.cls + '" title="' + esc(d.faixa.label) + '"></span>' : '<span class="gc-dot gray" title="Sem faixa"></span>';
       var margemHtml = d.margemSt ? '<span class="gc-dot ' + d.margemSt.cls + '" title="' + esc(d.margemSt.label) + '"></span>' : '<span class="gc-dot gray" title="Sem margem"></span>';
-      var revisadoHtml = d.revisado ? ' <span class="gc-pill gray" title="Revisado em ' + esc(d.revisado.em) + '">Revisado</span>' : '';
+      var revisadoHtml = d.revisado ? ' <span class="gc-dot gray" title="Revisado em ' + esc(d.revisado.em) + '"></span>' : '';
       var fParts = [d.r.produto];
       if (d.margemSt) fParts.push(d.margemSt.label);
       if (d.faixa) fParts.push(d.faixa.label);
