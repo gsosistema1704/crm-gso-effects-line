@@ -28965,7 +28965,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   /* ---------- ABA ESTRATÉGIA ---------- */
   function estrLinhaDe(r, aromaDisplay, rotuloDisplay) {
     var P = params();
-    var k = keyOf(r.produto, r.tamanho); var ci = custoInfo(k); var pr = precos(k, r);
+    var k = keyOf(r.produto, r.tamanho); var pr = precos(k, r);
+    // O tamanho "1L" hoje já embute os 100ml de brinde (preço unificado com o antigo
+    // "1.100mL") — por isso o custo exibido na Estratégia usa o custo do 1.100mL (garrafa de
+    // 1L + líquido de 1,1L), refletindo o litro realmente usado. 5L, 120mL e 150g continuam
+    // com o custo normal do próprio tamanho.
+    var ciKey = (r.tamanho === '1L') ? keyOf(r.produto, '1.100mL') : k;
+    var ci = custoInfo(ciKey);
     var preco = UI.estrTabela === 'revendedor' ? pr.revendedor : (UI.estrTabela === 'revendedor10' ? pr.revendedor10 : pr.consumidor);
     var m = margemDe(preco, ci.total, P.fiscal);
     var temCusto = ci.total != null, temPreco = preco != null;
@@ -28975,7 +28981,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var pendencias = pendenciasDe(temCusto, temPreco, reaj);
     var lucro = (preco != null && ci.total != null) ? preco - ci.total - preco * P.fiscal / 100 : null;
     var rDisplay = rotuloDisplay ? { produto: rotuloDisplay, tamanho: r.tamanho } : r;
-    return { r: rDisplay, aroma: aromaDisplay, k: k, ci: ci, pr: pr, preco: preco, margem: m, margemSt: margemSt, faixa: faixa, pendencias: pendencias, reaj: reaj, lucro: lucro, revisado: store.revisados[k] || null };
+    return { r: rDisplay, aroma: aromaDisplay, k: k, ciKey: ciKey, ci: ci, pr: pr, preco: preco, margem: m, margemSt: margemSt, faixa: faixa, pendencias: pendencias, reaj: reaj, lucro: lucro, revisado: store.revisados[k] || null };
   }
   // Converte o tamanho do estoque do Laboratório ("1 litro", "5 litros") pro formato compacto
   // usado no catálogo de preços ("1L", "5L") — "120mL"/"150g" já vêm compactos.
@@ -29054,7 +29060,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<td>' + faixaHtml + '</td>' +
         '<td>' + margemHtml + revisadoHtml + '</td>' +
         '<td class="gc-warn-cell">' + warnHtml + '</td>' +
-        '<td><button class="gc-lnk" data-prod-det="' + esc(d.k) + '">Composição</button> · <button class="gc-lnk" data-simular="' + esc(d.k) + '">Simular</button> · <button class="gc-lnk" data-rev="' + esc(d.k) + '">' + (d.revisado ? 'Desmarcar' : 'Revisado') + '</button></td></tr>';
+        '<td><button class="gc-lnk" data-prod-det="' + esc(d.ciKey) + '">Composição</button> · <button class="gc-lnk" data-simular="' + esc(d.k) + '">Simular</button> · <button class="gc-lnk" data-rev="' + esc(d.k) + '">' + (d.revisado ? 'Desmarcar' : 'Revisado') + '</button></td></tr>';
     }).join('');
     el.innerHTML =
       '<div class="gc-sums">' +
