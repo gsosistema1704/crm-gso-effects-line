@@ -30448,6 +30448,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         return;
       }
       if (t.id === 'gc-f-prod') { renderPedido(); return; }
+      if (t.id === 'gc-f-pag') {
+        // Ao trocar a forma de pagamento, a taxa financeira volta a seguir o padrão dela
+        // (ligada só em Crédito) — a usuária ainda pode desmarcar/marcar na hora pra essa
+        // simulação específica, mas trocar o pagamento reseta pro comportamento esperado.
+        var cbTaxaFin = $('#gc-f-taxafin'); if (cbTaxaFin) cbTaxaFin.checked = (t.value === 'Crédito');
+        refreshResultado(); return;
+      }
       if (t.id === 'gc-f-frete') {
         var ehTransp = t.value === 'Transportadora';
         var w = $('#gc-f-fretev-w'); if (w) { w.style.display = (t.value === 'Subsidiado' || t.value === 'Grátis' || ehTransp) ? '' : 'none'; var lbl = w.querySelector('span') || w.firstChild; if (w.firstChild && w.firstChild.nodeType === 3) w.firstChild.textContent = ehTransp ? 'Valor do frete (R$)' : 'Custo do frete p/ GSO (R$)'; }
