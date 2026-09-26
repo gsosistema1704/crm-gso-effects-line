@@ -27571,6 +27571,10 @@ body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gc
 #gso-calc .gc-dot.bad{ background:var(--crm-danger, #C93C37); }
 #gso-calc .gc-dot.gray{ background:var(--gcgr); }
 #gso-calc .gc-dot.blue{ background:var(--gcbl); }
+#gso-calc .gc-margem-val{ font-weight:700; font-variant-numeric:tabular-nums; cursor:help; }
+#gso-calc .gc-margem-val.ok{ color:var(--crm-success, #2E8B57); }
+#gso-calc .gc-margem-val.warn{ color:var(--crm-warning, #D9A441); }
+#gso-calc .gc-margem-val.bad{ color:var(--crm-danger, #C93C37); }
 
 #gso-calc .gc-status{ display:flex; align-items:center; gap:10px; padding-bottom:14px; border-bottom:1px solid var(--gcln); }
 #gso-calc .gc-status .lab{ font-weight:600; font-size:11px; color:var(--gcfnt); }
@@ -28101,29 +28105,45 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var consumidor = (o.consumidor != null) ? o.consumidor : (CONSUMIDOR_SEED[k] != null ? CONSUMIDOR_SEED[k] : (vigente != null ? round2(vigente * P.fatorConsumidor) : null));
     return { v2425: v2425, vigente: vigente, caixa: caixa, cxV2425: cxV2425, lojista: lojista, revendedor: revendedor, revendedor10: revendedor10, sugerido: sugerido, consumidor: consumidor, ov: o };
   }
-  function margemDe(preco, custoTotal, fiscalPct) {
+  // Margem final = preço − custo − fiscal (%) − taxa financeira (%), tudo sobre o preço.
+  // taxaFinPct é opcional (mantém compatibilidade com chamadas antigas que só passavam o
+  // fiscal): quando omitido, equivale a 0 — ou seja, sem taxa financeira embutida.
+  function margemDe(preco, custoTotal, fiscalPct, taxaFinPct) {
     if (preco == null || !preco || custoTotal == null) return null;
-    return ((preco - custoTotal - preco * (fiscalPct / 100)) / preco) * 100;
+    var fp = fiscalPct || 0, tp = taxaFinPct || 0;
+    return ((preco - custoTotal - preco * (fp / 100) - preco * (tp / 100)) / preco) * 100;
   }
-  function statusDe(margem, temCusto) {
-    var P = params();
-    if (!temCusto) return { k: 'semcusto', cls: 'gray', label: 'Sem custo' };
-    if (margem == null) return { k: 'sempreco', cls: 'gray', label: 'Sem preço' };
-    if (margem < P.margemMin) return { k: 'baixo', cls: 'bad', label: 'Abaixo do mínimo' };
-    if (margem < P.margem) return { k: 'atencao', cls: 'warn', label: 'Atenção' };
-    if (margem >= P.margemPremium) return { k: 'premium', cls: 'ok', label: 'Premium' };
-    return { k: 'saudavel', cls: 'ok', label: 'Saudável' };
-  }
-  // Estratégia separa o que era um único chip STATUS em três conceitos: Faixa (classificação
-  // comercial), Margem (saúde financeira) e pendências (dado faltando — não é uma margem ruim,
-  // é a ausência de informação, por isso vira um ícone de alerta em vez de um chip de margem).
-  function margemStatusDe(margem, temCusto, temPreco) {
+  // Classificação única de 4 faixas (usada em Estratégia, cards, Pedido/Simular): abaixo do
+  // mínimo (< margemMin) · saudável (margemMin até margem) · ideal (margem até margemPremium) ·
+  // premium (≥ margemPremium). A margem recebida já deve ser a "margem final" (com fiscal e,
+  // quando aplicável, taxa financeira já descontados) — a função não sabe nem precisa saber
+  // quais componentes entraram nela.
+  function margemFaixaDe(margem, temCusto, temPreco) {
     var P = params();
     if (!temCusto || !temPreco || margem == null) return null;
     if (margem < P.margemMin) return { k: 'baixo', cls: 'bad', label: 'Abaixo do mínimo' };
-    if (margem < P.margem) return { k: 'atencao', cls: 'warn', label: 'Atenção' };
-    return { k: 'saudavel', cls: 'ok', label: 'Saudável' };
+    if (margem < P.margem) return { k: 'saudavel', cls: 'warn', label: 'Saudável' };
+    if (margem < P.margemPremium) return { k: 'ideal', cls: 'ok', label: 'Ideal' };
+    return { k: 'premium', cls: 'ok', label: 'Premium' };
   }
+  // Preço mínimo pra atingir uma margem-alvo, dado um custo e os percentuais (fiscal + taxa
+  // financeira) ativos — usado pra avisar "quanto cobrar" em cada faixa (mínimo/saudável/
+  // ideal/premium) tanto na Estratégia quanto no Simular.
+  function precoParaMargem(custoTotal, fiscalPct, taxaFinPct, margemAlvo) {
+    if (custoTotal == null) return null;
+    var den = 1 - (fiscalPct || 0) / 100 - (taxaFinPct || 0) / 100 - margemAlvo / 100;
+    if (den <= 0.001) return null;
+    return round2(custoTotal / den);
+  }
+  function statusDe(margem, temCusto) {
+    if (!temCusto) return { k: 'semcusto', cls: 'gray', label: 'Sem custo' };
+    if (margem == null) return { k: 'sempreco', cls: 'gray', label: 'Sem preço' };
+    return margemFaixaDe(margem, true, true);
+  }
+  function margemStatusDe(margem, temCusto, temPreco) { return margemFaixaDe(margem, temCusto, temPreco); }
+  // Faixa comercial: só distingue "Premium" (preço no topo, ≥ margemPremium) do resto — é uma
+  // visão mais grossa que a de MARGEM (4 níveis), pensada só pra destacar produtos com preço
+  // de ponta. Usa a mesma margem final (já com fiscal e taxa financeira quando aplicável).
   function faixaDe(margem, temCusto, temPreco) {
     var P = params();
     if (!temCusto || !temPreco || margem == null) return null;
@@ -28187,7 +28207,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     }
     var valor = Math.max(0, round2(bruto - descontoValor));
     var frete = (ctx.freteTipo === 'Subsidiado' || ctx.freteTipo === 'Grátis') ? (num(ctx.freteValor) || 0) : 0;
-    var taxaPct = (ctx.pagamento === 'Crédito') ? (P.taxa || 0) : 0;
+    // A taxa financeira (cartão) só entra se for explicitamente ativada (checkbox do
+    // simulador). Quando ninguém passa esse campo (chamadas antigas/externas), cai no
+    // comportamento anterior de ligar automaticamente pra pagamento "Crédito".
+    var aplicarTaxaFin = (ctx.aplicarTaxaFin != null) ? !!ctx.aplicarTaxaFin : (ctx.pagamento === 'Crédito');
+    var taxaPct = aplicarTaxaFin ? (P.taxa || 0) : 0;
     var fiscal = round2(valor * P.fiscal / 100);
     var fin = round2(valor * taxaPct / 100);
     var custoTotal = semCusto ? null : round2(custoProd + fiscal + fin + frete);
@@ -28203,8 +28227,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var st = statusDe(margem, !semCusto && itens.length > 0);
     if (!itens.length) st = { k: 'vazio', cls: 'gray', label: 'Sem itens' };
     var frase = '';
-    if (st.k === 'saudavel' || st.k === 'premium') frase = 'Esse pedido pode ser fechado no valor atual. Ainda existe espaço moderado para negociação.';
-    else if (st.k === 'atencao') frase = 'Margem apertada. Evite desconto ou revise custo/frete antes de fechar.';
+    if (st.k === 'ideal' || st.k === 'premium') frase = 'Esse pedido pode ser fechado no valor atual. Ainda existe espaço moderado para negociação.';
+    else if (st.k === 'saudavel') frase = 'Margem saudável, mas ainda perto do mínimo. Evite desconto ou revise custo/frete antes de fechar.';
     else if (st.k === 'baixo') frase = 'Pedido não recomendado nesse valor. Ajuste o preço ou remova desconto.';
     else if (st.k === 'semcusto') frase = 'Há produto sem custo completo cadastrado. O cálculo de margem pode estar incorreto.';
     var alertas = [];
@@ -28225,14 +28249,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       un5: un5, un1: un1, caixas5: Math.floor(un5 / 4), restoUn5: un5 % 4, caixas1: Math.floor(un1 / 6), restoUn1: un1 % 6,
       caixas: caixas, unidades: unidades, pesoKg: round2(pesoKg), pesoSemPeso: pesoSemPeso,
       bruto: round2(bruto), descontoValor: round2(descontoValor), descontoPct: descontoPct, valor: valor,
-      custoProd: round2(custoProd), fiscal: fiscal, fin: fin, frete: frete, custoTotal: custoTotal,
+      custoProd: round2(custoProd), fiscal: fiscal, fin: fin, taxaPct: taxaPct, aplicarTaxaFin: aplicarTaxaFin, frete: frete, custoTotal: custoTotal,
       lucro: lucro, margem: margem, markup: markup, minimo: minimo, ideal: ideal, premium: premium,
       status: st, frase: frase, alertas: alertas, semCusto: semCusto, materiais: materiaisNecessarios(itens)
     };
   }
 
   /* ---------- estado da UI ---------- */
-  var UI = { tab: 'pedido', itens: [], filtros: {}, estrTabela: 'consumidor', estrStatus: '', ordenar: 'menor', mlEditando: null, mlView: 'anuncios', descTipo: 'valor' };
+  var UI = { tab: 'pedido', itens: [], filtros: {}, estrTabela: 'consumidor', estrStatus: '', ordenar: 'menor', mlEditando: null, mlView: 'anuncios', descTipo: 'valor', estrTaxaFin: true };
 
   function prodRows() { return catalogo(); }
   function nomesUnicos() { var s = {}; prodRows().forEach(function (r) { s[r.produto] = 1; }); return Object.keys(s); }
@@ -28348,13 +28372,19 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
 
   /* ---------- ABA PEDIDO ---------- */
   function fields() {
+    var pagEl = $('#gc-f-pag'); var pag = pagEl ? pagEl.value : 'Pix';
+    var taxaFinEl = $('#gc-f-taxafin');
+    // Sem o checkbox ainda renderizado (primeira montagem), a taxa financeira parte ligada
+    // se o pagamento já for Crédito — depois disso, quem manda é o que a usuária marcar.
+    var taxaFin = taxaFinEl ? taxaFinEl.checked : (pag === 'Crédito');
     return {
       produto: ($('#gc-f-prod') || {}).value || '',
       embIdx: parseInt(($('#gc-f-emb') || {}).value || '0', 10) || 0,
       aroma: ($('#gc-f-aroma') || {}).value || 'Neutro',
       qtd: Math.max(1, parseInt(num(($('#gc-f-qtd') || {}).value) || 1, 10)),
       tipo: ($('#gc-f-tipo') || {}).value || 'Consumidor final',
-      pag: ($('#gc-f-pag') || {}).value || 'Pix',
+      pag: pag,
+      taxaFin: taxaFin,
       frete: ($('#gc-f-frete') || {}).value || 'A combinar',
       freteV: ($('#gc-f-fretev') || {}).value || '',
       freteTransp: (($('#gc-f-fretetransp') || {}).value || '').trim(),
@@ -28381,7 +28411,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function renderPedido() {
     var el = $('#gc-pedido'); if (!el) return;
-    var f = el.dataset.built ? fields() : { produto: nomesUnicos()[0] || '', embIdx: 0, aroma: 'Neutro', qtd: 1, tipo: 'Consumidor final', pag: 'Pix', frete: 'A combinar', freteV: '', freteTransp: '', freteCotacao: '', desc: '', cliente: '', vend: usuarioAtual(), obs: '' };
+    var f = el.dataset.built ? fields() : { produto: nomesUnicos()[0] || '', embIdx: 0, aroma: 'Neutro', qtd: 1, tipo: 'Consumidor final', pag: 'Pix', taxaFin: false, frete: 'A combinar', freteV: '', freteTransp: '', freteCotacao: '', desc: '', cliente: '', vend: usuarioAtual(), obs: '' };
     var nomes = nomesUnicos();
     if (nomes.indexOf(f.produto) < 0) f.produto = nomes[0] || '';
     var embs = embOpcoes(f.produto); if (f.embIdx >= embs.length) f.embIdx = 0;
@@ -28389,7 +28419,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var aromaSel;
     if (!ac.usa) aromaSel = '<select id="gc-f-aroma" disabled><option>Neutro</option></select><div class="gc-hint">Sempre Neutro para este produto (liberável no cadastro).</div>';
     else aromaSel = '<select id="gc-f-aroma">' + ac.lista.map(function (a) { return '<option' + (a === f.aroma ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + (ac.novo ? '<option value="__novo">Cadastrar novo aroma…</option>' : '') + '</select>' + (ac.novo ? '<div class="gc-hint">Este produto permite cadastrar novos aromas.</div>' : '');
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin });
     el.innerHTML =
       '<div class="gc-pedido">' +
       '<div>' +
@@ -28400,6 +28430,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<label class="gcf">Quantidade<input id="gc-f-qtd" type="text" inputmode="numeric" value="' + esc(f.qtd) + '"></label>' +
       '<label class="gcf">Tipo de cliente<select id="gc-f-tipo">' + ['Consumidor final', 'Revendedor (Lojista)', 'Revendedor (10%)'].map(function (t) { return '<option' + (t === f.tipo ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf">Pagamento<select id="gc-f-pag">' + ['Pix', 'Crédito', 'Débito', 'Boleto', 'Dinheiro', 'A combinar'].map(function (t) { return '<option' + (t === f.pag ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
+      '<label class="gcf">Taxa financeira<span style="display:flex;align-items:center;gap:6px;font-weight:600;margin-top:4px;cursor:pointer"><input type="checkbox" id="gc-f-taxafin"' + (f.taxaFin ? ' checked' : '') + '> Aplicar (' + inVal(params().taxa) + '%)</span></label>' +
       '<label class="gcf">Frete<select id="gc-f-frete">' + ['A combinar', 'Por conta do cliente', 'Subsidiado', 'Grátis', 'Transportadora'].map(function (t) { return '<option' + (t === f.frete ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf" id="gc-f-fretev-w" style="' + (f.frete === 'Subsidiado' || f.frete === 'Grátis' || f.frete === 'Transportadora' ? '' : 'display:none') + '">' + (f.frete === 'Transportadora' ? 'Valor do frete (R$)' : 'Custo do frete p/ GSO (R$)') + '<input id="gc-f-fretev" type="text" inputmode="decimal" value="' + esc(f.freteV) + '"></label>' +
       '<label class="gcf" id="gc-f-fretetransp-w" style="' + (f.frete === 'Transportadora' ? '' : 'display:none') + '">Transportadora<input id="gc-f-fretetransp" type="text" value="' + esc(f.freteTransp) + '" placeholder="Nome da transportadora"></label>' +
@@ -28469,14 +28500,15 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     prodRowsHtml += materiaisRows || '<div class="gc-kv"><span class="l">Matérias-primas</span><b>—</b></div>';
     var prod = '<details class="gc-slim" open><summary>Produção</summary>' + prodRowsHtml + '</details>';
     var kvMore = '<details class="gc-slim"><summary>Outros indicadores</summary>' +
-      '<div class="gc-kv"><span class="l">Margem líquida</span><b>' + fmtPct(r.margem) + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Preço ideal</span><b>' + fmt(r.ideal) + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Preço premium</span><b>' + fmt(r.premium) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">Margem final</span><b>' + fmtPct(r.margem) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">Preço mín. p/ Saudável (' + inVal(P.margemMin) + '%)</span><b>' + fmt(r.minimo) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">Preço mín. p/ Ideal (' + inVal(P.margem) + '%)</span><b>' + fmt(r.ideal) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">Preço mín. p/ Premium (' + inVal(P.margemPremium) + '%)</span><b>' + fmt(r.premium) + '</b></div>' +
       '</details>';
     var custo = '<details class="gc-slim"><summary>Custo</summary>' +
       '<div class="gc-kv"><span class="l">Produtos + embalagem</span><b>' + fmt(r.custoProd) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Fiscal (' + P.fiscal + '%)</span><b>' + fmt(r.fiscal) + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Financeiro</span><b>' + fmt(r.fin) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">Financeiro (' + (r.aplicarTaxaFin ? inVal(r.taxaPct) + '% aplicada' : 'não aplicada') + ')</span><b>' + fmt(r.fin) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Frete subsidiado</span><b>' + fmt(r.frete) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Custo total real</span><b>' + fmt(r.custoTotal) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Markup</span><b>' + (r.markup ? (Math.round(r.markup * 100) / 100).toLocaleString('pt-BR') + '×' : '—') + '</b></div></details>';
@@ -28492,7 +28524,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function refreshResultado() {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin });
     var res = $('#gc-res'); if (res) res.innerHTML = resultadoHTML(r, f);
     return r;
   }
@@ -28520,7 +28552,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function zapTexto() {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin });
     var linhas = ['Olá! Segue a simulação do seu pedido:', ''];
     UI.itens.forEach(function (it) {
       linhas.push('Produto: ' + it.produto + ' ' + it.tamanho + (aromaCfg(it.produto).usa ? ' ' + it.aroma : ''));
@@ -28541,7 +28573,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function resumoTecnicoTexto() {
     var f = fields();
     var P = params();
-    var r = computeOrder(UI.itens, { params: P, desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: P, desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin });
     var linhas = ['Resumo técnico do pedido', ''];
     UI.itens.forEach(function (it) {
       linhas.push('- ' + it.produto + ' ' + it.tamanho + ' (' + it.embLabel + ') × ' + it.qtdEntrada + ' — ' + fmt(it.total));
@@ -28591,7 +28623,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function orcamentoPdfHtml() {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin });
     var linhas = UI.itens.map(function (it) {
       return '<tr><td>' + esc(it.produto) + ' ' + esc(it.tamanho) + (aromaCfg(it.produto).usa ? ' · ' + esc(it.aroma) : '') + '</td>' +
         '<td>' + esc(it.embLabel) + '</td>' +
@@ -28646,7 +28678,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function salvarSim(convertida) {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin });
     if (!UI.itens.length) { alert('Adicione ao menos um item.'); return null; }
     var sim = {
       id: 's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
@@ -28694,7 +28726,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (irCadastrar && typeof openClienteModal === 'function') openClienteModal(f.cliente);
       return;
     }
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin });
     if (!(r.valor > 0)) { alert('O valor do pedido precisa ser maior que zero.'); return; }
     try {
       var itemsNat = UI.itens.map(function (it, i) {
@@ -28747,7 +28779,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (irCadastrar && typeof openLojistaCadastroModal === 'function') openLojistaCadastroModal(f.cliente);
       return;
     }
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin });
     if (!(r.valor > 0)) { alert('O valor do pedido precisa ser maior que zero.'); return; }
     try {
       var itemsLoj = UI.itens.map(function (it) {
@@ -28980,15 +29012,22 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var ciKey = (r.tamanho === '1L') ? keyOf(r.produto, '1.100mL') : k;
     var ci = custoInfo(ciKey);
     var preco = UI.estrTabela === 'revendedor' ? pr.revendedor : (UI.estrTabela === 'revendedor10' ? pr.revendedor10 : pr.consumidor);
-    var m = margemDe(preco, ci.total, P.fiscal);
+    // Taxa financeira só entra na margem "final" da Estratégia quando o toggle da tela está
+    // ligado (UI.estrTaxaFin) — ela não é um custo universal de toda venda, só uma assunção
+    // pra essa visão. Impostos (fiscal) continuam sempre no cálculo.
+    var taxaFinPct = UI.estrTaxaFin ? (P.taxa || 0) : 0;
+    var m = margemDe(preco, ci.total, P.fiscal, taxaFinPct);
     var temCusto = ci.total != null, temPreco = preco != null;
     var reaj = (pr.v2425 != null && pr.vigente != null && pr.vigente <= pr.v2425);
     var margemSt = margemStatusDe(m, temCusto, temPreco);
     var faixa = faixaDe(m, temCusto, temPreco);
     var pendencias = pendenciasDe(temCusto, temPreco, reaj);
-    var lucro = (preco != null && ci.total != null) ? preco - ci.total - preco * P.fiscal / 100 : null;
+    var lucro = (preco != null && ci.total != null) ? round2(preco - ci.total - preco * P.fiscal / 100 - preco * taxaFinPct / 100) : null;
     var rDisplay = rotuloDisplay ? { produto: rotuloDisplay, tamanho: r.tamanho } : r;
-    return { r: rDisplay, aroma: aromaDisplay, k: k, ciKey: ciKey, ci: ci, pr: pr, preco: preco, margem: m, margemSt: margemSt, faixa: faixa, pendencias: pendencias, reaj: reaj, lucro: lucro, revisado: store.revisados[k] || null };
+    return {
+      r: rDisplay, aroma: aromaDisplay, k: k, ciKey: ciKey, ci: ci, pr: pr, preco: preco, margem: m, margemSt: margemSt,
+      faixa: faixa, pendencias: pendencias, reaj: reaj, lucro: lucro, revisado: store.revisados[k] || null
+    };
   }
   // Converte o tamanho do estoque do Laboratório ("1 litro", "5 litros") pro formato compacto
   // usado no catálogo de preços ("1L", "5L") — "120mL"/"150g" já vêm compactos.
@@ -29038,14 +29077,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     // tabelas de revendedor — é a mesma faixa nas duas (a diferença de 10% é só no valor que
     // o lojista paga pra GSO, não no que ele sugere cobrar do cliente dele).
     var mostraSugerido = UI.estrTabela === 'revendedor' || UI.estrTabela === 'revendedor10';
-    var n = { saudavel: 0, premium: 0, atencao: 0, baixo: 0, pendencia: 0 };
+    var n = { baixo: 0, saudavel: 0, ideal: 0, premium: 0, pendencia: 0 };
     dados.forEach(function (d) {
       if (d.margemSt) {
-        if (d.margemSt.k === 'saudavel') n.saudavel++;
-        else if (d.margemSt.k === 'atencao') n.atencao++;
-        else if (d.margemSt.k === 'baixo') n.baixo++;
+        if (d.margemSt.k === 'baixo') n.baixo++;
+        else if (d.margemSt.k === 'saudavel') n.saudavel++;
+        else if (d.margemSt.k === 'ideal') n.ideal++;
+        else if (d.margemSt.k === 'premium') n.premium++;
       }
-      if (d.faixa && d.faixa.k === 'premium') n.premium++;
       if (d.pendencias.length) n.pendencia++;
     });
     var ord = UI.ordenar;
@@ -29057,7 +29096,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     });
     var rows = dados.map(function (d) {
       var faixaHtml = d.faixa ? '<span class="gc-dot ' + d.faixa.cls + '" title="' + esc(d.faixa.label) + '"></span>' : '<span class="gc-dot gray" title="Sem faixa"></span>';
-      var margemHtml = d.margemSt ? '<span class="gc-dot ' + d.margemSt.cls + '" title="' + esc(d.margemSt.label) + '"></span>' : '<span class="gc-dot gray" title="Sem margem"></span>';
+      var margemHtml = d.margemSt ? '<span class="gc-margem-val ' + d.margemSt.cls + '" title="' + esc(d.margemSt.label) + '">' + fmtPct(d.margem) + '</span>' : '<span class="gc-dot gray" title="Sem margem"></span>';
       var revisadoHtml = d.revisado ? ' <span class="gc-dot gray" title="Revisado em ' + esc(d.revisado.em) + '"></span>' : '';
       var fParts = [d.r.produto];
       if (d.margemSt) fParts.push(d.margemSt.label);
@@ -29073,20 +29112,21 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         sugeridoHtml +
         '<td>' + faixaHtml + '</td>' +
         '<td>' + margemHtml + revisadoHtml + '</td>' +
-        '<td><button class="gc-lnk" data-prod-det="' + esc(d.ciKey) + '">Composição</button> · <button class="gc-lnk" data-simular="' + esc(d.k) + '">Simular</button> · <button class="gc-lnk" data-rev="' + esc(d.k) + '">' + (d.revisado ? 'Desmarcar' : 'Revisado') + '</button></td></tr>';
+        '<td><button class="gc-lnk" data-prod-det="' + esc(d.ciKey) + '" data-prod-k="' + esc(d.k) + '" data-prod-preco="' + (d.preco == null ? '' : d.preco) + '">Composição</button> · <button class="gc-lnk" data-simular="' + esc(d.k) + '">Simular</button> · <button class="gc-lnk" data-rev="' + esc(d.k) + '">' + (d.revisado ? 'Desmarcar' : 'Revisado') + '</button></td></tr>';
     }).join('');
     el.innerHTML =
       '<div class="gc-sums">' +
-      sumBtn('ok', n.saudavel, 'Margem saudável', 'Saudável') +
-      sumBtn('ok', n.premium, 'Faixa Premium', 'Premium') +
-      sumBtn('warn', n.atencao, 'Margem em atenção', 'Atenção') +
       sumBtn('bad', n.baixo, 'Margem abaixo do mínimo', 'Abaixo do mínimo') +
+      sumBtn('warn', n.saudavel, 'Margem saudável', 'Saudável') +
+      sumBtn('ok', n.ideal, 'Margem ideal', 'Ideal') +
+      sumBtn('ok', n.premium, 'Margem premium', 'Premium') +
       sumBtn('warn', n.pendencia, 'Com pendências', 'Pendência') + '</div>' +
       '<div class="gc-blk"><div class="gc-filters">' +
       '<select data-flt="te:0">' + selOpts(nomesUnicos(), UI.filtros['te:0'], 'Produto: todos') + '</select>' +
       '<select data-estrtab>' + [['consumidor', 'Tabela: Consumidor final'], ['revendedor', 'Tabela: Revendedor (Lojista)'], ['revendedor10', 'Tabela: Revendedor (10%)']].map(function (o) { return '<option value="' + o[0] + '"' + (UI.estrTabela === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<select data-ord>' + [['menor', 'Ordenar: menor margem'], ['maior', 'Ordenar: maior margem'], ['lucro', 'Ordenar: maior lucro']].map(function (o) { return '<option value="' + o[0] + '"' + (UI.ordenar === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
-      '<button class="clear" data-clr="te">limpar filtros</button><span class="gc-hint-ed">· Clique no preço para editar</span></div>' +
+      '<label style="display:inline-flex;align-items:center;gap:6px;font:600 12px inherit;color:var(--gcfnt);cursor:pointer"><input type="checkbox" data-estr-taxafin' + (UI.estrTaxaFin ? ' checked' : '') + '> Considerar taxa financeira (' + inVal(params().taxa) + '%) na margem</label>' +
+      '<button class="clear" data-clr="te">limpar filtros</button><span class="gc-hint-ed">· Clique no preço para editar · Margem = preço − custo − fiscal (' + inVal(params().fiscal) + '%)' + (UI.estrTaxaFin ? ' − taxa financeira (' + inVal(params().taxa) + '%)' : '') + '</span></div>' +
       '<div class="gc-table-wrap"><table class="gct" id="gc-te"><colgroup>' +
       (mostraSugerido
         ? '<col style="width:16%"><col style="width:7%"><col style="width:9%"><col style="width:11%"><col style="width:12%"><col style="width:15%"><col style="width:6%"><col style="width:6%"><col style="width:18%">'
@@ -29126,12 +29166,45 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function filtraStatus(id, st) { UI.estrStatus = st; aplicaFiltro(id); }
 
   /* ---------- drawer composição / cadastro do produto ---------- */
-  function abrirProduto(k) {
+  // Bloco "Preço de venda → custo → impostos → taxa financeira → lucro → margem final", exibido
+  // no topo da Composição quando ela é aberta a partir de uma linha da Estratégia (com preço
+  // conhecido). taxaFinAtiva decide se a taxa financeira entra no cálculo — pode ser ligada/
+  // desligada aqui mesmo, sem fechar o modal, pra comparar os dois cenários na hora.
+  function precoMargemHTML(preco, ci, taxaFinAtiva) {
+    var P = params();
+    if (preco == null) {
+      return '<div class="gc-hint" style="margin:2px 0 12px">Sem preço cadastrado nesta tabela — abra pela Estratégia pra ver a margem.</div>';
+    }
+    var taxaFinPct = taxaFinAtiva ? (P.taxa || 0) : 0;
+    var valorFiscal = round2(preco * P.fiscal / 100);
+    var valorTaxaFin = round2(preco * taxaFinPct / 100);
+    var lucro = (ci.total != null) ? round2(preco - ci.total - valorFiscal - valorTaxaFin) : null;
+    var margem = margemDe(preco, ci.total, P.fiscal, taxaFinPct);
+    var cls = margemFaixaDe(margem, ci.total != null, true);
+    var alvos = [['Saudável', P.margemMin], ['Ideal', P.margem], ['Premium', P.margemPremium]];
+    var precosAlvo = alvos.map(function (a) {
+      var p = precoParaMargem(ci.total, P.fiscal, taxaFinPct, a[1]);
+      return '<div class="gc-kv"><span class="l">Preço mínimo p/ ' + a[0] + ' (' + inVal(a[1]) + '%)</span><b>' + fmt(p) + '</b></div>';
+    }).join('');
+    return '<div class="gc-kv"><span class="l">Preço de venda</span><b>' + fmt(preco) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">− Custo do produto</span><b>' + fmt(ci.total) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">− Impostos (fiscal ' + inVal(P.fiscal) + '%)</span><b>' + fmt(valorFiscal) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">− Taxa financeira<label style="margin-left:6px;font-weight:600;cursor:pointer"><input type="checkbox" id="gc-cp-taxafin"' + (taxaFinAtiva ? ' checked' : '') + '> aplicar (' + inVal(P.taxa) + '%)</label></span><b>' + fmt(valorTaxaFin) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">= Lucro</span><b id="gc-cp-lucro">' + fmt(lucro) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">Margem final</span><b id="gc-cp-margem">' + fmtPct(margem) + (cls ? ' <span class="gc-dot ' + cls.cls + '" title="' + esc(cls.label) + '"></span> ' + esc(cls.label) : '') + '</b></div>' +
+      '<div style="font:700 10px inherit;letter-spacing:.14em;color:var(--gcfnt);margin:12px 0 6px">PREÇO MÍNIMO POR FAIXA DE MARGEM</div>' +
+      precosAlvo;
+  }
+  function abrirProduto(k, opts) {
+    opts = opts || {};
     var parts = k.split('|'); var nome = parts[0], tam = parts[1];
     var ci = custoInfo(k);
     var ac = aromaCfg(nome);
+    var temPreco = opts.preco != null;
+    var taxaFinAtiva = UI.estrTaxaFin;
     var html =
-      '<div style="font:700 10px inherit;letter-spacing:.14em;color:var(--gcfnt);margin:2px 0 6px">CUSTO (quanto custa fazer) — edite e salve</div>' +
+      (temPreco ? '<div style="font:700 10px inherit;letter-spacing:.14em;color:var(--gcfnt);margin:2px 0 6px">PREÇO E MARGEM</div><div id="gc-cp-wrap">' + precoMargemHTML(opts.preco, ci, taxaFinAtiva) + '</div>' : '') +
+      '<div style="font:700 10px inherit;letter-spacing:.14em;color:var(--gcfnt);margin:' + (temPreco ? '14' : '2') + 'px 0 6px">CUSTO (quanto custa fazer) — edite e salve</div>' +
       '<div class="gc-kv"><span class="l">Custo líquido / matéria-prima</span><b><input id="gc-c-liq" type="text" inputmode="decimal" value="' + inVal(ci.liquido) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
       '<div class="gc-kv"><span class="l">Garrafa + tampa</span><b><input id="gc-c-gar" type="text" inputmode="decimal" value="' + inVal(ci.garrafa) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
       '<div class="gc-kv"><span class="l">Caixa</span><b><input id="gc-c-cai" type="text" inputmode="decimal" value="' + inVal(ci.caixa) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
@@ -29147,6 +29220,16 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<div class="gc-row"><button class="gc-btn dark" id="gc-ar-save" data-k="' + esc(nome) + '">Salvar aromas</button></div>' +
       '<div class="gc-hint" style="margin-top:10px">Preços são editados na aba Estratégia. ' + (ci.origem === 'receita' ? 'Líquido calculado pela receita de matéria-prima, na Formulação — digitar um valor aqui passa a valer no lugar.' : '') + '</div>';
     drOpen(nome + ' ' + tam + ' — composição', html);
+    function bindCpTaxaFin() {
+      var cb = $('#gc-cp-taxafin');
+      if (cb) cb.addEventListener('change', function () {
+        taxaFinAtiva = cb.checked;
+        var wrap = $('#gc-cp-wrap');
+        if (wrap) wrap.innerHTML = precoMargemHTML(opts.preco, custoInfo(k), taxaFinAtiva);
+        bindCpTaxaFin();
+      });
+    }
+    if (temPreco) bindCpTaxaFin();
     var bc = $('#gc-c-save');
     if (bc) bc.addEventListener('click', function () {
       var c = store.custos[k] || {};
@@ -29160,6 +29243,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       store.custos[k] = c; save();
       var novo = custoInfo(k);
       var tot = $('#gc-c-tot'); if (tot) tot.textContent = fmt(novo.total);
+      if (temPreco) {
+        var wrap2 = $('#gc-cp-wrap');
+        if (wrap2) wrap2.innerHTML = precoMargemHTML(opts.preco, novo, taxaFinAtiva);
+        bindCpTaxaFin();
+      }
       bc.textContent = 'Salvo!';
       setTimeout(function () { bc.textContent = 'Salvar custos'; }, 1500);
       renderFormulacao(); renderEstrategia(); refreshResultado();
@@ -30211,7 +30299,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (t.id === 'gc-limpar') { UI.itens = []; renderPedido(); return; }
       if (t.id === 'gc-dtec') {
         var f = fields();
-        var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo });
+        var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin });
         var P = params();
         drOpen('Detalhes técnicos do pedido',
           UI.itens.map(function (it) {
@@ -30227,7 +30315,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var szap = t.closest('[data-sim-zap]'); if (szap) { copiarSim(szap.dataset.simZap); return; }
       var sdel = t.closest('[data-sim-del]'); if (sdel) { store.sims = (store.sims || []).filter(function (s) { return s.id !== sdel.dataset.simDel; }); save(); renderPedido(); return; }
       var oc = t.closest('[data-open-custo]'); if (oc) { abrirProduto(oc.dataset.openCusto); return; }
-      var det = t.closest('[data-prod-det]'); if (det) { abrirProduto(det.dataset.prodDet); return; }
+      var det = t.closest('[data-prod-det]'); if (det) {
+        var detPreco = det.dataset.prodPreco;
+        abrirProduto(det.dataset.prodDet, { k: det.dataset.prodK || null, preco: (detPreco != null && detPreco !== '') ? num(detPreco) : null });
+        return;
+      }
       var sim2 = t.closest('[data-simular]'); if (sim2) { simularProduto(sim2.dataset.simular); return; }
       var rev = t.closest('[data-rev]'); if (rev) { var k = rev.dataset.rev; if (store.revisados[k]) delete store.revisados[k]; else store.revisados[k] = { em: hojeBR(), por: usuarioAtual() }; save(); renderEstrategia(); return; }
       var sf = t.closest('[data-sumf]'); if (sf) { UI.estrStatus = (UI.estrStatus === sf.dataset.sumf) ? '' : sf.dataset.sumf; renderEstrategia(); return; }
@@ -30341,6 +30433,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var t = e.target;
       if (t.dataset && t.dataset.flt) { UI.filtros[t.dataset.flt] = t.value; aplicaFiltro(t.dataset.flt.split(':')[0]); return; }
       if (t.hasAttribute && t.hasAttribute('data-estrtab')) { UI.estrTabela = t.value; renderEstrategia(); return; }
+      if (t.hasAttribute && t.hasAttribute('data-estr-taxafin')) { UI.estrTaxaFin = t.checked; renderEstrategia(); return; }
       if (t.hasAttribute && t.hasAttribute('data-ord')) { UI.ordenar = t.value; renderEstrategia(); return; }
       if (t.hasAttribute && t.hasAttribute('data-rec-mat-add')) { adicionarMaterialAoProduto(t.dataset.recMatAdd, t.value); return; }
       if (t.hasAttribute && t.hasAttribute('data-receita-produto-add')) { adicionarProdutoFormulacao(t.value); return; }
