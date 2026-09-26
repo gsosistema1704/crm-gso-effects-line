@@ -28430,7 +28430,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<label class="gcf">Quantidade<input id="gc-f-qtd" type="text" inputmode="numeric" value="' + esc(f.qtd) + '"></label>' +
       '<label class="gcf">Tipo de cliente<select id="gc-f-tipo">' + ['Consumidor final', 'Revendedor (Lojista)', 'Revendedor (10%)'].map(function (t) { return '<option' + (t === f.tipo ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf">Pagamento<select id="gc-f-pag">' + ['Pix', 'Crédito', 'Débito', 'Boleto', 'Dinheiro', 'A combinar'].map(function (t) { return '<option' + (t === f.pag ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
-      '<label class="gcf">Taxa financeira<span style="display:flex;align-items:center;gap:6px;font-weight:600;margin-top:4px;cursor:pointer"><input type="checkbox" id="gc-f-taxafin"' + (f.taxaFin ? ' checked' : '') + '> Aplicar (' + inVal(params().taxa) + '%)</span></label>' +
+      '<label class="gcf">Taxa financeira<span style="display:flex;align-items:center;gap:5px;font-weight:500;font-size:13px;color:var(--gcink);margin-top:8px;cursor:pointer"><input type="checkbox" id="gc-f-taxafin"' + (f.taxaFin ? ' checked' : '') + '> Aplicar (' + inVal(params().taxa) + '%)</span></label>' +
       '<label class="gcf">Frete<select id="gc-f-frete">' + ['A combinar', 'Por conta do cliente', 'Subsidiado', 'Grátis', 'Transportadora'].map(function (t) { return '<option' + (t === f.frete ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf" id="gc-f-fretev-w" style="' + (f.frete === 'Subsidiado' || f.frete === 'Grátis' || f.frete === 'Transportadora' ? '' : 'display:none') + '">' + (f.frete === 'Transportadora' ? 'Valor do frete (R$)' : 'Custo do frete p/ GSO (R$)') + '<input id="gc-f-fretev" type="text" inputmode="decimal" value="' + esc(f.freteV) + '"></label>' +
       '<label class="gcf" id="gc-f-fretetransp-w" style="' + (f.frete === 'Transportadora' ? '' : 'display:none') + '">Transportadora<input id="gc-f-fretetransp" type="text" value="' + esc(f.freteTransp) + '" placeholder="Nome da transportadora"></label>' +
@@ -34492,7 +34492,11 @@ body.gc-dr-flutuante #gso-calc-dr header{ border-radius:18px 18px 0 0 !important
 #gso-calc-dr #gc-ml-desconto-valor{ width:80px !important; text-align:right !important; }
 #gso-calc-dr input[type="checkbox"]{ width:16px; height:16px; accent-color:#8E8E8E; margin-right:2px; }
 #gso-calc-dr label{ display:inline-flex; align-items:center; gap:6px; }
-#gso-calc input[type="checkbox"]{ width:15px; height:15px; accent-color:#8E8E8E; margin-right:2px; vertical-align:middle; }
+#gso-calc label.gcf input[type="checkbox"]{
+  display:inline-block; width:15px; height:15px; margin:0 2px 0 0; padding:0; border:0; border-radius:0;
+  background:none; accent-color:#8E8E8E; vertical-align:middle;
+}
+#gso-calc .gc-filters input[type="checkbox"]{ width:15px; height:15px; accent-color:#8E8E8E; margin-right:2px; vertical-align:middle; }
 #gso-calc-dr .gc-row{ display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 4px !important; }
 #gso-calc-dr .gc-btn, #gso-calc-mbg .gc-btn{
   border:1px solid var(--crm-border-strong,#D1D1D1); background:var(--crm-surface,#FFFFFF); color:var(--crm-text,#282828);
