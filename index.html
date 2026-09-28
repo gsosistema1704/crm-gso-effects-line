@@ -14866,7 +14866,10 @@ const DEFAULT_NOTIFICATION_TEMPLATES = {
   new_user: '👤 Novo usuário entrou no sistema: {nome}.',
   new_product: '📦 Novo produto cadastrado: {produto} {tamanho}.',
   chat_alert: '🚨 Atenção, {nome}! Preciso da sua atenção aqui no chat.',
-  chat_alert_received: '🚨 Alerta recebido na central de mensagens. Abra o chat assim que puder.'
+  chat_alert_received: '🚨 Alerta recebido na central de mensagens. Abra o chat assim que puder.',
+  recado_new: '📌 Novo recado no mural. Dá uma olhada quando puder.',
+  recado_mention: '📌 Alguém te mencionou num recado do mural.',
+  venda_new: '💰 {total} venda(s) nova(s) de outra pessoa. Confira se precisa emitir nota fiscal.'
 };
 const NOTIFICATION_TEMPLATE_META = [
   { key: 'message_unread', label: 'Mensagens novas', hint: 'Use {total} para o número de mensagens.' },
@@ -14874,7 +14877,10 @@ const NOTIFICATION_TEMPLATE_META = [
   { key: 'new_user', label: 'Entrada de usuário', hint: 'Use {nome} para a pessoa nova.' },
   { key: 'new_product', label: 'Produto cadastrado', hint: 'Use {produto} e {tamanho}.' },
   { key: 'chat_alert', label: 'Botão alerta do chat', hint: 'Use {nome} para a conversa atual.' },
-  { key: 'chat_alert_received', label: 'Alerta recebido', hint: 'Mensagem mostrada na notificação de alerta.' }
+  { key: 'chat_alert_received', label: 'Alerta recebido', hint: 'Mensagem mostrada na notificação de alerta.' },
+  { key: 'recado_new', label: 'Novo recado no mural', hint: 'Mostrada quando alguém posta um recado novo.' },
+  { key: 'recado_mention', label: 'Mencionada num recado', hint: 'Mostrada quando alguém te menciona num recado.' },
+  { key: 'venda_new', label: 'Venda nova de outra pessoa', hint: 'Use {total} para a quantidade de vendas novas.' }
 ];
 
 function readNotificationPrefs() {
@@ -15487,12 +15493,27 @@ async function syncAllToSupabase(showAlert = false) {
   }
 }
 
+let vendasJaHidratado = false;
+function normalizeTextoSimples(s) { return String(s || '').trim().toLowerCase(); }
+// Avisa (som + notificação) quando uma venda de OUTRA pessoa chega por realtime — pra quem
+// emite nota fiscal saber na hora que precisa agir, sem precisar ficar dando F5.
+function notifyNewVendasIfNeeded(idsAntes) {
+  const meuNome = normalizeTextoSimples(currentUserName());
+  const novas = (state.vendas || []).filter(v => !idsAntes.has(v.id));
+  const deOutros = novas.filter(v => normalizeTextoSimples(v.vendedor) !== meuNome);
+  if (!deOutros.length) return;
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('Nova venda registrada', { body: notificationMessage('venda_new', { total: deOutros.length }) });
+  }
+  playNotificationSound();
+}
 async function loadRemoteState() {
   const client = getSupabaseClient();
   const session = await getSupabaseSession();
   if (!client || !session) return;
   try {
     setSyncStatus('syncing', 'Carregando Supabase...');
+    const vendaIdsAntes = new Set((state.vendas || []).map(v => v.id));
     const [vendasRes, vendasLojistaRes, lojistasRes, clientesRes, fiscaisRes, produtosRes, profileRes, aliasesRes] = await Promise.all([
       client.from('crm_vendas').select('*').order('data', { ascending: false }),
       isAdminUser() ? client.from('crm_vendas_lojista').select('*').order('data', { ascending: false }) : Promise.resolve({ data: [] }),
@@ -15520,6 +15541,7 @@ async function loadRemoteState() {
         role: 'administrador'
       }, { onConflict: 'id' });
     }
+    const vendasAtualizadas = vendasRes.data.length > 0;
     if (vendasRes.data.length) state.vendas = vendasRes.data.map(rowToSale);
     if (vendasLojistaRes.data.length) state.vendasLojista = vendasLojistaRes.data.map(rowToSale);
     if (lojistasRes.data.length) state.lojistas = lojistasRes.data.map(rowToLojista);
@@ -15536,7 +15558,17 @@ async function loadRemoteState() {
       await syncAllToSupabase(false);
     }
     setSyncStatus('online', 'Online');
+    if (vendasAtualizadas && vendasJaHidratado) notifyNewVendasIfNeeded(vendaIdsAntes);
+    vendasJaHidratado = true;
     renderAll();
+    // O realtime já refaz o state em segundo plano, mas a tabela na tela só acompanha se
+    // a view aberta for redesenhada de novo — sem isso, quem está com Vendas aberta só via
+    // a venda de outra pessoa depois de sair e voltar (ou dar F5).
+    const activeView = VIEWS.find(v => !document.getElementById('view-' + v)?.classList.contains('hidden'));
+    if (activeView === 'vendas') renderVendas();
+    else if (activeView === 'lojista') { renderVendasLojista(); renderLojistasCadastro(); }
+    else if (activeView === 'clientes') renderClientes();
+    else if (activeView === 'produtos') renderProdutos();
   } catch (err) {
     remoteHydrating = false;
     console.warn('Supabase load error:', err);
@@ -15578,6 +15610,46 @@ function scheduleGsoRefresh() {
   }, 350);
 }
 
+let recadosRefreshTimer = null;
+// IDs de recados já avisados nesta aba — evita tocar o som de novo a cada mudança
+// (ex.: alguém reagindo com check) pro mesmo recado que já apareceu antes.
+const recadosNotificadosIds = new Set();
+// Avisa (som + notificação) quando chega um recado genuinamente novo de outra pessoa —
+// com som mais forte se a usuária atual foi mencionada nele.
+function notifyNewRecadosIfNeeded(novos) {
+  if (!Array.isArray(novos) || !novos.length) return;
+  const meuEmail = (state.session?.email || '').toLowerCase();
+  const meuId = currentUserId();
+  let souMencionada = false;
+  let temGenuinamenteNovo = false;
+  novos.forEach(r => {
+    if (recadosNotificadosIds.has(r.id)) return;
+    recadosNotificadosIds.add(r.id);
+    if (meuId && r.autor_id === meuId) return;
+    temGenuinamenteNovo = true;
+    const decoded = decodeRecadoTexto(r.texto);
+    if (decoded.mencao.some(email => String(email).toLowerCase() === meuEmail)) souMencionada = true;
+  });
+  if (!temGenuinamenteNovo) return;
+  const canNotify = 'Notification' in window && Notification.permission === 'granted';
+  if (souMencionada) {
+    if (canNotify) new Notification('Você foi mencionada num recado', { body: notificationMessage('recado_mention') });
+    playAttentionSound();
+  } else {
+    if (canNotify) new Notification('Novo recado GSO', { body: notificationMessage('recado_new') });
+    playNotificationSound();
+  }
+}
+function scheduleRecadosRefresh() {
+  clearTimeout(recadosRefreshTimer);
+  recadosRefreshTimer = setTimeout(async () => {
+    const novos = await updateRecadosBadge();
+    notifyNewRecadosIfNeeded(novos);
+    const activeView = VIEWS.find(v => !document.getElementById('view-' + v)?.classList.contains('hidden'));
+    if (activeView === 'recados') { await loadRecadosRespostas(); await renderRecados(); }
+  }, 350);
+}
+
 function setupGsoRealtime() {
   const client = getSupabaseClient();
   if (!client || gsoRealtimeChannel) return;
@@ -15591,6 +15663,8 @@ function setupGsoRealtime() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_usuarios' }, scheduleGsoRefresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_boletos' }, scheduleGsoRefresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_notas_fiscais' }, scheduleGsoRefresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_recados' }, scheduleRecadosRefresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_recados_respostas' }, scheduleRecadosRefresh)
     .subscribe();
 }
 
@@ -18608,26 +18682,30 @@ function marcarRecadosComoVistos() {
 }
 // Bolinha de notificação no menu quando alguém posta um recado novo — "visto" é guardado
 // só neste navegador (não sincroniza entre aparelhos), suficiente pra avisar "tem coisa nova".
+// Retorna os recados "novos" desde a última visita (usado tanto pra bolinha do menu quanto
+// pra decidir se toca som de notificação num evento de realtime).
 async function updateRecadosBadge() {
   const badge = document.getElementById('recadosAlertBadge');
-  if (!badge) return;
+  if (!badge) return [];
   const client = getSupabaseClient();
   const session = await getSupabaseSession();
-  if (!client || !session) { badge.classList.add('hidden'); return; }
+  if (!client || !session) { badge.classList.add('hidden'); return []; }
   try {
     await loadRecados();
     const ultimoVisto = getRecadosUltimoVisto();
     if (!ultimoVisto) {
       // Primeira vez que essa pessoa usa o recurso — não mostra tudo que já existe como "novo".
       marcarRecadosComoVistos();
-      return;
+      return [];
     }
     const ultimoVistoMs = new Date(ultimoVisto).getTime();
     const novos = state.recados.filter(r => r.criado_em && new Date(r.criado_em).getTime() > ultimoVistoMs);
     badge.textContent = novos.length > 9 ? '9+' : String(novos.length);
     badge.classList.toggle('hidden', novos.length === 0);
+    return novos;
   } catch (err) {
     console.warn('Recados badge error:', err);
+    return [];
   }
 }
 
