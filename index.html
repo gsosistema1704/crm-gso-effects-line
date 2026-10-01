@@ -14771,13 +14771,13 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <p class="form-help" style="margin-bottom:14px">Baixa uma planilha (.xlsx) com as vendas filtradas abaixo — já com número da nota fiscal e dados do cliente ao lado de cada venda.</p>
     <div class="form-row">
       <div>
-        <label class="form-label">Vendedor(es) <span class="form-help" style="display:inline">— nenhum marcado = todos</span></label>
+        <label class="form-label">Vendedor(es)</label>
         <div class="postit-mencao-picker" id="export-vendas-vendedores"></div>
       </div>
     </div>
     <div class="form-row">
       <div>
-        <label class="form-label">Forma(s) de pagamento <span class="form-help" style="display:inline">— nenhuma marcada = todas</span></label>
+        <label class="form-label">Forma(s) de pagamento</label>
         <div class="postit-mencao-picker" id="export-vendas-pagamentos"></div>
       </div>
     </div>
@@ -20104,7 +20104,13 @@ function renderExportVendasVendedores() {
   const el = document.getElementById('export-vendas-vendedores');
   if (!el) return;
   const opcoes = [...new Set(saleSellerFilterOptions())].filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  el.innerHTML = opcoes.map(v => `<button type="button" class="postit-mencao-opt${exportVendasVendedoresSelecionados.includes(v) ? ' on' : ''}" onclick="toggleExportVendasVendedor(${attrJsString(v)})">${escapeHtml(v)}</button>`).join('');
+  const todosOn = exportVendasVendedoresSelecionados.length === 0;
+  el.innerHTML = `<button type="button" class="postit-mencao-opt${todosOn ? ' on' : ''}" onclick="selecionarTodosExportVendasVendedores()">Todos</button>` +
+    opcoes.map(v => `<button type="button" class="postit-mencao-opt${exportVendasVendedoresSelecionados.includes(v) ? ' on' : ''}" onclick="toggleExportVendasVendedor(${attrJsString(v)})">${escapeHtml(v)}</button>`).join('');
+}
+function selecionarTodosExportVendasVendedores() {
+  exportVendasVendedoresSelecionados = [];
+  renderExportVendasVendedores();
 }
 function toggleExportVendasVendedor(nome) {
   const idx = exportVendasVendedoresSelecionados.indexOf(nome);
@@ -20114,7 +20120,13 @@ function toggleExportVendasVendedor(nome) {
 function renderExportVendasPagamentos() {
   const el = document.getElementById('export-vendas-pagamentos');
   if (!el) return;
-  el.innerHTML = PAYMENT_OPTIONS.map(p => `<button type="button" class="postit-mencao-opt${exportVendasPagamentosSelecionados.includes(p) ? ' on' : ''}" onclick="toggleExportVendasPagamento(${attrJsString(p)})">${escapeHtml(p)}</button>`).join('');
+  const todosOn = exportVendasPagamentosSelecionados.length === 0;
+  el.innerHTML = `<button type="button" class="postit-mencao-opt${todosOn ? ' on' : ''}" onclick="selecionarTodosExportVendasPagamentos()">Todos</button>` +
+    PAYMENT_OPTIONS.map(p => `<button type="button" class="postit-mencao-opt${exportVendasPagamentosSelecionados.includes(p) ? ' on' : ''}" onclick="toggleExportVendasPagamento(${attrJsString(p)})">${escapeHtml(p)}</button>`).join('');
+}
+function selecionarTodosExportVendasPagamentos() {
+  exportVendasPagamentosSelecionados = [];
+  renderExportVendasPagamentos();
 }
 function toggleExportVendasPagamento(p) {
   const idx = exportVendasPagamentosSelecionados.indexOf(p);
