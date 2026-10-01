@@ -12023,6 +12023,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <span>Revisar</span>
         </label>
         <button class="btn btn-soft" onclick="limparFiltrosVendas()">Limpar</button>
+        <button class="btn" onclick="abrirExportarVendas()" data-tip="Baixar planilha das vendas filtradas">Exportar</button>
       </div>
 
       <div class="card table-card">
@@ -14759,6 +14760,40 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <button class="btn btn-danger hidden" id="rec-excluir-btn" onclick="excluirRecado()">Excluir</button>
       <button class="btn" onclick="document.getElementById('modal-recado').classList.remove('show')">Cancelar</button>
       <button class="btn btn-green" onclick="salvarRecado()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL EXPORTAR VENDAS ============ -->
+<div class="modal-bg" id="modal-exportar-vendas">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">Exportar vendas</div>
+    <p class="form-help" style="margin-bottom:14px">Baixa uma planilha (.xlsx) com as vendas filtradas abaixo — já com número da nota fiscal e dados do cliente ao lado de cada venda.</p>
+    <div class="form-row">
+      <div>
+        <label class="form-label">Vendedor(es) <span class="form-help" style="display:inline">— nenhum marcado = todos</span></label>
+        <div class="postit-mencao-picker" id="export-vendas-vendedores"></div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label class="form-label">Forma(s) de pagamento <span class="form-help" style="display:inline">— nenhuma marcada = todas</span></label>
+        <div class="postit-mencao-picker" id="export-vendas-pagamentos"></div>
+      </div>
+    </div>
+    <div class="form-row form-r2">
+      <div>
+        <label class="form-label">De</label>
+        <input type="date" class="form-input" id="export-vendas-data-de">
+      </div>
+      <div>
+        <label class="form-label">Até</label>
+        <input type="date" class="form-input" id="export-vendas-data-ate">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="document.getElementById('modal-exportar-vendas').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-green" onclick="confirmarExportarVendas()">Baixar planilha (.xlsx)</button>
     </div>
   </div>
 </div>
@@ -20059,6 +20094,112 @@ async function excluirVenda(id) {
   renderVendas();
   renderDash();
   if (!document.getElementById('view-clientes').classList.contains('hidden')) renderClientes();
+}
+
+/* ---------- Exportar vendas (planilha .xlsx com filtros) ---------- */
+let exportVendasVendedoresSelecionados = [];
+let exportVendasPagamentosSelecionados = [];
+
+function renderExportVendasVendedores() {
+  const el = document.getElementById('export-vendas-vendedores');
+  if (!el) return;
+  const opcoes = [...new Set(saleSellerFilterOptions())].filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  el.innerHTML = opcoes.map(v => `<button type="button" class="postit-mencao-opt${exportVendasVendedoresSelecionados.includes(v) ? ' on' : ''}" onclick="toggleExportVendasVendedor(${attrJsString(v)})">${escapeHtml(v)}</button>`).join('');
+}
+function toggleExportVendasVendedor(nome) {
+  const idx = exportVendasVendedoresSelecionados.indexOf(nome);
+  if (idx >= 0) exportVendasVendedoresSelecionados.splice(idx, 1); else exportVendasVendedoresSelecionados.push(nome);
+  renderExportVendasVendedores();
+}
+function renderExportVendasPagamentos() {
+  const el = document.getElementById('export-vendas-pagamentos');
+  if (!el) return;
+  el.innerHTML = PAYMENT_OPTIONS.map(p => `<button type="button" class="postit-mencao-opt${exportVendasPagamentosSelecionados.includes(p) ? ' on' : ''}" onclick="toggleExportVendasPagamento(${attrJsString(p)})">${escapeHtml(p)}</button>`).join('');
+}
+function toggleExportVendasPagamento(p) {
+  const idx = exportVendasPagamentosSelecionados.indexOf(p);
+  if (idx >= 0) exportVendasPagamentosSelecionados.splice(idx, 1); else exportVendasPagamentosSelecionados.push(p);
+  renderExportVendasPagamentos();
+}
+function abrirExportarVendas() {
+  exportVendasVendedoresSelecionados = [];
+  exportVendasPagamentosSelecionados = [];
+  // Pré-preenche o período com o que já estiver filtrado na tela de Vendas, pra não ter
+  // que digitar de novo.
+  const dataDeAtual = document.getElementById('filterDataVenda')?.value || '';
+  const dataAteAtual = document.getElementById('filterDataVendaAte')?.value || '';
+  document.getElementById('export-vendas-data-de').value = dataDeAtual;
+  document.getElementById('export-vendas-data-ate').value = dataAteAtual;
+  renderExportVendasVendedores();
+  renderExportVendasPagamentos();
+  document.getElementById('modal-exportar-vendas').classList.add('show');
+}
+// Telefone/documento/endereço de um cliente pra exportação — doc e endereço vêm do
+// cadastro fiscal (crm_fiscais, mesma fonte usada pra emitir nota), que tem esses campos
+// mais completos do que o cadastro básico do cliente.
+function clienteInfoParaExport(nomeCliente) {
+  const cliente = state.clientes.find(c => nameKey(c.nome) === nameKey(nomeCliente));
+  const fiscal = fiscalRecordForCliente(nomeCliente);
+  const doc = fiscal ? composeFiscalDoc(fiscal) : '';
+  const end = fiscal ? fiscalAddressParts(fiscal, cliente || {}) : null;
+  return {
+    telefone: fiscal?.telefone || cliente?.telefone || '',
+    email: fiscal?.email || cliente?.email || '',
+    documento: doc,
+    endereco: end ? [end.endereco, end.bairro, end.cidadeUf].filter(Boolean).join(' - ') : '',
+    tipoCliente: cliente?.tipoCliente || ''
+  };
+}
+function confirmarExportarVendas() {
+  const dataDe = document.getElementById('export-vendas-data-de').value || '';
+  const dataAte = document.getElementById('export-vendas-data-ate').value || '';
+  const vendedoresFiltro = exportVendasVendedoresSelecionados;
+  const pagamentosFiltro = exportVendasPagamentosSelecionados;
+
+  const nomesDiretoLab = new Set(state.clientes.filter(c => c.tipoCliente === 'Direto Lab').map(c => nameKey(c.nome)));
+  let rows = isAdminUser() ? state.vendas : state.vendas.filter(v => !nomesDiretoLab.has(nameKey(v.cliente)));
+  if (dataDe) rows = rows.filter(r => dashboardDateKey(r.data) >= dataDe);
+  if (dataAte) rows = rows.filter(r => dashboardDateKey(r.data) <= dataAte);
+  if (vendedoresFiltro.length) rows = rows.filter(r => vendedoresFiltro.includes(canonicalSellerName(r.vendedor || 'Sem vendedor')));
+  if (pagamentosFiltro.length) rows = rows.filter(r => pagamentosFiltro.includes(canonicalPayment(r.pagamento || '')));
+
+  if (!rows.length) { alert('Nenhuma venda encontrada com esses filtros.'); return; }
+  rows = [...rows].sort((a, b) => new Date(b.data) - new Date(a.data));
+
+  const sheetRows = rows.map(r => {
+    const info = clienteInfoParaExport(r.cliente);
+    return {
+      'Nº Venda': r.numeroVenda || '',
+      'Data': fmtDate(r.data),
+      'Cliente': r.cliente || '',
+      'Telefone cliente': info.telefone,
+      'Documento (CPF/CNPJ)': info.documento,
+      'Endereço cliente': info.endereco,
+      'Tipo de cliente': info.tipoCliente,
+      'Produto': r.produto || '',
+      'Tamanho': r.tamanho || '',
+      'Aroma': r.aroma || '',
+      'Qtd': r.qtd || 0,
+      'Valor (R$)': Number(r.valor || 0),
+      'Frete (R$)': Number(r.frete || 0),
+      'Pagamento': r.pagamento || '',
+      'Vendedor': r.vendedor || '',
+      'Nº Nota Fiscal': saleNfNumber(r) || '',
+      'Tem PDF da NF': dashboardHasSaleFile(r, 'nf') ? 'Sim' : 'Não',
+      'Observações': r.obs || ''
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(sheetRows);
+  ws['!cols'] = [
+    { wch: 9 }, { wch: 11 }, { wch: 26 }, { wch: 15 }, { wch: 18 }, { wch: 30 }, { wch: 16 },
+    { wch: 20 }, { wch: 10 }, { wch: 14 }, { wch: 6 }, { wch: 12 }, { wch: 10 }, { wch: 14 },
+    { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 30 }
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Vendas');
+  XLSX.writeFile(wb, `vendas-gso-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  document.getElementById('modal-exportar-vendas').classList.remove('show');
 }
 
 function nextSaleNumberLojista() {
