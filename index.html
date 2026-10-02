@@ -1905,6 +1905,12 @@
   .hist-modal .hist-table tr.hist-estornado td { opacity: .55; text-decoration: line-through; }
   .hist-modal .hist-table tr.hist-estornado td:nth-child(2) { text-decoration: none; }
   .hist-modal .hist-vazio { text-align: center !important; color: var(--text-2); padding: 18px 0 !important; font-size: 12.5px; }
+  .cep-sugestao { margin-top: 6px; padding: 6px 10px; border-radius: 8px; font-size: 12px; line-height: 1.45; background: var(--amber-bg); color: var(--amber-text); border: 1px solid rgba(127,127,127,.25); }
+  .cep-sugestao.ok { background: var(--green-bg); color: var(--green-text); }
+  .cep-sugestao .cep-onde { display: block; font-size: 11px; opacity: .85; }
+  .cep-sugestao .cep-usar { margin-top: 4px; font: inherit; font-size: 11.5px; font-weight: 700; padding: 2px 10px; border-radius: 999px; border: 1px solid currentColor; background: transparent; color: inherit; cursor: pointer; }
+  .mc-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -6px 0 12px; padding: 6px 10px; border-radius: 8px; background: rgba(127,127,127,.10); font-size: 12px; color: var(--text-2); }
+  .mc-resumo b { color: var(--text); }
   .hist-modal .hist-filtro { padding: 3px 10px !important; min-height: 0 !important; height: auto !important; box-shadow: none !important; }
   .exp-cli-body { padding-bottom: 8px; }
   .exp-cli-bloco { margin-bottom: 10px; }
@@ -20128,7 +20134,7 @@ function renderVendas() {
     return `
       <tr onclick="gsoToggleMobileCard(event, this)">
         <td data-label="Data" data-preview="1"${saleCellClass(r, ['data'])}><div class="venda-data-cell"><div class="venda-numero-linha">nº ${r.numeroVenda || '—'}</div><div>${typeof gsoDateCell==='function'?gsoDateCell(r.data):fmtDate(r.data)}</div></div></td>
-        <td data-label="Cliente" data-preview="1"${saleCellClass(r, ['cliente'])}>${r.revisaoCliente ? `<span class="revisao-dot gso-has-tip" data-tip="Cliente ambíguo — precisa revisar em Ver mais"></span> ` : ''}<span class="cliente-link" onclick="event.stopPropagation(); verMaisCliente(${attrJsString(r.cliente)})">${r.cliente}</span></td>
+        <td data-label="Cliente" data-preview="1"${saleCellClass(r, ['cliente'])}>${r.revisaoCliente ? `<span class="revisao-dot gso-has-tip" data-tip="Cliente ambíguo — precisa revisar em Ver mais"></span> ` : ''}<span class="cliente-link" onclick="event.stopPropagation(); openClienteModal(${attrJsString(r.cliente)})" data-tip="Abrir o cadastro completo do cliente">${r.cliente}</span></td>
         <td data-label="Produto"${saleCellClass(r, ['produto','tamanho'])}>${r.produto}</td>
         <td data-label="Aroma"${saleCellClass(r, ['aroma'])}><span class="pill pill-aroma ${typeof gsoAromaClass==='function'?gsoAromaClass(r.aroma):''}">${r.aroma || 'Neutro'}</span></td>
         <td data-label="Qtd" class="num${saleCellClassName(r, ['qtd'])}">${r.qtd}</td>
@@ -21795,7 +21801,8 @@ function verMaisCliente(nome) {
       <div class="s"><div class="l">Total gasto</div><div class="v">${fmtBR(c.total)}</div></div>
       <div class="s"><div class="l">Nascimento</div><div class="v">${escapeHtml(clienteNascimento(c.metadata))}</div></div>
     </div>
-    ${fiscal.endereco ? `<div class="vm-section"><div class="vm-section-title">Endereço</div><div class="v">${escapeHtml(fiscal.endereco)}${fiscal.cep ? ' · CEP ' + escapeHtml(fiscal.cep) : ''}</div></div>` : ''}
+    <div class="vm-section"><div class="vm-section-title">Contato</div><div class="v">${escapeHtml(c.email || '—')}</div></div>
+    ${(() => { const m = c.metadata || {}; const linha = [[m.rua || fiscal.rua, m.numero || fiscal.numero].filter(Boolean).join(', '), m.bairro, clienteCidadeUf(m) !== '—' ? clienteCidadeUf(m) : ''].filter(Boolean).join(' · ') || fiscal.endereco || ''; const cep = m.cep || fiscal.cep || ''; return linha || cep ? `<div class="vm-section"><div class="vm-section-title">Endereço</div><div class="v">${escapeHtml(linha)}${cep ? ' · CEP ' + escapeHtml(cep) : ''}</div></div>` : ''; })()}
     <div class="form-actions" style="margin-top:14px;">
       <button class="btn btn-small" onclick="closeVerMais(); openClienteNotas(${attrJsString(nome)});">Ver notas fiscais</button>
     </div>
@@ -21846,6 +21853,18 @@ function openClienteModal(nome = '') {
   document.getElementById('mc-nasc-mes').value = meta.nascimentoMes || fiscal.nascimentoMes || '';
   document.getElementById('mc-inativo-manual').checked = Boolean(clienteBase.inativoManual);
   setTipoClienteForm(clienteBase.tipoCliente === 'Direto Lab' ? 'Direto Lab' : '');
+  // Resumo de compras (só leitura) no topo do cadastro — abre igual vindo de Clientes ou de Vendas.
+  let resumo = document.getElementById('mc-resumo');
+  if (!resumo && title) { resumo = document.createElement('div'); resumo.id = 'mc-resumo'; resumo.className = 'mc-resumo'; title.insertAdjacentElement('afterend', resumo); }
+  if (resumo) {
+    const agg = foundExisting ? computeClientes().find(c => nameKey(c.nome) === nameKey(existing.nome)) : null;
+    resumo.classList.toggle('hidden', !agg);
+    if (agg) {
+      resumo.innerHTML = `<span class="pill ${pillClass(agg.status)}">${escapeHtml(agg.status)}</span>` +
+        `<span><b>${agg.pedidos}</b> pedido${agg.pedidos === 1 ? '' : 's'}</span><span><b>${fmtBR(agg.total)}</b> gastos</span>` +
+        `<span>Última compra <b>${agg.ultima ? fmtDate(agg.ultima) : '—'}</b></span>`;
+    }
+  }
   document.getElementById('modal-cliente').classList.add('show');
 }
 function selecionarTipoClienteLojista() {
@@ -21970,6 +21989,155 @@ async function autoPreencherEnderecoFiscalPorCep() {
     console.warn('Não consegui buscar o CEP:', err);
   }
 }
+
+/* ---------- Sugestão de CEP a partir do endereço (ViaCEP) ---------- */
+// Só oferece um CEP quando dá pra ter certeza: a rua tem que casar, o bairro (se informado)
+// tem que bater e, depois disso, tem que sobrar UM único CEP (usando o número da casa pra
+// escolher entre faixas/lados par e ímpar quando a rua tem mais de um). Na dúvida: nada.
+const CEP_TIPOS_VIA = new Set(['rua', 'r', 'avenida', 'av', 'travessa', 'tv', 'alameda', 'al', 'rodovia', 'rod', 'estrada', 'est', 'praca', 'pc', 'largo', 'beco', 'viela', 'via', 'servidao', 'marginal']);
+const CEP_ABREV = { mal: 'marechal', cel: 'coronel', gal: 'general', dr: 'doutor', dra: 'doutora', eng: 'engenheiro', pres: 'presidente', prof: 'professor', profa: 'professora', sen: 'senador', ten: 'tenente', cap: 'capitao', cmte: 'comandante', cdte: 'comandante', ver: 'vereador', dep: 'deputado', gov: 'governador', min: 'ministro', sta: 'santa', sto: 'santo' };
+const CEP_STOP = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
+const cepCache = new Map();
+const cepSeq = {};
+
+function cepTokens(texto) {
+  let t = nameKey(String(texto || '').replace(/\([^)]*\)/g, ' ').replace(/(,|\bn[ºo°.]?\b)\s*\d+.*$/i, '')).split(' ').filter(Boolean);
+  while (t.length > 1 && CEP_TIPOS_VIA.has(t[0])) t.shift();
+  return t.map(x => CEP_ABREV[x] || x).filter(x => !CEP_STOP.has(x));
+}
+function cepTokenCasa(u, candidatos) {
+  return candidatos.some(c => c === u || (u.length === 1 && c[0] === u) || (u.length >= 4 && c.startsWith(u)));
+}
+// true/false = o número cabe/não cabe na faixa do complemento; null = complemento não restringe.
+function cepNumeroCompat(complemento, numero) {
+  const n = parseInt(String(numero || '').replace(/\D/g, ''), 10);
+  const c = nameKey(complemento);
+  if (!c || isNaN(n)) return null;
+  let achou = false, ok = true;
+  const lado = c.match(/lado (par|impar)/);
+  if (lado) { achou = true; if ((n % 2 === 0) !== (lado[1] === 'par')) ok = false; }
+  let m = c.match(/de (\d+)(?: \d+)? (?:a|ao) (\d+|fim)/);
+  if (m) { achou = true; const ini = Number(m[1]), fim = m[2] === 'fim' ? Infinity : Number(m[2]); if (n < ini || n > fim) ok = false; }
+  else if ((m = c.match(/ate (\d+)(?: (\d+))?/))) { achou = true; if (n > Number(m[2] || m[1])) ok = false; }
+  return achou ? ok : null;
+}
+async function cepConsultar(uf, cidade, logradouro) {
+  const chave = [uf, nameKey(cidade), nameKey(logradouro)].join('|');
+  if (cepCache.has(chave)) return cepCache.get(chave);
+  let lista = [];
+  try {
+    const resp = await fetch(`https://viacep.com.br/ws/${uf}/${encodeURIComponent(cidade)}/${encodeURIComponent(logradouro)}/json/`);
+    if (resp.ok) { const j = await resp.json(); if (Array.isArray(j)) lista = j; }
+  } catch (err) { lista = null; }
+  if (lista !== null) cepCache.set(chave, lista);
+  return lista || [];
+}
+// end = { rua, numero, bairro, cidade, uf } → { cep, logradouro, bairro, localidade, uf, unicoDaCidade } ou null
+async function buscarCepPorEndereco(end) {
+  const uf = ufNormalizada(end.uf, end.cidade);
+  const cidade = cidadeLimpa(end.cidade);
+  const tokens = cepTokens(end.rua);
+  if (uf.length !== 2 || cidade.length < 3 || !tokens.length || tokens.join('').length < 3) return null;
+
+  let achados = [];
+  for (let k = tokens.length, tentativas = 0; k >= 1 && tentativas < 4; k--, tentativas++) {
+    const consulta = tokens.slice(0, k).join(' ');
+    if (consulta.length < 3) break;
+    achados = await cepConsultar(uf, cidade, consulta);
+    if (achados.length) break;
+  }
+  if (!achados.length) return null;
+
+  // Cidade com CEP único (a API devolve só o CEP geral, sem logradouro): é certeiro.
+  if (achados.length === 1 && !achados[0].logradouro) {
+    const a = achados[0];
+    return { cep: onlyDigits(a.cep), logradouro: '', bairro: '', localidade: a.localidade, uf: a.uf, unicoDaCidade: true };
+  }
+  let cands = achados.filter(a => a.logradouro && tokens.every(u => cepTokenCasa(u, cepTokens(a.logradouro))));
+  const bairroKey = nameKey(end.bairro);
+  if (bairroKey && cands.length) {
+    cands = cands.filter(a => { const b = nameKey(a.bairro); return b && (b === bairroKey || b.includes(bairroKey) || bairroKey.includes(b)); });
+  }
+  if (!cands.length) return null;
+  let ceps = [...new Set(cands.map(a => onlyDigits(a.cep)))];
+  if (ceps.length > 1) {
+    const porNumero = cands.filter(a => cepNumeroCompat(a.complemento, end.numero) === true);
+    ceps = [...new Set(porNumero.map(a => onlyDigits(a.cep)))];
+    cands = porNumero;
+  } else if (cands.some(a => cepNumeroCompat(a.complemento, end.numero) === false)) {
+    return null; // o número informado está fora da faixa desse único CEP: não arrisca
+  }
+  if (ceps.length !== 1) return null;
+  const a = cands.find(x => onlyDigits(x.cep) === ceps[0]);
+  return { cep: ceps[0], logradouro: a.logradouro, bairro: a.bairro, localidade: a.localidade, uf: a.uf, unicoDaCidade: false };
+}
+
+function cepLerEndereco(p) {
+  const val = id => (document.getElementById(id)?.value || '').trim();
+  if (p === 'mf') {
+    const partes = val('mf-end').split(',').map(s => s.trim());
+    const cidadeUf = val('mf-cidade').split('/').map(s => s.trim());
+    return { rua: partes[0] || '', numero: (partes[1] || '').match(/\d+/)?.[0] || '', bairro: '', cidade: cidadeUf[0] || '', uf: cidadeUf[1] || '' };
+  }
+  return { rua: val(p + '-rua'), numero: val(p + '-numero'), bairro: val(p + '-bairro'), cidade: val(p + '-cidade'), uf: val(p + '-estado') };
+}
+function cepHintEl(p) {
+  let el = document.getElementById(p + '-cep-sugestao');
+  if (!el) {
+    const cep = document.getElementById(p + '-cep');
+    if (!cep) return null;
+    el = document.createElement('div');
+    el.id = p + '-cep-sugestao';
+    el.className = 'cep-sugestao hidden';
+    cep.parentElement.appendChild(el);
+  }
+  return el;
+}
+async function cepAtualizarSugestao(p) {
+  const hint = cepHintEl(p);
+  if (!hint) return;
+  const seq = cepSeq[p] = (cepSeq[p] || 0) + 1;
+  const end = cepLerEndereco(p);
+  let r = null;
+  try { r = await buscarCepPorEndereco(end); } catch (err) { r = null; }
+  if (seq !== cepSeq[p]) return;
+  if (!r) { hint.classList.add('hidden'); hint.innerHTML = ''; return; }
+  const atual = onlyDigits(document.getElementById(p + '-cep')?.value || '');
+  const cepFmt = r.cep.slice(0, 5) + '-' + r.cep.slice(5);
+  const onde = r.unicoDaCidade
+    ? `CEP único de ${escapeHtml(r.localidade)}/${escapeHtml(r.uf)}`
+    : `${escapeHtml(r.logradouro)}${r.bairro ? ' — ' + escapeHtml(r.bairro) : ''}, ${escapeHtml(r.localidade)}/${escapeHtml(r.uf)}`;
+  hint.classList.remove('hidden');
+  if (atual === r.cep) {
+    hint.className = 'cep-sugestao ok';
+    hint.innerHTML = `✓ CEP confere com o endereço <span class="cep-onde">${onde}</span>`;
+  } else {
+    hint.className = 'cep-sugestao';
+    hint.innerHTML = `${atual.length === 8 ? 'O CEP certo para este endereço parece ser' : 'CEP encontrado para este endereço:'} <b>${cepFmt}</b> <span class="cep-onde">${onde}</span> ` +
+      `<button type="button" class="cep-usar" onclick="cepUsarSugestao('${p}','${r.cep}')">${atual.length === 8 ? 'Trocar por este' : 'Usar este CEP'}</button>`;
+  }
+}
+function cepUsarSugestao(p, cep) {
+  const input = document.getElementById(p + '-cep');
+  if (input) input.value = cep.slice(0, 5) + '-' + cep.slice(5);
+  cepAtualizarSugestao(p);
+}
+function cepAgendar(p) {
+  clearTimeout(cepAgendar['t' + p]);
+  cepAgendar['t' + p] = setTimeout(() => cepAtualizarSugestao(p), 700);
+}
+(function cepInit() {
+  const forms = { mc: 'modal-cliente', mlj: 'modal-lojista-cadastro', mf: 'modal-fiscal' };
+  const campos = { mc: ['rua', 'numero', 'bairro', 'cidade', 'estado', 'cep'], mlj: ['rua', 'numero', 'bairro', 'cidade', 'estado', 'cep'], mf: ['end', 'cidade', 'cep'] };
+  const ligar = () => Object.keys(forms).forEach(p => {
+    campos[p].forEach(c => { const el = document.getElementById(p + '-' + c); if (el) el.addEventListener('input', () => cepAgendar(p)); });
+    const modal = document.getElementById(forms[p]);
+    if (!modal) return;
+    new MutationObserver(() => { if (modal.classList.contains('show')) setTimeout(() => cepAtualizarSugestao(p), 250); else { const h = document.getElementById(p + '-cep-sugestao'); if (h) h.classList.add('hidden'); } })
+      .observe(modal, { attributes: true, attributeFilter: ['class'] });
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ligar); else ligar();
+})();
 
 // Busca por nome, CPF, CNPJ ou telefone em Clientes, Dados fiscais e Lojistas juntos —
 // usada antes de salvar um cadastro novo pra avisar quando o dado já existe em outra
