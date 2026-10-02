@@ -1911,6 +1911,10 @@
   .cep-sugestao .cep-usar { margin-top: 4px; font: inherit; font-size: 11.5px; font-weight: 700; padding: 2px 10px; border-radius: 999px; border: 1px solid currentColor; background: transparent; color: inherit; cursor: pointer; }
   .mc-resumo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -6px 0 12px; padding: 6px 10px; border-radius: 8px; background: rgba(127,127,127,.10); font-size: 12px; color: var(--text-2); }
   .mc-resumo b { color: var(--text); }
+  .estoque-auto { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; font-size: 12.5px; }
+  .estoque-auto-txt.ok { color: var(--green-text); font-weight: 600; }
+  .estoque-auto-txt.aviso { color: var(--amber-text); font-weight: 600; }
+  .estoque-auto-trocar { border: 0; background: transparent; color: var(--text-2); font: inherit; font-size: 11.5px; text-decoration: underline; cursor: pointer; padding: 0; }
   .hist-modal .hist-filtro { padding: 3px 10px !important; min-height: 0 !important; height: auto !important; box-shadow: none !important; }
   .exp-cli-body { padding-bottom: 8px; }
   .exp-cli-bloco { margin-bottom: 10px; }
@@ -13446,7 +13450,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <div class="form-row form-r5" style="margin-bottom:10px;">
             <div>
               <label class="form-label">Produto</label>
-              <select class="form-input" id="f-produto" onchange="updateProductSizeOptions()">
+              <select class="form-input" id="f-produto" onchange="updateProductSizeOptions(); atualizarEstoqueAuto()">
                 <option>Palco</option>
                 <option>DJs and Clubs</option>
                 <option>Haze</option>
@@ -13463,7 +13467,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
             </div>
             <div>
               <label class="form-label">Tamanho</label>
-              <select class="form-input" id="f-tamanho" onchange="updateSaleTypeOptions(); updatePreview();">
+              <select class="form-input" id="f-tamanho" onchange="updateSaleTypeOptions(); updatePreview(); atualizarEstoqueAuto();">
                 <option>5L</option>
                 <option>1L</option>
                 <option>150g</option>
@@ -13472,7 +13476,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
             </div>
             <div>
               <label class="form-label">Aroma</label>
-              <select class="form-input" id="f-aroma" onchange="toggleAromaCustom(); updatePreview();">
+              <select class="form-input" id="f-aroma" onchange="toggleAromaCustom(); updatePreview(); atualizarEstoqueAuto();">
                 <option>Neutro</option>
                 <option>Tropical</option>
                 <option>Tutti Frutti</option>
@@ -13491,10 +13495,14 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               <input type="number" class="form-input" id="f-qtd" value="1" min="1" oninput="updatePreview()">
             </div>
           </div>
-          <div class="form-row" style="margin-bottom:10px;">
+          <div class="estoque-auto" id="f-estoque-auto-wrap">
+            <span class="estoque-auto-txt" id="f-estoque-auto"></span>
+            <button type="button" class="estoque-auto-trocar" onclick="toggleEstoqueManual()" id="f-estoque-trocar">trocar</button>
+          </div>
+          <div class="form-row hidden" id="f-estoque-manual-row" style="margin-bottom:10px;">
             <div>
-              <label class="form-label">Produto do estoque a descontar <span style="font-weight:400;color:var(--text-2)">(opcional — use quando a embalagem/variante usada for diferente da automática)</span></label>
-              <select class="form-input" id="f-estoque-produto">
+              <label class="form-label">Tirar do estoque este produto (só se não for o automático)</label>
+              <select class="form-input" id="f-estoque-produto" onchange="atualizarEstoqueAuto()">
                 <option value="">Automático (pelo nome do produto)</option>
               </select>
             </div>
@@ -25813,6 +25821,44 @@ function currentSaleItem() {
   };
 }
 
+
+// Mostra, sem a usuária precisar configurar nada, qual produto do estoque vai ser baixado
+// pro item que está sendo montado (a baixa é automática pelo produto/tamanho/aroma). O
+// seletor manual fica escondido atrás do link "trocar" e só é usado em exceção.
+function estoqueResolvido(produto, tamanho, aroma, idManual) {
+  if (window.Lab?.state?.produtos?.length) {
+    if (idManual) { const m = window.Lab.state.produtos.find(p => p.id === idManual); if (m) return { id: m.id, nome: m.nome, manual: true }; }
+    if (typeof window.Lab.resolverProdutoEstoque === 'function') {
+      const r = window.Lab.resolverProdutoEstoque(produto, tamanho, aroma);
+      if (r) return { ...r, manual: false };
+    }
+    return null;
+  }
+  return undefined; // estoque ainda não carregou
+}
+function atualizarEstoqueAuto() {
+  const el = document.getElementById('f-estoque-auto');
+  if (!el) return;
+  const produto = document.getElementById('f-produto')?.value || '';
+  const tamanho = document.getElementById('f-tamanho')?.value || '';
+  let aroma = document.getElementById('f-aroma')?.value || 'Neutro';
+  if (aroma === 'Outro') aroma = document.getElementById('f-aroma-custom')?.value.trim() || aroma;
+  const idManual = document.getElementById('f-estoque-produto')?.value || '';
+  const r = estoqueResolvido(produto, tamanho, aroma, idManual);
+  if (r === undefined) {
+    el.className = 'estoque-auto-txt'; el.textContent = 'Carregando estoque…';
+    if (!atualizarEstoqueAuto._t) atualizarEstoqueAuto._t = setTimeout(() => { atualizarEstoqueAuto._t = null; atualizarEstoqueAuto(); if (typeof renderSaleItemsList === 'function' && currentSaleItems.length) renderSaleItemsList(); }, 1500);
+    return;
+  }
+  if (r) { el.className = 'estoque-auto-txt ok'; el.textContent = '📦 Sai do estoque: ' + r.nome + (r.manual ? ' (escolhido por você)' : ''); }
+  else { el.className = 'estoque-auto-txt aviso'; el.textContent = '⚠ Não achei esse produto no estoque — a venda será registrada, mas sem baixar estoque. Use "trocar" pra escolher.'; }
+}
+function toggleEstoqueManual() {
+  const row = document.getElementById('f-estoque-manual-row');
+  if (!row) return;
+  row.classList.toggle('hidden');
+  if (!row.classList.contains('hidden')) popularSelectProdutoEstoque('f-estoque-produto', document.getElementById('f-estoque-produto')?.value || null);
+}
 // Lista de "produtos envasados" do Laboratório (cada linha já é uma combinação específica
 // de produto + embalagem/garrafa usada) — usada pra deixar escolher manualmente qual delas
 // deve ser descontada do estoque, em vez de sempre confiar na correspondência automática
@@ -25852,7 +25898,7 @@ function renderSaleItemsList() {
     <div class="sale-item-row">
       <div>
         <div class="sale-item-main">${escapeHtml(item.descricao)}</div>
-        <div class="sale-item-sub">${escapeHtml(item.aroma || 'Neutro')} • ${item.qtdUnidades} unidade(s) contabilizadas${produtoEstoque ? ` • estoque: ${escapeHtml(produtoEstoque.nome)}` : ''}</div>
+        <div class="sale-item-sub">${escapeHtml(item.aroma || 'Neutro')} • ${item.qtdUnidades} unidade(s) contabilizadas${(() => { const r = estoqueResolvido(item.catalogProduto || item.produto, item.tamanho, item.aroma, item.produtoEnvasadoId); return r === undefined ? '' : (r ? ` • <span class="estoque-auto-txt ok">📦 sai do estoque: ${escapeHtml(r.nome)}</span>` : ' • <span class="estoque-auto-txt aviso">⚠ sem baixa de estoque (não encontrado)</span>'); })()}</div>
       </div>
       <div class="sale-item-value-edit">
         <label class="form-label" style="margin-bottom:2px;">Valor cobrado</label>
@@ -25883,6 +25929,7 @@ function adicionarProdutoVenda() {
   document.getElementById('f-qtd').value = 1;
   const estoqueSelect = document.getElementById('f-estoque-produto');
   if (estoqueSelect) estoqueSelect.value = '';
+  document.getElementById('f-estoque-manual-row')?.classList.add('hidden');
   renderSaleItemsList();
   updatePreview();
 }
@@ -26052,6 +26099,7 @@ function currentFreteVenda() {
 }
 
 function updatePreview() {
+  atualizarEstoqueAuto();
   const preco = currentSuggestedPrice();
   const frete = currentFreteVenda();
   const totalComFrete = preco + frete;
@@ -33173,6 +33221,10 @@ async function renderIndicadores() {
     abrir: abrir,
     sincronizarCustosComCalculadora: sincronizarCustosComCalculadora,
     baixarEstoquePorItens: baixarEstoquePorItens,
+    resolverProdutoEstoque: function (nomeProduto, tamanho, aroma) {
+      var p = encontrarProdutoEnvasadoPara(nomeProduto, tamanho, aroma);
+      return p ? { id: p.id, nome: p.nome } : null;
+    },
     reverterEstoque: reverterEstoque,
     abrirEscolhaExport: abrirEscolhaExport,
     addLoteItemRow: addLoteItemRow,
