@@ -20579,7 +20579,7 @@ function clientesParaExport() {
     const e = extras[k] || (extras[k] = { primeira: null, produtos: {} });
     const dt = dashboardDateObj(v.data);
     if (dt && (!e.primeira || dt < e.primeira)) e.primeira = dt;
-    const p = String(v.produto || '').replace(/^\d+\s*UN\s*/i, '').trim();
+    const p = String(v.produto || '').replace(/^\d+\s*(UN|CX)\s*/i, '').trim();
     if (p) e.produtos[p] = (e.produtos[p] || 0) + (Number(v.qtd) || 1);
   });
 
