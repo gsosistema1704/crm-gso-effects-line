@@ -1875,6 +1875,37 @@
 	  .modal.modal-wide { max-width: 760px; }
   .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
 
+  /* ===== HISTÓRICO DE ESTOQUE (cabeçalho fixo com botão fechar no topo) ===== */
+  .modal.hist-modal { padding: 0 !important; display: flex; flex-direction: column; overflow: hidden !important; max-width: 800px; }
+  .hist-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); flex: 0 0 auto; }
+  .hist-title { font-size: 15px; font-weight: 700; line-height: 1.25; }
+  .hist-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+  .hist-close { width: 30px; height: 30px; flex: 0 0 auto; border: 1px solid var(--border); background: transparent; border-radius: 8px; cursor: pointer; font-size: 14px; line-height: 1; color: var(--text-2); }
+  .hist-close:hover { background: rgba(127,127,127,.14); color: var(--text); }
+  .hist-body { padding: 10px 16px 14px; overflow-y: auto; flex: 1 1 auto; }
+  .hist-chips, .hist-filtros { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .hist-chip { font-size: 11.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-2); white-space: nowrap; }
+  .hist-chip b { color: var(--text); font-weight: 700; }
+  .hist-chip.pos b { color: var(--green-text); }
+  .hist-chip.neg b { color: var(--red-text); }
+  .hist-filtro { font-size: 11.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); background: transparent; cursor: pointer; color: var(--text-2); font-family: inherit; }
+  .hist-filtro.on { font-weight: 700; color: var(--text); border-color: var(--text-2); background: rgba(127,127,127,.18); }
+  .hist-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .hist-table th { text-align: left; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2); padding: 5px 8px; border-bottom: 1px solid var(--border); position: sticky; top: -10px; background: var(--glass-light, var(--card)); }
+  .hist-table td { padding: 5px 8px; border-bottom: 1px solid rgba(127,127,127,.12); vertical-align: middle; }
+  .hist-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .hist-table tr.hist-dia td { background: rgba(127,127,127,.10); font-size: 11px; font-weight: 700; padding: 4px 8px; color: var(--text-2); }
+  .hist-table tr.hist-dia td span { font-weight: 600; margin-left: 8px; }
+  .hist-table .pill { font-size: 10.5px; padding: 1px 8px; }
+  .hist-delta.pos { color: var(--green-text); font-weight: 700; }
+  .hist-delta.neg { color: var(--red-text); font-weight: 700; }
+  .hist-delta.zero { color: var(--text-2); font-weight: 700; }
+  .hist-origem { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-quem { font-size: 10.5px; color: var(--text-2); margin-left: 6px; }
+  .hist-table tr.hist-estornado td { opacity: .55; text-decoration: line-through; }
+  .hist-table tr.hist-estornado td:nth-child(2) { text-decoration: none; }
+  .hist-vazio { text-align: center; color: var(--text-2); padding: 18px 0; font-size: 12.5px; }
+
   /* ===== HIDDEN ===== */
   .hidden { display: none !important; }
 
@@ -12893,16 +12924,23 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 </div>
 
 <!-- ===== MODAL: HISTÓRICO ===== -->
-<div class="modal-bg" id="modal-historico">
-  <div class="modal modal-wide">
-    <div class="modal-title" id="modal-historico-title">Histórico de movimentações</div>
-    <div class="table-card" style="border:1px solid var(--border);">
-      <table class="stack-table">
-        <thead><tr><th>Data</th><th>Tipo</th><th class="num">Qtd</th><th class="num">Antes</th><th class="num">Depois</th><th>Origem</th></tr></thead>
+<div class="modal-bg" id="modal-historico" onclick="if(event.target===this)Lab.closeModal('modal-historico')">
+  <div class="modal modal-wide hist-modal">
+    <div class="hist-head">
+      <div>
+        <div class="hist-title" id="modal-historico-title">Histórico de movimentações</div>
+        <div class="hist-sub" id="historico-sub"></div>
+      </div>
+      <button type="button" class="hist-close" onclick="Lab.closeModal('modal-historico')" aria-label="Fechar histórico" title="Fechar (Esc)">✕</button>
+    </div>
+    <div class="hist-body">
+      <div class="hist-chips" id="historico-resumo"></div>
+      <div class="hist-filtros" id="historico-filtros"></div>
+      <table class="hist-table">
+        <thead><tr><th>Hora</th><th>Movimento</th><th class="num">Qtd</th><th class="num">Saldo</th><th>Origem · quem</th></tr></thead>
         <tbody id="historicoTable"></tbody>
       </table>
     </div>
-    <div class="form-actions"><button class="btn" onclick="Lab.closeModal('modal-historico')">Fechar</button></div>
   </div>
 </div>
 
@@ -14376,27 +14414,20 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 </div>
 
 <!-- ============ MODAL HISTÓRICO ESTOQUE ============ -->
-<div class="modal-bg" id="modal-estoque-historico">
-  <div class="modal modal-wide">
-    <div class="modal-title">Movimentação de estoque</div>
-    <div class="info-banner estoque-history-summary" id="estoque-historico-resumo"></div>
-    <div class="card table-card">
-      <table class="estoque-history-table stack-table">
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Movimento</th>
-            <th class="num">Qtd</th>
-            <th class="num">Antes</th>
-            <th class="num">Depois</th>
-            <th>Origem</th>
-          </tr>
-        </thead>
+<div class="modal-bg" id="modal-estoque-historico" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal modal-wide hist-modal">
+    <div class="hist-head">
+      <div>
+        <div class="hist-title">Movimentação de estoque</div>
+        <div class="hist-sub" id="estoque-historico-resumo"></div>
+      </div>
+      <button type="button" class="hist-close" onclick="document.getElementById('modal-estoque-historico').classList.remove('show')" aria-label="Fechar" title="Fechar">✕</button>
+    </div>
+    <div class="hist-body">
+      <table class="hist-table">
+        <thead><tr><th>Data</th><th>Movimento</th><th class="num">Qtd</th><th class="num">Saldo</th><th>Origem</th></tr></thead>
         <tbody id="estoqueHistoricoTable"></tbody>
       </table>
-    </div>
-    <div class="form-actions">
-      <button class="btn btn-primary" onclick="document.getElementById('modal-estoque-historico').classList.remove('show')">Fechar</button>
     </div>
   </div>
 </div>
@@ -22801,25 +22832,25 @@ function openEstoqueHistorico(id) {
   const item = state.estoque.find(e => e.id === id);
   if (!item) return;
   const movimentos = Array.isArray(item.movimentacoes) ? item.movimentacoes : [];
-  document.getElementById('estoque-historico-resumo').innerHTML = `
-    <strong>${escapeHtml(item.titulo || 'Produto')} ${escapeHtml(item.tamanho || '')}</strong>
-    · estoque atual: ${estoqueNumber(item.estoque).toLocaleString('pt-BR')}
-    · mínimo: ${estoqueNumber(item.minimo).toLocaleString('pt-BR')}
-  `;
+  document.getElementById('estoque-historico-resumo').textContent =
+    `${item.titulo || 'Produto'} ${item.tamanho || ''} · estoque atual ${estoqueNumber(item.estoque).toLocaleString('pt-BR')} · mínimo ${estoqueNumber(item.minimo).toLocaleString('pt-BR')}`;
   const tbody = document.getElementById('estoqueHistoricoTable');
   if (!movimentos.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhuma movimentação registrada ainda</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="hist-vazio">Nenhuma movimentação registrada ainda</td></tr>';
   } else {
-    tbody.innerHTML = movimentos.map(m => `
+    tbody.innerHTML = movimentos.map(m => {
+      const delta = estoqueNumber(m.depois) - estoqueNumber(m.antes);
+      const cls = delta > 0 ? 'pos' : delta < 0 ? 'neg' : 'zero';
+      const sinal = (delta > 0 ? '+' : delta < 0 ? '−' : '') + Math.abs(delta).toLocaleString('pt-BR');
+      return `
       <tr>
-        <td class="stack-title">${m.data ? new Date(m.data).toLocaleString('pt-BR') : '—'}</td>
-        <td data-label="Movimento"><span class="pill ${estoqueMovementPill(m.tipo)}">${estoqueMovementLabel(m.tipo)}</span></td>
-        <td class="num" data-label="Qtd">${estoqueNumber(m.quantidade).toLocaleString('pt-BR')}</td>
-        <td class="num" data-label="Antes">${estoqueNumber(m.antes).toLocaleString('pt-BR')}</td>
-        <td class="num" data-label="Depois">${estoqueNumber(m.depois).toLocaleString('pt-BR')}</td>
-        <td data-label="Origem">${escapeHtml(m.origem || 'Manual')}</td>
-      </tr>
-    `).join('');
+        <td>${m.data ? new Date(m.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+        <td><span class="pill ${estoqueMovementPill(m.tipo)}">${estoqueMovementLabel(m.tipo)}</span></td>
+        <td class="num hist-delta ${cls}">${sinal}</td>
+        <td class="num">${estoqueNumber(m.antes).toLocaleString('pt-BR')} → <b>${estoqueNumber(m.depois).toLocaleString('pt-BR')}</b></td>
+        <td><span class="hist-origem" title="${escapeHtml(m.origem || 'Manual')}">${escapeHtml(m.origem || 'Manual')}</span></td>
+      </tr>`;
+    }).join('');
   }
   document.getElementById('modal-estoque-historico').classList.add('show');
 }
@@ -31294,29 +31325,133 @@ async function confirmarAjuste() {
   renderInsumos();
 }
 
+// Histórico de movimentações de um insumo: resumo compacto no topo, filtros por tipo,
+// linhas agrupadas por dia com quantidade COM SINAL (saldo depois − antes), saldo
+// "antes → depois" e quem fez. Botão de fechar fica no cabeçalho fixo (sem precisar rolar).
+const HIST_TIPO_META = {
+  entrada: { label: 'Entrada', pill: 'pill-green' },
+  saida: { label: 'Saída', pill: 'pill-red' },
+  definir: { label: 'Ajuste', pill: 'pill-blue' },
+  consumo_lote: { label: 'Consumo lote', pill: 'pill-amber' },
+  producao_lote: { label: 'Produção lote', pill: 'pill-green' },
+  estorno: { label: 'Estorno', pill: 'pill-blue' }
+};
+const HIST_NOMES_AMIGAVEIS = { gsoeffectsline: 'Bianca', tutuzinha1992: 'Tuanny', thiagoolitex2198: 'Thiago', 'luisa.oliveiras': 'Luísa' };
+const HIST_FILTROS = [
+  { key: 'todos', label: 'Todos', test: () => true },
+  { key: 'entradas', label: 'Entradas', test: m => histDelta(m) > 0 },
+  { key: 'saidas', label: 'Saídas', test: m => histDelta(m) < 0 },
+  { key: 'vendas', label: 'Vendas', test: m => /venda/i.test(m.origem || '') },
+  { key: 'lotes', label: 'Lotes', test: m => /lote/.test(m.tipo || '') || /lote/i.test(m.origem || '') },
+  { key: 'ajustes', label: 'Ajustes', test: m => m.tipo === 'definir' || m.tipo === 'estorno' }
+];
+const histState = { rows: [], filtro: 'todos', item: null, truncado: false };
+let histPerfis = null;
+
+function histDelta(m) { return (Number(m.depois) || 0) - (Number(m.antes) || 0); }
+function histSinal(n) { return (n > 0 ? '+' : n < 0 ? '−' : '') + fmtNum(Math.abs(n)); }
+async function histCarregarPerfis() {
+  if (histPerfis) return histPerfis;
+  histPerfis = {};
+  try {
+    const { data } = await getSupabaseClient().from('crm_profiles').select('id,nome');
+    (data || []).forEach(p => {
+      const nome = String(p.nome || '').trim();
+      histPerfis[p.id] = HIST_NOMES_AMIGAVEIS[nome.toLowerCase()] || nome;
+    });
+  } catch (err) { /* sem nomes: mostra só o resto */ }
+  return histPerfis;
+}
+function histDiaChave(iso) { const d = new Date(iso); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function histDiaRotulo(iso) {
+  const hoje = new Date(); const ontem = new Date(); ontem.setDate(hoje.getDate() - 1);
+  const k = histDiaChave(iso);
+  if (k === histDiaChave(hoje)) return 'Hoje';
+  if (k === histDiaChave(ontem)) return 'Ontem';
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }).replace('.', '');
+}
+
+function histRender() {
+  const { rows, filtro, item, truncado } = histState;
+  const un = item?.unidade || 'un';
+  const filtroDef = HIST_FILTROS.find(f => f.key === filtro) || HIST_FILTROS[0];
+  const visiveis = rows.filter(filtroDef.test);
+
+  const entradas = visiveis.reduce((s, m) => s + Math.max(0, histDelta(m)), 0);
+  const saidas = visiveis.reduce((s, m) => s + Math.min(0, histDelta(m)), 0);
+  const chips = [];
+  if (item) {
+    chips.push(`<span class="hist-chip">Estoque atual <b>${fmtNum(item.estoque)} ${escapeHtml(un)}</b></span>`);
+    if (Number(item.estoque_minimo) > 0) chips.push(`<span class="hist-chip">Mínimo <b>${fmtNum(item.estoque_minimo)}</b></span>`);
+  }
+  chips.push(`<span class="hist-chip pos">Entrou <b>${histSinal(entradas)}</b></span>`);
+  chips.push(`<span class="hist-chip neg">Saiu <b>${histSinal(saidas)}</b></span>`);
+  chips.push(`<span class="hist-chip"><b>${visiveis.length}</b> movimento${visiveis.length === 1 ? '' : 's'}</span>`);
+  document.getElementById('historico-resumo').innerHTML = chips.join('');
+
+  document.getElementById('historico-filtros').innerHTML = HIST_FILTROS.map(f => {
+    const n = rows.filter(f.test).length;
+    return `<button type="button" class="hist-filtro${f.key === filtro ? ' on' : ''}" onclick="Lab.setHistFiltro('${f.key}')">${f.label} ${n}</button>`;
+  }).join('');
+  document.getElementById('historico-sub').textContent = rows.length
+    ? (truncado ? `Últimas ${rows.length} movimentações` : `${rows.length} movimentação${rows.length === 1 ? '' : 'ões'} registrada${rows.length === 1 ? '' : 's'}`)
+    : '';
+
+  const tbody = document.getElementById('historicoTable');
+  if (!visiveis.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="hist-vazio">${rows.length ? 'Nenhuma movimentação nesse filtro.' : 'Nenhuma movimentação registrada ainda.'}</td></tr>`;
+    return;
+  }
+  let html = '';
+  let diaAtual = '';
+  const saldoDia = {};
+  visiveis.forEach(m => { const k = histDiaChave(m.criado_em); saldoDia[k] = (saldoDia[k] || 0) + histDelta(m); });
+  visiveis.forEach(m => {
+    const k = histDiaChave(m.criado_em);
+    if (k !== diaAtual) {
+      diaAtual = k;
+      html += `<tr class="hist-dia"><td colspan="5">${escapeHtml(histDiaRotulo(m.criado_em))}<span>saldo do dia ${histSinal(saldoDia[k])}</span></td></tr>`;
+    }
+    const meta = HIST_TIPO_META[m.tipo] || { label: m.tipo, pill: 'pill-blue' };
+    const delta = histDelta(m);
+    const cls = delta > 0 ? 'pos' : delta < 0 ? 'neg' : 'zero';
+    const quem = m.criado_por ? (histPerfis?.[m.criado_por] || '') : 'Sistema';
+    const hora = new Date(m.criado_em);
+    html += `<tr class="${m.estornado ? 'hist-estornado' : ''}">
+      <td title="${escapeHtml(hora.toLocaleString('pt-BR'))}">${hora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</td>
+      <td><span class="pill ${meta.pill}">${escapeHtml(meta.label)}</span>${m.estornado ? ' <span class="hist-quem">estornado</span>' : ''}</td>
+      <td class="num hist-delta ${cls}">${histSinal(delta)}</td>
+      <td class="num">${fmtNum(m.antes)} → <b>${fmtNum(m.depois)}</b></td>
+      <td><span class="hist-origem" title="${escapeHtml(m.origem || '')}">${escapeHtml(m.origem || '—')}</span>${quem ? `<span class="hist-quem">${escapeHtml(quem)}</span>` : ''}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+function setHistFiltro(key) { histState.filtro = key; histRender(); }
+
 async function openInsumoHistorico(insumoId) {
   const item = state.insumos.find(i => i.id === insumoId);
-  document.getElementById('modal-historico-title').textContent = 'Histórico — ' + (item?.titulo || '');
-  const client = getSupabaseClient();
-  const { data, error } = await client.from('gso_insumo_movimentacoes').select('*').eq('insumo_id', insumoId).order('criado_em', { ascending: false }).limit(200);
-  const tbody = document.getElementById('historicoTable');
-  if (error || !data?.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="table-empty">Nenhuma movimentação registrada ainda.</td></tr>`;
-  } else {
-    const tipoPill = { entrada: 'pill-green', saida: 'pill-red', definir: 'pill-blue', consumo_lote: 'pill-amber', estorno: 'pill-blue' };
-    tbody.innerHTML = data.map(m => `
-      <tr>
-        <td class="stack-title">${new Date(m.criado_em).toLocaleString('pt-BR')}</td>
-        <td data-label="Tipo"><span class="pill ${tipoPill[m.tipo] || 'pill-blue'}">${m.tipo}${m.estornado ? ' (estornado)' : ''}</span></td>
-        <td class="num" data-label="Qtd">${fmtNum(m.quantidade)}</td>
-        <td class="num" data-label="Antes">${fmtNum(m.antes)}</td>
-        <td class="num" data-label="Depois">${fmtNum(m.depois)}</td>
-        <td data-label="Origem">${escapeHtml(m.origem || '—')}</td>
-      </tr>
-    `).join('');
-  }
+  document.getElementById('modal-historico-title').textContent = item?.titulo || 'Histórico de movimentações';
+  histState.item = item || null;
+  histState.filtro = 'todos';
+  histState.rows = [];
+  histRender();
+  document.getElementById('historicoTable').innerHTML = '<tr><td colspan="5" class="hist-vazio">Carregando…</td></tr>';
   openModal('modal-historico');
+  const LIMITE = 500;
+  const client = getSupabaseClient();
+  const [{ data, error }] = await Promise.all([
+    client.from('gso_insumo_movimentacoes').select('*').eq('insumo_id', insumoId).order('criado_em', { ascending: false }).limit(LIMITE),
+    histCarregarPerfis()
+  ]);
+  histState.rows = error ? [] : (data || []);
+  histState.truncado = histState.rows.length >= LIMITE;
+  histRender();
 }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { const m = document.getElementById('modal-historico'); if (m?.classList.contains('show')) m.classList.remove('show'); }
+});
 
 // ============ IMPORTAÇÃO EM LOTE ============
 let parsedImportRows = [];
@@ -32327,6 +32462,7 @@ async function renderIndicadores() {
     openAjusteModal: openAjusteModal,
     openImportInsumosModal: openImportInsumosModal,
     openInsumoHistorico: openInsumoHistorico,
+    setHistFiltro: setHistFiltro,
     openInsumoModal: openInsumoModal,
     openLoteForm: openLoteForm,
     openLabProdutoModal: openLabProdutoModal,
