@@ -1906,6 +1906,18 @@
   .hist-modal .hist-table tr.hist-estornado td:nth-child(2) { text-decoration: none; }
   .hist-modal .hist-vazio { text-align: center !important; color: var(--text-2); padding: 18px 0 !important; font-size: 12.5px; }
   .hist-modal .hist-filtro { padding: 3px 10px !important; min-height: 0 !important; height: auto !important; box-shadow: none !important; }
+  .exp-cli-body { padding-bottom: 8px; }
+  .exp-cli-bloco { margin-bottom: 10px; }
+  .exp-cli-bloco .form-label { margin-bottom: 4px; }
+  .exp-cli-dica { font-weight: 500; font-size: 10.5px; color: var(--text-2); margin-left: 6px; }
+  .exp-cli-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .exp-cli-grade3 { grid-template-columns: 1fr 1fr 1fr; }
+  .exp-cli-body .postit-mencao-opt { padding: 3px 9px; font-size: 11.5px; }
+  .exp-cli-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--border); flex: 0 0 auto; }
+  .exp-cli-foot #exp-cli-count { font-size: 12.5px; color: var(--text-2); }
+  .exp-cli-foot #exp-cli-count b { color: var(--text); font-size: 15px; }
+  .exp-cli-acoes { display: flex; gap: 8px; }
+  @media (max-width: 640px) { .exp-cli-grade, .exp-cli-grade3 { grid-template-columns: 1fr; } .exp-cli-foot { flex-direction: column; align-items: stretch; } }
 
   /* ===== HIDDEN ===== */
   .hidden { display: none !important; }
@@ -12237,6 +12249,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <button class="btn hidden" id="btn-exportar-clientes" onclick="exportarClientesSelecionados()">Exportar (<span id="exportar-count">0</span>)</button>
           <button class="btn hidden" id="btn-inativar-clientes" onclick="inativarClientesSelecionados()">Deixar inativo (<span id="inativar-count">0</span>)</button>
           <button class="btn btn-danger hidden" id="btn-apagar-clientes" onclick="apagarClientesSelecionados()">Apagar (<span id="apagar-count">0</span>)</button>
+          <button class="btn" onclick="abrirExportarClientes()" data-tip="Baixar lista de clientes em Excel, com filtros">Exportar lista</button>
           <button class="btn btn-primary btn-nova-venda" onclick="navTo('nova')">+ Nova venda</button>
           <button class="btn btn-primary" onclick="openClienteModal()">+ Novo Cliente</button>
         </div>
@@ -14826,6 +14839,45 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div class="form-actions">
       <button class="btn" onclick="document.getElementById('modal-exportar-vendas').classList.remove('show')">Cancelar</button>
       <button class="btn btn-green" onclick="confirmarExportarVendas()">Baixar planilha (.xlsx)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL EXPORTAR CLIENTES ============ -->
+<div class="modal-bg" id="modal-exportar-clientes" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal modal-wide hist-modal">
+    <div class="hist-head">
+      <div>
+        <div class="hist-title">Exportar lista de clientes</div>
+        <div class="hist-sub">Escolha os filtros e baixe uma planilha Excel formatada, com resumo por estado e cidade.</div>
+      </div>
+      <button type="button" class="hist-close" onclick="document.getElementById('modal-exportar-clientes').classList.remove('show')" aria-label="Fechar" title="Fechar (Esc)">✕</button>
+    </div>
+    <div class="hist-body exp-cli-body">
+      <div class="exp-cli-bloco"><label class="form-label">Tipo de documento</label><div class="postit-mencao-picker" id="exp-cli-doc"></div></div>
+      <div class="exp-cli-bloco"><label class="form-label">Estado (UF) <span class="exp-cli-dica">pode marcar vários</span></label><div class="postit-mencao-picker" id="exp-cli-uf"></div></div>
+      <div class="exp-cli-grade">
+        <div class="exp-cli-bloco"><label class="form-label">Cidade</label><select class="form-input" id="exp-cli-cidade" onchange="expCliSet('cidade', this.value)"></select></div>
+        <div class="exp-cli-bloco"><label class="form-label">Histórico de compras</label><select class="form-input" id="exp-cli-compra" onchange="expCliSet('compra', this.value)"></select></div>
+      </div>
+      <div class="exp-cli-bloco"><label class="form-label">Status</label><div class="postit-mencao-picker" id="exp-cli-status"></div></div>
+      <div class="exp-cli-grade exp-cli-grade3">
+        <div class="exp-cli-bloco"><label class="form-label">Nº de vendas — mínimo</label><input type="number" min="0" class="form-input" id="exp-cli-vmin" placeholder="ex.: 5 (mais vendas)" oninput="expCliInput('vendasMin', this.value)"></div>
+        <div class="exp-cli-bloco"><label class="form-label">Nº de vendas — máximo</label><input type="number" min="0" class="form-input" id="exp-cli-vmax" placeholder="ex.: 1 (menos vendas)" oninput="expCliInput('vendasMax', this.value)"></div>
+        <div class="exp-cli-bloco"><label class="form-label">Valor gasto — a partir de (R$)</label><input type="text" inputmode="decimal" class="form-input" id="exp-cli-valor" placeholder="ex.: 1000" oninput="expCliInput('valorMin', this.value)"></div>
+      </div>
+      <div class="exp-cli-grade">
+        <div class="exp-cli-bloco"><label class="form-label">Ordenar por</label><select class="form-input" id="exp-cli-ordem" onchange="expCliSet('ordem', this.value)"></select></div>
+        <div class="exp-cli-bloco"><label class="form-label">Só os primeiros (opcional)</label><input type="number" min="1" class="form-input" id="exp-cli-limite" placeholder="ex.: 50" oninput="expCliInput('limite', this.value)"></div>
+      </div>
+      <div class="exp-cli-bloco" id="exp-cli-tipocad-row"><label class="form-label">Tipo de cadastro</label><select class="form-input" id="exp-cli-tipocad" onchange="expCliSet('tipoCad', this.value)"></select></div>
+    </div>
+    <div class="exp-cli-foot">
+      <span id="exp-cli-count"></span>
+      <div class="exp-cli-acoes">
+        <button class="btn" onclick="document.getElementById('modal-exportar-clientes').classList.remove('show')">Cancelar</button>
+        <button class="btn btn-green" id="exp-cli-baixar" onclick="confirmarExportarClientes()">Baixar planilha (.xlsx)</button>
+      </div>
     </div>
   </div>
 </div>
@@ -20194,7 +20246,190 @@ function clienteInfoParaExport(nomeCliente) {
     tipoCliente: cliente?.tipoCliente || ''
   };
 }
-function confirmarExportarVendas() {
+/* ---------- Excel estilizado (ExcelJS carregado só quando alguém exporta) ---------- */
+let exceljsPromise = null;
+function carregarExcelJS() {
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if (!exceljsPromise) {
+    exceljsPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      s.onload = () => resolve(window.ExcelJS);
+      s.onerror = () => { exceljsPromise = null; reject(new Error('Não consegui carregar o gerador de planilhas. Verifique a internet e tente de novo.')); };
+      document.head.appendChild(s);
+    });
+  }
+  return exceljsPromise;
+}
+// Data "pura" (sem hora/fuso) pro Excel — evita a data cair um dia antes.
+function gsoDataExcel(valor) {
+  const dt = dashboardDateObj(valor);
+  return dt ? new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate())) : null;
+}
+const GSO_XLS = { fonte: 'Calibri', titulo: 'FF262626', sub: 'FF3B3B3B', cab: 'FF4A4A4A', zebra: 'FFF6F6F6', linha: 'FFE2E2E2', total: 'FFE6E6E6', kpi: 'FFF1F1F1' };
+const GSO_XLS_FMT = { dinheiro: '"R$" #,##0.00', inteiro: '#,##0', data: 'dd/mm/yyyy', decimal: '#,##0.0', percentual: '0.0%' };
+
+// Monta uma aba: título, subtítulo, faixa de indicadores, cabeçalho fixo com filtro,
+// linhas zebradas, formatos de número/data e linha de total (SUBTOTAL, acompanha o filtro).
+function gsoMontarAba(wb, cfg) {
+  const colunas = cfg.colunas, n = colunas.length, linhas = cfg.linhas || [];
+  const HEADER = 5, FIRST = 6;
+  const ws = wb.addWorksheet(String(cfg.aba).slice(0, 31), {
+    views: [{ showGridLines: false, state: 'frozen', xSplit: 0, ySplit: HEADER }],
+    pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9, margins: { left: 0.4, right: 0.4, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } },
+    headerFooter: { oddFooter: '&LGSO Effects Line&RPágina &P de &N' }
+  });
+  const larguras = colunas.map(c => {
+    if (c.larg) return c.larg;
+    let max = String(c.cab).length + 4;
+    linhas.forEach(l => {
+      const v = l[c.chave];
+      const len = v instanceof Date ? 11 : (c.tipo === 'dinheiro' ? 14 : String(v == null ? '' : v).length);
+      if (len + 2 > max) max = len + 2;
+    });
+    return Math.min(Math.max(max, 9), c.max || 40);
+  });
+  ws.columns = larguras.map(w => ({ width: w }));
+  const larguraTotal = larguras.reduce((s, w) => s + w, 0);
+  const borda = cor => ({ style: 'thin', color: { argb: cor } });
+
+  ws.mergeCells(1, 1, 1, n);
+  const t = ws.getCell(1, 1);
+  t.value = cfg.titulo;
+  t.font = { name: GSO_XLS.fonte, size: 18, bold: true, color: { argb: 'FFFFFFFF' } };
+  t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GSO_XLS.titulo } };
+  t.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+  ws.getRow(1).height = 38;
+
+  ws.mergeCells(2, 1, 2, n);
+  const s = ws.getCell(2, 1);
+  s.value = cfg.subtitulo || '';
+  s.font = { name: GSO_XLS.fonte, size: 10, italic: true, color: { argb: 'FFD6D6D6' } };
+  s.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GSO_XLS.sub } };
+  s.alignment = { vertical: 'middle', horizontal: 'left', indent: 1, wrapText: true };
+  const linhasSub = Math.max(1, Math.ceil(String(cfg.subtitulo || '').length / Math.max(40, larguraTotal * 1.05)));
+  ws.getRow(2).height = 8 + 14 * linhasSub;
+
+  ws.mergeCells(3, 1, 3, n);
+  const k = ws.getCell(3, 1);
+  const partes = [];
+  (cfg.resumo || []).forEach((r, i) => {
+    if (i) partes.push({ text: '      |      ', font: { name: GSO_XLS.fonte, size: 11, color: { argb: 'FFB5B5B5' } } });
+    partes.push({ text: r.rotulo + '  ', font: { name: GSO_XLS.fonte, size: 10, color: { argb: 'FF7A7A7A' } } });
+    partes.push({ text: String(r.valor), font: { name: GSO_XLS.fonte, size: 12, bold: true, color: { argb: 'FF262626' } } });
+  });
+  k.value = { richText: partes.length ? partes : [{ text: ' ' }] };
+  k.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GSO_XLS.kpi } };
+  k.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+  ws.getRow(3).height = 28;
+  ws.getRow(4).height = 8;
+
+  const cab = ws.getRow(HEADER);
+  colunas.forEach((c, i) => {
+    const cell = cab.getCell(i + 1);
+    cell.value = c.cab;
+    cell.font = { name: GSO_XLS.fonte, size: 10.5, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GSO_XLS.cab } };
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    cell.border = { top: borda('FF2E2E2E'), bottom: borda('FF2E2E2E'), left: borda('FF5C5C5C'), right: borda('FF5C5C5C') };
+  });
+  cab.height = 30;
+
+  linhas.forEach((l, idx) => {
+    const row = ws.getRow(FIRST + idx);
+    row.height = 18;
+    colunas.forEach((c, i) => {
+      const cell = row.getCell(i + 1);
+      let v = l[c.chave];
+      if (v === undefined || v === null) v = '';
+      cell.value = v;
+      const tipo = c.tipo || 'texto';
+      let fonte = { name: GSO_XLS.fonte, size: 10.5, color: { argb: 'FF222222' } };
+      let fill = idx % 2 ? { type: 'pattern', pattern: 'solid', fgColor: { argb: GSO_XLS.zebra } } : undefined;
+      if (tipo === 'dinheiro' || tipo === 'inteiro' || tipo === 'decimal' || tipo === 'percentual') {
+        cell.alignment = { vertical: 'middle', horizontal: 'right', indent: 1 };
+        cell.numFmt = GSO_XLS_FMT[tipo];
+      } else if (tipo === 'data') {
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.numFmt = GSO_XLS_FMT.data;
+      } else if (tipo === 'centro') {
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      } else {
+        cell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+      }
+      if (cfg.estiloCelula) {
+        const est = cfg.estiloCelula(c.chave, v, l);
+        if (est) {
+          if (est.fill) fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: est.fill } };
+          if (est.cor) fonte = { ...fonte, color: { argb: est.cor }, bold: true };
+        }
+      }
+      cell.font = fonte;
+      if (fill) cell.fill = fill;
+      cell.border = { bottom: borda(GSO_XLS.linha) };
+    });
+  });
+
+  const ultima = FIRST + linhas.length - 1;
+  if (linhas.length && colunas.some(c => c.total)) {
+    const tr = ws.getRow(ultima + 1);
+    tr.height = 24;
+    colunas.forEach((c, i) => {
+      const cell = tr.getCell(i + 1);
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GSO_XLS.total } };
+      cell.border = { top: { style: 'medium', color: { argb: 'FF404040' } }, bottom: borda('FF404040') };
+      cell.font = { name: GSO_XLS.fonte, size: 11, bold: true, color: { argb: 'FF1A1A1A' } };
+      if (i === 0) {
+        cell.value = 'TOTAL';
+        cell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+      } else if (c.total) {
+        const letra = ws.getColumn(i + 1).letter;
+        const soma = linhas.reduce((acc, l) => acc + (Number(l[c.chave]) || 0), 0);
+        cell.value = { formula: `SUBTOTAL(109,${letra}${FIRST}:${letra}${ultima})`, result: soma };
+        cell.numFmt = GSO_XLS_FMT[c.tipo] || GSO_XLS_FMT.inteiro;
+        cell.alignment = { vertical: 'middle', horizontal: 'right', indent: 1 };
+      }
+    });
+  }
+  if (linhas.length) ws.autoFilter = { from: { row: HEADER, column: 1 }, to: { row: ultima, column: n } };
+  ws.pageSetup.printTitlesRow = `${HEADER}:${HEADER}`;
+  return ws;
+}
+
+async function gsoExportarExcelEstilizado(cfg) {
+  const ExcelJS = await carregarExcelJS();
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'GSO Effects Line';
+  wb.created = new Date();
+  gsoMontarAba(wb, cfg);
+  (cfg.abasExtras || []).forEach(extra => gsoMontarAba(wb, {
+    ...extra,
+    subtitulo: extra.subtitulo || cfg.subtitulo,
+    resumo: extra.resumo || []
+  }));
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = cfg.arquivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+function gsoAgoraBR() {
+  const d = new Date();
+  return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+function gsoAgrupar(linhas, chaveFn) {
+  const mapa = new Map();
+  linhas.forEach(l => { const k = chaveFn(l); if (!mapa.has(k)) mapa.set(k, []); mapa.get(k).push(l); });
+  return mapa;
+}
+const XLS_COR_STATUS = { 'Ativo': { fill: 'FFE3F3E8', cor: 'FF1E6B3A' }, 'Em Risco': { fill: 'FFFFF1CC', cor: 'FF8A6410' }, 'Inativo': { fill: 'FFFBE3E3', cor: 'FF9F2A2A' } };
+
+async function confirmarExportarVendas() {
   const dataDe = document.getElementById('export-vendas-data-de').value || '';
   const dataAte = document.getElementById('export-vendas-data-ate').value || '';
   const vendedoresFiltro = exportVendasVendedoresSelecionados;
@@ -20210,41 +20445,366 @@ function confirmarExportarVendas() {
   if (!rows.length) { alert('Nenhuma venda encontrada com esses filtros.'); return; }
   rows = [...rows].sort((a, b) => new Date(b.data) - new Date(a.data));
 
-  const sheetRows = rows.map(r => {
+  const linhas = rows.map(r => {
     const info = clienteInfoParaExport(r.cliente);
     return {
-      'Nº Venda': r.numeroVenda || '',
-      'Data': fmtDate(r.data),
-      'Cliente': r.cliente || '',
-      'Telefone cliente': info.telefone,
-      'Documento (CPF/CNPJ)': info.documento,
-      'Endereço cliente': info.endereco,
-      'Tipo de cliente': info.tipoCliente,
-      'Produto': r.produto || '',
-      'Tamanho': r.tamanho || '',
-      'Aroma': r.aroma || '',
-      'Qtd': r.qtd || 0,
-      'Valor (R$)': Number(r.valor || 0),
-      'Frete (R$)': Number(r.frete || 0),
-      'Pagamento': r.pagamento || '',
-      'Vendedor': r.vendedor || '',
-      'Nº Nota Fiscal': saleNfNumber(r) || '',
-      'Tem PDF da NF': dashboardHasSaleFile(r, 'nf') ? 'Sim' : 'Não',
-      'Observações': r.obs || ''
+      numero: Number(r.numeroVenda) || r.numeroVenda || '',
+      data: gsoDataExcel(r.data),
+      cliente: r.cliente || '',
+      telefone: info.telefone,
+      documento: info.documento,
+      endereco: info.endereco,
+      tipoCliente: info.tipoCliente || 'Consumidor Final',
+      produto: r.produto || '',
+      tamanho: r.tamanho || '',
+      aroma: r.aroma || '',
+      qtd: Number(r.qtd) || 0,
+      valor: Number(r.valor) || 0,
+      frete: Number(r.frete) || 0,
+      pagamento: r.pagamento || '',
+      vendedor: canonicalSellerName(r.vendedor || 'Sem vendedor'),
+      nf: saleNfNumber(r) || '',
+      nfPdf: dashboardHasSaleFile(r, 'nf') ? 'Sim' : 'Não',
+      obs: r.obs || '',
+      pagCanonico: canonicalPayment(r.pagamento || '') || 'Outros'
     };
   });
+  const faturamento = linhas.reduce((s, l) => s + l.valor, 0);
+  const clientesDistintos = new Set(linhas.map(l => nameKey(l.cliente))).size;
+  const filtros = [];
+  filtros.push('Período: ' + (dataDe || dataAte ? `${dataDe ? fmtDate(dataDe) : 'início'} a ${dataAte ? fmtDate(dataAte) : 'hoje'}` : 'todo o histórico'));
+  filtros.push('Vendedor(es): ' + (vendedoresFiltro.length ? vendedoresFiltro.join(', ') : 'todos'));
+  filtros.push('Pagamento: ' + (pagamentosFiltro.length ? pagamentosFiltro.join(', ') : 'todos'));
+  const subtitulo = `Gerado em ${gsoAgoraBR()} por ${currentUserName()}   •   ${filtros.join('   •   ')}`;
 
-  const ws = XLSX.utils.json_to_sheet(sheetRows);
-  ws['!cols'] = [
-    { wch: 9 }, { wch: 11 }, { wch: 26 }, { wch: 15 }, { wch: 18 }, { wch: 30 }, { wch: 16 },
-    { wch: 20 }, { wch: 10 }, { wch: 14 }, { wch: 6 }, { wch: 12 }, { wch: 10 }, { wch: 14 },
-    { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 30 }
+  const porVendedor = [...gsoAgrupar(linhas, l => l.vendedor).entries()].map(([nome, ls]) => {
+    const total = ls.reduce((s, l) => s + l.valor, 0);
+    return { nome, vendas: ls.length, total, ticket: total / ls.length, parte: faturamento ? total / faturamento : 0 };
+  }).sort((a, b) => b.total - a.total);
+  const porPagamento = [...gsoAgrupar(linhas, l => l.pagCanonico).entries()].map(([nome, ls]) => {
+    const total = ls.reduce((s, l) => s + l.valor, 0);
+    return { nome, vendas: ls.length, total, ticket: total / ls.length, parte: faturamento ? total / faturamento : 0 };
+  }).sort((a, b) => b.total - a.total);
+  const colResumo = nomeCol => [
+    { cab: nomeCol, chave: 'nome', max: 34 },
+    { cab: 'Vendas', chave: 'vendas', tipo: 'inteiro', total: true },
+    { cab: 'Faturamento', chave: 'total', tipo: 'dinheiro', total: true },
+    { cab: 'Ticket médio', chave: 'ticket', tipo: 'dinheiro' },
+    { cab: '% do total', chave: 'parte', tipo: 'percentual' }
   ];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Vendas');
-  XLSX.writeFile(wb, `vendas-gso-${new Date().toISOString().slice(0, 10)}.xlsx`);
-  document.getElementById('modal-exportar-vendas').classList.remove('show');
+
+  try {
+    await gsoExportarExcelEstilizado({
+      arquivo: `vendas-gso-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      aba: 'Vendas',
+      titulo: 'GSO Effects Line  —  Relatório de Vendas',
+      subtitulo,
+      resumo: [
+        { rotulo: 'Vendas', valor: linhas.length.toLocaleString('pt-BR') },
+        { rotulo: 'Faturamento', valor: fmtBR(faturamento) },
+        { rotulo: 'Ticket médio', valor: fmtBR(faturamento / linhas.length) },
+        { rotulo: 'Clientes', valor: clientesDistintos.toLocaleString('pt-BR') }
+      ],
+      colunas: [
+        { cab: 'Nº Venda', chave: 'numero', tipo: 'centro', larg: 10 },
+        { cab: 'Data', chave: 'data', tipo: 'data', larg: 12 },
+        { cab: 'Cliente', chave: 'cliente', max: 34 },
+        { cab: 'Telefone', chave: 'telefone', larg: 17 },
+        { cab: 'CPF / CNPJ', chave: 'documento', larg: 20 },
+        { cab: 'Endereço do cliente', chave: 'endereco', max: 44 },
+        { cab: 'Tipo de cliente', chave: 'tipoCliente', larg: 17 },
+        { cab: 'Produto', chave: 'produto', max: 34 },
+        { cab: 'Tamanho', chave: 'tamanho', tipo: 'centro', larg: 10 },
+        { cab: 'Aroma', chave: 'aroma', tipo: 'centro', larg: 14 },
+        { cab: 'Qtd', chave: 'qtd', tipo: 'inteiro', total: true, larg: 8 },
+        { cab: 'Valor', chave: 'valor', tipo: 'dinheiro', total: true, larg: 15 },
+        { cab: 'Frete', chave: 'frete', tipo: 'dinheiro', total: true, larg: 13 },
+        { cab: 'Pagamento', chave: 'pagamento', max: 26 },
+        { cab: 'Vendedor', chave: 'vendedor', larg: 20 },
+        { cab: 'Nº Nota Fiscal', chave: 'nf', tipo: 'centro', larg: 16 },
+        { cab: 'PDF da NF', chave: 'nfPdf', tipo: 'centro', larg: 11 },
+        { cab: 'Observações', chave: 'obs', max: 48 }
+      ],
+      linhas,
+      estiloCelula: (chave, v) => {
+        if (chave === 'nfPdf') return v === 'Sim' ? { fill: 'FFE3F3E8', cor: 'FF1E6B3A' } : { cor: 'FF9A9A9A' };
+        if (chave === 'nf' && !v) return null;
+        return null;
+      },
+      abasExtras: [
+        { aba: 'Por vendedor', titulo: 'GSO Effects Line  —  Vendas por vendedor', colunas: colResumo('Vendedor'), linhas: porVendedor },
+        { aba: 'Por pagamento', titulo: 'GSO Effects Line  —  Vendas por forma de pagamento', colunas: colResumo('Forma de pagamento'), linhas: porPagamento }
+      ]
+    });
+    document.getElementById('modal-exportar-vendas').classList.remove('show');
+  } catch (err) {
+    alert('Não consegui gerar a planilha: ' + err.message);
+  }
 }
+
+/* ---------- Exportar lista de clientes (filtros + planilha estilizada) ---------- */
+const UF_POR_NOME = {
+  'acre': 'AC', 'alagoas': 'AL', 'amapa': 'AP', 'amazonas': 'AM', 'bahia': 'BA', 'ceara': 'CE', 'distrito federal': 'DF', 'espirito santo': 'ES',
+  'goias': 'GO', 'maranhao': 'MA', 'mato grosso': 'MT', 'mato grosso do sul': 'MS', 'minas gerais': 'MG', 'para': 'PA', 'paraiba': 'PB', 'parana': 'PR',
+  'pernambuco': 'PE', 'piaui': 'PI', 'rio de janeiro': 'RJ', 'rio grande do norte': 'RN', 'rio grande do sul': 'RS', 'rondonia': 'RO', 'roraima': 'RR',
+  'santa catarina': 'SC', 'sao paulo': 'SP', 'sergipe': 'SE', 'tocantins': 'TO'
+};
+function ufNormalizada(estado, cidadeTexto) {
+  let uf = String(estado || '').trim();
+  if (!uf && /\/\s*[A-Za-z]{2}\s*$/.test(String(cidadeTexto || ''))) uf = String(cidadeTexto).split('/').pop().trim();
+  if (uf.length === 2) return uf.toUpperCase();
+  return UF_POR_NOME[nameKey(uf)] || '';
+}
+function cidadeLimpa(cidade) { return String(cidade || '').replace(/\s*\/\s*[A-Za-z]{2}\s*$/, '').trim(); }
+
+// Uma linha por cliente com tudo que a planilha precisa: contato, endereço, documento,
+// totais de vendas, 1ª/última compra e produto mais comprado.
+function clientesParaExport() {
+  const admin = isAdminUser();
+  const nomesLojistas = new Set(state.lojistas.map(l => nameKey(l.nome)));
+  const cadastroPorNome = {};
+  state.clientes.forEach(c => { const k = nameKey(c.nome); if (!(k in cadastroPorNome)) cadastroPorNome[k] = c; });
+  const fiscalPorNome = {};
+  state.fiscais.forEach(f => { if (f && f.nome) { const k = nameKey(f.nome); if (!(k in fiscalPorNome)) fiscalPorNome[k] = f; } });
+  const docDigitos = nome => {
+    const f = fiscalPorNome[nameKey(nome)] || {}, c = cadastroPorNome[nameKey(nome)] || {};
+    const docs = splitFiscalDocs({ cpf: c.cpf || f.cpf, cnpj: c.cnpj || f.cnpj, doc: c.doc || f.doc });
+    const d = String(docs.cnpj || docs.cpf || '').replace(/\D/g, '');
+    return (d.length === 11 || d.length === 14) ? d : '';
+  };
+  const chaveAgg = nome => { const d = docDigitos(nome); return d ? 'doc:' + d : 'nome:' + nameKey(nome); };
+  const extras = {};
+  state.vendas.forEach(v => {
+    const k = chaveAgg(v.cliente);
+    const e = extras[k] || (extras[k] = { primeira: null, produtos: {} });
+    const dt = dashboardDateObj(v.data);
+    if (dt && (!e.primeira || dt < e.primeira)) e.primeira = dt;
+    const p = String(v.produto || '').replace(/^\d+\s*UN\s*/i, '').trim();
+    if (p) e.produtos[p] = (e.produtos[p] || 0) + (Number(v.qtd) || 1);
+  });
+
+  return computeClientes().filter(c => !nomesLojistas.has(nameKey(c.nome))).map(c => {
+    const cadastro = cadastroPorNome[nameKey(c.nome)] || {};
+    const tipoCad = cadastro.tipoCliente === 'Direto Lab' ? 'Direto Lab' : (cadastro.metadata?.origem === 'Mercado Livre' ? 'Mercado Livre' : 'Consumidor Final');
+    const fiscal = fiscalPorNome[nameKey(c.nome)] || {};
+    const docs = splitFiscalDocs(fiscal);
+    const dig = String(c.doc || '').replace(/\D/g, '');
+    const tipoDoc = dig.length === 14 || (!dig && docs.cnpj) ? 'CNPJ' : (dig.length === 11 || (!dig && docs.cpf) ? 'CPF' : '');
+    const documento = composeFiscalDoc(fiscal);
+    const m = c.metadata || {};
+    const ex = extras[c.doc ? 'doc:' + c.doc : 'nome:' + nameKey(c.nome)] || { primeira: null, produtos: {} };
+    const topProduto = Object.entries(ex.produtos).sort((a, b) => b[1] - a[1])[0];
+    return {
+      nome: c.nome, tipoCad, tipoDoc, documento,
+      telefone: c.telefone || '', email: c.email || '',
+      endereco: [m.rua, m.numero].filter(Boolean).join(', '),
+      bairro: m.bairro || '', cidade: cidadeLimpa(m.cidade), uf: ufNormalizada(m.estado, m.cidade), cep: m.cep || '',
+      vendas: c.pedidos, total: c.total, ticket: c.pedidos ? c.total / c.pedidos : 0,
+      primeira: ex.primeira, ultima: c.ultima || null, dias: c.ultima ? c.dias : null,
+      status: c.status, produto: topProduto ? topProduto[0] : ''
+    };
+  }).filter(c => admin || c.tipoCad !== 'Direto Lab');
+}
+
+const expCli = { base: [], doc: '', ufs: [], cidade: '', status: [], compra: '', vendasMin: '', vendasMax: '', valorMin: '', tipoCad: '', ordem: 'nome', limite: '' };
+const EXP_CLI_ORDENS = [
+  ['nome', 'Nome (A → Z)'], ['vendasDesc', 'Mais vendas primeiro'], ['vendasAsc', 'Menos vendas primeiro'],
+  ['valorDesc', 'Maior valor gasto primeiro'], ['valorAsc', 'Menor valor gasto primeiro'],
+  ['recente', 'Compra mais recente primeiro'], ['antiga', 'Compra mais antiga primeiro']
+];
+const EXP_CLI_COMPRAS = [
+  ['', 'Todos'], ['com', 'Só quem já comprou'], ['sem', 'Só quem nunca comprou'],
+  ['d30', 'Comprou nos últimos 30 dias'], ['d90', 'Comprou nos últimos 90 dias'], ['d180', 'Comprou nos últimos 6 meses'], ['d365', 'Comprou no último ano'],
+  ['p90', 'Está há mais de 90 dias sem comprar'], ['p180', 'Está há mais de 6 meses sem comprar'], ['p365', 'Está há mais de 1 ano sem comprar']
+];
+function expCliFiltrados() {
+  const f = expCli;
+  let rows = f.base.slice();
+  if (f.doc === 'cnpj') rows = rows.filter(c => c.tipoDoc === 'CNPJ');
+  else if (f.doc === 'cpf') rows = rows.filter(c => c.tipoDoc === 'CPF');
+  else if (f.doc === 'semdoc') rows = rows.filter(c => !c.tipoDoc);
+  if (f.ufs.length) rows = rows.filter(c => f.ufs.includes(c.uf || '—'));
+  if (f.cidade) rows = rows.filter(c => nameKey(c.cidade) === nameKey(f.cidade));
+  if (f.status.length) rows = rows.filter(c => f.status.includes(c.status));
+  if (f.tipoCad) rows = rows.filter(c => c.tipoCad === f.tipoCad);
+  if (f.compra === 'com') rows = rows.filter(c => c.vendas > 0);
+  else if (f.compra === 'sem') rows = rows.filter(c => c.vendas === 0);
+  else if (/^d\d+$/.test(f.compra)) rows = rows.filter(c => c.dias != null && c.dias <= Number(f.compra.slice(1)));
+  else if (/^p\d+$/.test(f.compra)) rows = rows.filter(c => c.dias != null && c.dias > Number(f.compra.slice(1)));
+  const vMin = f.vendasMin !== '' ? Number(f.vendasMin) : null, vMax = f.vendasMax !== '' ? Number(f.vendasMax) : null;
+  if (vMin != null && !isNaN(vMin)) rows = rows.filter(c => c.vendas >= vMin);
+  if (vMax != null && !isNaN(vMax)) rows = rows.filter(c => c.vendas <= vMax);
+  const valMin = f.valorMin !== '' ? Number(String(f.valorMin).replace(',', '.')) : null;
+  if (valMin != null && !isNaN(valMin)) rows = rows.filter(c => c.total >= valMin);
+  const porNome = (a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR');
+  const ts = d => (d ? d.getTime() : null);
+  const cmp = {
+    nome: porNome,
+    vendasDesc: (a, b) => b.vendas - a.vendas || porNome(a, b),
+    vendasAsc: (a, b) => a.vendas - b.vendas || porNome(a, b),
+    valorDesc: (a, b) => b.total - a.total || porNome(a, b),
+    valorAsc: (a, b) => a.total - b.total || porNome(a, b),
+    recente: (a, b) => (ts(b.ultima) ?? -Infinity) - (ts(a.ultima) ?? -Infinity) || porNome(a, b),
+    antiga: (a, b) => (ts(a.ultima) ?? Infinity) - (ts(b.ultima) ?? Infinity) || porNome(a, b)
+  }[f.ordem] || porNome;
+  rows.sort(cmp);
+  const lim = f.limite !== '' ? parseInt(f.limite, 10) : 0;
+  if (lim > 0) rows = rows.slice(0, lim);
+  return rows;
+}
+function expCliChip(on, onclick, texto) {
+  return `<button type="button" class="postit-mencao-opt${on ? ' on' : ''}" onclick="${onclick}">${escapeHtml(texto)}</button>`;
+}
+function expCliRender() {
+  const f = expCli;
+  const docs = [['', 'Todos'], ['cnpj', 'Só CNPJ (empresas)'], ['cpf', 'Só CPF (pessoas)'], ['semdoc', 'Sem documento']];
+  document.getElementById('exp-cli-doc').innerHTML = docs.map(([v, t]) => expCliChip(f.doc === v, `expCliSet('doc','${v}')`, t)).join('');
+
+  const contUf = {};
+  f.base.forEach(c => { const u = c.uf || '—'; contUf[u] = (contUf[u] || 0) + 1; });
+  const ufs = Object.keys(contUf).sort((a, b) => a === '—' ? 1 : b === '—' ? -1 : a.localeCompare(b));
+  document.getElementById('exp-cli-uf').innerHTML = expCliChip(!f.ufs.length, 'expCliLimparUf()', 'Todos') +
+    ufs.map(u => expCliChip(f.ufs.includes(u), `expCliToggle('ufs',${attrJsString(u)})`, `${u === '—' ? 'Sem estado' : u} (${contUf[u]})`)).join('');
+
+  const baseCid = f.ufs.length ? f.base.filter(c => f.ufs.includes(c.uf || '—')) : f.base;
+  const contCid = {};
+  baseCid.forEach(c => { if (c.cidade) { const k = c.cidade; contCid[k] = (contCid[k] || 0) + 1; } });
+  const cidades = Object.keys(contCid).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  if (f.cidade && !cidades.some(c => nameKey(c) === nameKey(f.cidade))) f.cidade = '';
+  document.getElementById('exp-cli-cidade').innerHTML = '<option value="">Todas as cidades</option>' +
+    cidades.map(c => `<option value="${escapeHtml(c)}"${nameKey(c) === nameKey(f.cidade) ? ' selected' : ''}>${escapeHtml(c)} (${contCid[c]})</option>`).join('');
+
+  document.getElementById('exp-cli-status').innerHTML = expCliChip(!f.status.length, "expCliSet('status',[])", 'Todos') +
+    ['Ativo', 'Em Risco', 'Inativo'].map(s => expCliChip(f.status.includes(s), `expCliToggle('status',${attrJsString(s)})`, s)).join('');
+
+  document.getElementById('exp-cli-compra').innerHTML = EXP_CLI_COMPRAS.map(([v, t]) => `<option value="${v}"${f.compra === v ? ' selected' : ''}>${t}</option>`).join('');
+  document.getElementById('exp-cli-ordem').innerHTML = EXP_CLI_ORDENS.map(([v, t]) => `<option value="${v}"${f.ordem === v ? ' selected' : ''}>${t}</option>`).join('');
+  const tipoSel = document.getElementById('exp-cli-tipocad');
+  document.getElementById('exp-cli-tipocad-row').classList.toggle('hidden', !isAdminUser());
+  tipoSel.innerHTML = [['', 'Todos'], ['Consumidor Final', 'Consumidor Final'], ['Direto Lab', 'Direto Lab'], ['Mercado Livre', 'Cliente Mercado Livre']]
+    .map(([v, t]) => `<option value="${v}"${f.tipoCad === v ? ' selected' : ''}>${t}</option>`).join('');
+  expCliAtualizarContagem();
+}
+function expCliAtualizarContagem() {
+  const n = expCliFiltrados().length;
+  document.getElementById('exp-cli-count').innerHTML = `<b>${n.toLocaleString('pt-BR')}</b> cliente${n === 1 ? '' : 's'} nesta lista`;
+  document.getElementById('exp-cli-baixar').disabled = n === 0;
+}
+function expCliSet(campo, valor) { expCli[campo] = valor; expCliRender(); }
+function expCliToggle(campo, valor) {
+  const arr = expCli[campo], i = arr.indexOf(valor);
+  if (i >= 0) arr.splice(i, 1); else arr.push(valor);
+  expCliRender();
+}
+function expCliLimparUf() { expCli.ufs = []; expCliRender(); }
+function expCliInput(campo, valor) { expCli[campo] = valor; expCliAtualizarContagem(); }
+function abrirExportarClientes() {
+  Object.assign(expCli, { doc: '', ufs: [], cidade: '', status: [], compra: '', vendasMin: '', vendasMax: '', valorMin: '', tipoCad: '', ordem: 'nome', limite: '' });
+  expCli.base = clientesParaExport();
+  ['exp-cli-vmin', 'exp-cli-vmax', 'exp-cli-valor', 'exp-cli-limite'].forEach(id => { document.getElementById(id).value = ''; });
+  expCliRender();
+  document.getElementById('modal-exportar-clientes').classList.add('show');
+}
+async function confirmarExportarClientes() {
+  const rows = expCliFiltrados();
+  if (!rows.length) { alert('Nenhum cliente encontrado com esses filtros.'); return; }
+  const f = expCli;
+  const filtros = [];
+  const rotuloDoc = { cnpj: 'só CNPJ', cpf: 'só CPF', semdoc: 'sem documento' }[f.doc];
+  if (rotuloDoc) filtros.push('Documento: ' + rotuloDoc);
+  if (f.ufs.length) filtros.push('Estado: ' + f.ufs.join(', '));
+  if (f.cidade) filtros.push('Cidade: ' + f.cidade);
+  if (f.status.length) filtros.push('Status: ' + f.status.join(', '));
+  if (f.compra) filtros.push('Compras: ' + (EXP_CLI_COMPRAS.find(c => c[0] === f.compra) || [0, ''])[1].toLowerCase());
+  if (f.vendasMin !== '' || f.vendasMax !== '') filtros.push(`Nº de vendas: ${f.vendasMin !== '' ? 'de ' + f.vendasMin : ''}${f.vendasMax !== '' ? ' até ' + f.vendasMax : ''}`.replace('  ', ' '));
+  if (f.valorMin !== '') filtros.push('Valor gasto a partir de R$ ' + f.valorMin);
+  if (f.tipoCad) filtros.push('Cadastro: ' + f.tipoCad);
+  if (parseInt(f.limite, 10) > 0) filtros.push('Primeiros ' + parseInt(f.limite, 10));
+  filtros.push('Ordem: ' + EXP_CLI_ORDENS.find(o => o[0] === f.ordem)[1].toLowerCase());
+  const subtitulo = `Gerado em ${gsoAgoraBR()} por ${currentUserName()}   •   ${filtros.length > 1 ? 'Filtros: ' + filtros.join('   •   ') : 'Todos os clientes   •   ' + filtros[0]}`;
+
+  const vendasTotal = rows.reduce((s, c) => s + c.vendas, 0);
+  const fatur = rows.reduce((s, c) => s + c.total, 0);
+  const comCompra = rows.filter(c => c.vendas > 0).length;
+  const linhas = rows.map(c => ({
+    ...c,
+    primeira: c.primeira ? gsoDataExcel(c.primeira) : null,
+    ultima: c.ultima ? gsoDataExcel(c.ultima) : null,
+    dias: c.dias
+  }));
+  const porUf = [...gsoAgrupar(rows, c => c.uf || 'Sem estado').entries()].map(([uf, ls]) => ({
+    uf, clientes: ls.length, vendas: ls.reduce((s, c) => s + c.vendas, 0), total: ls.reduce((s, c) => s + c.total, 0)
+  })).sort((a, b) => b.clientes - a.clientes);
+  porUf.forEach(r => { r.ticket = r.vendas ? r.total / r.vendas : 0; });
+  const porCidade = [...gsoAgrupar(rows.filter(c => c.cidade), c => c.cidade + '|' + (c.uf || '')).entries()].map(([k, ls]) => ({
+    cidade: ls[0].cidade, uf: ls[0].uf || '', clientes: ls.length, vendas: ls.reduce((s, c) => s + c.vendas, 0), total: ls.reduce((s, c) => s + c.total, 0)
+  })).sort((a, b) => b.clientes - a.clientes || b.total - a.total).slice(0, 150);
+
+  try {
+    await gsoExportarExcelEstilizado({
+      arquivo: `clientes-gso-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      aba: 'Clientes',
+      titulo: 'GSO Effects Line  —  Lista de Clientes',
+      subtitulo,
+      resumo: [
+        { rotulo: 'Clientes', valor: rows.length.toLocaleString('pt-BR') },
+        { rotulo: 'Já compraram', valor: comCompra.toLocaleString('pt-BR') },
+        { rotulo: 'Vendas', valor: vendasTotal.toLocaleString('pt-BR') },
+        { rotulo: 'Faturamento', valor: fmtBR(fatur) },
+        { rotulo: 'Ticket médio', valor: fmtBR(vendasTotal ? fatur / vendasTotal : 0) }
+      ],
+      colunas: [
+        { cab: 'Cliente', chave: 'nome', max: 38 },
+        { cab: 'Cadastro', chave: 'tipoCad', larg: 17 },
+        { cab: 'Tipo doc.', chave: 'tipoDoc', tipo: 'centro', larg: 10 },
+        { cab: 'CPF / CNPJ', chave: 'documento', larg: 21 },
+        { cab: 'Telefone', chave: 'telefone', larg: 17 },
+        { cab: 'E-mail', chave: 'email', max: 32 },
+        { cab: 'Endereço', chave: 'endereco', max: 40 },
+        { cab: 'Bairro', chave: 'bairro', max: 22 },
+        { cab: 'Cidade', chave: 'cidade', max: 24 },
+        { cab: 'UF', chave: 'uf', tipo: 'centro', larg: 6 },
+        { cab: 'CEP', chave: 'cep', tipo: 'centro', larg: 12 },
+        { cab: 'Nº de vendas', chave: 'vendas', tipo: 'inteiro', total: true, larg: 12 },
+        { cab: 'Valor total', chave: 'total', tipo: 'dinheiro', total: true, larg: 16 },
+        { cab: 'Ticket médio', chave: 'ticket', tipo: 'dinheiro', larg: 15 },
+        { cab: '1ª compra', chave: 'primeira', tipo: 'data', larg: 12 },
+        { cab: 'Última compra', chave: 'ultima', tipo: 'data', larg: 14 },
+        { cab: 'Dias sem comprar', chave: 'dias', tipo: 'inteiro', larg: 13 },
+        { cab: 'Status', chave: 'status', tipo: 'centro', larg: 11 },
+        { cab: 'Produto mais comprado', chave: 'produto', max: 32 }
+      ],
+      linhas,
+      estiloCelula: (chave, v) => {
+        if (chave === 'status') return XLS_COR_STATUS[v] || null;
+        if (chave === 'tipoDoc' && v === 'CNPJ') return { cor: 'FF404040' };
+        return null;
+      },
+      abasExtras: [
+        { aba: 'Por estado', titulo: 'GSO Effects Line  —  Clientes por estado', colunas: [
+          { cab: 'Estado', chave: 'uf', tipo: 'centro', larg: 14 },
+          { cab: 'Clientes', chave: 'clientes', tipo: 'inteiro', total: true },
+          { cab: 'Vendas', chave: 'vendas', tipo: 'inteiro', total: true },
+          { cab: 'Faturamento', chave: 'total', tipo: 'dinheiro', total: true },
+          { cab: 'Ticket médio', chave: 'ticket', tipo: 'dinheiro' }
+        ], linhas: porUf },
+        { aba: 'Por cidade', titulo: 'GSO Effects Line  —  Clientes por cidade', colunas: [
+          { cab: 'Cidade', chave: 'cidade', max: 30 },
+          { cab: 'UF', chave: 'uf', tipo: 'centro', larg: 6 },
+          { cab: 'Clientes', chave: 'clientes', tipo: 'inteiro', total: true },
+          { cab: 'Vendas', chave: 'vendas', tipo: 'inteiro', total: true },
+          { cab: 'Faturamento', chave: 'total', tipo: 'dinheiro', total: true }
+        ], linhas: porCidade }
+      ]
+    });
+    document.getElementById('modal-exportar-clientes').classList.remove('show');
+  } catch (err) {
+    alert('Não consegui gerar a planilha: ' + err.message);
+  }
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') ['modal-exportar-clientes'].forEach(id => document.getElementById(id)?.classList.remove('show'));
+});
 
 function nextSaleNumberLojista() {
   return state.vendasLojista.reduce((max, v) => Math.max(max, parseInt(v.numeroVenda, 10) || 0), 0) + 1;
