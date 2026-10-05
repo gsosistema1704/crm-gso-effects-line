@@ -26216,6 +26216,7 @@ async function salvarVenda() {
     if (irCadastrar) openClienteModal(aliasResolvido.cliente);
     return;
   }
+  if (/mercado\s*livre/i.test(pagamento || '')) await marcarClienteDiretoLabMercadoLivre(aliasResolvido.cliente);
   const numeroVenda = isEditing ? existingVenda.numeroVenda : nextSaleNumber();
   const items = currentSaleItems.length > 0 ? [...currentSaleItems] : [currentSaleItem()];
   const precoSugerido = items.reduce((sum, item) => sum + (parseFloat(item.preco) || 0), 0);
@@ -26377,6 +26378,21 @@ async function baixarCaixasDaVenda(venda, itensBase, baixasAnteriores, origem) {
   const r = await Lab.baixarInsumos(lista, 'Caixa — ' + origem);
   r.baixas.forEach(b => { b.caixa = true; b.sig = sig; });
   return { baixas: r.baixas, aviso: r.erros.length ? 'Não consegui dar baixa em alguma caixa: ' + r.erros.join('; ') : null };
+}
+
+// Quem compra pelo Mercado Livre é sempre "Direto Lab" (só administradores veem) — marca
+// o cadastro sozinho quando uma venda com pagamento Mercado Livre é salva.
+async function marcarClienteDiretoLabMercadoLivre(nome) {
+  const k = nameKey(nome);
+  const afetados = state.clientes.filter(x => nameKey(x.nome) === k && !(x.tipoCliente === 'Direto Lab' && x.metadata?.origem === 'Mercado Livre'));
+  if (!afetados.length) return;
+  afetados.forEach(c => { c.tipoCliente = 'Direto Lab'; c.metadata = { ...(c.metadata || {}), origem: 'Mercado Livre' }; });
+  STORE.save('clientes', state.clientes);
+  try {
+    const client = getSupabaseClient();
+    const session = await getSupabaseSession();
+    if (client && session) await client.from('crm_clientes').upsert(afetados.map(clienteToRow), { onConflict: 'id' });
+  } catch (err) { console.warn('Não consegui marcar o cliente do Mercado Livre como Direto Lab:', err); }
 }
 
 // Casa os itens da venda com os "Produto envasado" cadastrados em Laboratório → Insumos
