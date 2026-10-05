@@ -1915,6 +1915,7 @@
   .estoque-auto-txt.ok { color: var(--green-text); font-weight: 600; }
   .estoque-auto-txt.aviso { color: var(--amber-text); font-weight: 600; }
   .estoque-auto-trocar { border: 0; background: transparent; color: var(--text-2); font: inherit; font-size: 11.5px; text-decoration: underline; cursor: pointer; padding: 0; }
+  .cx-perg-linha { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .hist-modal .hist-filtro { padding: 3px 10px !important; min-height: 0 !important; height: auto !important; box-shadow: none !important; }
   .exp-cli-body { padding-bottom: 8px; }
   .exp-cli-bloco { margin-bottom: 10px; }
@@ -26298,6 +26299,86 @@ async function salvarVenda() {
   navTo('inteligencia');
 }
 
+
+/* ---------- Caixas unitárias: baixa automática por regra (ou pergunta) ---------- */
+// Regras (a venda inteira tem que ser só do tipo descrito; qualquer outra combinação pergunta):
+//  1 galão 5L → 1 Cx 5L | 2 galões 5L → 2 Cx 5L | 1 garrafa 1L → 1 Cx 1L | 2 garrafas 1L → 1 Cx 5L
+//  1 bloco → 1 Cx 1L | 2 blocos → 1 Cx 5L
+function caixasRegraPorItens(itensBase) {
+  let n5 = 0, n1 = 0, nBloco = 0, outras = false;
+  (itensBase || []).forEach(it => {
+    const q = Number(it.qtdUnidades != null ? it.qtdUnidades : it.qtd) || 0;
+    const nome = String(it.catalogProduto || it.produto || it.descricao || '');
+    const tam = String(it.tamanho || '').replace(/\s+/g, '').toLowerCase();
+    if (it.formato === 'CX') { outras = true; return; }
+    if (!it.catalogProduto && /bloco/i.test(nome)) { nBloco += q; return; }
+    if (it.catalogProduto && tam === '5l') { n5 += q; return; }
+    if (it.catalogProduto && tam === '1l') { n1 += q; return; }
+    outras = true;
+  });
+  if (outras) return null;
+  if ([n5, n1, nBloco].filter(n => n > 0).length !== 1) return null;
+  if (n5 === 1 || n5 === 2) return [{ caixa: '5L', qtd: n5 }];
+  if (n1 === 1) return [{ caixa: '1L', qtd: 1 }];
+  if (n1 === 2) return [{ caixa: '5L', qtd: 1 }];
+  if (nBloco === 1) return [{ caixa: '1L', qtd: 1 }];
+  if (nBloco === 2) return [{ caixa: '5L', qtd: 1 }];
+  return null;
+}
+function caixasAssinaturaItens(itensBase) {
+  return (itensBase || []).map(it => [it.catalogProduto || it.produto || it.descricao, it.tamanho, it.formato, it.qtdUnidades != null ? it.qtdUnidades : it.qtd].join('|')).join(';');
+}
+function caixaUnitariaId(tipo) {
+  const re = tipo === '5L' ? /unit[aá]ria\s*5\s*l/i : /unit[aá]ria\s*1\s*l/i;
+  const c = (window.Lab?.listarCaixas?.() || []).find(x => re.test(x.titulo));
+  return c ? c.id : null;
+}
+// Pergunta quais caixas tirar do estoque quando a venda não cai em nenhuma regra automática.
+function perguntarCaixasEstoque(descricaoVenda) {
+  return new Promise(resolve => {
+    const caixas = window.Lab?.listarCaixas?.() || [];
+    if (!caixas.length) { resolve([]); return; }
+    const bg = document.createElement('div');
+    bg.className = 'modal-bg show';
+    bg.style.zIndex = 3000;
+    bg.innerHTML = `<div class="modal" style="max-width:440px">
+      <div class="modal-title">Quais caixas tirar do estoque?</div>
+      <p class="form-help" style="margin-bottom:10px">${escapeHtml(descricaoVenda)}</p>
+      <div id="cx-perg-lista">${caixas.map(c => `<div class="cx-perg-linha"><span>${escapeHtml(c.titulo)} <small style="color:var(--text-2)">(estoque ${Number(c.estoque || 0).toLocaleString('pt-BR')})</small></span><input type="number" min="0" step="1" value="0" class="form-input cx-perg-qtd" data-id="${escapeHtml(c.id)}" style="width:80px"></div>`).join('')}</div>
+      <div class="form-actions">
+        <button class="btn" id="cx-perg-nenhuma">Não tirar caixa</button>
+        <button class="btn btn-green" id="cx-perg-ok">Confirmar</button>
+      </div></div>`;
+    document.body.appendChild(bg);
+    const fechar = r => { bg.remove(); resolve(r); };
+    bg.querySelector('#cx-perg-nenhuma').onclick = () => fechar([]);
+    bg.querySelector('#cx-perg-ok').onclick = () => fechar([...bg.querySelectorAll('.cx-perg-qtd')].map(i => ({ insumoId: i.dataset.id, quantidade: Math.max(0, parseInt(i.value, 10) || 0) })).filter(x => x.quantidade > 0));
+  });
+}
+// Dá baixa nas caixas da venda e devolve os registros (marcados como caixa) pra serem
+// guardados junto de estoqueBaixado — assim editar/excluir a venda estorna as caixas também.
+async function baixarCaixasDaVenda(venda, itensBase, baixasAnteriores, origem) {
+  if (!window.Lab?.baixarInsumos) return { baixas: [], aviso: null };
+  const sig = caixasAssinaturaItens(itensBase);
+  let lista = [];
+  const plano = caixasRegraPorItens(itensBase);
+  if (plano) {
+    lista = plano.map(p => ({ insumoId: caixaUnitariaId(p.caixa), quantidade: p.qtd }));
+    if (lista.some(l => !l.insumoId)) return { baixas: [], aviso: 'Não achei "Caixa UNITÁRIA" cadastrada no estoque pra dar baixa automática da caixa.' };
+  } else {
+    const previas = (baixasAnteriores || []).filter(b => b.caixa && b.sig === sig);
+    if (previas.length) lista = previas.map(b => ({ insumoId: b.produtoInsumoId, quantidade: b.quantidade }));
+    else {
+      const desc = (itensBase || []).map(it => it.descricao || [it.qtdUnidades || it.qtd, it.produto || it.catalogProduto, it.tamanho].filter(Boolean).join(' ')).join(' + ');
+      lista = await perguntarCaixasEstoque('Venda nº ' + (venda.numeroVenda || '') + ': ' + desc);
+    }
+  }
+  if (!lista.length) return { baixas: [], aviso: null };
+  const r = await Lab.baixarInsumos(lista, 'Caixa — ' + origem);
+  r.baixas.forEach(b => { b.caixa = true; b.sig = sig; });
+  return { baixas: r.baixas, aviso: r.erros.length ? 'Não consegui dar baixa em alguma caixa: ' + r.erros.join('; ') : null };
+}
+
 // Casa os itens da venda com os "Produto envasado" cadastrados em Laboratório → Insumos
 // e dá baixa (ou estorna, se for edição) no estoque de produto pronto correspondente.
 // Retorna uma string de aviso (pra alertar a usuária) quando algum item não é encontrado,
@@ -26321,10 +26402,16 @@ async function ajustarEstoqueLaboratorioNaVenda(venda, vendaAnterior, origem) {
     }));
     const resultado = await Lab.baixarEstoquePorItens(itens, origem);
     venda.estoqueBaixado = resultado.baixas;
+    let avisoCaixa = null;
+    try {
+      const cx = await baixarCaixasDaVenda(venda, itensBase, baixasAnteriores, origem);
+      venda.estoqueBaixado = [...venda.estoqueBaixado, ...cx.baixas];
+      avisoCaixa = cx.aviso;
+    } catch (errCx) { console.warn('Erro na baixa de caixas:', errCx); }
     if (resultado.naoEncontrados.length) {
-      return 'Não encontrei no estoque do Laboratório (Insumos → Produto (estoque)) pra dar baixa automática:\n\n' + resultado.naoEncontrados.join('\n') + '\n\nCadastre/linke esse produto em Laboratório → Insumos, se quiser que a baixa seja automática da próxima vez.';
+      return 'Não encontrei no estoque do Laboratório (Insumos → Produto (estoque)) pra dar baixa automática:\n\n' + resultado.naoEncontrados.join('\n') + '\n\nCadastre/linke esse produto em Laboratório → Insumos, se quiser que a baixa seja automática da próxima vez.' + (avisoCaixa ? '\n\n' + avisoCaixa : '');
     }
-    return null;
+    return avisoCaixa;
   } catch (err) {
     console.warn('Erro ao ajustar estoque do Laboratório na venda:', err);
     return null;
@@ -33227,6 +33314,26 @@ async function renderIndicadores() {
     abrir: abrir,
     sincronizarCustosComCalculadora: sincronizarCustosComCalculadora,
     baixarEstoquePorItens: baixarEstoquePorItens,
+    listarCaixas: function () {
+      return state.insumos.filter(function (i) { return i.ativo !== false && /caixa/i.test(i.titulo || ''); })
+        .map(function (i) { return { id: i.id, titulo: i.titulo, estoque: i.estoque, unidade: i.unidade }; });
+    },
+    // Baixa genérica de insumos por id (usada pras caixas unitárias): devolve as baixas feitas
+    // no mesmo formato de estoqueBaixado, pra poderem ser estornadas junto com a venda.
+    baixarInsumos: async function (lista, origem) {
+      var client = getSupabaseClient();
+      var baixas = [], erros = [];
+      for (var i = 0; i < lista.length; i++) {
+        var b = lista[i];
+        var q = Number(b.quantidade) || 0;
+        if (!b.insumoId || q <= 0) continue;
+        var resp = await client.rpc('gso_ajustar_insumo', { p_insumo_id: b.insumoId, p_tipo: 'saida', p_quantidade: q, p_origem: origem });
+        if (resp.error) { erros.push(resp.error.message); continue; }
+        baixas.push({ produtoInsumoId: b.insumoId, quantidade: q });
+      }
+      if (baixas.length) loadInsumos();
+      return { baixas: baixas, erros: erros };
+    },
     resolverProdutoEstoque: function (nomeProduto, tamanho, aroma) {
       var p = encontrarProdutoEnvasadoPara(nomeProduto, tamanho, aroma);
       return p ? { id: p.id, nome: p.nome } : null;
