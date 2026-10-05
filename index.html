@@ -25826,6 +25826,7 @@ function currentSaleItem() {
 // pro item que está sendo montado (a baixa é automática pelo produto/tamanho/aroma). O
 // seletor manual fica escondido atrás do link "trocar" e só é usado em exceção.
 function estoqueResolvido(produto, tamanho, aroma, idManual) {
+  if (idManual === '__nenhum__') return { id: null, nome: '', nenhum: true };
   if (window.Lab?.state?.produtos?.length) {
     if (idManual) { const m = window.Lab.state.produtos.find(p => p.id === idManual); if (m) return { id: m.id, nome: m.nome, manual: true }; }
     if (typeof window.Lab.resolverProdutoEstoque === 'function') {
@@ -25850,8 +25851,9 @@ function atualizarEstoqueAuto() {
     if (!atualizarEstoqueAuto._t) atualizarEstoqueAuto._t = setTimeout(() => { atualizarEstoqueAuto._t = null; atualizarEstoqueAuto(); if (typeof renderSaleItemsList === 'function' && currentSaleItems.length) renderSaleItemsList(); }, 1500);
     return;
   }
-  if (r) { el.className = 'estoque-auto-txt ok'; el.textContent = '📦 Sai do estoque: ' + r.nome + (r.manual ? ' (escolhido por você)' : ''); }
-  else { el.className = 'estoque-auto-txt aviso'; el.textContent = '⚠ Não achei esse produto no estoque — a venda será registrada, mas sem baixar estoque. Use "trocar" pra escolher.'; }
+  if (r && r.nenhum) { el.className = 'estoque-auto-txt'; el.textContent = '🚫 Não tira nada do estoque (você deixou em branco).'; }
+  else if (r) { el.className = 'estoque-auto-txt ok'; el.textContent = '📦 Sai do estoque: ' + r.nome + (r.manual ? ' (escolhido por você)' : ''); }
+  else { el.className = 'estoque-auto-txt aviso'; el.textContent = '⚠ Não achei esse produto no estoque — a venda será registrada, mas sem baixar estoque. Se for um produto que não existe no estoque, está tudo certo. Pra escolher outro item ou deixar em branco, use "trocar".'; }
 }
 function toggleEstoqueManual() {
   const row = document.getElementById('f-estoque-manual-row');
@@ -25880,6 +25882,7 @@ async function popularSelectProdutoEstoque(selectId, valorAtual) {
   if (!select) return;
   const lista = await loadProdutosEnvasadosParaSelecao();
   select.innerHTML = '<option value="">Automático (pelo nome do produto)</option>' +
+    '<option value="__nenhum__"' + (valorAtual === '__nenhum__' ? ' selected' : '') + '>Nenhum — não tirar nada do estoque (deixar em branco)</option>' +
     lista.map(p => `<option value="${escapeHtml(p.id)}"${p.id === valorAtual ? ' selected' : ''}>${escapeHtml(p.nome)}</option>`).join('');
   if (valorAtual) select.value = valorAtual;
 }
@@ -25898,7 +25901,7 @@ function renderSaleItemsList() {
     <div class="sale-item-row">
       <div>
         <div class="sale-item-main">${escapeHtml(item.descricao)}</div>
-        <div class="sale-item-sub">${escapeHtml(item.aroma || 'Neutro')} • ${item.qtdUnidades} unidade(s) contabilizadas${(() => { const r = estoqueResolvido(item.catalogProduto || item.produto, item.tamanho, item.aroma, item.produtoEnvasadoId); return r === undefined ? '' : (r ? ` • <span class="estoque-auto-txt ok">📦 sai do estoque: ${escapeHtml(r.nome)}</span>` : ' • <span class="estoque-auto-txt aviso">⚠ sem baixa de estoque (não encontrado)</span>'); })()}</div>
+        <div class="sale-item-sub">${escapeHtml(item.aroma || 'Neutro')} • ${item.qtdUnidades} unidade(s) contabilizadas${(() => { const r = estoqueResolvido(item.catalogProduto || item.produto, item.tamanho, item.aroma, item.produtoEnvasadoId); return r === undefined ? '' : (r && r.nenhum ? ' • <span class="estoque-auto-txt">🚫 não tira do estoque</span>' : r ? ` • <span class="estoque-auto-txt ok">📦 sai do estoque: ${escapeHtml(r.nome)}</span>` : ' • <span class="estoque-auto-txt aviso">⚠ sem baixa de estoque (não encontrado)</span>'); })()}</div>
       </div>
       <div class="sale-item-value-edit">
         <label class="form-label" style="margin-bottom:2px;">Valor cobrado</label>
@@ -31087,6 +31090,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<div class="gc-ml-edit-label" style="margin-top:10px">Produto do estoque a descontar <span style="font-weight:400;text-transform:none;letter-spacing:0">— use quando esse anúncio usa uma embalagem/variante específica</span></div>' +
         '<select id="gc-ml-estoque-produto" style="width:100%;border:1px solid var(--gcln2);border-radius:7px;padding:6px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);margin-bottom:10px">' +
           '<option value="">Automático (pelo nome do produto)</option>' +
+          '<option value="__nenhum__"' + (draft.produtoEnvasadoId === '__nenhum__' ? ' selected' : '') + '>Nenhum — não tirar nada do estoque (deixar em branco)</option>' +
           produtosEnvasadosParaEstoque.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === draft.produtoEnvasadoId ? ' selected' : '') + '>' + esc(p.nome) + '</option>'; }).join('') +
         '</select>' +
         '<div class="gc-ml-edit-label">Embalagem (caixa) usada <span style="font-weight:400;text-transform:none;letter-spacing:0">— "Caixa G/P" dividem o custo entre as unidades do lote, "Caixa Unitária" é uma caixa só pra esta venda (comum em envio do Mercado Livre)</span></div>' +
@@ -33099,6 +33103,8 @@ async function renderIndicadores() {
       var it = itens[i];
       var qtd = Number(it.qtd) || 0;
       if (qtd <= 0) continue;
+      // Escolheu "Nenhum" (produto que não existe no estoque): não baixa nada e não avisa.
+      if (it.produtoEnvasadoId === '__nenhum__') continue;
       // Se a venda já veio com o produto do estoque escolhido manualmente (embalagem/
       // variante específica), usa direto — sem isso, cai na correspondência automática
       // por nome/tamanho/aroma, que pode errar quando há mais de uma embalagem cadastrada
