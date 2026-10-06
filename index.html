@@ -1916,6 +1916,12 @@
   .estoque-auto-txt.aviso { color: var(--amber-text); font-weight: 600; }
   .estoque-auto-trocar { border: 0; background: transparent; color: var(--text-2); font: inherit; font-size: 11.5px; text-decoration: underline; cursor: pointer; padding: 0; }
   .cx-perg-linha { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .gc-cli-card { grid-column: 1 / -1; margin: -4px 0 4px; padding: 7px 10px; border-radius: 8px; background: rgba(127,127,127,.10); font-size: 12px; line-height: 1.5; color: var(--text-2); }
+  .gc-cli-card b { color: var(--text); }
+  .gc-cli-card.aviso { background: var(--amber-bg); color: var(--amber-text); }
+  .gc-cli-card .end { font-size: 11px; opacity: .85; }
+  .gc-cli-tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px; background: rgba(127,127,127,.25); color: var(--text); margin-right: 4px; }
+  .gc-cli-tag.loj { background: var(--amber-bg); color: var(--amber-text); }
   .hist-modal .hist-filtro { padding: 3px 10px !important; min-height: 0 !important; height: auto !important; box-shadow: none !important; }
   .exp-cli-body { padding-bottom: 8px; }
   .exp-cli-bloco { margin-bottom: 10px; }
@@ -29588,6 +29594,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<label class="gcf">Desconto<span class="gc-un-toggle" style="margin-left:8px"><button type="button" class="gc-un-btn' + (UI.descTipo !== 'pct' ? ' on' : '') + '" data-desc-tipo="valor">R$</button><button type="button" class="gc-un-btn' + (UI.descTipo === 'pct' ? ' on' : '') + '" data-desc-tipo="pct">%</button></span><input id="gc-f-desc" type="text" inputmode="decimal" placeholder="0,00" value="' + esc(String(f.desc || '').replace('%', '')) + '"></label>' +
       '<label class="gcf">Vendedor<select id="gc-f-vend">' + vendedores().map(function (v) { return '<option' + (v === f.vend ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf full">Cliente <span style="color:var(--gcfnt)">(opcional na simulação)</span><input id="gc-f-cli" type="text" value="' + esc(f.cliente) + '" placeholder="Nome do cliente" list="gc-cli-list" autocomplete="off"><datalist id="gc-cli-list">' + clienteSugestoesOptions() + '</datalist></label>' +
+      '<div class="gc-cli-card hidden full" id="gc-cli-card"></div>' +
       '<label class="gcf full">Observações comerciais<textarea id="gc-f-obs">' + esc(f.obs) + '</textarea></label>' +
       '</div><div class="gc-row"><button class="gc-btn dark" id="gc-add">Adicionar ao pedido</button></div></div>' +
       '<div class="gc-blk"><h2>Itens <span>' + UI.itens.length + '</span></h2>' + itensHTML() + '</div>' +
@@ -29596,6 +29603,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<div class="gc-blk" id="gc-res">' + resultadoHTML(r, f) + '</div>' +
       '</div>';
     el.dataset.built = '1';
+    atualizarCartaoCliente();
   }
   function itensHTML() {
     if (!UI.itens.length) return '<div class="gc-hint" style="padding:6px 0">Nenhum item ainda. Preencha os campos e clique em “Adicionar ao pedido”.</div>';
@@ -29778,25 +29786,65 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   // Modelo de cotação pra transportadora, já com dados do cliente (documento e cidade vindos do
   // cadastro), nº de caixas, valor da nota e peso do pedido. Caixa grande = produtos de 5L,
   // caixa pequena = produtos de 1L.
+  // Puxa o cadastro do cliente OU do lojista (o que existir com esse nome/apelido) — só
+  // administradores enxergam lojistas e clientes Direto Lab, mesma regra do resto do sistema.
+  function cadastroDoCliente(nomeDigitado) {
+    var nome = String(nomeDigitado || '').trim();
+    if (!nome) return null;
+    var canon = (typeof resolveClienteAlias === 'function') ? resolveClienteAlias(nome).cliente : nome;
+    var k = nameKey(canon);
+    var admin = typeof isAdminUser === 'function' && isAdminUser();
+    var loj = admin ? (state.lojistas || []).find(function (l) { return nameKey(l.nome) === k; }) : null;
+    if (loj) {
+      var docL = loj.cnpj || loj.cpf || '';
+      return { tipo: 'Lojista', nome: loj.nome, cnpj: loj.cnpj || '', cpf: loj.cpf || '', doc: docL, telefone: loj.telefone || '', email: loj.email || '',
+        endereco: [loj.rua, loj.numero].filter(Boolean).join(', '), bairro: loj.bairro || '', cidade: cidadeLimpa(loj.cidade), uf: ufNormalizada(loj.estado, loj.cidade), cep: loj.cep || '' };
+    }
+    var cli = (state.clientes || []).find(function (c) { return nameKey(c.nome) === k; });
+    var fis = (state.fiscais || []).find(function (f) { return nameKey(f.nome) === k; });
+    if (!cli && !fis) return null;
+    if (!admin && cli && cli.tipoCliente === 'Direto Lab') return null;
+    var fiscal = fis || {};
+    var m = mergeClienteFiscalInfo(cli || {}, fiscal);
+    var docs = splitFiscalDocs(fiscal);
+    var addr = fiscalAddressParts(fiscal, cli || {});
+    return { tipo: 'Cliente', nome: (cli || fis).nome, cnpj: docs.cnpj, cpf: docs.cpf, doc: docs.cnpj || docs.cpf || String(fiscal.doc || '').trim(),
+      telefone: m.telefone, email: m.email, endereco: addr.endereco, bairro: addr.bairro, cidade: cidadeLimpa(addr.cidade), uf: ufNormalizada(addr.estado, addr.cidade), cep: addr.cep };
+  }
+  function atualizarCartaoCliente() {
+    var el = $('#gc-cli-card'); if (!el) return;
+    var nome = (($('#gc-f-cli') || {}).value || '').trim();
+    if (nome.length < 3) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+    var c = cadastroDoCliente(nome);
+    el.classList.remove('hidden');
+    if (!c) { el.className = 'gc-cli-card aviso'; el.innerHTML = 'Não encontrei esse nome no cadastro de clientes nem de lojistas.'; return; }
+    el.className = 'gc-cli-card';
+    var partes = [];
+    if (c.doc) partes.push((c.cnpj ? 'CNPJ ' : (c.cpf ? 'CPF ' : '')) + esc(c.doc));
+    if (c.cidade) partes.push(esc(c.cidade) + (c.uf ? '/' + esc(c.uf) : ''));
+    if (c.telefone) partes.push(esc(c.telefone));
+    if (c.email) partes.push(esc(c.email));
+    var end = [c.endereco, c.bairro, c.cep ? 'CEP ' + c.cep : ''].filter(Boolean).join(' · ');
+    el.innerHTML = '<span class="gc-cli-tag ' + (c.tipo === 'Lojista' ? 'loj' : '') + '">' + c.tipo + '</span> <b>' + esc(c.nome) + '</b>' +
+      (partes.length ? '<div>' + partes.join(' · ') + '</div>' : '<div>Sem dados de contato/documento no cadastro.</div>') + (end ? '<div class="end">' + end + '</div>' : '');
+  }
   var CNPJ_REMETENTE_GSO = '24.769.324/0001-57';
   var CAIXA_GRANDE = '32 cm x 38 cm x 29 cm', CAIXA_PEQUENA = '25 cm x 28 cm x 19 cm';
   function cotacaoTransportadoraTexto() {
     var f = fields();
     var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
     var avisos = [];
-    var nomeCli = f.cliente ? resolveClienteAlias(f.cliente).cliente : '';
-    var cadastro = nomeCli ? state.clientes.find(function (c) { return nameKey(c.nome) === nameKey(nomeCli); }) : null;
-    var fiscal = nomeCli ? (fiscalRecordForCliente(nomeCli) || {}) : {};
-    var docs = splitFiscalDocs(fiscal);
-    var doc = docs.cnpj || docs.cpf || String(fiscal.doc || '').trim();
-    var rotuloDoc = (!docs.cnpj && docs.cpf) ? 'CPF' : 'CNPJ';
-    var addr = fiscalAddressParts(fiscal, cadastro || {});
-    var uf = (typeof ufNormalizada === 'function') ? ufNormalizada(addr.estado, addr.cidade) : (addr.estado || '');
-    var cidade = (typeof cidadeLimpa === 'function' ? cidadeLimpa(addr.cidade) : addr.cidade) || '';
+    var cad = f.cliente ? cadastroDoCliente(f.cliente) : null;
+    var doc = cad ? cad.doc : '';
+    var rotuloDoc = (cad && !cad.cnpj && cad.cpf) ? 'CPF' : 'CNPJ';
+    var cidade = cad ? cad.cidade : '';
+    var uf = cad ? cad.uf : '';
     if (!f.cliente) avisos.push('informe o cliente na simulação');
-    else if (!nomeCli || (!cadastro && !fiscal.nome)) avisos.push('cliente "' + f.cliente + '" não encontrado no cadastro');
-    if (f.cliente && !doc) avisos.push('cliente sem CPF/CNPJ no cadastro');
-    if (f.cliente && !cidade) avisos.push('cliente sem cidade no cadastro');
+    else if (!cad) avisos.push('cliente "' + f.cliente + '" não encontrado no cadastro de clientes nem de lojistas');
+    else {
+      if (!doc) avisos.push('cadastro sem CPF/CNPJ');
+      if (!cidade) avisos.push('cadastro sem cidade');
+    }
     var grandes = Math.ceil(r.un5 / 4), pequenas = Math.ceil(r.un1 / 6);
     var volumes = grandes + pequenas;
     var med = [];
@@ -31675,6 +31723,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     root.addEventListener('input', function (e) {
       var t = e.target;
       if (t.id === 'gc-f-desc' || t.id === 'gc-f-fretev' || t.id === 'gc-f-qtd' || t.id === 'gc-f-fiscal') refreshResultado();
+      if (t.id === 'gc-f-cli') atualizarCartaoCliente();
     });
     root.addEventListener('keydown', function (e) {
       if (e.key !== 'Enter') return;
