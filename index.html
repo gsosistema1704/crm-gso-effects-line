@@ -29792,16 +29792,19 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var nome = String(nomeDigitado || '').trim();
     if (!nome) return null;
     var canon = (typeof resolveClienteAlias === 'function') ? resolveClienteAlias(nome).cliente : nome;
-    var k = nameKey(canon);
+    // Procura pelo nome como foi digitado E pelo nome "oficial" do apelido — um nome exato de
+    // cadastro às vezes tem apelido apontando pra outro nome, e não pode se perder por isso.
+    var chaves = [nameKey(nome), nameKey(canon)];
+    var casa = function (n) { return chaves.indexOf(nameKey(n)) >= 0; };
     var admin = typeof isAdminUser === 'function' && isAdminUser();
-    var loj = admin ? (state.lojistas || []).find(function (l) { return nameKey(l.nome) === k; }) : null;
+    var loj = admin ? (state.lojistas || []).find(function (l) { return casa(l.nome); }) : null;
     if (loj) {
       var docL = loj.cnpj || loj.cpf || '';
       return { tipo: 'Lojista', nome: loj.nome, cnpj: loj.cnpj || '', cpf: loj.cpf || '', doc: docL, telefone: loj.telefone || '', email: loj.email || '',
         endereco: [loj.rua, loj.numero].filter(Boolean).join(', '), bairro: loj.bairro || '', cidade: cidadeLimpa(loj.cidade), uf: ufNormalizada(loj.estado, loj.cidade), cep: loj.cep || '' };
     }
-    var cli = (state.clientes || []).find(function (c) { return nameKey(c.nome) === k; });
-    var fis = (state.fiscais || []).find(function (f) { return nameKey(f.nome) === k; });
+    var cli = (state.clientes || []).find(function (c) { return casa(c.nome); });
+    var fis = (state.fiscais || []).find(function (f) { return casa(f.nome); });
     if (!cli && !fis) return null;
     if (!admin && cli && cli.tipoCliente === 'Direto Lab') return null;
     var fiscal = fis || {};
