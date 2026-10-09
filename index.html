@@ -12954,6 +12954,28 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
   </div>
 </div>
 
+<!-- ===== MODAL: CAIXAS MONTADAS (só administradores) ===== -->
+<div class="modal-bg" id="modal-encaixotar" onclick="if(event.target===this)Lab.closeModal('modal-encaixotar')">
+  <div class="modal modal-wide hist-modal" style="max-width:640px">
+    <div class="hist-head">
+      <div>
+        <div class="hist-title">📦 Caixas montadas</div>
+        <div class="hist-sub">As caixas saem do estoque agora. Os produtos continuam no estoque e só saem quando forem vendidos.</div>
+      </div>
+      <button type="button" class="hist-close" onclick="Lab.closeModal('modal-encaixotar')" aria-label="Fechar" title="Fechar">✕</button>
+    </div>
+    <div class="hist-body">
+      <div id="encaixotar-linhas"></div>
+      <button type="button" class="btn btn-soft btn-small" style="margin-top:8px" onclick="Lab.encaixotarAddLinha()">+ Outra caixa / outro produto</button>
+      <div id="encaixotar-erro" class="form-help" style="color:var(--red-text);margin-top:8px"></div>
+      <div class="form-actions">
+        <button class="btn" onclick="Lab.closeModal('modal-encaixotar')">Cancelar</button>
+        <button class="btn btn-primary" id="encaixotar-confirmar" onclick="Lab.confirmarEncaixotar()">Tirar caixas do estoque</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL: HISTÓRICO ===== -->
 <div class="modal-bg" id="modal-historico" onclick="if(event.target===this)Lab.closeModal('modal-historico')">
   <div class="modal modal-wide hist-modal">
@@ -32027,6 +32049,7 @@ function insumoRowHtml(i) {
 function renderInsumosStats() {
   const container = document.getElementById('insumosStats');
   if (!container) return;
+  atualizarBotaoEncaixotar();
   const rows = state.insumos.filter(i => i.ativo !== false);
   const baixoCount = rows.filter(insumoIsLow).length;
   const valorTotal = rows.reduce((s, i) => s + Number(i.custo || 0) * Number(i.estoque || 0), 0);
@@ -32316,6 +32339,107 @@ function openAjusteModal(insumoId, tipo) {
   document.getElementById('ajuste-quantidade').value = 0;
   document.getElementById('ajuste-origem').value = tipo === 'entrada' ? 'Entrada manual' : 'Saída manual';
   openModal('modal-ajuste');
+}
+
+// ---- Caixas montadas (só administradores) ----
+// Tira do estoque só as CAIXAS que foram montadas; os produtos encaixotados continuam
+// contando no estoque e só saem quando forem vendidos. O produto fica no histórico da caixa.
+function encaixotarEhAdmin() { return typeof isAdminUser === 'function' && isAdminUser(); }
+// Botão rápido que fica sempre na tela (junto dos botões flutuantes de tema/topo), só pra administradores.
+function atualizarBotaoEncaixotar() {
+  if (!document.body) return;
+  let b = document.getElementById('gso-encaixotar-fab');
+  const admin = encaixotarEhAdmin();
+  if (!b) {
+    if (!admin) return;
+    b = document.createElement('button');
+    b.id = 'gso-encaixotar-fab'; b.className = 'gso-theme-fab'; b.type = 'button';
+    b.title = 'Avisar quantas caixas foram montadas (saem as caixas do estoque, os produtos continuam)';
+    b.setAttribute('aria-label', 'Avisar caixas montadas');
+    b.innerHTML = '<span aria-hidden="true">📦</span><span class="gso-lb">Caixas montadas</span>';
+    b.addEventListener('click', () => abrirEncaixotar());
+    let row = document.getElementById('gso-fab-row');
+    if (!row) { row = document.createElement('div'); row.id = 'gso-fab-row'; document.body.appendChild(row); }
+    row.insertBefore(b, row.firstChild);
+  }
+  b.style.display = admin ? '' : 'none';
+}
+try { atualizarBotaoEncaixotar(); } catch (e) { /* state.user ainda não carregou: o intervalo tenta de novo */ }
+setInterval(() => { try { atualizarBotaoEncaixotar(); } catch (e) {} }, 2000);
+function encaixotarCaixas() {
+  return state.insumos.filter(i => i.ativo !== false && (i.tipo === 'caixa' || /caixa/i.test(i.titulo || '')));
+}
+function encaixotarLinhaHtml() {
+  const caixas = encaixotarCaixas();
+  const produtos = (state.produtos || []).filter(p => p.ativo !== false);
+  return `<div class="encaixotar-linha" style="display:grid;grid-template-columns:1.3fr 80px 1.6fr auto;gap:8px;align-items:start;margin-bottom:8px">
+    <div><label class="form-label">Caixa</label><select class="form-input enc-caixa">${caixas.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.titulo)} (estoque ${fmtNum(c.estoque)})</option>`).join('')}</select></div>
+    <div><label class="form-label">Quantas</label><input class="form-input enc-qtd" type="number" min="1" step="1" value="1"></div>
+    <div><label class="form-label">Produto encaixotado</label>
+      <select class="form-input enc-produto" onchange="this.parentNode.querySelector('.enc-outro').style.display = this.value === '__outro__' ? '' : 'none'">
+        ${produtos.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.nome)}</option>`).join('')}
+        <option value="__outro__">Outro produto (descrever)…</option>
+      </select>
+      <input class="form-input enc-outro" style="display:none;margin-top:6px" placeholder="Descreva o produto encaixotado">
+    </div>
+    <div><label class="form-label">&nbsp;</label><button type="button" class="btn btn-small" title="Remover linha" onclick="Lab.encaixotarRemoverLinha(this)">✕</button></div>
+  </div>`;
+}
+function encaixotarAddLinha() {
+  document.getElementById('encaixotar-linhas').insertAdjacentHTML('beforeend', encaixotarLinhaHtml());
+}
+function encaixotarRemoverLinha(btn) {
+  const wrap = document.getElementById('encaixotar-linhas');
+  const linha = btn.closest('.encaixotar-linha');
+  if (wrap.querySelectorAll('.encaixotar-linha').length > 1) linha.remove();
+}
+async function abrirEncaixotar() {
+  if (!encaixotarEhAdmin()) { alert('Só administradores podem avisar caixas montadas.'); return; }
+  if (!state.insumos.length) await loadInsumos();
+  if (!(state.produtos || []).length) await loadProdutos();
+  if (!encaixotarCaixas().length) { alert('Não há caixas cadastradas no estoque.'); return; }
+  document.getElementById('encaixotar-linhas').innerHTML = '';
+  document.getElementById('encaixotar-erro').textContent = '';
+  encaixotarAddLinha();
+  // O modal vive dentro da aba Laboratório (que fica escondida em outras telas): leva pro body
+  // pra abrir em qualquer lugar do sistema.
+  const modal = document.getElementById('modal-encaixotar');
+  if (modal && modal.parentNode !== document.body) document.body.appendChild(modal);
+  openModal('modal-encaixotar');
+}
+async function confirmarEncaixotar() {
+  if (!encaixotarEhAdmin()) { alert('Só administradores podem avisar caixas montadas.'); return; }
+  const erroEl = document.getElementById('encaixotar-erro');
+  erroEl.textContent = '';
+  const itens = [];
+  for (const linha of document.querySelectorAll('#encaixotar-linhas .encaixotar-linha')) {
+    const caixaId = linha.querySelector('.enc-caixa').value;
+    const qtd = parseInt(linha.querySelector('.enc-qtd').value, 10) || 0;
+    const sel = linha.querySelector('.enc-produto');
+    const produto = sel.value === '__outro__'
+      ? linha.querySelector('.enc-outro').value.trim()
+      : (sel.options[sel.selectedIndex]?.textContent || '').trim();
+    if (qtd <= 0) { erroEl.textContent = 'Informe quantas caixas foram montadas (1 ou mais).'; return; }
+    if (!produto) { erroEl.textContent = 'Descreva o produto que foi encaixotado.'; return; }
+    itens.push({ caixaId, qtd, produto });
+  }
+  if (!itens.length) return;
+  const resumo = itens.map(i => i.qtd + '× ' + (state.insumos.find(c => c.id === i.caixaId)?.titulo || 'caixa') + ' — ' + i.produto).join('\n');
+  if (!confirm('Tirar estas caixas do estoque?\n\n' + resumo + '\n\nOs produtos continuam no estoque.')) return;
+  const btn = document.getElementById('encaixotar-confirmar');
+  btn.disabled = true;
+  const client = getSupabaseClient();
+  const falhas = [];
+  for (const it of itens) {
+    const origem = 'Caixas montadas — ' + it.produto;
+    const { error } = await client.rpc('gso_ajustar_insumo', { p_insumo_id: it.caixaId, p_tipo: 'saida', p_quantidade: it.qtd, p_origem: origem });
+    if (error) falhas.push(it.produto + ': ' + error.message);
+  }
+  btn.disabled = false;
+  await loadInsumos();
+  renderInsumos();
+  if (falhas.length) { erroEl.textContent = 'Não consegui tirar do estoque: ' + falhas.join(' | '); return; }
+  closeModal('modal-encaixotar');
 }
 
 async function confirmarAjuste() {
@@ -33493,6 +33617,10 @@ async function renderIndicadores() {
     navTo: navTo,
     switchInsumosTab: switchInsumosTab,
     openAjusteModal: openAjusteModal,
+    abrirEncaixotar: abrirEncaixotar,
+    encaixotarAddLinha: encaixotarAddLinha,
+    encaixotarRemoverLinha: encaixotarRemoverLinha,
+    confirmarEncaixotar: confirmarEncaixotar,
     openImportInsumosModal: openImportInsumosModal,
     openInsumoHistorico: openInsumoHistorico,
     setHistFiltro: setHistFiltro,
