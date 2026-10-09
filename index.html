@@ -30809,11 +30809,19 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var d = v.pagamentoDetalhes || {};
     var recebido = (d.mlValorLiquido != null && d.mlValorLiquido !== '') ? Number(d.mlValorLiquido) : null;
     var custoUn = v.catalogProduto ? custoInfo(keyOf(v.catalogProduto, v.catalogTamanho || '')).total : null;
-    var custoTotal = (custoUn != null) ? round2(custoUn * qtd) : null;
+    if (!(custoUn > 0) && d.mlSku) {
+      var anuncio = (store.anuncios || []).filter(function (a) { return a.sku && a.sku === d.mlSku; })[0];
+      var manual = anuncio ? num(anuncio.custoManual) : 0;
+      custoUn = manual > 0 ? manual : null;
+    }
+    var semCusto = !(custoUn > 0);
+    var custoTotal = semCusto ? null : round2(custoUn * qtd);
     var fiscalValor = round2(valor * ((num(params().fiscal) || 0) / 100));
-    var lucro = (recebido != null && custoTotal != null) ? round2(recebido - fiscalValor - custoTotal) : null;
+    // Sem custo (nem do catálogo, nem manual): o produto não custou nada (já era estoque),
+    // então o lucro é exatamente o valor líquido que entrou — sem abater fiscal.
+    var lucro = recebido == null ? null : (semCusto ? recebido : round2(recebido - fiscalValor - custoTotal));
     var margem = (lucro != null && valor > 0) ? round2((lucro / valor) * 100) : null;
-    return { recebido: recebido, custoTotal: custoTotal, fiscalValor: fiscalValor, lucro: lucro, margem: margem };
+    return { recebido: recebido, custoTotal: custoTotal, fiscalValor: fiscalValor, lucro: lucro, margem: margem, semCusto: semCusto && recebido != null };
   }
   function mlSemanaDias(offsetSemanas) {
     var hoje = new Date(); hoje.setHours(0, 0, 0, 0);
@@ -30972,7 +30980,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var c = vendaMLCalc(v);
       totalValor += (Number(v.valor) || 0);
       totalRecebido += (c.recebido != null ? c.recebido : (Number(v.valor) || 0));
-      if (c.lucro != null) { totalLucro += c.lucro; comLucro++; } else { semCusto++; }
+      if (c.lucro != null) { totalLucro += c.lucro; comLucro++; if (c.semCusto) semCusto++; }
     });
     var ticketMedio = vendas.length ? totalValor / vendas.length : 0;
     var datas = vendas.map(function (v) { return v.data; }).filter(Boolean).slice().sort();
@@ -31007,7 +31015,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<td class="num" data-label="Qtd">' + (v.qtd || 1) + '</td>' +
         '<td class="num" data-label="Valor">' + fmt(v.valor) + '</td>' +
         '<td class="num" data-label="Recebido líq.">' + (c.recebido != null ? fmt(c.recebido) : '—') + '</td>' +
-        '<td class="num" data-label="Lucro">' + (c.lucro != null ? fmt(c.lucro) + (c.margem != null ? ' (' + c.margem + '%)' : '') : '<span title="Sem custo cadastrado no catálogo pra esse produto">—</span>') + '</td>' +
+        '<td class="num" data-label="Lucro">' + (c.lucro != null ? '<span' + (c.semCusto ? ' title="Sem custo cadastrado: lucro igual ao valor líquido recebido"' : '') + '>' + fmt(c.lucro) + (c.margem != null ? ' (' + c.margem + '%)' : '') + '</span>' : '<span title="Sem valor líquido registrado nessa venda">—</span>') + '</td>' +
         '<td data-label="Status">' + badge + '</td>' +
       '</tr>';
     }).join('');
@@ -31022,7 +31030,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<div class="gc-ml-venda-stat"><span class="l">Ticket médio</span><b>' + fmt(ticketMedio) + '</b></div>' +
         '<div class="gc-ml-venda-stat"><span class="l">Período</span><b style="font-size:13px">' + esc(periodo) + '</b></div>' +
       '</div>' +
-      (semCusto ? '<div class="gc-hint" style="margin-top:10px">Lucro estimado considera só ' + comLucro + ' de ' + vendas.length + ' vendas — as outras ' + semCusto + ' não têm custo cadastrado no catálogo pra esse produto/tamanho.</div>' : '') +
+      (semCusto ? '<div class="gc-hint" style="margin-top:10px">' + semCusto + (semCusto === 1 ? ' venda sem custo cadastrado' : ' vendas sem custo cadastrado') + ' (produto que já estava em estoque): o lucro dela é exatamente o valor líquido recebido.</div>' : '') +
+      ((vendas.length - comLucro) ? '<div class="gc-hint" style="margin-top:4px">' + (vendas.length - comLucro) + ' venda(s) sem valor líquido registrado ficam fora do lucro estimado.</div>' : '') +
       (semCatalogo ? '<div class="gc-hint" style="margin-top:4px">' + semCatalogo + ' venda(s) com produto não identificado automaticamente no catálogo — aparecem com <span class="gc-pill gray">?</span> na tabela abaixo.</div>' : '') +
     '</div>' +
     painelAtencao +
