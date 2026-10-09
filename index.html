@@ -32356,7 +32356,16 @@ function atualizarBotaoEncaixotar() {
     b.id = 'gso-encaixotar-fab'; b.className = 'gso-theme-fab'; b.type = 'button';
     b.title = 'Avisar quantas caixas foram montadas (saem as caixas do estoque, os produtos continuam)';
     b.setAttribute('aria-label', 'Avisar caixas montadas');
-    b.innerHTML = '<span aria-hidden="true">📦</span><span class="gso-lb">Caixas montadas</span>';
+    b.innerHTML = '<span class="gso-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 6.2 5.4 12 7.8l5.8-2.4z"/><path d="M6.2 5.4 3 11.6l6.6 2.6 2.4-6.4"/><path d="m17.8 5.4 3.2 6.2-6.6 2.6L12 7.8"/><path d="M5.6 13.2v5.4L12 21l6.4-2.4v-5.4"/><path d="M12 12v9"/></svg></span><span class="gso-lb">Caixas montadas</span>';
+    if (!document.getElementById('gso-encaixotar-style')) {
+      const st = document.createElement('style');
+      st.id = 'gso-encaixotar-style';
+      st.textContent = '#gso-encaixotar-fab { background: var(--gso-ok) !important; color: var(--gso-ok-ink) !important; border-color: var(--gso-ok) !important; box-shadow: 0 6px 16px rgba(46,139,87,.38) !important; }' +
+        '#gso-encaixotar-fab:hover { filter: brightness(1.08); transform: translateY(-2px); }' +
+        '#gso-encaixotar-fab, #gso-encaixotar-fab * { color: #fff !important; }' +
+        '#gso-encaixotar-fab svg { stroke: #fff !important; width: 23px !important; height: 23px !important; }';
+      document.head.appendChild(st);
+    }
     b.addEventListener('click', () => abrirEncaixotar());
     let row = document.getElementById('gso-fab-row');
     if (!row) { row = document.createElement('div'); row.id = 'gso-fab-row'; document.body.appendChild(row); }
