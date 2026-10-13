@@ -12901,9 +12901,9 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div class="modal-title" id="modal-insumo-title">Novo insumo</div>
     <input type="hidden" id="insumo-id">
     <div class="form-row form-r2">
-      <div><label class="form-label">Título</label><input class="form-input" id="insumo-titulo" placeholder="ex: Rótulo - Palco Tropical 5L"></div>
+      <div><label class="form-label">Título</label><input class="form-input" id="insumo-titulo" placeholder="ex: Rótulo - Palco Tropical 5L" oninput="Lab.atualizarDivisoriasRow()"></div>
       <div><label class="form-label">Tipo</label>
-        <select class="form-input" id="insumo-tipo">
+        <select class="form-input" id="insumo-tipo" onchange="Lab.atualizarDivisoriasRow()">
           <option value="garrafa">Garrafa</option><option value="tampa">Tampa</option><option value="rotulo">Rótulo</option>
           <option value="essencia">Essência</option><option value="produto">Produto</option>
           <option value="materia_prima">Matéria-prima</option><option value="caixa">Caixa de papelão</option>
@@ -12923,6 +12923,10 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div class="form-row form-r2">
       <div><label class="form-label">Estoque mínimo</label><input class="form-input" type="number" step="0.001" id="insumo-minimo" value="0"></div>
       <div><label class="form-label">Unidade</label><input class="form-input" id="insumo-unidade" value="un"></div>
+    </div>
+    <div class="form-row form-r2" id="insumo-divisorias-row" style="display:none">
+      <div><label class="form-label">Divisórias MAIOR (por caixa)</label><input class="form-input" type="number" min="0" step="1" id="insumo-div-maior" placeholder="quantas vão nesta caixa"></div>
+      <div><label class="form-label">Divisórias MENOR (por caixa)</label><input class="form-input" type="number" min="0" step="1" id="insumo-div-menor" placeholder="quantas vão nesta caixa"></div>
     </div>
     <div class="form-row">
       <div><label class="form-label">Observação</label><input class="form-input" id="insumo-observacao" placeholder="opcional — ex: 4 caixas, 1 fechado / 1 aberto..."></div>
@@ -32029,7 +32033,7 @@ function insumoRowHtml(i) {
     <tr>
       <td class="stack-title">${escapeHtml(i.titulo)}</td>
       <td data-label="Tipo">${tipoLabel(i.tipo)}</td>
-      <td data-label="Obs" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(i.observacao || '')}">${escapeHtml(i.observacao || '—')}</td>
+      <td data-label="Obs" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(insumoObsTexto(i))}">${escapeHtml(insumoObsTexto(i) || (insumoDivisorias(i) ? '' : '—'))}${insumoDivisorias(i) ? `<div class="form-help" style="margin:0;white-space:normal">Divisórias: ${insumoDivisorias(i).maior} maior · ${insumoDivisorias(i).menor} menor</div>` : ''}</td>
       <td data-label="Fornecedor">${escapeHtml(i.fornecedor || '—')}</td>
       <td class="num" data-label="Custo">R$ ${fmtBR(i.custo)}</td>
       <td class="num" data-label="Estoque">${fmtNum(i.estoque)} ${escapeHtml(i.unidade || 'un')}${caixaInfo(i) ? `<div class="form-help" style="margin-top:2px;">${escapeHtml(caixaLabel(i))}</div>` : ''}</td>
@@ -32122,7 +32126,7 @@ function exportInsumosExcel(modo = 'completo') {
       Categoria: cat,
       Título: i.titulo,
       Tipo: tipoLabel(i.tipo),
-      Obs: i.observacao || '',
+      Obs: [insumoObsTexto(i), insumoDivisorias(i) ? 'Divisórias: ' + insumoDivisorias(i).maior + ' maior / ' + insumoDivisorias(i).menor + ' menor' : ''].filter(Boolean).join(' · '),
       'Código de barras': i.codigo_barras || '',
       Fornecedor: i.fornecedor || '',
       'Custo (R$)': Number(i.custo || 0),
@@ -32217,7 +32221,7 @@ function exportInsumosPdf(modo = 'completo') {
         <tr>
           <td>${escapeHtml(i.titulo)}</td>
           <td>${tipoLabel(i.tipo)}</td>
-          <td>${escapeHtml(i.observacao || '—')}</td>
+          <td>${escapeHtml([insumoObsTexto(i), insumoDivisorias(i) ? 'Divisórias: ' + insumoDivisorias(i).maior + ' maior / ' + insumoDivisorias(i).menor + ' menor' : ''].filter(Boolean).join(' · ') || '—')}</td>
           <td>${escapeHtml(i.fornecedor || '—')}</td>
           <td class="num">R$ ${fmtBR(i.custo)}</td>
           <td class="num">${fmtNum(i.estoque)} ${escapeHtml(i.unidade || 'un')}</td>
@@ -32272,6 +32276,24 @@ function exportInsumosPdf(modo = 'completo') {
   win.onload = () => { win.focus(); win.print(); };
 }
 
+// Divisórias por modelo de Caixa G: a tabela gso_insumos não tem coluna pra isso, então a
+// quantidade vai numa etiqueta no fim do campo "observacao" (invisível pra usuária: some do
+// texto na tela e reaparece nos dois campos do cadastro da caixa).
+const DIVISORIAS_TAG_RE = /\s*\[divisórias:\s*maior=(\d+);\s*menor=(\d+)\]\s*$/i;
+function insumoObsTexto(i) { return String(i?.observacao || '').replace(DIVISORIAS_TAG_RE, '').trim(); }
+function insumoDivisorias(i) {
+  const m = DIVISORIAS_TAG_RE.exec(String(i?.observacao || ''));
+  return m ? { maior: Number(m[1]), menor: Number(m[2]) } : null;
+}
+function insumoEhCaixaG(titulo, tipo) {
+  return (tipo === 'caixa' || /caixa/i.test(titulo || '')) && /^\s*caixa\s*g\b/i.test(titulo || '');
+}
+function atualizarDivisoriasRow() {
+  const row = document.getElementById('insumo-divisorias-row');
+  if (!row) return;
+  row.style.display = insumoEhCaixaG(document.getElementById('insumo-titulo').value, document.getElementById('insumo-tipo').value) ? '' : 'none';
+}
+
 function openInsumoModal(id = '') {
   const item = id ? state.insumos.find(i => i.id === id) : null;
   const categorias = [...new Set(state.insumos.map(i => i.categoria).filter(Boolean))].sort();
@@ -32286,7 +32308,11 @@ function openInsumoModal(id = '') {
   document.getElementById('insumo-fornecedor').value = item?.fornecedor || '';
   document.getElementById('insumo-minimo').value = item?.estoque_minimo ?? 0;
   document.getElementById('insumo-unidade').value = item?.unidade || 'un';
-  document.getElementById('insumo-observacao').value = item?.observacao || '';
+  document.getElementById('insumo-observacao').value = insumoObsTexto(item);
+  const divs = insumoDivisorias(item);
+  document.getElementById('insumo-div-maior').value = divs ? divs.maior : '';
+  document.getElementById('insumo-div-menor').value = divs ? divs.menor : '';
+  atualizarDivisoriasRow();
   document.getElementById('insumo-estoque-note').textContent = item
     ? `Estoque atual: ${fmtNum(item.estoque)} ${item.unidade || 'un'}. Para mudar a quantidade, use os botões ↑/↓ na lista.`
     : 'O estoque inicial começa em 0 — use ↑ (entrada) depois de salvar para registrar a quantidade que você já tem.';
@@ -32297,16 +32323,23 @@ async function salvarInsumo() {
   const id = document.getElementById('insumo-id').value;
   const titulo = document.getElementById('insumo-titulo').value.trim();
   if (!titulo) { alert('Preencha o título do insumo.'); return; }
+  const tipoSel = document.getElementById('insumo-tipo').value;
+  let obsFinal = document.getElementById('insumo-observacao').value.trim();
+  if (insumoEhCaixaG(titulo, tipoSel)) {
+    const dMaior = parseInt(document.getElementById('insumo-div-maior').value, 10);
+    const dMenor = parseInt(document.getElementById('insumo-div-menor').value, 10);
+    if (!isNaN(dMaior) || !isNaN(dMenor)) obsFinal = (obsFinal + ' [divisórias: maior=' + Math.max(0, dMaior || 0) + '; menor=' + Math.max(0, dMenor || 0) + ']').trim();
+  }
   const payload = {
     titulo,
-    tipo: document.getElementById('insumo-tipo').value,
+    tipo: tipoSel,
     codigo_barras: document.getElementById('insumo-codigo').value.trim() || null,
     custo: Number(document.getElementById('insumo-custo').value || 0),
     categoria: document.getElementById('insumo-categoria').value.trim() || null,
     fornecedor: document.getElementById('insumo-fornecedor').value.trim() || null,
     estoque_minimo: Number(document.getElementById('insumo-minimo').value || 0),
     unidade: document.getElementById('insumo-unidade').value.trim() || 'un',
-    observacao: document.getElementById('insumo-observacao').value.trim() || null,
+    observacao: obsFinal || null,
     atualizado_em: new Date().toISOString()
   };
 
@@ -33626,6 +33659,7 @@ async function renderIndicadores() {
     navTo: navTo,
     switchInsumosTab: switchInsumosTab,
     openAjusteModal: openAjusteModal,
+    atualizarDivisoriasRow: atualizarDivisoriasRow,
     abrirEncaixotar: abrirEncaixotar,
     encaixotarAddLinha: encaixotarAddLinha,
     encaixotarRemoverLinha: encaixotarRemoverLinha,
