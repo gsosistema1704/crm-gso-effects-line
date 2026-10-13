@@ -13578,7 +13578,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="form-row form-r2">
           <div>
             <label class="form-label">Valor cobrado (R$)</label>
-            <input type="number" class="form-input" id="f-valor" placeholder="0,00" step="0.01" oninput="updateDiscountPreview()">
+            <input type="number" class="form-input" id="f-valor" placeholder="0,00" step="0.01" oninput="updateDiscountPreview();pagDivAtualizar()">
           </div>
           <div>
             <label class="form-label">Desconto calculado</label>
@@ -13590,7 +13590,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="form-row form-r2">
           <div>
             <label class="form-label">Pagamento</label>
-            <select class="form-input" id="f-pag" onchange="togglePaymentFields()">
+            <select class="form-input" id="f-pag" onchange="pagDivAtualizar()">
               <option>Dinheiro</option>
               <option>Pix Chave</option>
               <option>Pix Qr Code</option>
@@ -13616,6 +13616,20 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               <option>GSO Eletrônica</option>
               <option>Outro</option>
             </select>
+          </div>
+        </div>
+
+        <div class="form-row" id="f-pag-div-wrap" style="margin-top:-6px">
+          <div>
+            <button type="button" class="btn btn-small btn-soft" id="f-pag-div-btn" onclick="togglePagamentoDividido()">+ Dividir em mais de uma forma de pagamento</button>
+            <div id="f-pag-div-box" class="hidden" style="margin-top:10px">
+              <div class="form-help" style="margin:0 0 8px">A forma escolhida acima fica com o que sobrar. Adicione abaixo as outras formas e quanto o cliente pagou em cada uma (ex.: metade no Pix e metade em dinheiro).</div>
+              <div id="f-pag-div-linhas" style="display:flex;flex-direction:column;gap:8px"></div>
+              <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">
+                <button type="button" class="btn btn-small" onclick="pagDivAddLinha()">+ Outra forma</button>
+                <span class="form-help" id="f-pag-div-resumo" style="margin:0"></span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -17467,6 +17481,9 @@ function canonicalPayment(value) {
   return value;
 }
 function paymentDisplay(venda) {
+  if (typeof saleIsSplitPayment === 'function' && saleIsSplitPayment(venda)) {
+    return salePaymentParts(venda).map(p => `${p.forma}${p.forma === 'Crédito' && p.parcelas ? ' ' + p.parcelas + 'x' : ''} ${fmtBR(p.valor)}`).join(' + ');
+  }
   const payment = canonicalPayment(venda.pagamento || '');
   if (payment === 'Crédito' && venda.pagamentoDetalhes?.parcelas) return `${payment} · ${venda.pagamentoDetalhes.parcelas}x`;
   if (payment === 'Boleto') {
@@ -17777,9 +17794,9 @@ function saleLucroLiquido(venda) {
   const custo = saleCustoProduto(venda);
   if (custo == null) return null;
   const valor = parseFloat(venda.valor) || 0;
-  const ehDinheiro = canonicalPayment(venda.pagamento || '') === 'Dinheiro';
+  const valorSujeitoFiscal = salePaymentParts(venda).filter(p => p.forma !== 'Dinheiro').reduce((s, p) => s + p.valor, 0);
   const fiscalPct = (window.gsoCalc && typeof window.gsoCalc._params === 'function') ? (Number(window.gsoCalc._params().fiscal) || 0) : 0;
-  const fiscal = ehDinheiro ? 0 : round2(valor * fiscalPct / 100);
+  const fiscal = round2(valorSujeitoFiscal * fiscalPct / 100);
   return round2(valor - custo - fiscal);
 }
 function aggregateCatalogSales() {
@@ -19469,7 +19486,7 @@ function saleHasNf(venda) {
 }
 
 function dashboardNeedsNf(venda) {
-  return canonicalPayment(venda?.pagamento || '') !== 'Dinheiro';
+  return !saleSomenteDinheiro(venda);
 }
 
 function dashboardGetNotasFiscais() {
@@ -20131,7 +20148,7 @@ function renderVendas() {
   if (ano) rows = rows.filter(r => (dashboardDateObj(r.data)?.getFullYear()) === parseInt(ano));
   if (produtoFiltro) rows = rows.filter(r => vendaMatchesProductFilter(r, produtoFiltro));
   if (aromaFiltro) rows = rows.filter(r => saleAromaValues(r).some(aroma => nameKey(aroma) === nameKey(aromaFiltro)));
-  if (pagamentoFiltro) rows = rows.filter(r => canonicalPayment(r.pagamento || '') === pagamentoFiltro);
+  if (pagamentoFiltro) rows = rows.filter(r => saleHasPaymentForm(r, pagamentoFiltro));
   if (vendedorFiltro) rows = rows.filter(r => canonicalSellerName(r.vendedor || 'Sem vendedor') === vendedorFiltro);
   if (tipoVendaFiltro === 'direto-lab') rows = rows.filter(r => nomesDiretoLab.has(nameKey(r.cliente)));
   if (tipoVendaFiltro === 'consumidor') rows = rows.filter(r => !nomesDiretoLab.has(nameKey(r.cliente)));
@@ -20155,7 +20172,7 @@ function renderVendas() {
     const nfNumero = saleNfNumber(r);
     const hasNfPdf = dashboardHasSaleFile(r, 'nf');
     const pagamentoCanonico = canonicalPayment(r.pagamento || '');
-    const nfNeedsAlert = !hasNfPdf && !nfNumero && pagamentoCanonico !== 'Dinheiro';
+    const nfNeedsAlert = !hasNfPdf && !nfNumero && !saleSomenteDinheiro(r);
     const nfClienteCadastro = nfNumero ? state.clientes.find(c => nameKey(c.nome) === nameKey(r.cliente)) : null;
     const nfWaTel = nfClienteCadastro ? intelWaDigits(nfClienteCadastro.telefone) : '';
     const nfWaMsg = `Olá ${r.cliente}, tudo bem?\nEsta é a sua nota fiscal referente a compra ${r.numeroVenda || ''}, feita no dia ${fmtDate(r.data)} !\nAtt Equipe GSO Effects Line 💨`;
@@ -20487,7 +20504,7 @@ async function confirmarExportarVendas() {
   if (dataDe) rows = rows.filter(r => dashboardDateKey(r.data) >= dataDe);
   if (dataAte) rows = rows.filter(r => dashboardDateKey(r.data) <= dataAte);
   if (vendedoresFiltro.length) rows = rows.filter(r => vendedoresFiltro.includes(canonicalSellerName(r.vendedor || 'Sem vendedor')));
-  if (pagamentosFiltro.length) rows = rows.filter(r => pagamentosFiltro.includes(canonicalPayment(r.pagamento || '')));
+  if (pagamentosFiltro.length) rows = rows.filter(r => salePaymentParts(r).some(p => pagamentosFiltro.includes(p.forma)));
 
   if (!rows.length) { alert('Nenhuma venda encontrada com esses filtros.'); return; }
   rows = [...rows].sort((a, b) => new Date(b.data) - new Date(a.data));
@@ -20508,7 +20525,8 @@ async function confirmarExportarVendas() {
       qtd: Number(r.qtd) || 0,
       valor: Number(r.valor) || 0,
       frete: Number(r.frete) || 0,
-      pagamento: r.pagamento || '',
+      pagamento: saleIsSplitPayment(r) ? paymentDisplay(r) : (r.pagamento || ''),
+      partesPgto: salePaymentParts(r),
       vendedor: canonicalSellerName(r.vendedor || 'Sem vendedor'),
       nf: saleNfNumber(r) || '',
       nfPdf: dashboardHasSaleFile(r, 'nf') ? 'Sim' : 'Não',
@@ -20528,10 +20546,13 @@ async function confirmarExportarVendas() {
     const total = ls.reduce((s, l) => s + l.valor, 0);
     return { nome, vendas: ls.length, total, ticket: total / ls.length, parte: faturamento ? total / faturamento : 0 };
   }).sort((a, b) => b.total - a.total);
-  const porPagamento = [...gsoAgrupar(linhas, l => l.pagCanonico).entries()].map(([nome, ls]) => {
-    const total = ls.reduce((s, l) => s + l.valor, 0);
-    return { nome, vendas: ls.length, total, ticket: total / ls.length, parte: faturamento ? total / faturamento : 0 };
-  }).sort((a, b) => b.total - a.total);
+  // Cada forma de pagamento recebe só a parte dela (venda dividida entra em mais de uma linha).
+  const porFormaMapa = new Map();
+  linhas.forEach(l => (l.partesPgto || []).forEach(p => {
+    const e = porFormaMapa.get(p.forma) || { nome: p.forma, vendas: 0, total: 0 };
+    e.vendas += 1; e.total += p.valor; porFormaMapa.set(p.forma, e);
+  }));
+  const porPagamento = [...porFormaMapa.values()].map(e => ({ ...e, ticket: e.vendas ? e.total / e.vendas : 0, parte: faturamento ? e.total / faturamento : 0 })).sort((a, b) => b.total - a.total);
   const colResumo = nomeCol => [
     { cab: nomeCol, chave: 'nome', max: 34 },
     { cab: 'Vendas', chave: 'vendas', tipo: 'inteiro', total: true },
@@ -25803,6 +25824,13 @@ function initEditVenda(id) {
   document.getElementById('clientesList').innerHTML = clis.map(c => `<option value="${c.nome}">`).join('');
   updateProductSelectOptions();
   updateProductSizeOptions();
+  pagDivReset();
+  const divSalva = venda.pagamentoDetalhes?.divisao;
+  if (Array.isArray(divSalva) && divSalva.length >= 2) {
+    togglePagamentoDividido(true);
+    document.getElementById('f-pag-div-linhas').innerHTML = '';
+    divSalva.slice(1).forEach(d => pagDivAddLinha(PAG_DIV_FORMAS.includes(d.forma) ? d.forma : canonicalPayment(d.forma), d.valor, d.parcelas));
+  }
   togglePaymentFields();
   if (venda.pagamento === 'Boleto') renderBoletoParcelasCampos(parcelasBoletoExistentes);
   updatePreview();
@@ -25981,6 +26009,71 @@ function clearSaleFileInput(id) {
   if (input) input.value = '';
 }
 
+// ---- Pagamento dividido (ex.: metade Pix, metade dinheiro) ----
+// A venda continua com UMA forma em venda.pagamento (a "principal", que dispara boleto/crédito/ML
+// como sempre) e a divisão completa fica em pagamentoDetalhes.divisao = [{ forma, valor }, ...].
+const PAG_DIV_FORMAS = ['Dinheiro', 'Pix Chave', 'Pix Qr Code', 'Débito', 'Crédito à vista', 'Crédito'];
+function salePaymentParts(venda) {
+  const div = venda?.pagamentoDetalhes?.divisao;
+  if (Array.isArray(div) && div.length >= 2) {
+    return div.map(d => ({ forma: canonicalPayment(d.forma || '') || d.forma || 'Outros', valor: Number(d.valor) || 0, parcelas: d.parcelas || null }));
+  }
+  return [{ forma: canonicalPayment(venda?.pagamento || '') || venda?.pagamento || 'Outros', valor: Number(venda?.valor) || 0, parcelas: venda?.pagamentoDetalhes?.parcelas || null }];
+}
+function saleIsSplitPayment(venda) { return salePaymentParts(venda).length >= 2; }
+function saleSomenteDinheiro(venda) { return salePaymentParts(venda).every(p => p.forma === 'Dinheiro'); }
+function saleHasPaymentForm(venda, forma) { return salePaymentParts(venda).some(p => p.forma === forma); }
+function pagDivLinhaHtml(forma, valor, parcelas) {
+  return `<div class="pag-div-linha" style="display:grid;grid-template-columns:1.2fr 1fr 80px auto;gap:8px;align-items:center">
+    <select class="form-input pag-div-forma" onchange="pagDivAtualizar()">${PAG_DIV_FORMAS.map(f => `<option${f === forma ? ' selected' : ''}>${f}</option>`).join('')}</select>
+    <input type="number" class="form-input pag-div-valor" step="0.01" min="0" placeholder="Valor (R$)" value="${valor != null && valor !== '' ? valor : ''}" oninput="pagDivAtualizar()">
+    <input type="number" class="form-input pag-div-parcelas" min="1" placeholder="Parcelas" value="${parcelas || ''}" style="${forma === 'Crédito' ? '' : 'visibility:hidden'}">
+    <button type="button" class="btn btn-small" title="Remover" onclick="this.closest('.pag-div-linha').remove();pagDivAtualizar()">✕</button>
+  </div>`;
+}
+function pagDivAddLinha(forma, valor, parcelas) {
+  document.getElementById('f-pag-div-linhas').insertAdjacentHTML('beforeend', pagDivLinhaHtml(forma || 'Dinheiro', valor, parcelas));
+  pagDivAtualizar();
+}
+function pagDivAtivo() { return !document.getElementById('f-pag-div-box')?.classList.contains('hidden'); }
+function pagDivExtras() {
+  return Array.from(document.querySelectorAll('#f-pag-div-linhas .pag-div-linha')).map(l => ({
+    forma: l.querySelector('.pag-div-forma').value,
+    valor: parseMoneyValue(l.querySelector('.pag-div-valor').value) || 0,
+    parcelas: parseInt(l.querySelector('.pag-div-parcelas').value, 10) || null
+  }));
+}
+function pagDivAtualizar() {
+  document.querySelectorAll('#f-pag-div-linhas .pag-div-linha').forEach(l => {
+    l.querySelector('.pag-div-parcelas').style.visibility = l.querySelector('.pag-div-forma').value === 'Crédito' ? '' : 'hidden';
+  });
+  const total = parseMoneyValue(document.getElementById('f-valor')?.value) || 0;
+  const soma = pagDivExtras().reduce((s, e) => s + e.valor, 0);
+  const principal = (document.getElementById('f-pag')?.value || '');
+  const resto = round2(total - soma);
+  const el = document.getElementById('f-pag-div-resumo');
+  if (el) {
+    el.style.color = resto < 0 ? 'var(--red-text)' : '';
+    el.textContent = total <= 0 ? 'Preencha o valor cobrado para ver quanto sobra.'
+      : resto < 0 ? `As outras formas passam do valor cobrado em ${fmtBR(-resto)}.`
+      : `${principal}: ${fmtBR(resto)} · outras formas: ${fmtBR(soma)} · total ${fmtBR(total)}`;
+  }
+  togglePaymentFields();
+}
+function togglePagamentoDividido(forcar) {
+  const box = document.getElementById('f-pag-div-box');
+  const abrir = forcar != null ? forcar : box.classList.contains('hidden');
+  box.classList.toggle('hidden', !abrir);
+  document.getElementById('f-pag-div-btn').textContent = abrir ? '− Pagar com uma forma só' : '+ Dividir em mais de uma forma de pagamento';
+  if (abrir && !document.querySelector('#f-pag-div-linhas .pag-div-linha')) {
+    const principal = document.getElementById('f-pag')?.value || '';
+    pagDivAddLinha(principal === 'Dinheiro' ? 'Pix Chave' : 'Dinheiro');
+  }
+  if (!abrir) document.getElementById('f-pag-div-linhas').innerHTML = '';
+  pagDivAtualizar();
+}
+function pagDivReset() { togglePagamentoDividido(false); }
+
 function togglePaymentFields() {
   const pagamento = document.getElementById('f-pag')?.value || '';
   const creditoRow = document.getElementById('credito-row');
@@ -25990,8 +26083,9 @@ function togglePaymentFields() {
   if (creditoRow) creditoRow.classList.toggle('hidden', pagamento !== 'Crédito');
   if (boletoRow) boletoRow.classList.toggle('hidden', pagamento !== 'Boleto');
   if (mlRow) mlRow.classList.toggle('hidden', pagamento !== 'Mercado Livre');
-  if (nfRow) nfRow.classList.toggle('hidden', pagamento === 'Dinheiro');
-  if (pagamento === 'Dinheiro') document.getElementById('f-nf-pdf').value = '';
+  const tudoDinheiro = pagamento === 'Dinheiro' && !(pagDivAtivo() && pagDivExtras().some(e => e.forma !== 'Dinheiro'));
+  if (nfRow) nfRow.classList.toggle('hidden', tudoDinheiro);
+  if (tudoDinheiro) document.getElementById('f-nf-pdf').value = '';
   if (pagamento === 'Boleto') renderBoletoParcelasCampos();
 }
 // Some da conta o valor do desconto só quando a usuária marca que teve desconto — sem
@@ -26074,6 +26168,7 @@ function initNova() {
   document.getElementById('f-desconto-note').textContent = 'Comparado ao preço sugerido (já com frete, se houver).';
   document.getElementById('f-obs').value = '';
   document.getElementById('f-pag').value = 'Dinheiro';
+  pagDivReset();
   document.getElementById('f-parcelas').value = '';
   document.getElementById('f-boleto-parcelas').value = '1';
   document.getElementById('boleto-parcelas-campos').innerHTML = '';
@@ -26232,6 +26327,18 @@ async function salvarVenda() {
     }
   }
 
+  // Pagamento dividido: a forma escolhida fica com o que sobrar, as outras entram com o valor digitado.
+  if (pagDivAtivo()) {
+    const extras = pagDivExtras().filter(e => e.valor > 0);
+    if (!extras.length) { alert('Informe o valor de pelo menos uma das outras formas de pagamento, ou volte para uma forma só.'); return; }
+    if (extras.some(e => e.forma === 'Crédito' && !e.parcelas)) { alert('Informe em quantas vezes será o crédito da forma dividida.'); return; }
+    const somaExtras = round2(extras.reduce((s, e) => s + e.valor, 0));
+    const resto = round2(valor - somaExtras);
+    if (resto <= 0) { alert('As outras formas somam ' + fmtBR(somaExtras) + ', que é igual ou maior que o valor cobrado (' + fmtBR(valor) + '). Deixe um valor para a forma principal (' + pagamento + ').'); return; }
+    pagamentoDetalhes.divisao = [{ forma: pagamento, valor: resto, ...(pagamentoDetalhes.parcelas ? { parcelas: pagamentoDetalhes.parcelas } : {}) }]
+      .concat(extras.map(e => ({ forma: e.forma, valor: round2(e.valor), ...(e.parcelas ? { parcelas: e.parcelas } : {}) })));
+  }
+
   const isEditing = Boolean(editingVendaId);
   const existingVenda = isEditing ? state.vendas.find(v => v.id === editingVendaId) : null;
   if (isEditing && !existingVenda) {
@@ -26290,7 +26397,7 @@ async function salvarVenda() {
     ? Object.assign(existingVenda, vendaFields)
     : { id: 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), ...vendaFields };
 
-  const nfFile = pagamento === 'Dinheiro' ? null : document.getElementById('f-nf-pdf').files[0];
+  const nfFile = saleSomenteDinheiro(venda) ? null : document.getElementById('f-nf-pdf').files[0];
   const boletoFile = pagamento === 'Boleto' ? document.getElementById('f-boleto-pdf').files[0] : null;
   try {
     const nf = await saveSalePdf(venda, nfFile, 'nf');
@@ -27877,8 +27984,10 @@ function intelCompute(force) {
 function intelPaymentMix() {
   const map = {};
   intelVendas().forEach(v => {
-    const p = intelCanonPgto(v.pagamento || '');
-    map[p] = (map[p] || 0) + (parseFloat(v.valor) || 0);
+    salePaymentParts(v).forEach(parte => {
+      const p = intelCanonPgto(parte.forma || '');
+      map[p] = (map[p] || 0) + parte.valor;
+    });
   });
   return Object.entries(map).map(([nome, valor]) => ({ nome, valor })).sort((a, b) => b.valor - a.valor);
 }
