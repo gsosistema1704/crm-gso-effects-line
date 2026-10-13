@@ -12925,8 +12925,8 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <div><label class="form-label">Unidade</label><input class="form-input" id="insumo-unidade" value="un"></div>
     </div>
     <div class="form-row form-r2" id="insumo-divisorias-row" style="display:none">
-      <div><label class="form-label">Divisórias MAIOR (por caixa)</label><input class="form-input" type="number" min="0" step="1" id="insumo-div-maior" placeholder="quantas vão nesta caixa"></div>
-      <div><label class="form-label">Divisórias MENOR (por caixa)</label><input class="form-input" type="number" min="0" step="1" id="insumo-div-menor" placeholder="quantas vão nesta caixa"></div>
+      <div><label class="form-label">Divisórias MAIOR (total deste modelo)</label><input class="form-input" type="number" min="0" step="1" id="insumo-div-maior" placeholder="total de divisórias maiores"></div>
+      <div><label class="form-label">Divisórias MENOR (total deste modelo)</label><input class="form-input" type="number" min="0" step="1" id="insumo-div-menor" placeholder="total de divisórias menores"></div>
     </div>
     <div class="form-row">
       <div><label class="form-label">Observação</label><input class="form-input" id="insumo-observacao" placeholder="opcional — ex: 4 caixas, 1 fechado / 1 aberto..."></div>
@@ -32033,7 +32033,7 @@ function insumoRowHtml(i) {
     <tr>
       <td class="stack-title">${escapeHtml(i.titulo)}</td>
       <td data-label="Tipo">${tipoLabel(i.tipo)}</td>
-      <td data-label="Obs" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(insumoObsTexto(i))}">${escapeHtml(insumoObsTexto(i) || (insumoDivisorias(i) ? '' : '—'))}${insumoDivisorias(i) ? `<div class="form-help" style="margin:0;white-space:normal">Divisórias: ${insumoDivisorias(i).maior} maior · ${insumoDivisorias(i).menor} menor</div>` : ''}</td>
+      <td data-label="Obs" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(insumoObsTexto(i))}">${escapeHtml(insumoObsTexto(i) || (insumoDivisorias(i) ? '' : '—'))}${insumoDivisorias(i) ? `<div class="form-help" style="margin:0;white-space:normal">Divisórias (total): ${insumoDivisorias(i).maior} maior · ${insumoDivisorias(i).menor} menor</div>` : ''}</td>
       <td data-label="Fornecedor">${escapeHtml(i.fornecedor || '—')}</td>
       <td class="num" data-label="Custo">R$ ${fmtBR(i.custo)}</td>
       <td class="num" data-label="Estoque">${fmtNum(i.estoque)} ${escapeHtml(i.unidade || 'un')}${caixaInfo(i) ? `<div class="form-help" style="margin-top:2px;">${escapeHtml(caixaLabel(i))}</div>` : ''}</td>
@@ -32126,7 +32126,7 @@ function exportInsumosExcel(modo = 'completo') {
       Categoria: cat,
       Título: i.titulo,
       Tipo: tipoLabel(i.tipo),
-      Obs: [insumoObsTexto(i), insumoDivisorias(i) ? 'Divisórias: ' + insumoDivisorias(i).maior + ' maior / ' + insumoDivisorias(i).menor + ' menor' : ''].filter(Boolean).join(' · '),
+      Obs: [insumoObsTexto(i), insumoDivisorias(i) ? 'Divisórias (total): ' + insumoDivisorias(i).maior + ' maior / ' + insumoDivisorias(i).menor + ' menor' : ''].filter(Boolean).join(' · '),
       'Código de barras': i.codigo_barras || '',
       Fornecedor: i.fornecedor || '',
       'Custo (R$)': Number(i.custo || 0),
@@ -32221,7 +32221,7 @@ function exportInsumosPdf(modo = 'completo') {
         <tr>
           <td>${escapeHtml(i.titulo)}</td>
           <td>${tipoLabel(i.tipo)}</td>
-          <td>${escapeHtml([insumoObsTexto(i), insumoDivisorias(i) ? 'Divisórias: ' + insumoDivisorias(i).maior + ' maior / ' + insumoDivisorias(i).menor + ' menor' : ''].filter(Boolean).join(' · ') || '—')}</td>
+          <td>${escapeHtml([insumoObsTexto(i), insumoDivisorias(i) ? 'Divisórias (total): ' + insumoDivisorias(i).maior + ' maior / ' + insumoDivisorias(i).menor + ' menor' : ''].filter(Boolean).join(' · ') || '—')}</td>
           <td>${escapeHtml(i.fornecedor || '—')}</td>
           <td class="num">R$ ${fmtBR(i.custo)}</td>
           <td class="num">${fmtNum(i.estoque)} ${escapeHtml(i.unidade || 'un')}</td>
