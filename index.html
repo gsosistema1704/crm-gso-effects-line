@@ -29673,7 +29673,12 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       else descontoValor = dNum;
     }
     var valor = Math.max(0, round2(bruto - descontoValor));
-    var frete = (ctx.freteTipo === 'Subsidiado' || ctx.freteTipo === 'Grátis') ? (num(ctx.freteValor) || 0) : 0;
+    // Transportadora: se o cliente paga, o frete soma no total que vai pro cliente (e não é custo da GSO);
+    // se a GSO paga, não soma no total e entra como custo (igual ao frete subsidiado).
+    var ehTransp = ctx.freteTipo === 'Transportadora';
+    var fretePagoGSO = ehTransp && ctx.fretePagador === 'GSO';
+    var freteCliente = (ehTransp && !fretePagoGSO) ? round2(num(ctx.freteValor) || 0) : 0;
+    var frete = (ctx.freteTipo === 'Subsidiado' || ctx.freteTipo === 'Grátis' || fretePagoGSO) ? (num(ctx.freteValor) || 0) : 0;
     // A taxa financeira (cartão) só entra se for explicitamente ativada (checkbox do
     // simulador). Quando ninguém passa esse campo (chamadas antigas/externas), cai no
     // comportamento anterior de ligar automaticamente pra pagamento "Crédito".
@@ -29719,6 +29724,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       un5: un5, un1: un1, caixas5: Math.floor(un5 / 4), restoUn5: un5 % 4, caixas1: Math.floor(un1 / 6), restoUn1: un1 % 6,
       caixas: caixas, unidades: unidades, pesoKg: round2(pesoKg), pesoSemPeso: pesoSemPeso,
       bruto: round2(bruto), descontoValor: round2(descontoValor), descontoPct: descontoPct, valor: valor,
+      freteCliente: freteCliente, fretePagoGSO: fretePagoGSO, totalComFrete: round2(valor + freteCliente),
       custoProd: round2(custoProd), fiscal: fiscal, fiscalPct: fiscalPct, fin: fin, taxaPct: taxaPct, aplicarTaxaFin: aplicarTaxaFin, frete: frete, custoTotal: custoTotal,
       lucro: lucro, margem: margem, markup: markup, minimo: minimo, ideal: ideal, premium: premium,
       status: st, frase: frase, alertas: alertas, semCusto: semCusto, materiais: materiaisNecessarios(itens)
@@ -29861,6 +29867,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       freteV: ($('#gc-f-fretev') || {}).value || '',
       freteTransp: (($('#gc-f-fretetransp') || {}).value || '').trim(),
       freteCotacao: (($('#gc-f-fretecot') || {}).value || '').trim(),
+      fretePagador: ($('#gc-f-fretepag') || {}).value || 'Cliente',
       desc: ($('#gc-f-desc') || {}).value || '',
       cliente: (($('#gc-f-cli') || {}).value || '').trim(),
       vend: ($('#gc-f-vend') || {}).value || '',
@@ -29883,7 +29890,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function renderPedido() {
     var el = $('#gc-pedido'); if (!el) return;
-    var f = el.dataset.built ? fields() : { produto: nomesUnicos()[0] || '', embIdx: 0, aroma: 'Neutro', qtd: 1, tipo: 'Consumidor final', pag: 'Pix', taxaFin: false, fiscalPct: '', frete: 'A combinar', freteV: '', freteTransp: '', freteCotacao: '', desc: '', cliente: '', vend: usuarioAtual(), obs: '' };
+    var f = el.dataset.built ? fields() : { produto: nomesUnicos()[0] || '', embIdx: 0, aroma: 'Neutro', qtd: 1, tipo: 'Consumidor final', pag: 'Pix', taxaFin: false, fiscalPct: '', frete: 'A combinar', freteV: '', freteTransp: '', freteCotacao: '', fretePagador: 'Cliente', desc: '', cliente: '', vend: usuarioAtual(), obs: '' };
     var nomes = nomesUnicos();
     if (nomes.indexOf(f.produto) < 0) f.produto = nomes[0] || '';
     var embs = embOpcoes(f.produto); if (f.embIdx >= embs.length) f.embIdx = 0;
@@ -29891,7 +29898,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var aromaSel;
     if (!ac.usa) aromaSel = '<select id="gc-f-aroma" disabled><option>Neutro</option></select><div class="gc-hint">Sempre Neutro para este produto (liberável no cadastro).</div>';
     else aromaSel = '<select id="gc-f-aroma">' + ac.lista.map(function (a) { return '<option' + (a === f.aroma ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + (ac.novo ? '<option value="__novo">Cadastrar novo aroma…</option>' : '') + '</select>' + (ac.novo ? '<div class="gc-hint">Este produto permite cadastrar novos aromas.</div>' : '');
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, fretePagador: f.fretePagador, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
     el.innerHTML =
       '<div class="gc-pedido">' +
       '<div>' +
@@ -29907,6 +29914,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<label class="gcf">Frete<select id="gc-f-frete">' + ['A combinar', 'Por conta do cliente', 'Subsidiado', 'Grátis', 'Transportadora'].map(function (t) { return '<option' + (t === f.frete ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
       '<label class="gcf" id="gc-f-fretev-w" style="' + (f.frete === 'Subsidiado' || f.frete === 'Grátis' || f.frete === 'Transportadora' ? '' : 'display:none') + '">' + (f.frete === 'Transportadora' ? 'Valor do frete (R$)' : 'Custo do frete p/ GSO (R$)') + '<input id="gc-f-fretev" type="text" inputmode="decimal" value="' + esc(f.freteV) + '"></label>' +
       '<label class="gcf" id="gc-f-fretetransp-w" style="' + (f.frete === 'Transportadora' ? '' : 'display:none') + '">Transportadora<input id="gc-f-fretetransp" type="text" value="' + esc(f.freteTransp) + '" placeholder="Nome da transportadora"></label>' +
+      '<label class="gcf" id="gc-f-fretepag-w" style="' + (f.frete === 'Transportadora' ? '' : 'display:none') + '">Quem paga o frete?<select id="gc-f-fretepag"><option value="Cliente"' + (f.fretePagador !== 'GSO' ? ' selected' : '') + '>Cliente (soma no total do pedido)</option><option value="GSO"' + (f.fretePagador === 'GSO' ? ' selected' : '') + '>GSO / nós (não soma no total)</option></select></label>' +
       '<label class="gcf" id="gc-f-fretecot-w" style="' + (f.frete === 'Transportadora' ? '' : 'display:none') + '">Cotação do frete<input id="gc-f-fretecot" type="text" value="' + esc(f.freteCotacao) + '" placeholder="Nº da cotação"></label>' +
       '<label class="gcf">Desconto<span class="gc-un-toggle" style="margin-left:8px"><button type="button" class="gc-un-btn' + (UI.descTipo !== 'pct' ? ' on' : '') + '" data-desc-tipo="valor">R$</button><button type="button" class="gc-un-btn' + (UI.descTipo === 'pct' ? ' on' : '') + '" data-desc-tipo="pct">%</button></span><input id="gc-f-desc" type="text" inputmode="decimal" placeholder="0,00" value="' + esc(String(f.desc || '').replace('%', '')) + '"></label>' +
       '<label class="gcf">Vendedor<select id="gc-f-vend">' + vendedores().map(function (v) { return '<option' + (v === f.vend ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '</select></label>' +
@@ -29964,7 +29972,15 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var freteTranspRow = (f && f.frete === 'Transportadora' && (f.freteTransp || f.freteCotacao))
       ? '<div class="gc-kv"><span class="l">Transportadora</span><b>' + esc(f.freteTransp || '—') + (f.freteCotacao ? ' · cotação ' + esc(f.freteCotacao) : '') + '</b></div>'
       : '';
-    var kvTop = descontoRow +
+    var freteInfoRows = '';
+    if (f && f.frete === 'Transportadora') {
+      if (r.fretePagoGSO) freteInfoRows = '<div class="gc-kv"><span class="l">Frete — pago pela GSO (não entra no total)</span><b>' + fmt(num(f.freteV) || 0) + '</b></div>';
+      else if (r.freteCliente > 0) freteInfoRows = '<div class="gc-kv"><span class="l">Produtos' + (temDesconto ? ' (com desconto)' : '') + '</span><b>' + fmt(r.valor) + '</b></div>' +
+        '<div class="gc-kv"><span class="l">+ Frete (cliente paga)</span><b>' + fmt(r.freteCliente) + '</b></div>' +
+        '<div class="gc-kv"><span class="l"><b>= Total com frete</b></span><b style="font-size:15px">' + fmt(r.totalComFrete) + '</b></div>';
+      else freteInfoRows = '<div class="gc-kv"><span class="l">Frete (cliente paga)</span><b>informe o valor</b></div>';
+    }
+    var kvTop = descontoRow + freteInfoRows +
       '<div class="gc-kv"><span class="l">Lucro estimado</span><b>' + fmt(r.lucro) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Custo total</span><b>' + fmt(r.custoTotal) + '</b></div>' +
       freteTranspRow;
@@ -30003,7 +30019,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<div class="gc-kv"><span class="l">Produtos + embalagem</span><b>' + fmt(r.custoProd) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Fiscal (' + inVal(r.fiscalPct) + '%)</span><b>' + fmt(r.fiscal) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Financeiro (' + (r.aplicarTaxaFin ? inVal(r.taxaPct) + '% aplicada' : 'não aplicada') + ')</span><b>' + fmt(r.fin) + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Frete subsidiado</span><b>' + fmt(r.frete) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">Frete pago pela GSO</span><b>' + fmt(r.frete) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Custo total real</span><b>' + fmt(r.custoTotal) + '</b></div>' +
       '<div class="gc-kv"><span class="l" title="' + esc(MARKUP_EXPLICACAO) + '" style="cursor:help;border-bottom:1px dotted var(--gcfnt)">Markup ⓘ</span><b>' + (r.markup ? (Math.round(r.markup * 100) / 100).toLocaleString('pt-BR') + '×' : '—') + '</b></div></details>';
     var det = '<details class="gc-slim"><summary>Mais detalhes técnicos</summary><div class="gc-kv"><span class="l">Composição completa do pedido</span><b><button class="gc-lnk" id="gc-dtec">Abrir painel</button></b></div></details>';
@@ -30019,7 +30035,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function refreshResultado() {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, fretePagador: f.fretePagador, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
     var res = $('#gc-res'); if (res) res.innerHTML = resultadoHTML(r, f);
     return r;
   }
@@ -30047,7 +30063,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function zapTexto() {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, fretePagador: f.fretePagador, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
     var linhas = ['Olá! Segue a simulação do seu pedido:', ''];
     UI.itens.forEach(function (it) {
       linhas.push('Produto: ' + it.produto + ' ' + it.tamanho + (aromaCfg(it.produto).usa ? ' ' + it.aroma : ''));
@@ -30060,9 +30076,20 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       linhas.push('Subtotal: ' + fmt(r.bruto));
       linhas.push('Desconto: -' + fmt(r.descontoValor) + (r.descontoPct != null ? ' (' + String(r.descontoPct).replace('.', ',') + '%)' : ''));
     }
-    linhas.push('Valor total: ' + fmt(r.valor));
+    var ehTZ = f.frete === 'Transportadora';
+    if (ehTZ && r.freteCliente > 0) {
+      linhas.push('Valor dos produtos: ' + fmt(r.valor));
+      linhas.push('Frete (transportadora' + (f.freteTransp ? ' ' + f.freteTransp : '') + '): ' + fmt(r.freteCliente));
+      linhas.push('Valor total com frete: ' + fmt(r.totalComFrete));
+    } else {
+      linhas.push('Valor total: ' + fmt(r.valor));
+    }
     linhas.push('Pagamento: ' + f.pag);
-    linhas.push('Frete: ' + f.frete + (f.frete === 'Transportadora' ? (f.freteTransp ? ' — ' + f.freteTransp : '') + (f.freteV ? ' — ' + fmt(num(f.freteV) || 0) : '') + (f.freteCotacao ? ' — cotação ' + f.freteCotacao : '') : ''));
+    if (ehTZ) {
+      linhas.push('Frete: transportadora' + (f.freteTransp ? ' ' + f.freteTransp : '') + (r.fretePagoGSO ? ' — por nossa conta (não incluso no valor)' : ' — por conta do cliente' + (r.freteCliente > 0 ? '' : ' (valor a confirmar)')) + (f.freteCotacao ? ' — cotação ' + f.freteCotacao : ''));
+    } else {
+      linhas.push('Frete: ' + f.frete);
+    }
     linhas.push('');
     linhas.push('Pedido sujeito à disponibilidade de estoque.');
     return linhas.join('\n');
@@ -30071,7 +30098,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function resumoTecnicoTexto() {
     var f = fields();
     var P = params();
-    var r = computeOrder(UI.itens, { params: P, desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
+    var r = computeOrder(UI.itens, { params: P, desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, fretePagador: f.fretePagador, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
     var precosUn = [];
     UI.itens.forEach(function (it) { var v = round2(it.precoEntrada || 0); if (precosUn.indexOf(v) < 0) precosUn.push(v); });
     var linhas = ['Resumo técnico do pedido' + (precosUn.length === 1 ? ' - *' + fmt(precosUn[0]) + '*' : ''), ''];
@@ -30086,9 +30113,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       linhas.push('Desconto: -' + fmt(r.descontoValor) + (r.descontoPct != null ? ' (' + String(r.descontoPct).replace('.', ',') + '%)' : ''));
     }
     if (f.frete === 'Transportadora') {
-      linhas.push('Frete: Transportadora' + (f.freteTransp ? ' — ' + f.freteTransp : '') + (f.freteV ? ' — ' + fmt(num(f.freteV) || 0) : '') + (f.freteCotacao ? ' — cotação ' + f.freteCotacao : ''));
+      linhas.push('Frete: Transportadora' + (f.freteTransp ? ' — ' + f.freteTransp : '') + (f.freteV ? ' — ' + fmt(num(f.freteV) || 0) : '') + (r.fretePagoGSO ? ' — pago pela GSO (não soma no total)' : ' — pago pelo cliente (soma no total)') + (f.freteCotacao ? ' — cotação ' + f.freteCotacao : ''));
     }
     linhas.push('Total do pedido: ' + fmt(r.valor) + ' (' + r.status.label + ')');
+    if (r.freteCliente > 0) linhas.push('Total com frete: ' + fmt(r.totalComFrete) + ' (produtos ' + fmt(r.valor) + ' + frete ' + fmt(r.freteCliente) + ')');
     linhas.push('Lucro estimado: ' + fmt(r.lucro));
     linhas.push('Mínimo recomendado: ' + fmt(r.minimo));
     linhas.push('Margem líquida: ' + fmtPct(r.margem));
@@ -30099,7 +30127,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     linhas.push('Produto + embalagem: ' + fmt(r.custoProd));
     linhas.push('Fiscal (' + inVal(r.fiscalPct) + '%): ' + fmt(r.fiscal));
     if (r.aplicarTaxaFin) linhas.push('Financeiro (' + inVal(r.taxaPct) + '%): ' + fmt(r.fin));
-    linhas.push('Frete subsidiado: ' + fmt(r.frete));
+    linhas.push('Frete pago pela GSO: ' + fmt(r.frete));
     linhas.push('Custo total real: ' + fmt(r.custoTotal));
     linhas.push('Markup: ' + (r.markup ? (Math.round(r.markup * 100) / 100).toLocaleString('pt-BR') + '×' : '—'));
     linhas.push('');
@@ -30183,7 +30211,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function cepFormatado(cep) { var d = String(cep || '').replace(/\D/g, ''); return d.length === 8 ? d.slice(0, 5) + '-' + d.slice(5) : ''; }
   function cotacaoTransportadoraTexto() {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, fretePagador: f.fretePagador, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
     var avisos = [];
     var cad = f.cliente ? cadastroDoCliente(f.cliente) : null;
     var doc = cad ? cad.doc : '';
@@ -30204,7 +30232,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var pend = '(preencher)';
     var linhas = [
       '*Seu nome: Luísa',
-      '*Quem irá pagar o frete? ' + (doc || pend),
+      '*Quem irá pagar o frete? ' + (r.fretePagoGSO ? CNPJ_REMETENTE_GSO : (doc || pend)),
       '*CNPJ do remetente da nota: ' + CNPJ_REMETENTE_GSO,
       '*' + rotuloDoc + ' do destinatário: ' + (doc || pend),
       '*Cidade de destino: ' + (cidade ? cidade + (uf ? '/' + uf : '') : pend),
@@ -30230,7 +30258,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '• Medidas de cada volume (altura, largura e comprimento de cada tipo de volume): ' + (med2.length ? med2.join(' | ') : pend),
       '• Peso total da carga: ' + (r.pesoKg > 0 ? Math.ceil(r.pesoKg) + 'kg' : pend),
       '• Valor da mercadoria: ' + valorSemRs,
-      '• Quem será o pagador do frete (Remetente ou Destinatário)? Destinatário',
+      '• Quem será o pagador do frete (Remetente ou Destinatário)? ' + (r.fretePagoGSO ? 'Remetente' : 'Destinatário'),
       '• Qual o tipo de mercadoria? Carga para efeitos de festa'
     ];
     return { texto: linhas.join('\n'), texto2: linhas2.join('\n'), avisos: avisos };
@@ -30251,7 +30279,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function orcamentoPdfHtml() {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, fretePagador: f.fretePagador, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
     var linhas = UI.itens.map(function (it) {
       return '<tr><td>' + esc(it.produto) + ' ' + esc(it.tamanho) + (aromaCfg(it.produto).usa ? ' · ' + esc(it.aroma) : '') + '</td>' +
         '<td>' + esc(it.embLabel) + '</td>' +
@@ -30259,16 +30287,21 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<td style="text-align:right">' + fmt(it.precoEntrada) + '</td>' +
         '<td style="text-align:right">' + fmt(it.total) + '</td></tr>';
     }).join('');
+    // Transportadora: o PDF diz quem paga o frete. Cliente paga → valor aparece separado e soma no total.
+    // GSO paga → só informa que o frete é por nossa conta, sem somar nada (e sem mostrar o valor).
     var freteBox = f.frete === 'Transportadora'
       ? '<div class="box"><span>Frete</span><strong>Transportadora' + (f.freteTransp ? ' — ' + esc(f.freteTransp) : '') + '</strong>' +
-        (f.freteV ? '<span style="margin-top:4px">Valor: ' + fmt(num(f.freteV) || 0) + '</span>' : '') +
+        '<span style="margin-top:4px">' + (r.fretePagoGSO ? 'Frete por conta da GSO (sem custo para o cliente)' : 'Frete por conta do cliente' + (r.freteCliente > 0 ? ': ' + fmt(r.freteCliente) : ' (valor a confirmar)')) + '</span>' +
         (f.freteCotacao ? '<span>Cotação: ' + esc(f.freteCotacao) + '</span>' : '') + '</div>'
       : '<div class="box"><span>Frete</span><strong>' + esc(f.frete) + '</strong></div>';
     var temDesconto = r.descontoValor > 0;
+    var comFrete = r.freteCliente > 0;
     var totaisHtml = '<div class="totais">' +
       (temDesconto ? '<div class="totais-row"><span>Subtotal</span><b>' + fmt(r.bruto) + '</b></div>' +
         '<div class="totais-row desc"><span>Desconto' + (r.descontoPct != null ? ' (' + String(r.descontoPct).replace('.', ',') + '%)' : '') + '</span><b>-' + fmt(r.descontoValor) + '</b></div>' : '') +
-      '<div class="totais-row final"><span>TOTAL DO ORÇAMENTO</span><b>' + fmt(r.valor) + '</b></div>' +
+      ((temDesconto || comFrete) ? '<div class="totais-row"><span>Valor dos produtos</span><b>' + fmt(r.valor) + '</b></div>' : '') +
+      (comFrete ? '<div class="totais-row"><span>Frete' + (f.freteTransp ? ' (' + esc(f.freteTransp) + ')' : ' (transportadora)') + '</span><b>+' + fmt(r.freteCliente) + '</b></div>' : '') +
+      '<div class="totais-row final"><span>TOTAL DO ORÇAMENTO' + (comFrete ? ' (COM FRETE)' : '') + '</span><b>' + fmt(r.totalComFrete) + '</b></div>' +
       '</div>';
     var hoje = new Date().toLocaleDateString('pt-BR');
     return '<!doctype html><html><head><meta charset="utf-8"><title>Orçamento' + (f.cliente ? ' - ' + esc(f.cliente) : '') + '</title>' +
@@ -30306,13 +30339,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   }
   function salvarSim(convertida) {
     var f = fields();
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, fretePagador: f.fretePagador, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
     if (!UI.itens.length) { alert('Adicione ao menos um item.'); return null; }
     var sim = {
       id: 's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      quando: hojeBR(), cliente: f.cliente || '—', tipo: f.tipo, pag: f.pag, fiscalPct: f.fiscalPct, frete: f.frete, freteV: f.freteV, freteTransp: f.freteTransp, freteCotacao: f.freteCotacao, desc: f.desc, descTipo: UI.descTipo, obs: f.obs, vend: f.vend,
+      quando: hojeBR(), cliente: f.cliente || '—', tipo: f.tipo, pag: f.pag, fiscalPct: f.fiscalPct, frete: f.frete, freteV: f.freteV, freteTransp: f.freteTransp, freteCotacao: f.freteCotacao, fretePagador: f.fretePagador, desc: f.desc, descTipo: UI.descTipo, obs: f.obs, vend: f.vend,
       itens: JSON.parse(JSON.stringify(UI.itens)),
-      valor: r.valor, margem: r.margem == null ? null : Math.round(r.margem * 10) / 10, statusLabel: r.status.label, statusCls: r.status.cls,
+      valor: r.totalComFrete, margem: r.margem == null ? null : Math.round(r.margem * 10) / 10, statusLabel: r.status.label, statusCls: r.status.cls,
       conv: !!convertida
     };
     store.sims = store.sims || []; store.sims.unshift(sim); if (store.sims.length > 60) store.sims.length = 60;
@@ -30354,7 +30387,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (irCadastrar && typeof openClienteModal === 'function') openClienteModal(f.cliente);
       return;
     }
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, fretePagador: f.fretePagador, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
     if (!(r.valor > 0)) { alert('O valor do pedido precisa ser maior que zero.'); return; }
     try {
       var itemsNat = UI.itens.map(function (it, i) {
@@ -30378,7 +30411,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         catalogProduto: single ? single.produto : null, catalogTamanho: single ? single.tamanho : null,
         formato: single ? (single.formato === 'CX' ? 'CX' : 'UN') : 'Misto',
         aroma: aromas.join(' + ') || 'Neutro',
-        qtd: r.unidades, valor: r.valor,
+        qtd: r.unidades, valor: r.totalComFrete, frete: r.freteCliente,
         precoSugerido: r.bruto, desconto: r.descontoValor,
         pagamento: f.pag, pagamentoDetalhes: {},
         vendedor: f.vend || usuarioAtual(), nfNumber: '', obs: (f.obs ? f.obs + ' · ' : '') + 'Origem: Calculadora (simulação)',
@@ -30407,7 +30440,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (irCadastrar && typeof openLojistaCadastroModal === 'function') openLojistaCadastroModal(f.cliente);
       return;
     }
-    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
+    var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, fretePagador: f.fretePagador, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
     if (!(r.valor > 0)) { alert('O valor do pedido precisa ser maior que zero.'); return; }
     try {
       var itemsLoj = UI.itens.map(function (it) {
@@ -30428,7 +30461,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         produto: itemsLoj.map(function (x) { return x.descricao; }).join(' + '),
         tamanho: single ? single.tamanho : (tamanhos.length === 1 ? tamanhos[0] : 'Misto'),
         aroma: aromas.join(' + ') || 'Neutro',
-        qtd: r.unidades, valor: r.valor, frete: (f.frete === 'Transportadora' ? (num(f.freteV) || 0) : 0),
+        qtd: r.unidades, valor: r.totalComFrete, frete: r.freteCliente,
         precoSugerido: r.bruto, items: itemsLoj,
         pagamento: f.pag, pagamentoDetalhes: {},
         vendedor: f.vend || usuarioAtual(), obs: (f.obs ? f.obs + ' · ' : '') + 'Origem: Calculadora (simulação)' +
@@ -31938,7 +31971,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (t.id === 'gc-limpar') { UI.itens = []; renderPedido(); return; }
       if (t.id === 'gc-dtec') {
         var f = fields();
-        var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
+        var r = computeOrder(UI.itens, { params: params(), desconto: f.desc, descontoTipo: UI.descTipo, freteTipo: f.frete, freteValor: f.freteV, fretePagador: f.fretePagador, pagamento: f.pag, tipoCliente: f.tipo, aplicarTaxaFin: f.taxaFin, fiscalPct: f.fiscalPct });
         var P = params();
         drOpen('Detalhes técnicos do pedido',
           UI.itens.map(function (it) {
@@ -32099,6 +32132,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         var w = $('#gc-f-fretev-w'); if (w) { w.style.display = (t.value === 'Subsidiado' || t.value === 'Grátis' || ehTransp) ? '' : 'none'; var lbl = w.querySelector('span') || w.firstChild; if (w.firstChild && w.firstChild.nodeType === 3) w.firstChild.textContent = ehTransp ? 'Valor do frete (R$)' : 'Custo do frete p/ GSO (R$)'; }
         var wt = $('#gc-f-fretetransp-w'); if (wt) wt.style.display = ehTransp ? '' : 'none';
         var wc = $('#gc-f-fretecot-w'); if (wc) wc.style.display = ehTransp ? '' : 'none';
+        var wp = $('#gc-f-fretepag-w'); if (wp) wp.style.display = ehTransp ? '' : 'none';
         refreshResultado(); return;
       }
       if (t.id && t.id.indexOf('gc-f-') === 0) { refreshResultado(); return; }
@@ -32125,7 +32159,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     renderPedido();
     var m = { 'gc-f-cli': s.cliente === '—' ? '' : s.cliente, 'gc-f-desc': String(s.desc || '').replace('%', ''), 'gc-f-fretev': s.freteV || '', 'gc-f-fretetransp': s.freteTransp || '', 'gc-f-fretecot': s.freteCotacao || '', 'gc-f-fiscal': s.fiscalPct || '', 'gc-f-obs': s.obs || '' };
     Object.keys(m).forEach(function (idc) { var el = $('#' + idc); if (el) el.value = m[idc]; });
-    var sels = { 'gc-f-tipo': s.tipo, 'gc-f-pag': s.pag, 'gc-f-frete': s.frete, 'gc-f-vend': s.vend };
+    var sels = { 'gc-f-tipo': s.tipo, 'gc-f-pag': s.pag, 'gc-f-frete': s.frete, 'gc-f-fretepag': s.fretePagador, 'gc-f-vend': s.vend };
     Object.keys(sels).forEach(function (idc) { var el = $('#' + idc); if (el && sels[idc]) el.value = sels[idc]; });
     renderPedido();
     setTab('pedido');
