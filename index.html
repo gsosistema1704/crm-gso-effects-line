@@ -22111,7 +22111,8 @@ async function autoPreencherPorCnpj(prefixo) {
     const tel = d.ddd_telefone_1 ? maskTelefone(String(d.ddd_telefone_1)) : '';
     const bairro = titleCasePt(d.bairro || ''), cidade = titleCasePt(d.municipio || ''), uf = String(d.uf || '').toUpperCase();
     let preenchidos = 0;
-    const poe = (id, valor) => { const e = vazio(id); if (e && valor) { e.value = valor; preenchidos++; } };
+    const feitos = new Set();
+    const poe = (id, valor) => { const e = vazio(id); if (e && valor) { e.value = valor; preenchidos++; feitos.add(id); } };
     if (prefixo === 'mf') {
       poe('mf-nome', razao);
       poe('mf-cep', cepFmt);
@@ -22127,6 +22128,24 @@ async function autoPreencherPorCnpj(prefixo) {
       poe(prefixo + '-bairro', bairro);
       poe(prefixo + '-cidade', cidade);
       poe(prefixo + '-estado', uf);
+    }
+    // A Receita devolve endereço sem acento ("Sao Bento"): quando o CEP veio dela, refaz rua/bairro/
+    // cidade com a grafia correta do ViaCEP — só nos campos que acabaram de ser preenchidos aqui.
+    if (cep.length === 8 && feitos.has(prefixo + '-cep')) {
+      try {
+        const v = await (await fetch(`https://viacep.com.br/ws/${cep}/json/`)).json();
+        if (v && !v.erro) {
+          const troca = (id, valor) => { const e = document.getElementById(id); if (e && feitos.has(id) && valor) e.value = valor; };
+          if (prefixo === 'mf') {
+            if (feitos.has('mf-end')) document.getElementById('mf-end').value = [v.logradouro || logradouro, numero, v.bairro || bairro].filter(Boolean).join(', ');
+            if (feitos.has('mf-cidade')) document.getElementById('mf-cidade').value = [v.localidade || cidade, v.uf || uf].filter(Boolean).join('/');
+          } else {
+            troca(prefixo + '-rua', v.logradouro);
+            troca(prefixo + '-bairro', v.bairro);
+            troca(prefixo + '-cidade', v.localidade);
+          }
+        }
+      } catch (e2) { /* fica a grafia da Receita */ }
     }
     const situacao = String(d.descricao_situacao_cadastral || '').toUpperCase();
     const partes = [razao || 'Empresa encontrada'];
