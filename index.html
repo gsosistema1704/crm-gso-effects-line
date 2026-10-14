@@ -11764,14 +11764,13 @@ th,
 @media (min-width: 901px) {
   #modal-categoria-insumos table.stack-table { table-layout: fixed !important; width: 100% !important; min-width: 960px; }
   #modal-categoria-insumos table.stack-table th, #modal-categoria-insumos table.stack-table td { padding-left: 6px !important; padding-right: 6px !important; }
-  #modal-categoria-insumos .ins-col-titulo { width: 14%; }
-  #modal-categoria-insumos .ins-col-tipo { width: 6%; }
-  #modal-categoria-insumos .ins-col-obs { width: 31%; }
+  #modal-categoria-insumos .ins-col-titulo { width: 21%; }
+  #modal-categoria-insumos .ins-col-obs { width: 29%; }
   #modal-categoria-insumos .ins-col-forn { width: 9%; }
   #modal-categoria-insumos .ins-col-custo { width: 7%; }
   #modal-categoria-insumos .ins-col-estoque { width: 7%; }
   #modal-categoria-insumos .ins-col-baixo { width: 6%; white-space: normal; line-height: 1.2; }
-  #modal-categoria-insumos .ins-col-acoes { width: 20%; }
+  #modal-categoria-insumos .ins-col-acoes { width: 21%; }
   #modal-categoria-insumos td.ins-obs-cell { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; max-width: none !important; word-break: break-word; }
 }
 #view-receitas table.stack-table { table-layout: fixed !important; width: 100% !important;}
@@ -32198,7 +32197,7 @@ function abrirCategoriaModal(cat) {
   document.getElementById('modal-categoria-insumos-body').innerHTML = `
     <table class="stack-table">
       <thead><tr>
-        <th class="ins-col-titulo">Título</th><th class="ins-col-tipo">Tipo</th><th class="ins-col-obs">Obs</th><th class="ins-col-forn">Fornecedor</th>
+        <th class="ins-col-titulo">Título</th><th class="ins-col-obs">Obs</th><th class="ins-col-forn">Fornecedor</th>
         <th class="num ins-col-custo">Custo</th><th class="num ins-col-estoque">Estoque</th><th class="ins-col-baixo">Baixo estoque</th><th class="ins-col-acoes">Ações</th>
       </tr></thead>
       <tbody>${items.map(insumoRowHtml).join('')}</tbody>
@@ -32281,7 +32280,6 @@ function insumoRowHtml(i) {
   return `
     <tr>
       <td class="stack-title">${escapeHtml(i.titulo)}</td>
-      <td data-label="Tipo">${tipoLabel(i.tipo)}</td>
       <td data-label="Obs" class="ins-obs-cell" title="${escapeHtml(insumoObsTexto(i))}">${escapeHtml(insumoObsTexto(i) || (insumoDivisorias(i) || rotuloBateladasTexto(i) ? '' : '—'))}${insumoDivisorias(i) ? `<div class="form-help" style="margin:0;white-space:normal">Divisórias (total): ${insumoDivisorias(i).maior} maior · ${insumoDivisorias(i).menor} menor</div>` : ''}${rotuloBateladasTexto(i) ? `<div class="form-help" style="margin:2px 0 0;white-space:normal;line-height:1.35">🧪 ${escapeHtml(rotuloBateladasTexto(i))}</div>` : ''}</td>
       <td data-label="Fornecedor">${escapeHtml(i.fornecedor || '—')}</td>
       <td class="num" data-label="Custo">R$ ${fmtBR(i.custo)}</td>
