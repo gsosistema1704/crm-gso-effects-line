@@ -14052,7 +14052,8 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 	      </div>
 	      <div>
 	        <label class="form-label">CNPJ</label>
-	        <input type="text" class="form-input" id="mc-cnpj" placeholder="00.000.000/0000-00" oninput="aplicarMascara(this, maskCNPJ)">
+	        <input type="text" class="form-input" id="mc-cnpj" placeholder="00.000.000/0000-00" oninput="aplicarMascara(this, maskCNPJ);cnpjAutoBusca('mc')" onblur="autoPreencherPorCnpj('mc')">
+	        <div class="form-help cnpj-status" id="mc-cnpj-status"></div>
 	      </div>
 	    </div>
 	    <div class="form-row form-r2">
@@ -14133,7 +14134,8 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div class="form-row form-r2">
       <div>
         <label class="form-label">CPF/CNPJ</label>
-        <input type="text" class="form-input" id="mf-doc" placeholder="00.000.000/0000-00" oninput="aplicarMascara(this, maskCpfCnpj)">
+        <input type="text" class="form-input" id="mf-doc" placeholder="00.000.000/0000-00" oninput="aplicarMascara(this, maskCpfCnpj);cnpjAutoBusca('mf')" onblur="autoPreencherPorCnpj('mf')">
+        <div class="form-help cnpj-status" id="mf-cnpj-status"></div>
       </div>
       <div>
         <label class="form-label">CEP</label>
@@ -14400,7 +14402,8 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       </div>
       <div>
         <label class="form-label">CNPJ</label>
-        <input type="text" class="form-input" id="mlj-cnpj" placeholder="00.000.000/0000-00" oninput="aplicarMascara(this, maskCNPJ)">
+        <input type="text" class="form-input" id="mlj-cnpj" placeholder="00.000.000/0000-00" oninput="aplicarMascara(this, maskCNPJ);cnpjAutoBusca('mlj')" onblur="autoPreencherPorCnpj('mlj')">
+        <div class="form-help cnpj-status" id="mlj-cnpj-status"></div>
       </div>
     </div>
     <div class="form-row form-r2">
@@ -22049,6 +22052,106 @@ async function autoPreencherEnderecoPorCep(prefixo) {
     console.warn('Não consegui buscar o CEP:', err);
   }
 }
+
+/* ---------- Dados da empresa pelo CNPJ (BrasilAPI, pública e sem chave) ---------- */
+// Ao digitar um CNPJ completo (14 números), busca razão social, endereço, telefone e e-mail
+// e preenche só os campos que ainda estão vazios — nunca sobrescreve o que já foi digitado.
+const cnpjCache = new Map();
+const cnpjUltimaBusca = {};
+function titleCasePt(texto) {
+  const pequenas = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'a', 'o']);
+  const siglas = new Set(['ltda', 'me', 'epp', 'eireli', 'mei', 'sa', 's/a', 'cia', 'ii', 'iii', 'iv', 'dj', 'djs', 'tv', 'rs', 'sp', 'rj']);
+  return String(texto || '').trim().toLowerCase().split(/\s+/).map((w, i) => {
+    if (siglas.has(w)) return w.toUpperCase();
+    if (i > 0 && pequenas.has(w)) return w;
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }).join(' ');
+}
+function cnpjStatus(prefixo, msg, tipo) {
+  const el = document.getElementById(prefixo + '-cnpj-status');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = tipo === 'erro' ? 'var(--red-text, #B85C56)' : (tipo === 'aviso' ? 'var(--amber-text, #8A6410)' : (tipo === 'ok' ? 'var(--green-text, #1E6B3A)' : ''));
+}
+async function consultarCnpj(cnpj) {
+  if (cnpjCache.has(cnpj)) return cnpjCache.get(cnpj);
+  const resp = await fetch('https://brasilapi.com.br/api/cnpj/v1/' + cnpj);
+  if (resp.status === 404 || resp.status === 400) return null;
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  const data = await resp.json();
+  cnpjCache.set(cnpj, data);
+  return data;
+}
+let cnpjTimer = null;
+function cnpjAutoBusca(prefixo) {
+  clearTimeout(cnpjTimer);
+  const el = document.getElementById(prefixo === 'mf' ? 'mf-doc' : prefixo + '-cnpj');
+  if (!el) return;
+  if (onlyDigits(el.value).length !== 14) { cnpjStatus(prefixo, ''); return; }
+  cnpjTimer = setTimeout(() => autoPreencherPorCnpj(prefixo), 350);
+}
+async function autoPreencherPorCnpj(prefixo) {
+  const campo = document.getElementById(prefixo === 'mf' ? 'mf-doc' : prefixo + '-cnpj');
+  if (!campo) return;
+  const cnpj = onlyDigits(campo.value);
+  if (cnpj.length !== 14) return;
+  if (cnpjUltimaBusca[prefixo] === cnpj) return;
+  cnpjUltimaBusca[prefixo] = cnpj;
+  cnpjStatus(prefixo, 'Buscando dados do CNPJ…');
+  try {
+    const d = await consultarCnpj(cnpj);
+    if (onlyDigits(campo.value) !== cnpj) return; // trocou o CNPJ enquanto buscava
+    if (!d) { cnpjUltimaBusca[prefixo] = ''; cnpjStatus(prefixo, 'Não encontrei esse CNPJ na Receita — confira os números.', 'erro'); return; }
+    const vazio = id => { const e = document.getElementById(id); return e && !String(e.value || '').trim() ? e : null; };
+    const razao = titleCasePt(d.razao_social || '');
+    const logradouro = titleCasePt([d.descricao_tipo_de_logradouro, d.logradouro].filter(Boolean).join(' '));
+    const numero = [d.numero, d.complemento ? titleCasePt(d.complemento) : ''].filter(x => x && String(x).trim() && String(x).trim().toUpperCase() !== 'S/N').join(' - ') || (String(d.numero || '').toUpperCase() === 'S/N' ? 'S/N' : '');
+    const cep = String(d.cep || '').replace(/\D/g, '');
+    const cepFmt = cep.length === 8 ? cep.slice(0, 5) + '-' + cep.slice(5) : '';
+    const tel = d.ddd_telefone_1 ? maskTelefone(String(d.ddd_telefone_1)) : '';
+    const bairro = titleCasePt(d.bairro || ''), cidade = titleCasePt(d.municipio || ''), uf = String(d.uf || '').toUpperCase();
+    let preenchidos = 0;
+    const poe = (id, valor) => { const e = vazio(id); if (e && valor) { e.value = valor; preenchidos++; } };
+    if (prefixo === 'mf') {
+      poe('mf-nome', razao);
+      poe('mf-cep', cepFmt);
+      poe('mf-end', [logradouro, numero, bairro].filter(Boolean).join(', '));
+      poe('mf-cidade', [cidade, uf].filter(Boolean).join('/'));
+    } else {
+      poe(prefixo + '-nome', razao);
+      poe(prefixo + '-tel', tel);
+      poe(prefixo + '-email', String(d.email || '').toLowerCase());
+      poe(prefixo + '-cep', cepFmt);
+      poe(prefixo + '-rua', logradouro);
+      poe(prefixo + '-numero', numero);
+      poe(prefixo + '-bairro', bairro);
+      poe(prefixo + '-cidade', cidade);
+      poe(prefixo + '-estado', uf);
+    }
+    const situacao = String(d.descricao_situacao_cadastral || '').toUpperCase();
+    const partes = [razao || 'Empresa encontrada'];
+    if (d.nome_fantasia && titleCasePt(d.nome_fantasia) !== razao) partes.push('fantasia: ' + titleCasePt(d.nome_fantasia));
+    if (situacao) partes.push('situação ' + situacao);
+    partes.push(preenchidos ? preenchidos + ' campo(s) preenchido(s)' : 'nada a preencher (campos já tinham dados)');
+    cnpjStatus(prefixo, (situacao && situacao !== 'ATIVA' ? '⚠ ' : '✔ ') + partes.join(' · '), situacao && situacao !== 'ATIVA' ? 'aviso' : 'ok');
+  } catch (err) {
+    cnpjUltimaBusca[prefixo] = '';
+    console.warn('Não consegui consultar o CNPJ:', err);
+    cnpjStatus(prefixo, 'Não consegui consultar o CNPJ agora — preencha manualmente ou tente de novo.', 'erro');
+  }
+}
+
+// Ao abrir ou fechar um cadastro, zera o aviso e a "última busca" — assim o mesmo CNPJ
+// pode ser consultado de novo num cadastro novo.
+(function cnpjInit() {
+  const forms = { mc: 'modal-cliente', mlj: 'modal-lojista-cadastro', mf: 'modal-fiscal' };
+  const ligar = () => Object.keys(forms).forEach(p => {
+    const modal = document.getElementById(forms[p]);
+    if (!modal) return;
+    new MutationObserver(() => { cnpjUltimaBusca[p] = ''; cnpjStatus(p, ''); }).observe(modal, { attributes: true, attributeFilter: ['class'] });
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ligar); else ligar();
+})();
 
 // Mesma ideia, mas pro cadastro Fiscal, que guarda o endereço em 2 campos combinados
 // ("Endereço" e "Cidade/UF") em vez de rua/bairro/cidade/estado separados.
