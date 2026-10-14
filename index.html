@@ -32137,12 +32137,69 @@ function insumoGroupsHtml(rows) {
   }).join('');
 }
 
+// ---- Rótulos: quantas bateladas ainda dá pra fazer com o estoque de rótulos ----
+// Batelada = 200 L (mesmo valor da Calculadora). Cada rótulo vai em 1 embalagem, então
+// litros possíveis = rótulos × litros da embalagem dos produtos que usam aquele rótulo.
+const BATELADA_LITROS = 200;
+function litrosDoTamanho(tamanho) {
+  const t = String(tamanhoParaCalculadoraGlobal(tamanho) || '').trim();
+  const m = t.match(/^([\d.,]+)\s*(L|mL)$/i);
+  if (!m) return null;
+  const n = parseFloat(m[1].replace(',', '.'));
+  if (!(n > 0)) return null;
+  return /^ml$/i.test(m[2]) ? n / 1000 : n;
+}
+function tamanhoParaCalculadoraGlobal(tamanho) {
+  const t = String(tamanho || '').toLowerCase().trim();
+  const m = t.match(/([\d.,]+)\s*(litros|litro|l|ml|g|kg)\b/);
+  if (!m) return tamanho || '';
+  const n = m[1].replace(',', '.');
+  if (m[2] === 'litro' || m[2] === 'litros' || m[2] === 'l') return n + 'L';
+  if (m[2] === 'ml') return n + 'mL';
+  return n + m[2];
+}
+function bateladasDescricao(b) {
+  if (b < 0.5) return b > 0 ? 'menos de meia batelada (' + Math.round(b * 100) + '% de uma)' : 'nenhuma batelada';
+  const inteiras = Math.floor(b + 1e-9);
+  const meias = Math.floor(b * 2 + 1e-9);
+  const sobraMeia = meias % 2 === 1;
+  const partes = [];
+  if (inteiras > 0) partes.push(inteiras + (inteiras === 1 ? ' batelada inteira' : ' bateladas inteiras'));
+  if (sobraMeia) partes.push((inteiras > 0 ? '+ ' : '') + '1 meia');
+  return partes.join(' ') + (meias >= 2 ? ' (ou ' + meias + ' meias)' : '');
+}
+// Retorna [{ litros, tamanho, bateladas, texto }] — um item por tamanho de embalagem que usa esse rótulo.
+function rotuloBateladas(i) {
+  if (!i || i.tipo !== 'rotulo') return null;
+  const estoque = Number(i.estoque) || 0;
+  const porLitros = new Map();
+  (state.produtos || []).forEach(p => {
+    if (p.ativo === false) return;
+    if (p.rotulo_insumo_id !== i.id && p.rotulo2_insumo_id !== i.id) return;
+    const l = litrosDoTamanho(p.tamanho);
+    if (l == null) return;
+    if (!porLitros.has(l)) porLitros.set(l, tamanhoParaCalculadoraGlobal(p.tamanho));
+  });
+  if (!porLitros.size) return null;
+  return [...porLitros.entries()].sort((a, b) => b[0] - a[0]).map(([litros, tam]) => {
+    const bateladas = estoque * litros / BATELADA_LITROS;
+    return { litros, tamanho: tam, bateladas, texto: bateladasDescricao(bateladas) };
+  });
+}
+function rotuloBateladasTexto(i) {
+  const r = rotuloBateladas(i);
+  if (!r) return '';
+  if (!(Number(i.estoque) > 0)) return 'Sem rótulos: nenhuma batelada';
+  if (r.length === 1) return 'Dá para ' + r[0].texto + (r[0].litros ? ' · embalagem ' + r[0].tamanho : '');
+  return r.map(x => x.tamanho + ': ' + x.texto).join(' · ');
+}
+
 function insumoRowHtml(i) {
   return `
     <tr>
       <td class="stack-title">${escapeHtml(i.titulo)}</td>
       <td data-label="Tipo">${tipoLabel(i.tipo)}</td>
-      <td data-label="Obs" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(insumoObsTexto(i))}">${escapeHtml(insumoObsTexto(i) || (insumoDivisorias(i) ? '' : '—'))}${insumoDivisorias(i) ? `<div class="form-help" style="margin:0;white-space:normal">Divisórias (total): ${insumoDivisorias(i).maior} maior · ${insumoDivisorias(i).menor} menor</div>` : ''}</td>
+      <td data-label="Obs" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(insumoObsTexto(i))}">${escapeHtml(insumoObsTexto(i) || (insumoDivisorias(i) || rotuloBateladasTexto(i) ? '' : '—'))}${insumoDivisorias(i) ? `<div class="form-help" style="margin:0;white-space:normal">Divisórias (total): ${insumoDivisorias(i).maior} maior · ${insumoDivisorias(i).menor} menor</div>` : ''}${rotuloBateladasTexto(i) ? `<div class="form-help" style="margin:2px 0 0;white-space:normal;line-height:1.35">🧪 ${escapeHtml(rotuloBateladasTexto(i))}</div>` : ''}</td>
       <td data-label="Fornecedor">${escapeHtml(i.fornecedor || '—')}</td>
       <td class="num" data-label="Custo">R$ ${fmtBR(i.custo)}</td>
       <td class="num" data-label="Estoque">${fmtNum(i.estoque)} ${escapeHtml(i.unidade || 'un')}${caixaInfo(i) ? `<div class="form-help" style="margin-top:2px;">${escapeHtml(caixaLabel(i))}</div>` : ''}</td>
@@ -32235,7 +32292,7 @@ function exportInsumosExcel(modo = 'completo') {
       Categoria: cat,
       Título: i.titulo,
       Tipo: tipoLabel(i.tipo),
-      Obs: [insumoObsTexto(i), insumoDivisorias(i) ? 'Divisórias (total): ' + insumoDivisorias(i).maior + ' maior / ' + insumoDivisorias(i).menor + ' menor' : ''].filter(Boolean).join(' · '),
+      Obs: [insumoObsTexto(i), insumoDivisorias(i) ? 'Divisórias (total): ' + insumoDivisorias(i).maior + ' maior / ' + insumoDivisorias(i).menor + ' menor' : '', rotuloBateladasTexto(i)].filter(Boolean).join(' · '),
       'Código de barras': i.codigo_barras || '',
       Fornecedor: i.fornecedor || '',
       'Custo (R$)': Number(i.custo || 0),
@@ -32330,7 +32387,7 @@ function exportInsumosPdf(modo = 'completo') {
         <tr>
           <td>${escapeHtml(i.titulo)}</td>
           <td>${tipoLabel(i.tipo)}</td>
-          <td>${escapeHtml([insumoObsTexto(i), insumoDivisorias(i) ? 'Divisórias (total): ' + insumoDivisorias(i).maior + ' maior / ' + insumoDivisorias(i).menor + ' menor' : ''].filter(Boolean).join(' · ') || '—')}</td>
+          <td>${escapeHtml([insumoObsTexto(i), insumoDivisorias(i) ? 'Divisórias (total): ' + insumoDivisorias(i).maior + ' maior / ' + insumoDivisorias(i).menor + ' menor' : '', rotuloBateladasTexto(i)].filter(Boolean).join(' · ') || '—')}</td>
           <td>${escapeHtml(i.fornecedor || '—')}</td>
           <td class="num">R$ ${fmtBR(i.custo)}</td>
           <td class="num">${fmtNum(i.estoque)} ${escapeHtml(i.unidade || 'un')}</td>
