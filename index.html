@@ -11756,6 +11756,10 @@ th,
    o visual real do sistema (cores, raio de borda, sombra, dark mode) automaticamente. Só ficam
    aqui as classes que são específicas do Laboratório e não existem em mais nenhum lugar do CRM. */
 #view-laboratorio .num { text-align: left !important; font-variant-numeric: tabular-nums !important;}
+.cx-desconto { font-size: 12px; color: var(--text-2); margin: 3px 0 2px; line-height: 1.35; }
+.cx-desconto:empty { display: none; }
+.cx-desconto.tem { color: var(--gso-ok, #2E8B57); font-weight: 600; }
+#f-caixa-preview { margin: 0 0 8px; }
 /* Lista de insumos por categoria: Obs larga (texto de bateladas, divisórias...), demais colunas enxutas */
 @media (min-width: 901px) {
   #modal-categoria-insumos table.stack-table { table-layout: fixed !important; width: 100% !important; min-width: 960px; }
@@ -13542,6 +13546,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               <input type="number" class="form-input" id="f-qtd" value="1" min="1" oninput="updatePreview()">
             </div>
           </div>
+          <div id="f-caixa-preview"></div>
           <div class="estoque-auto" id="f-estoque-auto-wrap">
             <span class="estoque-auto-txt" id="f-estoque-auto"></span>
             <button type="button" class="estoque-auto-trocar" onclick="toggleEstoqueManual()" id="f-estoque-trocar">trocar</button>
@@ -25862,6 +25867,43 @@ function initEditVenda(id) {
   document.getElementById('nova-recado-btn')?.classList.remove('hidden');
 }
 
+// ---- Caixa fechada: sempre mostra o valor unitário e o desconto da caixa sobre ele ----
+function precoUnitarioTabelaVenda(produto, tamanho) {
+  const viaCalc = (window.gsoCalc && typeof window.gsoCalc._precoEntrada === 'function')
+    ? window.gsoCalc._precoEntrada(produto, tamanho, 'UN', 'Consumidor final') : null;
+  if (typeof viaCalc === 'number' && viaCalc > 0) return viaCalc;
+  const p = state.produtos.find(x => x.produto === produto && x.tamanho === tamanho);
+  return p && p.unit2026 > 0 ? p.unit2026 : null;
+}
+function caixaDescontoVenda(item) {
+  if (!item || item.formato !== 'CX') return null;
+  const unit = precoUnitarioTabelaVenda(item.catalogProduto || item.produto, item.catalogTamanho || item.tamanho);
+  const unidades = Number(item.qtdUnidades) || 0;
+  const un = unidades > 0 && Number(item.qtdEntrada) > 0 ? unidades / Number(item.qtdEntrada) : 0;
+  if (!unit || !un) return null;
+  const caixas = Number(item.qtdEntrada) || 1;
+  const totalUnit = round2(unit * unidades);
+  const cobrado = Number(item.preco) || 0;
+  return { unit, unPorCaixa: un, caixas, unidades, totalUnit, cobrado, desconto: round2(totalUnit - cobrado), pct: totalUnit > 0 ? (totalUnit - cobrado) / totalUnit * 100 : 0 };
+}
+function caixaDescontoTexto(info) {
+  if (!info) return '';
+  const base = `Caixa com ${info.unPorCaixa} un: ${fmtBR(info.cobrado)}${info.caixas > 1 ? ' (' + info.caixas + ' caixas)' : ''} · valor unitário ${fmtBR(info.unit)} (${info.unidades || info.unPorCaixa * info.caixas} un = ${fmtBR(info.totalUnit)})`;
+  if (info.desconto > 0.004) return `${base} → desconto de ${fmtBR(info.desconto)} (${info.pct.toFixed(1).replace('.', ',')}%) em relação ao unitário`;
+  return `${base} → sem desconto em relação ao unitário`;
+}
+function caixaDescontoHtml(info, id) {
+  const txt = caixaDescontoTexto(info);
+  return `<div class="cx-desconto${info && info.desconto > 0.004 ? ' tem' : ''}"${id ? ` id="${id}"` : ''}>${txt ? '🏷 ' + escapeHtml(txt) : ''}</div>`;
+}
+function atualizarCaixaPreviewVenda() {
+  const el = document.getElementById('f-caixa-preview');
+  if (!el) return;
+  const item = currentSaleItem();
+  const info = item.formato === 'CX' ? caixaDescontoVenda(item) : null;
+  el.innerHTML = info ? caixaDescontoHtml(info) : '';
+}
+
 function currentSaleItem() {
   const produto = document.getElementById('f-produto').value;
   const tamanho = document.getElementById('f-tamanho').value;
@@ -25976,6 +26018,7 @@ function renderSaleItemsList() {
     <div class="sale-item-row">
       <div>
         <div class="sale-item-main">${escapeHtml(item.descricao)}</div>
+        ${item.formato === 'CX' ? caixaDescontoHtml(caixaDescontoVenda(item), 'cx-desc-' + index) : ''}
         <div class="sale-item-sub">${escapeHtml(item.aroma || 'Neutro')} • ${item.qtdUnidades} unidade(s) contabilizadas${(() => { const r = estoqueResolvido(item.catalogProduto || item.produto, item.tamanho, item.aroma, item.produtoEnvasadoId); return r === undefined ? '' : (r && r.nenhum ? ' • <span class="estoque-auto-txt">🚫 não tira do estoque</span>' : r ? ` • <span class="estoque-auto-txt ok">📦 sai do estoque: ${escapeHtml(r.nome)}</span>` : ' • <span class="estoque-auto-txt aviso">⚠ sem baixa de estoque (não encontrado)</span>'); })()}</div>
       </div>
       <div class="sale-item-value-edit">
@@ -25994,6 +26037,8 @@ function renderSaleItemsList() {
 function atualizarPrecoItemVenda(index, value) {
   if (!currentSaleItems[index]) return;
   currentSaleItems[index].preco = parseMoneyValue(value) || 0;
+  const cxEl = document.getElementById('cx-desc-' + index);
+  if (cxEl) { const info = caixaDescontoVenda(currentSaleItems[index]); cxEl.className = 'cx-desconto' + (info && info.desconto > 0.004 ? ' tem' : ''); cxEl.textContent = info ? '🏷 ' + caixaDescontoTexto(info) : ''; }
   updatePreview();
 }
 
@@ -26245,6 +26290,7 @@ function currentFreteVenda() {
 
 function updatePreview() {
   atualizarEstoqueAuto();
+  atualizarCaixaPreviewVenda();
   const preco = currentSuggestedPrice();
   const frete = currentFreteVenda();
   const totalComFrete = preco + frete;
@@ -29754,11 +29800,30 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     el.dataset.built = '1';
     atualizarCartaoCliente();
   }
+  // Caixa: valor unitário do produto, total se fosse comprado por unidade e o desconto que a caixa dá.
+  function cxDescInfo(it, tipoCliente) {
+    if (!it || it.formato !== 'CX') return null;
+    var unit = precoEntradaPara(it.produto, it.tamanho, 'UN', tipoCliente || 'Consumidor final');
+    if (!(unit > 0)) return null;
+    var fator = Number(it.fator) || 1, qtd = Number(it.qtdEntrada) || 1;
+    var unidades = fator * qtd;
+    var totalUnit = round2(unit * unidades), cobrado = round2(Number(it.total) || 0);
+    var desc = round2(totalUnit - cobrado);
+    return { unit: unit, fator: fator, qtd: qtd, unidades: unidades, totalUnit: totalUnit, cobrado: cobrado, desconto: desc, pct: totalUnit > 0 ? desc / totalUnit * 100 : 0 };
+  }
+  function cxDescTexto(info, curto) {
+    if (!info) return '';
+    var base = 'Valor unitário ' + fmt(info.unit) + ' (' + info.unidades + ' un = ' + fmt(info.totalUnit) + ')';
+    if (info.desconto > 0.004) return base + ' → desconto da caixa: ' + fmt(info.desconto) + ' (' + String(info.pct.toFixed(1)).replace('.', ',') + '%)';
+    return base + ' → caixa sem desconto sobre o unitário';
+  }
   function itensHTML() {
+    var tipoAtual = (($('#gc-f-tipo') || {}).value) || 'Consumidor final';
     if (!UI.itens.length) return '<div class="gc-hint" style="padding:6px 0">Nenhum item ainda. Preencha os campos e clique em “Adicionar ao pedido”.</div>';
     return UI.itens.map(function (it, i) {
       return '<div class="gc-item"><div class="p">' + esc(it.produto) + ' · ' + esc(it.embLabel) + (aromaCfg(it.produto).usa ? ' · ' + esc(it.aroma) : '') +
-        '<small>' + it.qtdEntrada + ' × <span class="pr-edit" data-preco="' + i + '" title="Clique para editar o preço">' + fmt(it.precoEntrada) + '</span>' + (it.custoUn == null ? ' · <span style="color:var(--gcbd)">sem custo</span>' : '') + '</small></div>' +
+        '<small>' + it.qtdEntrada + ' × <span class="pr-edit" data-preco="' + i + '" title="Clique para editar o preço">' + fmt(it.precoEntrada) + '</span>' + (it.custoUn == null ? ' · <span style="color:var(--gcbd)">sem custo</span>' : '') + '</small>' +
+        (function () { var ci = cxDescInfo(it, tipoAtual); return ci ? '<small style="' + (ci.desconto > 0.004 ? 'color:var(--gcok);font-weight:600' : '') + '">🏷 ' + esc(cxDescTexto(ci)) + '</small>' : ''; })() + '</div>' +
         '<div class="t">' + fmt(it.total) + '</div><button class="x" data-rm="' + i + '" title="Remover">×</button></div>';
     }).join('');
   }
@@ -29865,6 +29930,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     UI.itens.forEach(function (it) {
       linhas.push('Produto: ' + it.produto + ' ' + it.tamanho + (aromaCfg(it.produto).usa ? ' ' + it.aroma : ''));
       linhas.push('Quantidade: ' + it.qtdEntrada + ' ' + (it.formato === 'CX' ? (it.qtdEntrada === 1 ? 'caixa' : 'caixas') + ' (' + it.fator + ' un cada)' : (it.qtdEntrada === 1 ? 'unidade' : 'unidades')));
+      var ciZap = cxDescInfo(it, f.tipo);
+      if (ciZap) linhas.push(cxDescTexto(ciZap));
       linhas.push('');
     });
     if (r.descontoValor > 0) {
@@ -29888,6 +29955,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var linhas = ['Resumo técnico do pedido' + (precosUn.length === 1 ? ' - *' + fmt(precosUn[0]) + '*' : ''), ''];
     UI.itens.forEach(function (it) {
       linhas.push('- ' + it.produto + ' ' + it.tamanho + ' (' + it.embLabel + ') × ' + it.qtdEntrada + ' — ' + fmt(it.total) + ' (' + fmt(it.precoEntrada) + ')');
+      var ciRes = cxDescInfo(it, f.tipo);
+      if (ciRes) linhas.push('   ' + cxDescTexto(ciRes));
     });
     linhas.push('');
     if (r.descontoValor > 0) {
