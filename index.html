@@ -11760,6 +11760,41 @@ th,
 .cx-desconto:empty { display: none; }
 .cx-desconto.tem { color: var(--gso-ok, #2E8B57); font-weight: 600; }
 #f-caixa-preview { margin: 0 0 8px; }
+/* Estoque em blocos coloridos (estilo dos blocos de anúncios do Mercado Livre) */
+.ins-blocos { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; align-items: start; }
+.ins-bloco { --ib: #5E5E5E; --ibg: rgba(94,94,94,.08); border: 2px solid var(--ib); background: var(--ibg); border-radius: 12px; padding: 10px 12px; }
+.ins-bloco.cor-verde { --ib: #1F6B3D; --ibg: rgba(31,107,61,.10); }
+.ins-bloco.cor-amarelo { --ib: #B8860B; --ibg: rgba(212,175,55,.16); }
+.ins-bloco.cor-rosa { --ib: #E0559C; --ibg: rgba(224,85,156,.12); }
+.ins-bloco.cor-roxo { --ib: #7C3AED; --ibg: rgba(124,58,237,.10); }
+.ins-bloco.cor-laranja { --ib: #D9822B; --ibg: rgba(217,130,43,.13); }
+.ins-bloco.cor-marrom { --ib: #8B5E3C; --ibg: rgba(139,94,60,.13); }
+.ins-bloco.cor-tiffany { --ib: #0ABAB5; --ibg: rgba(10,186,181,.12); }
+.ins-bloco.cor-vermelho { --ib: #9C2B2B; --ibg: rgba(156,43,43,.14); }
+body.theme-dark .ins-bloco.cor-verde { --ib: #6FBE8C; } body.theme-dark .ins-bloco.cor-amarelo { --ib: #E6C34A; } body.theme-dark .ins-bloco.cor-rosa { --ib: #F0A8CC; }
+body.theme-dark .ins-bloco.cor-roxo { --ib: #B794F6; } body.theme-dark .ins-bloco.cor-laranja { --ib: #F0A860; } body.theme-dark .ins-bloco.cor-marrom { --ib: #C79A76; }
+body.theme-dark .ins-bloco.cor-tiffany { --ib: #6FE0DB; } body.theme-dark .ins-bloco.cor-vermelho { --ib: #E0A3A3; } body.theme-dark .ins-bloco { --ib: #C9C9C9; }
+.ins-bloco-head { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
+.ins-bloco-titulo { flex: 1; min-width: 0; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ins-bloco-n { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: rgba(127,127,127,.16); }
+.ins-bloco-btn { border: 0; background: none; cursor: pointer; width: 22px; height: 22px; border-radius: 6px; color: var(--text-2); font-size: 13px; line-height: 1; padding: 0; }
+.ins-bloco-btn:hover { background: rgba(127,127,127,.18); color: var(--text); }
+.ins-caret { transition: transform .15s; }
+.ins-bloco.fechado .ins-caret { transform: rotate(-90deg); }
+.ins-bloco.fechado .ins-bloco-lista { display: none; }
+.ins-bloco.fechado .ins-bloco-head { margin-bottom: 0; }
+.ins-bloco-lista { display: flex; flex-direction: column; gap: 6px; max-height: 470px; overflow-y: auto; padding-right: 2px; }
+.ins-card { background: var(--card, #fff); border: 1px solid var(--border, #E2E2E2); border-radius: 9px; padding: 7px 10px; cursor: pointer; transition: border-color .12s, box-shadow .12s; }
+.ins-card:hover { border-color: var(--ib); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.ins-card.baixo { border-left: 3px solid #B0322F; }
+.ins-card-l1 { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.ins-card-l1 b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ins-card-l2 { font-size: 11.5px; color: var(--text-2); margin-top: 2px; }
+.ins-card-l2 .ins-qtd { font-weight: 700; color: var(--text); }
+.ins-pill { font-size: 10.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; flex: 0 0 auto; }
+.ins-pill.ok { background: rgba(46,139,87,.14); color: #1E6B3A; }
+.ins-pill.bad { background: rgba(176,50,47,.14); color: #B0322F; }
+body.theme-dark .ins-pill.ok { color: #7fd39a; } body.theme-dark .ins-pill.bad { color: #F08A8A; }
 /* Lista de insumos por categoria: Obs larga (texto de bateladas, divisórias...), demais colunas enxutas */
 @media (min-width: 901px) {
   #modal-categoria-insumos table.stack-table { table-layout: fixed !important; width: 100% !important; min-width: 960px; }
@@ -32393,18 +32428,52 @@ function abrirCategoriaModal(cat) {
   openModal('modal-categoria-insumos');
 }
 
+// Estoque em blocos coloridos (mesmo estilo dos blocos de anúncios do Mercado Livre): cada
+// categoria é um bloco com os itens dentro, em cards. Clicar num item edita; clicar no título
+// (ou em ⤢) abre a lista completa com observações e ações; ▾ minimiza o bloco.
+const INS_BLOCO_COR = { 'PRODUTO': 'verde', 'RÓTULO': 'amarelo', 'ESSÊNCIA': 'rosa', 'GARRAFAS': 'roxo', 'TAMPAS': 'cinza', 'CAIXA DE PAPELÃO': 'marrom', 'MATÉRIA-PRIMA': 'tiffany', 'MATÉRIA PRIMA': 'tiffany', 'DEIONIZADOR': 'laranja', 'BRINDES': 'vermelho' };
+const INS_BLOCO_PALETA = ['verde', 'amarelo', 'rosa', 'roxo', 'laranja', 'marrom', 'tiffany', 'cinza', 'vermelho'];
+function insBlocoCor(cat) {
+  const k = String(cat || '').toUpperCase();
+  if (INS_BLOCO_COR[k]) return INS_BLOCO_COR[k];
+  let s = 0; for (let i = 0; i < k.length; i++) s = (s * 31 + k.charCodeAt(i)) >>> 0;
+  return INS_BLOCO_PALETA[s % INS_BLOCO_PALETA.length];
+}
+function insBlocosFechados() { try { return JSON.parse(localStorage.getItem('gso_ins_blocos_fechados') || '[]'); } catch (e) { return []; } }
+function toggleInsBloco(cat, el) {
+  const lista = insBlocosFechados();
+  const i = lista.indexOf(cat);
+  if (i >= 0) lista.splice(i, 1); else lista.push(cat);
+  try { localStorage.setItem('gso_ins_blocos_fechados', JSON.stringify(lista)); } catch (e) {}
+  const bloco = el && el.closest('.ins-bloco');
+  if (bloco) bloco.classList.toggle('fechado', i < 0);
+}
+function insumoCardHtml(i) {
+  const baixo = insumoIsLow(i);
+  const extra = [Number(i.custo) > 0 ? 'R$ ' + fmtBR(i.custo) : '', caixaInfo(i) ? caixaLabel(i) : ''].filter(Boolean).join(' · ');
+  return `<div class="ins-card${baixo ? ' baixo' : ''}" onclick="Lab.openInsumoModal('${escapeHtml(i.id)}')" title="Clique para editar">
+      <div class="ins-card-l1"><b>${escapeHtml(i.titulo)}</b>${baixo ? '<span class="ins-pill bad">Baixo</span>' : '<span class="ins-pill ok">OK</span>'}</div>
+      <div class="ins-card-l2"><span class="ins-qtd">${fmtNum(i.estoque)} ${escapeHtml(i.unidade || 'un')}</span>${extra ? ' · ' + escapeHtml(extra) : ''}</div>
+    </div>`;
+}
 function insumoGroupsHtml(rows) {
   insumoGroupsCache = groupInsumosByCategoria(rows);
-  return insumoGroupsCache.map(({ cat, items }) => {
+  const fechados = insBlocosFechados();
+  return '<div class="ins-blocos">' + insumoGroupsCache.map(({ cat, items }) => {
     const catAttr = escapeHtml(cat).replace(/'/g, "\\'");
+    const baixos = items.filter(insumoIsLow).length;
     return `
-      <div class="card table-card insumo-categoria-card">
-        <div class="category-header category-header-toggle" onclick="Lab.abrirCategoriaModal('${catAttr}')">
-          <span class="dot"></span><span class="name">${escapeHtml(cat)}</span><span class="count">${items.length}</span>
-          <span class="category-arrow">›</span>
+      <div class="ins-bloco cor-${insBlocoCor(cat)}${fechados.includes(cat) ? ' fechado' : ''}">
+        <div class="ins-bloco-head">
+          <button type="button" class="ins-bloco-btn ins-caret" onclick="Lab.toggleInsBloco('${catAttr}', this)" title="Minimizar / expandir">▾</button>
+          <b class="ins-bloco-titulo" onclick="Lab.abrirCategoriaModal('${catAttr}')" title="Abrir lista completa">${escapeHtml(cat)}</b>
+          ${baixos ? `<span class="ins-pill bad" title="Itens com estoque baixo">${baixos} baixo${baixos === 1 ? '' : 's'}</span>` : ''}
+          <span class="ins-bloco-n">${items.length}</span>
+          <button type="button" class="ins-bloco-btn" onclick="Lab.abrirCategoriaModal('${catAttr}')" title="Abrir lista completa com observações e ações">⤢</button>
         </div>
+        <div class="ins-bloco-lista">${items.map(insumoCardHtml).join('')}</div>
       </div>`;
-  }).join('');
+  }).join('') + '</div>';
 }
 
 // ---- Rótulos: quantas bateladas ainda dá pra fazer com o estoque de rótulos ----
@@ -34096,6 +34165,7 @@ async function renderIndicadores() {
     openAjusteModal: openAjusteModal,
     atualizarDivisoriasRow: atualizarDivisoriasRow,
     abrirEncaixotar: abrirEncaixotar,
+    toggleInsBloco: toggleInsBloco,
     encaixotarAddLinha: encaixotarAddLinha,
     encaixotarRemoverLinha: encaixotarRemoverLinha,
     confirmarEncaixotar: confirmarEncaixotar,
