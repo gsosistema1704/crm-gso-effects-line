@@ -11761,9 +11761,13 @@ th,
 .cx-desconto.tem { color: var(--gso-ok, #2E8B57); font-weight: 600; }
 #f-caixa-preview { margin: 0 0 8px; }
 /* Estoque em blocos: cartões neutros por categoria, itens com barra de nível */
-.ins-blocos { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; align-items: start; }
-.ins-bloco { background: var(--card, #fff); border: 1px solid var(--border, #E2E2E2); border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.05); overflow: hidden; }
-.ins-bloco-head { display: flex; align-items: center; gap: 8px; padding: 11px 14px; background: rgba(127,127,127,.07); border-bottom: 1px solid var(--border, #E2E2E2); }
+.ins-toolbar { display: flex; justify-content: flex-end; gap: 6px; margin: 0 0 10px; }
+.ins-toolbar button { border: 1px solid var(--border, #E2E2E2); background: var(--card, #fff); color: var(--text-2); font-size: 11.5px; font-weight: 600; padding: 4px 11px; border-radius: 8px; cursor: pointer; }
+.ins-toolbar button:hover { color: var(--text); background: rgba(127,127,127,.08); }
+/* Blocos em colunas (estilo "mural"): um bloco curto não deixa buraco — o seguinte sobe e ocupa o espaço */
+.ins-blocos { column-width: 290px; column-gap: 16px; }
+.ins-bloco { background: var(--card, #fff); border: 1px solid var(--border, #E2E2E2); border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.05); overflow: hidden; break-inside: avoid; -webkit-column-break-inside: avoid; page-break-inside: avoid; margin: 0 0 16px; display: block; }
+.ins-bloco-head { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: rgba(127,127,127,.07); border-bottom: 1px solid var(--border, #E2E2E2); }
 .ins-bloco-titulo { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ins-bloco-n { font-size: 11px; font-weight: 700; padding: 1px 9px; border-radius: 999px; background: rgba(127,127,127,.16); color: var(--text-2); }
 .ins-bloco-btn { border: 0; background: none; cursor: pointer; width: 22px; height: 22px; border-radius: 6px; color: var(--text-2); font-size: 13px; line-height: 1; padding: 0; }
@@ -11772,8 +11776,8 @@ th,
 .ins-bloco.fechado .ins-caret { transform: rotate(-90deg); }
 .ins-bloco.fechado .ins-bloco-lista { display: none; }
 .ins-bloco.fechado .ins-bloco-head { border-bottom: 0; }
-.ins-bloco-lista { display: flex; flex-direction: column; max-height: 480px; overflow-y: auto; }
-.ins-card { padding: 9px 14px 10px; cursor: pointer; border-bottom: 1px solid rgba(127,127,127,.14); transition: background .12s; }
+.ins-bloco-lista { display: flex; flex-direction: column; }
+.ins-card { padding: 7px 14px 8px; cursor: pointer; border-bottom: 1px solid rgba(127,127,127,.14); transition: background .12s; }
 .ins-card:last-child { border-bottom: 0; }
 .ins-card:hover { background: rgba(127,127,127,.07); }
 .ins-card-l1 { display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; }
@@ -32433,6 +32437,10 @@ function toggleInsBloco(cat, el) {
   const bloco = el && el.closest('.ins-bloco');
   if (bloco) bloco.classList.toggle('fechado', i < 0);
 }
+function toggleTodosInsBlocos(fechar) {
+  try { localStorage.setItem('gso_ins_blocos_fechados', JSON.stringify(fechar ? insumoGroupsCache.map(g => g.cat) : [])); } catch (e) {}
+  document.querySelectorAll('.ins-bloco').forEach(b => b.classList.toggle('fechado', !!fechar));
+}
 function insumoCardHtml(i) {
   const baixo = insumoIsLow(i);
   const est = Number(i.estoque) || 0, min = Number(i.estoque_minimo) || 0;
@@ -32447,7 +32455,7 @@ function insumoCardHtml(i) {
 function insumoGroupsHtml(rows) {
   insumoGroupsCache = groupInsumosByCategoria(rows);
   const fechados = insBlocosFechados();
-  return '<div class="ins-blocos">' + insumoGroupsCache.map(({ cat, items }) => {
+  return '<div class="ins-toolbar"><button type="button" onclick="Lab.toggleTodosInsBlocos(true)">Minimizar todos</button><button type="button" onclick="Lab.toggleTodosInsBlocos(false)">Expandir todos</button></div><div class="ins-blocos">' + insumoGroupsCache.map(({ cat, items }) => {
     const catAttr = escapeHtml(cat).replace(/'/g, "\\'");
     const baixos = items.filter(insumoIsLow).length;
     return `
@@ -34154,6 +34162,7 @@ async function renderIndicadores() {
     atualizarDivisoriasRow: atualizarDivisoriasRow,
     abrirEncaixotar: abrirEncaixotar,
     toggleInsBloco: toggleInsBloco,
+    toggleTodosInsBlocos: toggleTodosInsBlocos,
     encaixotarAddLinha: encaixotarAddLinha,
     encaixotarRemoverLinha: encaixotarRemoverLinha,
     confirmarEncaixotar: confirmarEncaixotar,
