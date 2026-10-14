@@ -30119,10 +30119,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     moOpen('<b id="gc-mo-t">Cotação com transportadora</b>' +
       '<div class="gc-hint" id="gc-mo-hint">' + (c.avisos.length ? 'Atenção: ' + esc(c.avisos.join(' · ')) + '. Edite antes de copiar.' : 'Dois modelos prontos — edite antes de copiar, se quiser.') + '</div>' +
       '<div class="gc-hint" style="margin-top:8px"><b>Modelo 1</b></div>' +
-      '<textarea id="gc-mo-tx"></textarea>' +
+      '<textarea id="gc-mo-tx" style="height:175px!important;min-height:175px!important"></textarea>' +
       '<div class="gc-row"><button type="button" class="gc-btn zap" data-mo-copy="gc-mo-tx" data-rotulo="Copiar modelo 1">Copiar modelo 1</button></div>' +
       '<div class="gc-hint" style="margin-top:12px"><b>Modelo 2</b></div>' +
-      '<textarea id="gc-mo-tx2"></textarea>' +
+      '<textarea id="gc-mo-tx2" style="height:215px!important;min-height:215px!important"></textarea>' +
       '<div class="gc-row"><button type="button" class="gc-btn zap" data-mo-copy="gc-mo-tx2" data-rotulo="Copiar modelo 2">Copiar modelo 2</button><button type="button" class="gc-btn" data-mo-x>Fechar</button></div>');
     $('#gc-mo-tx').value = c.texto;
     $('#gc-mo-tx2').value = c.texto2;
