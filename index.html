@@ -33966,11 +33966,16 @@ async function renderIndicadores() {
     if (unidade === 'litro' || unidade === 'litros') unidade = 'l';
     return num + unidade;
   }
+  function produtoSemEstoqueProprio(p) {
+    return !p.produto_insumo_id && !!(p.garrafa_insumo_id || p.tampa_insumo_id);
+  }
   function encontrarProdutoEnvasadoPara(nomeProduto, tamanho, aroma) {
     var nomeNorm = normalizeTexto(nomeProduto);
     var tamanhoNorm = normalizeTamanhoVenda(tamanho);
     var aromaNorm = normalizeTexto(aroma || 'neutro');
-    var ativos = state.produtos.filter(function (p) { return p.ativo !== false && p.produto_insumo_id; });
+    // Produto que a empresa NÃO mantém pronto em estoque (ex.: Água Deionizada, vendida sob demanda)
+    // não tem "Produto (estoque)" ligado — mas tem garrafa/tampa cadastradas, e a venda baixa esses componentes.
+    var ativos = state.produtos.filter(function (p) { return p.ativo !== false && (p.produto_insumo_id || produtoSemEstoqueProprio(p)); });
     function bateTamanhoEAroma(p) {
       var pTamanhoNorm = normalizeTamanhoVenda(p.tamanho || '');
       var pAromaNorm = normalizeTexto(p.aroma || 'neutro');
@@ -34035,6 +34040,20 @@ async function renderIndicadores() {
       if (!produto) produto = encontrarProdutoEnvasadoPara(it.nomeProduto, it.tamanho, it.aroma);
       if (!produto) {
         naoEncontrados.push([it.nomeProduto, it.tamanho, it.aroma].filter(Boolean).join(' '));
+        continue;
+      }
+      if (!produto.produto_insumo_id) {
+        // Sem estoque do produto pronto: baixa garrafa, tampa (e rótulo, se tiver) na quantidade vendida.
+        var falhou = false;
+        var componentes = ['garrafa_insumo_id', 'tampa_insumo_id', 'rotulo_insumo_id', 'rotulo2_insumo_id'];
+        for (var ci = 0; ci < componentes.length; ci++) {
+          var insumoId = produto[componentes[ci]];
+          if (!insumoId) continue;
+          var rc = await client.rpc('gso_ajustar_insumo', { p_insumo_id: insumoId, p_tipo: 'saida', p_quantidade: qtd, p_origem: origem + ' — ' + produto.nome });
+          if (rc.error) { naoEncontrados.push(produto.nome + ' (erro: ' + rc.error.message + ')'); falhou = true; continue; }
+          baixas.push({ produtoInsumoId: insumoId, quantidade: qtd });
+        }
+        if (falhou) continue;
         continue;
       }
       var resp = await client.rpc('gso_ajustar_insumo', { p_insumo_id: produto.produto_insumo_id, p_tipo: 'saida', p_quantidade: qtd, p_origem: origem });
