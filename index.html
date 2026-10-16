@@ -11869,6 +11869,16 @@ body.theme-dark .fx-rapido-ok { color: #86D9A6; }
 .fx-conta-valor { font-weight: 800; font-variant-numeric: tabular-nums; font-size: 14px; }
 @media (max-width: 1100px) { .fx-rapido-form { grid-template-columns: 1fr 1fr; } .fx-grid-contas { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 560px) { .fx-rapido-form { grid-template-columns: minmax(0, 1fr); } .fx-ant, .fx-cols-cab span:nth-child(2) { display: none; } .fx-conta { grid-template-columns: minmax(0, 1fr) auto; } .fx-item .fx-campo { width: 120px; } }
+.fx-cat .fx-cat-ed, .fx-cat .fx-cat-x { border: 0 !important; background: none !important; box-shadow: none !important; min-height: 0 !important; padding: 0 !important; width: 26px; height: 28px; cursor: pointer; color: var(--text-2) !important; font-size: 14px; border-radius: 6px !important; flex: 0 0 auto; }
+.fx-cat .fx-cat-ed:hover { background: rgba(127,127,127,.16) !important; color: var(--text) !important; }
+.fx-cat .fx-cat-x:hover { background: rgba(176,50,47,.14) !important; color: #B0322F !important; }
+.fx-cat .fx-cat-nome { text-decoration: underline dotted transparent; }
+.fx-cat .fx-cat-nome:hover { text-decoration-color: var(--text-2); }
+.fx-cat-edit-input { width: 100%; font: inherit; font-size: 13.5px; padding: 6px 9px; border: 1px solid var(--text-2, #888); border-radius: 8px; background: var(--card, #fff); color: var(--text); outline: 0; box-shadow: 0 0 0 3px rgba(127,127,127,.18); }
+.fx-nova-cat { display: flex; gap: 8px; margin: 10px 0 4px; }
+.fx-nova-cat input { flex: 1; min-width: 0; border: 1px dashed var(--border, #C9C9C9) !important; background: transparent !important; border-radius: 9px !important; padding: 8px 12px !important; font-size: 13px !important; color: var(--text); min-height: 0 !important; height: auto !important; }
+.fx-mover { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12.5px; color: var(--text-2); }
+@media (max-width: 560px) { .fx-cat { flex-wrap: wrap; } .fx-cat .fx-rot { flex: 1 0 100%; } .fx-cat .fx-campo { flex: 1; width: auto; } .fx-cat .fx-cat-lista { min-width: 40px; } }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -14205,6 +14215,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="form-row"><div><label class="form-label">Nome da categoria</label><input class="form-input" id="fin-cat-nome" placeholder="ex.: Marketing / Anúncios" onkeydown="if(event.key==='Enter')finSalvarCategoria()"></div></div>
         <div class="form-row"><div><label class="form-label">Meta mensal (R$) <span style="font-weight:400;color:var(--text-2)">— opcional</span></label><input class="form-input" id="fin-cat-meta" inputmode="decimal" placeholder="Quanto você pretende gastar no máximo por mês" onkeydown="if(event.key==='Enter')finSalvarCategoria()"></div></div>
         <div class="form-help">Com meta, a categoria mostra uma barra de quanto já foi gasto e avisa quando passa do limite.</div>
+        <div class="fx-mover" id="fin-cat-mover"><span>Posição na lista:</span><button type="button" class="btn btn-small" onclick="finMoverCategoria(document.getElementById('fin-cat-id').value,-1);finAbrirCategoria(document.getElementById('fin-cat-id').value)">↑ Subir</button><button type="button" class="btn btn-small" onclick="finMoverCategoria(document.getElementById('fin-cat-id').value,1);finAbrirCategoria(document.getElementById('fin-cat-id').value)">↓ Descer</button></div>
         <div class="form-actions">
           <button class="btn btn-danger" id="fin-cat-remover" onclick="finRemoverCategoria(document.getElementById('fin-cat-id').value)">Remover categoria</button>
           <button class="btn" onclick="document.getElementById('modal-fin-cat').classList.remove('show')">Cancelar</button>
@@ -18856,10 +18867,12 @@ function finCatLinhaHtml(cat, m, ant) {
   }
   return `<div class="fx-cat-bloco">
     <div class="fx-linha fx-cat">
-      <span class="fx-rot"><button type="button" class="fx-cat-nome" onclick="finAbrirCategoria('${cat.id}')" title="Clique para editar nome e meta">${escapeHtml(cat.nome)}</button></span>
+      <span class="fx-rot"><button type="button" class="fx-cat-nome" onclick="finRenomearInline('${cat.id}', this)" title="Clique para renomear">${escapeHtml(cat.nome)}</button></span>
       ${finAntHtml(ant)}
       ${campo}
       <button type="button" class="fx-cat-lista${aberta ? ' aberta' : ''}${itens.length ? ' tem' : ''}" onclick="finAlternarItens('${cat.id}')" title="Lançamentos desta categoria">☰${itens.length ? ' ' + itens.length : ''}</button>
+      <button type="button" class="fx-cat-ed" onclick="finAbrirCategoria('${cat.id}')" title="Editar nome, meta mensal e posição" aria-label="Editar categoria">✎</button>
+      <button type="button" class="fx-cat-x" onclick="finRemoverCategoria('${cat.id}')" title="Remover categoria" aria-label="Remover categoria">✕</button>
     </div>
     ${metaHtml}${sub}
   </div>`;
@@ -18888,6 +18901,7 @@ function finRenderDemonstrativo(m) {
 
     <div class="fx-secao">(−) Despesas operacionais <button type="button" class="fx-secao-btn" onclick="finAbrirCategoria('')">+ categoria</button></div>
     ${FIN.store.categorias.map(cat => finCatLinhaHtml(cat, m, finTotalCat(mp, cat.id))).join('')}
+    <div class="fx-nova-cat"><input type="text" id="fin-nova-cat" placeholder="+ Nova categoria (ex.: Seguro)" onkeydown="if(event.key==='Enter')finAdicionarCategoriaInline()"><button type="button" class="btn btn-small btn-primary" onclick="finAdicionarCategoriaInline()">Adicionar</button></div>
     <div class="fx-linha fx-subtotal"><span class="fx-rot">Total de despesas</span>${finAntHtml(cp.desp)}<b id="fin-t-despesas">${fmtBR(c.desp)}</b></div>
     ${lucroLinha('lucro_liquido', 'Lucro líquido', c.lucroLiquido, c.llManual, c.lucroLiquidoAuto, cp.temDados ? cp.lucroLiquido : 0)}
     <div class="fx-linha fx-margem"><span class="fx-rot">Margem líquida</span><span class="fx-ant"></span><b id="fin-t-margem">${finPct(c.margem)}</b></div>`;
@@ -19075,6 +19089,7 @@ function finAbrirCategoria(id) {
   document.getElementById('fin-cat-nome').value = cat ? cat.nome : '';
   document.getElementById('fin-cat-meta').value = cat && cat.meta ? finNumFmt(cat.meta) : '';
   document.getElementById('fin-cat-remover').style.display = cat ? '' : 'none';
+  document.getElementById('fin-cat-mover').style.display = cat ? '' : 'none';
   finModalNoBody('modal-fin-cat').classList.add('show');
   setTimeout(() => document.getElementById('fin-cat-nome').focus(), 50);
 }
@@ -19107,6 +19122,48 @@ function finRemoverCategoria(id) {
   mexidos.forEach(mes => FIN.pendentes.add(mes));
   document.getElementById('modal-fin-cat').classList.remove('show');
   finAgendarSalvar(mexidos[0] || null, true);
+  finRenderTudo();
+}
+
+function finAdicionarCategoriaInline() {
+  const inp = document.getElementById('fin-nova-cat');
+  const nome = (inp.value || '').trim();
+  if (!nome) { inp.focus(); return; }
+  if (FIN.store.categorias.some(c => nameKey(c.nome) === nameKey(nome))) { alert('Já existe uma categoria com esse nome.'); return; }
+  let id = finSlug(nome); while (FIN.store.categorias.some(c => c.id === id)) id += '_';
+  FIN.store.categorias.push({ id, nome });
+  finAgendarSalvar(null, true);
+  finRenderTudo();
+  document.getElementById('fin-nova-cat')?.focus();
+  finStatus('Categoria "' + nome + '" adicionada');
+}
+function finRenomearInline(id, btn) {
+  const cat = FIN.store.categorias.find(c => c.id === id);
+  if (!cat || btn.dataset.editando) return;
+  btn.dataset.editando = '1';
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.value = cat.nome; inp.className = 'fx-cat-edit-input';
+  btn.replaceWith(inp);
+  inp.focus(); inp.select();
+  let feito = false;
+  const fim = salvar => {
+    if (feito) return; feito = true;
+    const nome = inp.value.trim();
+    if (salvar && nome && nome !== cat.nome) {
+      if (FIN.store.categorias.some(c => c.id !== id && nameKey(c.nome) === nameKey(nome))) alert('Já existe uma categoria com esse nome.');
+      else { cat.nome = nome; finAgendarSalvar(null, true); }
+    }
+    finRenderTudo();
+  };
+  inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') fim(true); if (ev.key === 'Escape') fim(false); });
+  inp.addEventListener('blur', () => fim(true));
+}
+function finMoverCategoria(id, dir) {
+  const l = FIN.store.categorias;
+  const i = l.findIndex(c => c.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= l.length) return;
+  [l[i], l[j]] = [l[j], l[i]];
+  finAgendarSalvar(null, true);
   finRenderTudo();
 }
 
