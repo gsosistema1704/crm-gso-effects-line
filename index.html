@@ -18930,11 +18930,15 @@ function recadoRespostaHtml(resp, meuId) {
   const conteudo = resp.tipo === 'check'
     ? `<span class="postit-resposta-check-ic" data-tip="Reagiu com check">${checkIconSvg()}</span>`
     : `<span class="postit-resposta-texto">${escapeHtml(resp.texto || '')}</span>`;
-  return `<div class="postit-resposta${resp.tipo === 'check' ? ' postit-resposta-check' : ''}">
+  // Balão de conversa (estilo WhatsApp): nome em cima, texto com a largura toda, hora no canto.
+  // Respostas minhas ficam à direita, as dos outros à esquerda.
+  return `<div class="postit-resposta${resp.tipo === 'check' ? ' postit-resposta-check' : ''}${podeExcluir ? ' postit-resposta-minha' : ''}">
     <span class="postit-resposta-autor">${escapeHtml(resp.autor_nome || 'Alguém')}</span>
     ${conteudo}
-    <span class="postit-resposta-data">${formatTime(resp.criado_em)}</span>
-    ${podeExcluir ? `<button type="button" class="postit-resposta-del" onclick="excluirRespostaRecado('${resp.id}')" data-tip="Excluir resposta" aria-label="Excluir resposta">${closeIconSvg()}</button>` : ''}
+    <span class="postit-resposta-meta">
+      <span class="postit-resposta-data">${formatTime(resp.criado_em)}</span>
+      ${podeExcluir ? `<button type="button" class="postit-resposta-del" onclick="excluirRespostaRecado('${resp.id}')" data-tip="Excluir resposta" aria-label="Excluir resposta">${closeIconSvg()}</button>` : ''}
+    </span>
   </div>`;
 }
 
@@ -18984,8 +18988,9 @@ async function renderRecados() {
       </div>
       ${respostas.length ? `<div class="postit-respostas">${respostas.map(resp => recadoRespostaHtml(resp, meuId)).join('')}</div>` : ''}
       <div class="postit-responder">
-        <input type="text" class="postit-responder-input" placeholder="Responder..." maxlength="300" onkeydown="if(event.key==='Enter'){event.preventDefault();enviarRespostaRecado('${r.id}', this);}">
+        <textarea class="postit-responder-input" rows="1" placeholder="Responder..." maxlength="500" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,110)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarRespostaRecado('${r.id}', this);}"></textarea>
         <button type="button" class="postit-check-btn" onclick="reagirCheckRecado('${r.id}')" data-tip="Reagir com check" aria-label="Reagir com check">${checkIconSvg()}</button>
+        <button type="button" class="postit-enviar-btn" onclick="enviarRespostaRecado('${r.id}', this.parentNode.querySelector('.postit-responder-input'))" data-tip="Enviar resposta (Enter)" aria-label="Enviar resposta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
       </div>
     </div>`;
   }).join('');
@@ -35674,7 +35679,7 @@ body.theme-dark .fin-pendencia-btn { background: rgba(224,163,62,.18) !important
 body.theme-dark .fin-pendencia-btn:hover { background: rgba(224,163,62,.28) !important; }
 
 /* --- RECADOS: mural em formato de post-it --- */
-.recados-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 22px; padding: 6px 4px 24px; }
+.recados-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; padding: 6px 4px 24px; align-items: start; }
 .postit { border-radius: 3px 3px 26px 3px !important; padding: 16px 16px 12px !important; min-height: 150px; display: flex; flex-direction: column; box-shadow: 3px 5px 12px rgba(0,0,0,.16) !important; font-size: 13px; transition: transform .18s ease, box-shadow .18s ease; position: relative; border: none !important; }
 .postit:nth-child(5n+1) { transform: rotate(-1.4deg); }
 .postit:nth-child(5n+2) { transform: rotate(1.1deg); }
@@ -35712,19 +35717,27 @@ body.theme-dark .fin-pendencia-btn:hover { background: rgba(224,163,62,.28) !imp
 .postit-actions button:hover { background: rgba(255,255,255,.9); color: rgba(0,0,0,.85); }
 
 /* --- RECADOS: respostas e reação de check --- */
-.postit-respostas { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto; }
-.postit-resposta { font-size: 11px; background: rgba(255,255,255,.5); border-radius: 7px; padding: 4px 7px; display: flex; align-items: center; gap: 5px; }
-.postit-resposta-autor { font-weight: 700; flex-shrink: 0; }
-.postit-resposta-texto { flex: 1; min-width: 0; word-break: break-word; }
-.postit-resposta-check-ic { color: #2f8f4e; display: inline-flex; align-items: center; flex: 1; }
-.postit-resposta-data { font-size: 9.5px; color: rgba(0,0,0,.42); white-space: nowrap; flex-shrink: 0; }
+.postit-respostas { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; padding: 2px 2px 2px 0; }
+.postit-resposta { font-size: 12.5px; line-height: 1.4; background: rgba(255,255,255,.82); border-radius: 12px 12px 12px 3px; padding: 6px 10px 4px; display: flex; flex-direction: column; gap: 1px; max-width: 92%; align-self: flex-start; box-shadow: 0 1px 1px rgba(0,0,0,.08); color: #2a2a1e; }
+.postit-resposta-minha { align-self: flex-end; background: #DCF8C6; border-radius: 12px 12px 3px 12px; }
+.postit-resposta-autor { font-weight: 700; font-size: 11px; color: #3a6f4c; }
+.postit-resposta-minha .postit-resposta-autor { color: #2f6b3f; }
+.postit-resposta-texto { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; }
+.postit-resposta-check { padding: 4px 10px; }
+.postit-resposta-check-ic { color: #2f8f4e; display: inline-flex; align-items: center; }
+.postit-resposta-meta { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 1px; }
+.postit-resposta-data { font-size: 10px; color: rgba(0,0,0,.45); white-space: nowrap; }
 .postit-resposta-del { background: none; border: none; cursor: pointer; color: rgba(0,0,0,.32); padding: 0; display: inline-flex; align-items: center; flex-shrink: 0; }
 .postit-resposta-del:hover { color: rgba(0,0,0,.7); }
-.postit-responder { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
-.postit-responder-input { flex: 1; min-width: 0; font-size: 11.5px; padding: 6px 8px; border-radius: 7px; border: 1px solid rgba(0,0,0,.12); background: rgba(255,255,255,.65); color: rgba(0,0,0,.85); }
+.postit-responder { display: flex; gap: 6px; margin-top: 10px; align-items: flex-end; }
+.postit-responder-input { flex: 1; min-width: 0; font: inherit; font-size: 13px; line-height: 1.4; padding: 8px 12px; border-radius: 18px; border: 1px solid rgba(0,0,0,.12); background: rgba(255,255,255,.9); color: rgba(0,0,0,.85); resize: none; overflow-y: auto; min-height: 36px; max-height: 110px; box-sizing: border-box; }
+.postit-responder-input:focus { outline: 2px solid rgba(47,143,78,.45); outline-offset: 0; }
 .postit-responder-input::placeholder { color: rgba(0,0,0,.4); }
-.postit-check-btn { display: inline-flex; align-items: center; justify-content: center; width: 27px; height: 27px; border-radius: 7px; border: none; background: rgba(255,255,255,.55); cursor: pointer; color: rgba(0,0,0,.55); flex-shrink: 0; }
-.postit-check-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+.postit-check-btn, .postit-enviar-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,.7); cursor: pointer; color: rgba(0,0,0,.55); flex-shrink: 0; }
+.postit-enviar-btn { background: #2f8f4e; color: #fff; }
+.postit-enviar-btn:hover { background: #267a41; }
+.postit-enviar-btn svg { width: 16px; height: 16px; }
+.postit-check-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 .postit-check-btn:hover { background: rgba(255,255,255,.9); color: #2f8f4e; }
 
 /* ================= v20: tags de AROMA coloridas (suaves) na tabela de Vendas ================= */
