@@ -12975,11 +12975,15 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <input type="hidden" id="ajuste-insumo-id">
     <input type="hidden" id="ajuste-tipo">
     <div class="form-row">
-      <div><label class="form-label" id="ajuste-label">Quantidade</label><input class="form-input" type="number" step="0.001" id="ajuste-quantidade" value="0"></div>
+      <div><label class="form-label" id="ajuste-label">Quantidade</label><input class="form-input" type="number" step="0.001" id="ajuste-quantidade" value="0" oninput="Lab.atualizarTampaJunto()"></div>
     </div>
     <div class="form-row">
       <div><label class="form-label">Origem / motivo</label><input class="form-input" id="ajuste-origem" placeholder="ex: Compra, contagem, correção..."></div>
     </div>
+    <label class="form-row hidden" id="ajuste-tampa-wrap" style="display:flex;align-items:center;gap:8px;margin-top:2px;cursor:pointer">
+      <input type="checkbox" id="ajuste-tampa-check" checked onchange="Lab.atualizarTampaJunto()">
+      <span class="form-label" style="margin:0" id="ajuste-tampa-txt"></span>
+    </label>
     <div class="form-actions">
       <button class="btn" onclick="Lab.closeModal('modal-ajuste')">Cancelar</button>
       <button class="btn btn-primary" onclick="Lab.confirmarAjuste()">Confirmar</button>
@@ -32822,6 +32826,29 @@ async function removerInsumo(id) {
   renderInsumos();
 }
 
+// Garrafa de 1L ou 5L que chega vem sempre com a tampa: ao dar entrada numa delas, a mesma
+// quantidade de tampas entra junto (opção marcada por padrão, dá pra desmarcar).
+function ehGarrafaComTampa(item) {
+  return !!item && /^garrafas?\s+(1|5)\s*(l|litros?)\b/i.test(item.titulo || '');
+}
+function insumoTampaDasGarrafas() {
+  return state.insumos.find(i => i.ativo !== false && i.tipo === 'tampa' && /tampa\s+garrafas?/i.test(i.titulo || ''))
+    || state.insumos.find(i => i.ativo !== false && i.tipo === 'tampa');
+}
+function atualizarTampaJunto() {
+  const wrap = document.getElementById('ajuste-tampa-wrap');
+  if (!wrap) return;
+  const item = state.insumos.find(i => i.id === document.getElementById('ajuste-insumo-id').value);
+  const tampa = insumoTampaDasGarrafas();
+  const tipo = document.getElementById('ajuste-tipo').value;
+  const mostrar = tipo === 'entrada' && ehGarrafaComTampa(item) && !!tampa;
+  wrap.classList.toggle('hidden', !mostrar);
+  wrap.style.display = mostrar ? 'flex' : 'none';
+  if (!mostrar) return;
+  const q = Number(document.getElementById('ajuste-quantidade').value || 0);
+  document.getElementById('ajuste-tampa-txt').textContent = `Entrar também ${q > 0 ? fmtNum(q) : 'a mesma quantidade de'} ${tampa.titulo} (estoque atual ${fmtNum(tampa.estoque)})`;
+}
+
 function openAjusteModal(insumoId, tipo) {
   const item = state.insumos.find(i => i.id === insumoId);
   document.getElementById('ajuste-insumo-id').value = insumoId;
@@ -32830,6 +32857,8 @@ function openAjusteModal(insumoId, tipo) {
   document.getElementById('ajuste-label').textContent = 'Quantidade a ' + (tipo === 'entrada' ? 'somar' : 'subtrair');
   document.getElementById('ajuste-quantidade').value = 0;
   document.getElementById('ajuste-origem').value = tipo === 'entrada' ? 'Entrada manual' : 'Saída manual';
+  document.getElementById('ajuste-tampa-check').checked = true;
+  atualizarTampaJunto();
   openModal('modal-ajuste');
 }
 
@@ -32952,6 +32981,13 @@ async function confirmarAjuste() {
   const client = getSupabaseClient();
   const { error } = await client.rpc('gso_ajustar_insumo', { p_insumo_id: insumoId, p_tipo: tipo, p_quantidade: quantidade, p_origem: origem });
   if (error) { alert('Erro ao ajustar estoque: ' + error.message); return; }
+  // Entrada de garrafa 1L/5L: a mesma quantidade de tampas entra junto, no mesmo lançamento.
+  const garrafa = state.insumos.find(i => i.id === insumoId);
+  const tampa = insumoTampaDasGarrafas();
+  if (tipo === 'entrada' && ehGarrafaComTampa(garrafa) && tampa && document.getElementById('ajuste-tampa-check')?.checked) {
+    const r2 = await client.rpc('gso_ajustar_insumo', { p_insumo_id: tampa.id, p_tipo: 'entrada', p_quantidade: quantidade, p_origem: origem + ' — junto com ' + garrafa.titulo });
+    if (r2.error) alert('A garrafa entrou, mas não consegui lançar as tampas: ' + r2.error.message + '\n\nLance a entrada de ' + fmtNum(quantidade) + ' em "' + tampa.titulo + '" manualmente.');
+  }
   closeModal('modal-ajuste');
   await loadInsumos();
   renderInsumos();
@@ -34133,6 +34169,7 @@ async function renderIndicadores() {
     switchInsumosTab: switchInsumosTab,
     openAjusteModal: openAjusteModal,
     atualizarDivisoriasRow: atualizarDivisoriasRow,
+    atualizarTampaJunto: atualizarTampaJunto,
     abrirEncaixotar: abrirEncaixotar,
     encaixotarAddLinha: encaixotarAddLinha,
     encaixotarRemoverLinha: encaixotarRemoverLinha,
