@@ -23094,10 +23094,16 @@ function renderCatalogSummary(aggregate) {
   const el = document.getElementById('produtosCatalogStats');
   if (!el) return;
   const visibleProducts = state.produtos.filter(p => !p.priceBookHidden);
-  const countRows = (year, kind) => (kind === 'caixa' ? PRICE_BOOK_BOX_ORDER[year] : PRICE_BOOK_ORDER[year]).reduce((sum, [produto, tamanho]) => {
-    const item = priceBookFind(produto, tamanho);
-    return sum + (item && !item.priceBookHidden && priceBookNumber(item, year, kind) > 0 ? 1 : 0);
-  }, 0);
+  const countRows = (year, kind) => {
+    const fixa = (kind === 'caixa' ? PRICE_BOOK_BOX_ORDER[year] : PRICE_BOOK_ORDER[year]);
+    const fixos = new Set(fixa.map(([p, t]) => productPriceBookKey(p, t)));
+    const base = fixa.reduce((sum, [produto, tamanho]) => {
+      const item = priceBookFind(produto, tamanho);
+      return sum + (item && !item.priceBookHidden && priceBookNumber(item, year, kind) > 0 ? 1 : 0);
+    }, 0);
+    const extras = state.produtos.filter(p => !p.priceBookHidden && !fixos.has(productPriceBookKey(p.produto, p.tamanho)) && priceBookNumber(p, year, kind) > 0).length;
+    return base + extras;
+  };
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
@@ -23126,6 +23132,56 @@ function toggleProdutosHistorico() {
   const panel = document.querySelector('#produtosPriceBook .catalog-year-panel.is-historical');
   if (panel) panel.classList.toggle('is-collapsed', !PRODUTOS_HISTORICO_ABERTO);
 }
+// ---- Produto novo no estoque do Laboratório → entra em tudo que lista produtos ----
+// O catálogo (state.produtos / tabela crm_produtos) alimenta Produtos (tabela vigente), Calculadora,
+// Formulação, Estratégia e a Nova venda. Quando um produto envasado novo aparece no estoque, ele é
+// criado aqui automaticamente (preços zerados, pra preencher) e todas essas telas passam a mostrá-lo.
+function tamanhoCompactoCatalogo(tamanho) {
+  const t = String(tamanho || '').toLowerCase().trim();
+  let m = t.match(/^([\d.,]+)\s*(litros|litro|l)$/);
+  if (m) return m[1].replace(',', '.') + 'L';
+  m = t.match(/^([\d.,]+)\s*(ml|g)$/);
+  if (m) return m[1].replace(',', '.') + (m[2] === 'ml' ? 'mL' : 'g');
+  return null;
+}
+function produtoDoCatalogoNoEstoque(item) {
+  const lab = window.Lab?.state?.produtos;
+  if (!Array.isArray(lab)) return false;
+  const k = productPriceBookKey(item.produto, item.tamanho);
+  return lab.some(p => p.ativo !== false && p.linha && productPriceBookKey(p.linha, tamanhoCompactoCatalogo(p.tamanho) || '') === k);
+}
+let __sincProdutosEstoqueRodando = false;
+async function gsoSincronizarProdutosDoEstoque() {
+  if (__sincProdutosEstoqueRodando) return;
+  const lab = window.Lab?.state?.produtos;
+  if (!Array.isArray(lab) || !lab.length || !Array.isArray(state.produtos) || !state.produtos.length) return;
+  __sincProdutosEstoqueRodando = true;
+  try {
+    const existentes = new Set(state.produtos.map(c => productPriceBookKey(c.produto, c.tamanho)));
+    const novos = [];
+    lab.forEach(p => {
+      if (p.ativo === false || !p.linha || !p.tamanho) return;
+      const tc = tamanhoCompactoCatalogo(p.tamanho);
+      if (!tc) return;
+      const k = productPriceBookKey(p.linha, tc);
+      if (existentes.has(k)) return;
+      existentes.add(k);
+      novos.push({ id: safeId('p', [p.linha, tc]), produto: p.linha, tamanho: tc, aroma: 'Neutro', unitOld: 0, caixaOld: 0, unit2024: 0, caixa2024: 0, unit2025: 0, caixa2025: 0, unit2026: 0, caixa2026: 0, priceBookHidden: false, metadata: { origem: 'estoque' } });
+    });
+    if (!novos.length) return;
+    state.produtos.push(...novos);
+    STORE.save('produtos', state.produtos);
+    try {
+      const client = getSupabaseClient();
+      const session = await getSupabaseSession();
+      if (client && session) await client.from('crm_produtos').upsert(novos.map(produtoToRow), { onConflict: 'id' });
+    } catch (err) { console.warn('Não consegui gravar os produtos novos do estoque no catálogo:', err); }
+    try { renderProdutos(); } catch (e) {}
+    try { window.gsoCalc?.refresh?.(); } catch (e) {}
+  } finally { __sincProdutosEstoqueRodando = false; }
+}
+window.gsoSincronizarProdutosDoEstoque = gsoSincronizarProdutosDoEstoque;
+
 function renderPriceBookYear(year, options = {}) {
   const shared = Boolean(options.shared);
   const readOnly = Boolean(options.readOnly);
@@ -23151,6 +23207,27 @@ function renderPriceBookYear(year, options = {}) {
     `;
   }).filter(Boolean);
 
+  // Produtos que não estão na lista fixa (ex.: novos do estoque, como Água Deionizada) entram sozinhos:
+  // com valor, sempre; sem valor ainda, só na tabela vigente e se existirem no estoque (pra preencher).
+  const fixosUnit = new Set(rowsSource.map(([p, t]) => productPriceBookKey(p, t)));
+  state.produtos.filter(p => !p.priceBookHidden && !fixosUnit.has(productPriceBookKey(p.produto, p.tamanho)))
+    .slice().sort((a, b) => String(a.produto).localeCompare(String(b.produto), 'pt-BR') || String(a.tamanho).localeCompare(String(b.tamanho), 'pt-BR', { numeric: true }))
+    .forEach(item => {
+      const value = priceBookNumber(item, year, 'unit');
+      if (!value && (shared || year !== 2026 || !produtoDoCatalogoNoEstoque(item))) return;
+      const id = item.id || estoqueProductId(item);
+      const unitHint = shared ? 'Edita o valor unitário compartilhado de 2025 e 2024.' : `Edita o valor unitário de ${year}.`;
+      const editAttrs = readOnly ? '' : ` contenteditable="true" data-tip="${escapeHtml(unitHint)}" onblur="updateProdutoPrice(${attrJsString(id)}, ${year}, 'unit', this.textContent)"`;
+      productRowsArray.push(`
+      <div class="catalog-price-row">
+        <div class="catalog-product-info">
+          <strong>${escapeHtml(priceBookDisplayName(item.produto, item.tamanho))}</strong>
+          <span>Valor unitário</span>
+        </div>
+        <div class="catalog-value price-book-value"${editAttrs}>${priceBookEditableValue(item, year, 'unit')}</div>
+      </div>`);
+    });
+
   const boxRowsArray = boxesSource.map(([produto, tamanho]) => {
     const item = priceBookFind(produto, tamanho);
     if (!item || item.priceBookHidden) return '';
@@ -23166,6 +23243,21 @@ function renderPriceBookYear(year, options = {}) {
       </div>
     `;
   }).filter(Boolean);
+  const fixosCaixa = new Set(boxesSource.map(([p, t]) => productPriceBookKey(p, t)));
+  state.produtos.filter(p => !p.priceBookHidden && !fixosCaixa.has(productPriceBookKey(p.produto, p.tamanho)))
+    .slice().sort((a, b) => String(a.produto).localeCompare(String(b.produto), 'pt-BR') || String(a.tamanho).localeCompare(String(b.tamanho), 'pt-BR', { numeric: true }))
+    .forEach(item => {
+      const value = priceBookNumber(item, year, 'caixa');
+      if (!value) return;
+      const id = item.id || estoqueProductId(item);
+      const boxHint = shared ? 'Edita o valor de caixa compartilhado de 2025 e 2024.' : `Edita o valor de caixa fechada de ${year}.`;
+      const editAttrs = readOnly ? '' : ` contenteditable="true" data-tip="${escapeHtml(boxHint)}" onblur="updateProdutoPrice(${attrJsString(id)}, ${year}, 'caixa', this.textContent)"`;
+      boxRowsArray.push(`
+      <div class="catalog-box-row">
+        <span>${escapeHtml(priceBookBoxName(item.produto, item.tamanho))}</span>
+        <strong class="catalog-box-price"${editAttrs}>${priceBookEditableValue(item, year, 'caixa')}</strong>
+      </div>`);
+    });
 
   const title = shared ? '2025 / 2024' : String(year);
   const eyebrow = shared ? 'Histórico preservado' : 'Tabela vigente';
@@ -32346,6 +32438,8 @@ async function loadProdutos() {
   const { data, error } = await client.from('gso_produtos_envasados').select('*').order('ordem', { ascending: true });
   if (error) { console.error(error); return; }
   state.produtos = data || [];
+  // Produto novo no estoque → entra no catálogo (Produtos/tabela vigente, Calculadora, Formulação, Estratégia).
+  try { if (typeof window.gsoSincronizarProdutosDoEstoque === 'function') window.gsoSincronizarProdutosDoEstoque(); } catch (e) {}
 }
 async function loadLotes() {
   const client = getSupabaseClient();
