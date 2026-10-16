@@ -29707,8 +29707,20 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   // premium (≥ margemPremium). A margem recebida já deve ser a "margem final" (com fiscal e,
   // quando aplicável, taxa financeira já descontados) — a função não sabe nem precisa saber
   // quais componentes entraram nela.
-  function margemFaixaDe(margem, temCusto, temPreco) {
-    var P = params();
+  // Cada tabela de valores (Consumidor final, Revendedor, Revendedor 10%) tem a sua estratégia:
+  // metas próprias de margem (mínima / ideal / premium). Sem meta própria, vale o padrão global.
+  var TABELAS_METAS = [['consumidor', 'Consumidor final'], ['revendedor', 'Revendedor (Lojista)'], ['revendedor10', 'Revendedor (10%)']];
+  function tabelaDoTipo(tipo) { return tipo === 'Revendedor (Lojista)' ? 'revendedor' : (tipo === 'Revendedor (10%)' ? 'revendedor10' : 'consumidor'); }
+  function metasDe(tabela) {
+    var P = params(); var o = (store.metas && store.metas[tabela]) || {};
+    return {
+      margemMin: o.margemMin != null ? o.margemMin : P.margemMin,
+      margem: o.margem != null ? o.margem : P.margem,
+      margemPremium: o.margemPremium != null ? o.margemPremium : P.margemPremium
+    };
+  }
+  function margemFaixaDe(margem, temCusto, temPreco, tabela) {
+    var P = tabela ? metasDe(tabela) : params();
     if (!temCusto || !temPreco || margem == null) return null;
     if (margem < P.margemMin) return { k: 'baixo', cls: 'bad', label: 'Abaixo do mínimo' };
     if (margem < P.margem) return { k: 'saudavel', cls: 'warn', label: 'Saudável' };
@@ -29724,17 +29736,17 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     if (den <= 0.001) return null;
     return round2(custoTotal / den);
   }
-  function statusDe(margem, temCusto) {
+  function statusDe(margem, temCusto, tabela) {
     if (!temCusto) return { k: 'semcusto', cls: 'gray', label: 'Sem custo' };
     if (margem == null) return { k: 'sempreco', cls: 'gray', label: 'Sem preço' };
-    return margemFaixaDe(margem, true, true);
+    return margemFaixaDe(margem, true, true, tabela);
   }
-  function margemStatusDe(margem, temCusto, temPreco) { return margemFaixaDe(margem, temCusto, temPreco); }
+  function margemStatusDe(margem, temCusto, temPreco, tabela) { return margemFaixaDe(margem, temCusto, temPreco, tabela); }
   // Faixa comercial: só distingue "Premium" (preço no topo, ≥ margemPremium) do resto — é uma
   // visão mais grossa que a de MARGEM (4 níveis), pensada só pra destacar produtos com preço
   // de ponta. Usa a mesma margem final (já com fiscal e taxa financeira quando aplicável).
-  function faixaDe(margem, temCusto, temPreco) {
-    var P = params();
+  function faixaDe(margem, temCusto, temPreco, tabela) {
+    var P = tabela ? metasDe(tabela) : params();
     if (!temCusto || !temPreco || margem == null) return null;
     return margem >= P.margemPremium ? { k: 'premium', cls: 'ok', label: 'Premium' } : { k: 'padrao', cls: 'gray', label: 'Padrão' };
   }
@@ -29820,8 +29832,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (den <= 0.02 || semCusto) return null;
       return round2((custoProd + frete) / den);
     }
-    var minimo = precoPara(P.margemMin), ideal = precoPara(P.margem), premium = precoPara(P.margemPremium);
-    var st = statusDe(margem, !semCusto && itens.length > 0);
+    var tabelaMeta = tabelaDoTipo(ctx.tipoCliente);
+    var M = metasDe(tabelaMeta);
+    var minimo = precoPara(M.margemMin), ideal = precoPara(M.margem), premium = precoPara(M.margemPremium);
+    var st = statusDe(margem, !semCusto && itens.length > 0, tabelaMeta);
     if (!itens.length) st = { k: 'vazio', cls: 'gray', label: 'Sem itens' };
     var frase = '';
     if (st.k === 'ideal' || st.k === 'premium') frase = 'Esse pedido pode ser fechado no valor atual. Ainda existe espaço moderado para negociação.';
@@ -29832,7 +29846,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     if (bruto > 0 && descontoValor / bruto * 100 > P.descontoMax) alertas.push('O desconto aplicado está acima do limite seguro (' + P.descontoMax + '%).');
     if (frete > 0 && margem != null) {
       var margemSemFrete = ((valor - (custoProd + fiscal + fin)) / valor) * 100;
-      if (margemSemFrete >= P.margem && margem < P.margem) alertas.push('O frete reduziu a margem abaixo do recomendado.');
+      if (margemSemFrete >= M.margem && margem < M.margem) alertas.push('O frete reduziu a margem abaixo do recomendado.');
     }
     if (st.k === 'baixo' && minimo != null) alertas.push('Para manter a margem saudável, o valor recomendado é ' + fmt(ideal || minimo) + '.');
     var bateladaL = P.batelada || BATELADA_L_DEFAULT;
@@ -29849,7 +29863,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       freteCliente: freteCliente, fretePagoGSO: fretePagoGSO, totalComFrete: round2(valor + freteCliente),
       custoProd: round2(custoProd), fiscal: fiscal, fiscalPct: fiscalPct, fin: fin, taxaPct: taxaPct, aplicarTaxaFin: aplicarTaxaFin, frete: frete, custoTotal: custoTotal,
       lucro: lucro, margem: margem, markup: markup, minimo: minimo, ideal: ideal, premium: premium,
-      status: st, frase: frase, alertas: alertas, semCusto: semCusto, materiais: materiaisNecessarios(itens)
+      metas: M, tabelaMeta: tabelaMeta, status: st, frase: frase, alertas: alertas, semCusto: semCusto, materiais: materiaisNecessarios(itens)
     };
   }
 
@@ -30131,9 +30145,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var prod = '<details class="gc-slim" open><summary>Produção</summary>' + prodRowsHtml + '</details>';
     var kvMore = '<details class="gc-slim"><summary>Outros indicadores</summary>' +
       '<div class="gc-kv"><span class="l">Margem final</span><b>' + fmtPct(r.margem) + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Preço mín. p/ Saudável (' + inVal(P.margemMin) + '%)</span><b>' + fmt(r.minimo) + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Preço mín. p/ Ideal (' + inVal(P.margem) + '%)</span><b>' + fmt(r.ideal) + '</b></div>' +
-      '<div class="gc-kv"><span class="l">Preço mín. p/ Premium (' + inVal(P.margemPremium) + '%)</span><b>' + fmt(r.premium) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">Preço mín. p/ Saudável (' + inVal(r.metas.margemMin) + '%)</span><b>' + fmt(r.minimo) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">Preço mín. p/ Ideal (' + inVal(r.metas.margem) + '%)</span><b>' + fmt(r.ideal) + '</b></div>' +
+      '<div class="gc-kv"><span class="l">Preço mín. p/ Premium (' + inVal(r.metas.margemPremium) + '%)</span><b>' + fmt(r.premium) + '</b></div>' +
       '</details>';
     var custo = '<details class="gc-slim"><summary>Custo</summary>' +
       '<div class="gc-kv"><span class="l">Produtos + embalagem</span><b>' + fmt(r.custoProd) + '</b></div>' +
@@ -30800,8 +30814,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var m = margemDe(preco, ci.total, P.fiscal, taxaFinPct);
     var temCusto = ci.total != null, temPreco = preco != null;
     var reaj = (pr.v2425 != null && pr.vigente != null && pr.vigente <= pr.v2425);
-    var margemSt = margemStatusDe(m, temCusto, temPreco);
-    var faixa = faixaDe(m, temCusto, temPreco);
+    var margemSt = margemStatusDe(m, temCusto, temPreco, UI.estrTabela || 'consumidor');
+    var faixa = faixaDe(m, temCusto, temPreco, UI.estrTabela || 'consumidor');
     var pendencias = pendenciasDe(temCusto, temPreco, reaj);
     var lucro = (preco != null && ci.total != null) ? round2(preco - ci.total - preco * P.fiscal / 100 - preco * taxaFinPct / 100) : null;
     var rDisplay = rotuloDisplay ? { produto: rotuloDisplay, tamanho: r.tamanho } : r;
@@ -30850,6 +30864,46 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       });
     }
     return base.concat(extras);
+  }
+  // Estratégia de cada tabela de valores: metas de margem próprias. Vazio = padrão global (Parâmetros globais).
+  function metasTabelaHTML() {
+    var P = params();
+    var linhas = TABELAS_METAS.map(function (t) {
+      var o = (store.metas && store.metas[t[0]]) || {};
+      var temProprio = o.margemMin != null || o.margem != null || o.margemPremium != null;
+      function cel(campo, rotulo) {
+        var proprio = o[campo] != null;
+        var valor = proprio ? o[campo] : P[campo];
+        return '<td class="num"><span data-meta="' + t[0] + ':' + campo + '" title="Clique para editar a meta ' + esc(rotulo) + ' desta tabela" style="border-bottom:1px dotted var(--gcfnt);cursor:text;font-weight:' + (proprio ? '700' : '500') + ';' + (proprio ? '' : 'color:var(--gcfnt)') + '">' + inVal(valor) + '%</span></td>';
+      }
+      return '<tr><td><b>' + esc(t[1]) + '</b>' + (UI.estrTabela === t[0] ? ' <span class="gc-pill gray">em exibição</span>' : '') + '</td>' +
+        cel('margemMin', 'mínima (Saudável)') + cel('margem', 'ideal') + cel('margemPremium', 'premium') +
+        '<td>' + (temProprio ? '<button class="gc-lnk" data-meta-reset="' + t[0] + '">usar padrão global</button>' : '<span class="gc-hint" style="padding:0">usando o padrão global</span>') + '</td></tr>';
+    }).join('');
+    return '<div class="gc-blk" style="margin-top:14px"><h2>Metas de margem por tabela <span>cada tabela de valores tem a sua estratégia · clique em um valor para editar</span></h2>' +
+      '<div class="gc-table-wrap"><table class="gct"><thead><tr><th>TABELA</th><th class="num">MÍNIMA (SAUDÁVEL)</th><th class="num">IDEAL</th><th class="num">PREMIUM</th><th></th></tr></thead><tbody>' + linhas + '</tbody></table></div>' +
+      '<div class="gc-hint" style="margin-top:8px">Abaixo da mínima = "Abaixo do mínimo" · da mínima até a ideal = "Saudável" · da ideal até a premium = "Ideal" · acima da premium = "Premium". Valores em cinza usam o padrão global; ao editar, só aquela tabela muda. A classificação da Estratégia, o Simular e o Pedido (conforme o tipo de cliente) usam a meta da tabela correspondente.</div></div>';
+  }
+  function startEditMeta(sp) {
+    if (sp.querySelector('input')) return;
+    var spec = (sp.dataset.meta || '').split(':'); var old = sp.textContent.trim().replace('%', '');
+    sp.innerHTML = '<input class="gc-edin" style="width:70px" type="text" inputmode="decimal" value="' + esc(old) + '">';
+    var inp = sp.querySelector('input'); inp.focus(); try { inp.select(); } catch (e) {}
+    var fin = false;
+    function done(salvar) {
+      if (fin) return; fin = true;
+      if (!salvar) { renderEstrategia(); return; }
+      var v = num(inp.value);
+      store.metas = store.metas || {};
+      var o = Object.assign({}, store.metas[spec[0]] || {});
+      if (v == null) delete o[spec[1]]; else o[spec[1]] = v;
+      var M = Object.assign({}, params(), o);
+      if (!(M.margemMin <= M.margem && M.margem <= M.margemPremium)) { alert('As metas precisam seguir a ordem: mínima ≤ ideal ≤ premium.'); renderEstrategia(); return; }
+      if (Object.keys(o).length) store.metas[spec[0]] = o; else delete store.metas[spec[0]];
+      save(); renderEstrategia(); refreshResultado();
+    }
+    inp.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') done(true); if (ev.key === 'Escape') done(false); });
+    inp.addEventListener('blur', function () { done(true); });
   }
   function renderEstrategia() {
     var el = $('#gc-estrategia'); if (!el) return;
@@ -30907,7 +30961,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<select data-estrtab>' + [['consumidor', 'Tabela: Consumidor final'], ['revendedor', 'Tabela: Revendedor (Lojista)'], ['revendedor10', 'Tabela: Revendedor (10%)']].map(function (o) { return '<option value="' + o[0] + '"' + (UI.estrTabela === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<select data-ord>' + [['menor', 'Ordenar: menor margem'], ['maior', 'Ordenar: maior margem'], ['lucro', 'Ordenar: maior lucro']].map(function (o) { return '<option value="' + o[0] + '"' + (UI.ordenar === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<label style="display:inline-flex;align-items:center;gap:6px;font:600 12px inherit;color:var(--gcfnt);cursor:pointer"><input type="checkbox" data-estr-taxafin' + (UI.estrTaxaFin ? ' checked' : '') + '> Considerar taxa financeira (' + inVal(params().taxa) + '%) na margem</label>' +
-      '<button class="clear" data-clr="te">limpar filtros</button><span class="gc-hint-ed">· Clique no preço para editar · Margem = preço − custo − fiscal (' + inVal(params().fiscal) + '%)' + (UI.estrTaxaFin ? ' − taxa financeira (' + inVal(params().taxa) + '%)' : '') + '</span></div>' +
+      '<button class="clear" data-clr="te">limpar filtros</button><span class="gc-hint-ed">· Clique no preço para editar · Margem = preço − custo − fiscal (' + inVal(params().fiscal) + '%)' + (UI.estrTaxaFin ? ' − taxa financeira (' + inVal(params().taxa) + '%)' : '') + ' · Metas desta tabela: mín. ' + inVal(metasDe(UI.estrTabela || 'consumidor').margemMin) + '% · ideal ' + inVal(metasDe(UI.estrTabela || 'consumidor').margem) + '% · premium ' + inVal(metasDe(UI.estrTabela || 'consumidor').margemPremium) + '%</span></div>' +
       '<div class="gc-table-wrap"><table class="gct" id="gc-te"><colgroup>' +
       (mostraSugerido
         ? '<col style="width:16%"><col style="width:7%"><col style="width:9%"><col style="width:11%"><col style="width:12%"><col style="width:15%"><col style="width:6%"><col style="width:6%"><col style="width:18%">'
@@ -30915,6 +30969,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '</colgroup>' +
       '<thead><tr><th>PRODUTO</th><th>EMB.</th><th>AROMA</th><th class="num">CUSTO</th><th class="num">PREÇO</th>' + (mostraSugerido ? '<th>VALOR SUGERIDO</th>' : '') + '<th>FAIXA</th><th>MARGEM</th><th>AÇÕES</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div><div class="gc-empty" id="gc-te-e">Nada com esses filtros.</div></div>' +
+      metasTabelaHTML() +
       '<div class="gc-blk gc-params-grid" style="margin-top:14px"><h2>Parâmetros globais <span>clique em um valor para editar</span></h2>' + paramsKvHTML() + '</div>';
     if (UI.estrStatus) filtraStatus('te', UI.estrStatus);
     aplicaFiltro('te');
@@ -30961,8 +31016,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var valorTaxaFin = round2(preco * taxaFinPct / 100);
     var lucro = (ci.total != null) ? round2(preco - ci.total - valorFiscal - valorTaxaFin) : null;
     var margem = margemDe(preco, ci.total, P.fiscal, taxaFinPct);
-    var cls = margemFaixaDe(margem, ci.total != null, true);
-    var alvos = [['Saudável', P.margemMin], ['Ideal', P.margem], ['Premium', P.margemPremium]];
+    var tabelaCp = UI.estrTabela || 'consumidor';
+    var Mcp = metasDe(tabelaCp);
+    var cls = margemFaixaDe(margem, ci.total != null, true, tabelaCp);
+    var alvos = [['Saudável', Mcp.margemMin], ['Ideal', Mcp.margem], ['Premium', Mcp.margemPremium]];
     var precosAlvo = alvos.map(function (a) {
       var p = precoParaMargem(ci.total, P.fiscal, taxaFinPct, a[1]);
       return '<div class="gc-kv"><span class="l">Preço mínimo p/ ' + a[0] + ' (' + inVal(a[1]) + '%)</span><b>' + fmt(p) + '</b></div>';
@@ -32133,6 +32190,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var mp = t.closest('[data-mp]'); if (mp) { startEditMp(mp); return; }
       var ed = t.closest('td[data-ed]'); if (ed) { startEdit(ed); return; }
       var pov = t.closest('[data-pov]'); if (pov) { startEditParam(pov); return; }
+      var metaEl = t.closest('[data-meta]'); if (metaEl) { startEditMeta(metaEl); return; }
+      var metaRst = t.closest('[data-meta-reset]'); if (metaRst) { if (store.metas) delete store.metas[metaRst.dataset.metaReset]; save(); renderEstrategia(); refreshResultado(); return; }
       var oa = t.closest('[data-open-anuncio]'); if (oa) { abrirAnuncio(oa.dataset.openAnuncio); return; }
       if (t.id === 'gc-ml-novo') { abrirAnuncio(null); return; }
       var mlv = t.closest('[data-ml-view]'); if (mlv) { UI.mlView = mlv.dataset.mlView; renderML(); return; }
