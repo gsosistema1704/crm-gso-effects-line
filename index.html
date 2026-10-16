@@ -33349,9 +33349,23 @@ function renderConsumoPreview() {
     box.innerHTML = '<p class="form-help">Adicione produtos com quantidade para ver o consumo previsto de insumos.</p>';
     return;
   }
-  box.innerHTML = ids.map(insumoId => {
+  // Lote finalizado: o consumo JÁ foi abatido do estoque na hora de finalizar, então o estoque
+  // atual já é o saldo depois do lote — não pode subtrair de novo (isso dobrava a saída na tela).
+  // Lote em rascunho: ainda não abateu nada, então mostra a previsão (estoque atual − consumo).
+  const finalizado = state.loteAtual?.status === 'finalizado';
+  const titulo = finalizado
+    ? '<p class="form-help" style="margin:0 0 6px"><b>Consumo deste lote</b> — já abatido do estoque quando o lote foi finalizado. O saldo mostrado é o estoque atual.</p>'
+    : '<p class="form-help" style="margin:0 0 6px"><b>Previsão de consumo</b> — só sai do estoque quando você finalizar o lote.</p>';
+  box.innerHTML = titulo + ids.map(insumoId => {
     const insumo = state.insumos.find(i => i.id === insumoId);
     if (!insumo) return '';
+    if (finalizado) {
+      const atual = Number(insumo.estoque);
+      return `<div class="preview-line">
+      <span>${escapeHtml(insumo.titulo)} (${tipoLabel(insumo.tipo)})</span>
+      <strong class="${atual < 0 ? 'preview-warn' : ''}">−${fmtNum(consumo[insumoId])} consumidos · estoque atual ${fmtNum(atual)}${atual < 0 ? ' (negativo — falta registrar entrada)' : ''}</strong>
+    </div>`;
+    }
     const restante = Number(insumo.estoque) - consumo[insumoId];
     const negativo = restante < 0;
     return `<div class="preview-line">
