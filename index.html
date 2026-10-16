@@ -12747,7 +12747,12 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="subtab active" data-subtab="lotes" onclick="Lab.navTo('lotes')">Controle de Lote <span class="pill pill-amber" style="font-size:9px;font-weight:700;padding:2px 7px;margin-left:4px;vertical-align:middle">Importante</span></div>
         <div class="subtab" data-subtab="indicadores" onclick="Lab.navTo('indicadores')">Indicadores</div>
         <div class="subtab" data-subtab="insumos" onclick="Lab.navTo('insumos')">Estoque</div>
+        <div class="subtab" data-subtab="formulacao" onclick="Lab.navTo('formulacao')">Formulação</div>
+        <div class="subtab" data-subtab="estrategia" onclick="Lab.navTo('estrategia')">Estratégia</div>
       </div>
+
+    <!-- Formulação e Estratégia (movidas da Calculadora; o conteúdo é o módulo #gso-calc realocado em runtime) -->
+    <div id="view-lab-calc" class="hidden"></div>
 
     <div id="view-insumos" class="hidden">
       <div class="header">
@@ -29793,9 +29798,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<div class="gc-head"><h1>Calculadora</h1></div>' +
       '<div class="gc-sub">Monte o pedido e veja na hora se vale a pena fechar.</div>' +
       '<div class="gc-tabs">' +
-      '<button data-t="pedido" class="on">Pedido</button>' +
-      '<button data-t="formulacao">Formulação</button>' +
-      '<button data-t="estrategia">Estratégia</button></div>' +
+      '<button data-t="pedido" class="on">Pedido</button></div>' +
       '<section id="gc-pedido"></section><section id="gc-formulacao" style="display:none"></section><section id="gc-estrategia" style="display:none"></section><section id="gc-ml" style="display:none"></section>';
     view.appendChild(root);
     if (!$('#gso-calc-ovl')) {
@@ -32212,6 +32215,15 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       ['sidebar_collapsed', 'gso_sidebar_collapsed', 'sidebarCollapsed'].forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
     } catch (e) {}
   }
+  // Formulação e Estratégia agora vivem dentro do Laboratório: o mesmo módulo (#gso-calc) é
+  // movido pro container da aba do Laboratório, sem cabeçalho/abas próprios (o Laboratório tem os dele).
+  function mostrarNoLab(tab) {
+    mount(); placeInView('view-lab-calc');
+    var tabsBar = $('#gso-calc .gc-tabs'); if (tabsBar) tabsBar.style.display = 'none';
+    var head = $('#gso-calc .gc-head'); if (head) head.style.display = 'none';
+    var sub = $('#gso-calc .gc-sub'); if (sub) sub.style.display = 'none';
+    setTab(tab === 'estrategia' ? 'estrategia' : 'formulacao');
+  }
   function init() {
     load(); ensureInsumosLabels(); ensureMateriaisLabels(); fixSidebar(); mount();
     syncRemote();
@@ -32233,17 +32245,20 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           fixSidebar();
           if (v === 'calculadora') {
             mount(); placeInView('view-calculadora');
-            var tabsBar = $('#gso-calc .gc-tabs'); if (tabsBar) tabsBar.style.display = '';
-            var head = $('#gso-calc .gc-head h1'); if (head) head.textContent = 'Calculadora';
-            var sub = $('#gso-calc .gc-sub'); if (sub) sub.textContent = 'Monte o pedido e veja na hora se vale a pena fechar.';
-            setTab(UI.tab === 'ml' ? 'pedido' : (UI.tab || 'pedido'));
+            // Formulação e Estratégia moraram aqui; agora ficam no Laboratório. A Calculadora é só o Pedido.
+            var tabsBar = $('#gso-calc .gc-tabs'); if (tabsBar) tabsBar.style.display = 'none';
+            var head = $('#gso-calc .gc-head'); if (head) head.style.display = '';
+            var headT = $('#gso-calc .gc-head h1'); if (headT) headT.textContent = 'Calculadora';
+            var sub = $('#gso-calc .gc-sub'); if (sub) { sub.style.display = ''; sub.textContent = 'Monte o pedido e veja na hora se vale a pena fechar.'; }
+            setTab('pedido');
             renderPedido(); renderFormulacao(); renderEstrategia();
           }
           if (v === 'mercadolivre') {
             mount(); placeInView('view-mercadolivre');
             var tabsBar2 = $('#gso-calc .gc-tabs'); if (tabsBar2) tabsBar2.style.display = 'none';
+            var headBox2 = $('#gso-calc .gc-head'); if (headBox2) headBox2.style.display = '';
             var head2 = $('#gso-calc .gc-head h1'); if (head2) head2.textContent = 'Mercado Livre';
-            var sub2 = $('#gso-calc .gc-sub'); if (sub2) sub2.textContent = 'Anúncios, blocos e simulação de lucro por venda.';
+            var sub2 = $('#gso-calc .gc-sub'); if (sub2) { sub2.style.display = ''; sub2.textContent = 'Anúncios, blocos e simulação de lucro por venda.'; }
             setTab('ml');
           }
         } catch (e) {}
@@ -32251,7 +32266,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       };
     }
   }
-  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _params: params, _materiais: materiais, _materiaisLabels: function () { return Object.assign({}, store.materiaisLabels); }, _precoEntrada: precoEntradaPara, refresh: function () { renderPedido(); renderFormulacao(); renderEstrategia(); renderML(); } };
+  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _params: params, _materiais: materiais, _materiaisLabels: function () { return Object.assign({}, store.materiaisLabels); }, _precoEntrada: precoEntradaPara, mostrarNoLab: mostrarNoLab, refresh: function () { renderPedido(); renderFormulacao(); renderEstrategia(); renderML(); } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 0);
 })();
@@ -32303,8 +32318,10 @@ function toggleOutro(selectId, wrapId) {
 
 const VIEW_TITLES = { insumos: 'Estoque', lotes: 'Controle de Lote', indicadores: 'Indicadores' };
 function navTo(view) {
-  ['insumos', 'lotes', 'indicadores'].forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== view));
+  const ehCalc = view === 'formulacao' || view === 'estrategia';
+  ['insumos', 'lotes', 'indicadores', 'lab-calc'].forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== (ehCalc ? 'lab-calc' : view)));
   document.querySelectorAll('#view-laboratorio > .subtabs .subtab').forEach(el => el.classList.toggle('active', el.dataset.subtab === view));
+  if (ehCalc) { if (window.gsoCalc && window.gsoCalc.mostrarNoLab) window.gsoCalc.mostrarNoLab(view); return; }
   if (view === 'insumos') switchInsumosTab('estoque');
   if (view === 'lotes') { showLotesList(); renderLotesList(); }
   if (view === 'indicadores') renderIndicadores();
