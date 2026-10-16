@@ -11761,6 +11761,8 @@ th,
 .cx-desconto.tem { color: var(--gso-ok, #2E8B57); font-weight: 600; }
 #f-caixa-preview { margin: 0 0 8px; }
 /* Estoque em blocos: cartões neutros por categoria, itens com barra de nível */
+/* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
+.subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
 /* duas colunas: categorias lado a lado, sem faixa vazia no meio */
 #view-laboratorio #insumosGroups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
@@ -12744,7 +12746,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </div>
       </div>
       <div class="subtabs">
-        <div class="subtab active" data-subtab="lotes" onclick="Lab.navTo('lotes')">Controle de Lote <span class="pill pill-amber" style="font-size:9px;font-weight:700;padding:2px 7px;margin-left:4px;vertical-align:middle">Importante</span></div>
+        <div class="subtab active" data-subtab="lotes" onclick="Lab.navTo('lotes')">Controle de Lote<span class="subtab-importante" title="Importante" aria-label="Importante"></span></div>
         <div class="subtab" data-subtab="indicadores" onclick="Lab.navTo('indicadores')">Indicadores</div>
         <div class="subtab" data-subtab="insumos" onclick="Lab.navTo('insumos')">Estoque</div>
         <div class="subtab" data-subtab="formulacao" onclick="Lab.navTo('formulacao')">Formulação</div>
