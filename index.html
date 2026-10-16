@@ -11761,6 +11761,68 @@ th,
 .cx-desconto.tem { color: var(--gso-ok, #2E8B57); font-weight: 600; }
 #f-caixa-preview { margin: 0 0 8px; }
 /* Estoque em blocos: cartões neutros por categoria, itens com barra de nível */
+/* ============ FINANCEIRO — fechamento mensal ============ */
+#view-financeiro .subtabs { margin-bottom: 16px; }
+.fx-mes-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.fx-mes-bar .fx-mes-btn { padding: 0 !important; min-height: 0 !important; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border, #E2E2E2); background: var(--card, #fff); color: var(--text); font-size: 18px; line-height: 1; cursor: pointer; }
+.fx-mes-btn:hover { background: rgba(127,127,127,.1); }
+.fx-mes-select { min-width: 210px; font-weight: 700; }
+.fx-mes-status { font-size: 12px; color: var(--text-2); margin-left: 6px; }
+.fx-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.fx-kpi { background: var(--card, #fff); border: 1px solid var(--border, #E2E2E2); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; }
+.fx-kpi span { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
+.fx-kpi strong { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fx-kpi small { font-size: 11.5px; color: var(--text-2); }
+.fx-kpi.fx-pos strong { color: #1E6B3A; } .fx-kpi.fx-neg strong { color: #B0322F; }
+body.theme-dark .fx-kpi.fx-pos strong { color: #86D9A6; } body.theme-dark .fx-kpi.fx-neg strong { color: #F08A8A; }
+.fx-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+.fx-lateral { display: flex; flex-direction: column; gap: 16px; }
+.fx-card { background: var(--card, #fff); border: 1px solid var(--border, #E2E2E2); border-radius: 16px; padding: 18px 20px; }
+.fx-secao { margin: 18px 0 6px; padding-bottom: 6px; border-bottom: 1px solid var(--border, #E2E2E2); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--text-2); }
+.fx-demo .fx-secao:first-of-type { margin-top: 12px; }
+.fx-linha { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.fx-rot { flex: 1; min-width: 0; font-size: 13.5px; }
+.fx-campo { display: inline-flex; align-items: center; border: 1px solid var(--border, #D6D6D6); border-radius: 9px; background: var(--card, #fff); padding: 0 10px; width: 168px; transition: border-color .12s, box-shadow .12s; }
+.fx-campo:focus-within { border-color: var(--text-2, #6F6F6F); box-shadow: 0 0 0 3px rgba(127,127,127,.18); }
+.fx-campo i { font-style: normal; font-size: 12px; color: var(--text-2); margin-right: 6px; }
+.fx-campo .fx-input { flex: 1; min-width: 0; border: 0 !important; outline: 0 !important; box-shadow: none !important; background: transparent !important; color: var(--text); text-align: right; font: inherit; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; padding: 8px 0 !important; height: auto !important; min-height: 0 !important; border-radius: 0 !important; width: 100%; }
+.fx-input::placeholder { color: rgba(127,127,127,.55); font-weight: 400; }
+.fx-subtotal { border-top: 1px dashed var(--border, #D6D6D6); margin-top: 4px; padding-top: 9px; }
+.fx-subtotal .fx-rot { font-weight: 700; color: var(--text-2); }
+.fx-subtotal b { width: 168px; text-align: right; font-variant-numeric: tabular-nums; padding-right: 10px; }
+.fx-lucro { background: rgba(127,127,127,.07); border-radius: 10px; padding: 8px 10px; margin: 10px -10px 0; }
+.fx-lucro .fx-campo.auto { border-style: dashed; }
+.fx-lucro .fx-campo.manual { border-color: #D9A441; }
+.fx-lucro .fx-input { font-weight: 800; }
+.fx-badge { font-size: 10px; font-weight: 700; padding: 1px 8px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+.fx-badge.auto { background: rgba(127,127,127,.16); color: var(--text-2); }
+.fx-badge.manual { background: rgba(217,164,65,.2); color: #8A6410; }
+body.theme-dark .fx-badge.manual { color: #E6C34A; }
+.fx-lucro .fx-reset { border: 0 !important; background: none !important; box-shadow: none !important; min-height: 0 !important; padding: 0 !important; cursor: pointer; font-size: 16px; color: var(--text-2); width: 24px; }
+.fx-reset:hover { color: var(--text); }
+.fx-oculto { visibility: hidden; }
+.fx-margem .fx-rot { color: var(--text-2); font-size: 12.5px; }
+.fx-margem b { width: 168px; text-align: right; padding-right: 10px; font-variant-numeric: tabular-nums; }
+.fx-cat .fx-campo { width: 168px; }
+.fx-cat .fx-cat-nome { border: 0 !important; background: none !important; box-shadow: none !important; padding: 0 !important; min-height: 0 !important; height: auto !important; font: inherit; font-size: 13.5px; font-weight: 500; color: var(--text); cursor: pointer; text-align: left; }
+.fx-cat-nome:hover { text-decoration: underline dotted; }
+.fx-cat .fx-cat-del { border: 0 !important; background: none !important; box-shadow: none !important; min-height: 0 !important; padding: 0 !important; cursor: pointer; color: var(--text-2); font-size: 12px; width: 24px; opacity: 0; transition: opacity .12s; }
+.fx-cat:hover .fx-cat-del { opacity: 1; }
+.fx-add { padding: 6px 0 2px; }
+.fx-sug { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid rgba(127,127,127,.14); font-size: 13px; }
+.fx-sug span { flex: 1; min-width: 0; }
+.fx-sug b { font-variant-numeric: tabular-nums; }
+.fx-sug-titulo { margin: 12px 0 2px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }
+.fx-usar { border: 1px solid var(--border, #D6D6D6); background: var(--card, #fff); color: var(--text); font-size: 11.5px; font-weight: 700; padding: 3px 11px; border-radius: 999px; cursor: pointer; }
+.fx-usar:hover { background: rgba(127,127,127,.12); }
+.fx-obs { width: 100%; resize: vertical; min-height: 110px; }
+.fx-tabela tr.fx-clic { cursor: pointer; }
+.fx-tabela tr.fx-clic:hover td { background: rgba(127,127,127,.07); }
+.fx-tabela tr.fx-vazio { cursor: pointer; }
+.fx-tabela .fx-vazio-txt { color: var(--text-2); font-size: 12.5px; text-align: left !important; }
+.fx-tabela tr.fx-total td { border-top: 2px solid var(--border, #D6D6D6); font-weight: 700; }
+@media (max-width: 1100px) { .fx-grid { grid-template-columns: minmax(0, 1fr); } .fx-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .fx-campo, .fx-subtotal b, .fx-margem b { width: 130px; } .fx-kpis { grid-template-columns: minmax(0, 1fr); } }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -13965,48 +14027,98 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <div class="header">
         <div>
           <div class="h-title">Financeiro</div>
-          <div class="h-sub">Evolução mensal de receita, despesas e lucro</div>
+          <div class="h-sub">Fechamento mensal — você preenche os valores; só o lucro é calculado (e pode ser ajustado)</div>
         </div>
-        <div class="h-actions"><button class="btn btn-primary" onclick="openDespesaModal()">+ Nova despesa</button></div>
-      </div>
-
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-title">Evolução mensal</div>
-        <div class="card-sub">Receita = o que entra na conta com as vendas (boleto/anotado só quando pago). Despesas = suas despesas cadastradas + custo do produto e imposto de cada venda (boleto só quando quitado, anotado por pagamento, crédito parcelado dividido mês a mês). Lucro líquido = o que sobra depois de pagar tudo isso. Clique nos valores de Receita/Despesas para ajustar manualmente.</div>
-        <div style="overflow-x:auto;margin-top:12px;">
-          <table class="intel-table stack-table" id="fin-evolucao-table">
-            <thead><tr><th>Mês</th><th class="num">Receita</th><th class="num">Despesas</th><th class="num">Lucro líquido</th><th class="num">Variação</th></tr></thead>
-            <tbody id="fin-evolucao-body"></tbody>
-          </table>
+        <div class="h-actions">
+          <button class="btn btn-soft" onclick="finExportarExcel()">Exportar Excel</button>
+          <button class="btn btn-primary" onclick="openDespesaModal()">+ Nova despesa</button>
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-title">Despesas por categoria</div>
-        <div class="card-sub">Onde o dinheiro está saindo — segue o mês selecionado no filtro de Despesas abaixo</div>
-        <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center;margin-top:14px;">
-          <div style="flex:1 1 220px;min-width:200px;max-width:260px;height:220px;position:relative;">
-            <canvas id="fin-chart-despesas"></canvas>
-            <div id="fin-chart-despesas-empty" class="table-empty hidden" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;">Nenhuma despesa registrada ainda.</div>
+      <div class="subtabs" id="fin-subtabs">
+        <div class="subtab active" data-fin-aba="fechamento" onclick="finIrAba('fechamento')">Fechamento do mês</div>
+        <div class="subtab" data-fin-aba="evolucao" onclick="finIrAba('evolucao')">Evolução</div>
+        <div class="subtab" data-fin-aba="despesas" onclick="finIrAba('despesas')">Despesas lançadas</div>
+      </div>
+
+      <!-- ===== FECHAMENTO DO MÊS ===== -->
+      <div id="fin-aba-fechamento">
+        <div class="fx-mes-bar">
+          <button type="button" class="fx-mes-btn" onclick="finMesAnterior()" title="Mês anterior">‹</button>
+          <select class="input fx-mes-select" id="fin-mes-select" onchange="finEscolherMes(this.value)"></select>
+          <button type="button" class="fx-mes-btn" onclick="finMesProximo()" title="Próximo mês">›</button>
+          <span class="fx-mes-status" id="fin-mes-status"></span>
+        </div>
+        <div class="fx-kpis" id="fin-kpis"></div>
+        <div class="fx-grid">
+          <div class="fx-card fx-demo">
+            <div class="fx-card-head"><div><div class="card-title">Demonstrativo do mês</div><div class="card-sub">Preencha os valores. Campos em branco contam como zero.</div></div></div>
+            <div id="fin-demonstrativo"></div>
           </div>
-          <div id="fin-desp-categoria-ranking" style="flex:1 1 260px;min-width:220px;"></div>
+          <div class="fx-lateral">
+            <div class="fx-card" id="fin-sugestoes"></div>
+            <div class="fx-card">
+              <div class="card-title">Observações do mês</div>
+              <div class="card-sub" style="margin-bottom:8px">Anotações livres: acordos, pendências, o que mudou.</div>
+              <textarea class="input fx-obs" id="fin-obs" rows="6" placeholder="Escreva aqui..." onblur="finSalvarObs(this.value)"></textarea>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-          <div><div class="card-title">Despesas</div><div class="card-sub">Gastos do negócio — dia, valor e categoria</div></div>
+      <!-- ===== EVOLUÇÃO ===== -->
+      <div id="fin-aba-evolucao" class="hidden">
+        <div class="fx-mes-bar">
+          <button type="button" class="fx-mes-btn" onclick="finAnoDelta(-1)" title="Ano anterior">‹</button>
+          <select class="input fx-mes-select" id="fin-ano-select" onchange="finEscolherAno(this.value)"></select>
+          <button type="button" class="fx-mes-btn" onclick="finAnoDelta(1)" title="Próximo ano">›</button>
         </div>
-        <div class="search" style="margin-top:12px;">
-          <input class="input" id="fin-desp-busca" placeholder="Buscar por categoria ou descrição..." oninput="renderDespesas()">
-          <select class="input" id="fin-desp-mes" onchange="renderDespesas()"><option value="">Todos os meses</option></select>
-          <select class="input" id="fin-desp-categoria" onchange="renderDespesas()"><option value="">Todas as categorias</option></select>
+        <div class="fx-kpis" id="fin-kpis-ano"></div>
+        <div class="fx-card" style="margin-bottom:16px">
+          <div class="card-title">Receita, custos e despesas × lucro</div>
+          <div class="card-sub">Mês a mês, a partir do que você preencheu no fechamento</div>
+          <div style="height:260px;position:relative;margin-top:10px"><canvas id="fin-chart-evolucao"></canvas></div>
         </div>
-        <div style="overflow-x:auto;margin-top:12px;">
-          <table class="stack-table" id="fin-desp-table-el">
-            <thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Pagamento</th><th class="num">Valor</th><th>Ações</th></tr></thead>
-            <tbody id="fin-desp-table"></tbody>
-          </table>
+        <div class="fx-card">
+          <div class="card-title">Resumo do ano</div>
+          <div class="card-sub">Clique em um mês para abrir o fechamento dele</div>
+          <div style="overflow-x:auto;margin-top:10px">
+            <table class="intel-table stack-table fx-tabela" id="fin-evolucao-table">
+              <thead><tr><th>Mês</th><th class="num">Receita</th><th class="num">Custos</th><th class="num">Lucro bruto</th><th class="num">Despesas</th><th class="num">Lucro líquido</th><th class="num">Margem</th><th class="num">Variação</th></tr></thead>
+              <tbody id="fin-evolucao-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== DESPESAS LANÇADAS ===== -->
+      <div id="fin-aba-despesas" class="hidden">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Despesas por categoria</div>
+          <div class="card-sub">Onde o dinheiro está saindo — segue o mês selecionado no filtro de Despesas abaixo</div>
+          <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center;margin-top:14px;">
+            <div style="flex:1 1 220px;min-width:200px;max-width:260px;height:220px;position:relative;">
+              <canvas id="fin-chart-despesas"></canvas>
+              <div id="fin-chart-despesas-empty" class="table-empty hidden" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;">Nenhuma despesa registrada ainda.</div>
+            </div>
+            <div id="fin-desp-categoria-ranking" style="flex:1 1 260px;min-width:220px;"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div><div class="card-title">Despesas</div><div class="card-sub">Lançamentos do dia a dia (boletos, cartão, anotado). Servem de consulta e de sugestão para o fechamento do mês.</div></div>
+          </div>
+          <div class="search" style="margin-top:12px;">
+            <input class="input" id="fin-desp-busca" placeholder="Buscar por categoria ou descrição..." oninput="renderDespesas()">
+            <select class="input" id="fin-desp-mes" onchange="renderDespesas()"><option value="">Todos os meses</option></select>
+            <select class="input" id="fin-desp-categoria" onchange="renderDespesas()"><option value="">Todas as categorias</option></select>
+          </div>
+          <div style="overflow-x:auto;margin-top:12px;">
+            <table class="stack-table" id="fin-desp-table-el">
+              <thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Pagamento</th><th class="num">Valor</th><th>Ações</th></tr></thead>
+              <tbody id="fin-desp-table"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -18432,15 +18544,543 @@ async function loadFinanceiroAjustes() {
   state.financeiroAjustes = data || [];
   return state.financeiroAjustes;
 }
+/* ============ FINANCEIRO — fechamento mensal manual ============ */
+// Você preenche os valores de cada mês; só o lucro (bruto e líquido) é calculado — e pode ser
+// sobrescrito. Tudo fica numa linha própria da tabela gso_calc_store (id "financeiro_v1"), então
+// vale em qualquer computador. O que o sistema calcula (vendas, custos, despesas lançadas) aparece
+// só como SUGESTÃO ao lado, com botão "Usar" — nunca preenche sozinho.
+const FIN_STORE_ID = 'financeiro_v1';
+const FIN_CATEGORIAS_PADRAO = ['Salários / Pró-labore', 'Aluguel', 'Energia / Água / Internet', 'Contabilidade', 'Marketing / Anúncios', 'Frete / Transporte', 'Manutenção / Equipamentos', 'Embalagens', 'Matéria-prima / Insumos', 'Impostos / Taxas', 'Outras despesas'];
+const FIN_LINHAS_RECEITA = [['receita_vendas', 'Faturamento de vendas'], ['receita_outras', 'Outras receitas']];
+const FIN_LINHAS_CUSTO = [['impostos', 'Impostos sobre vendas'], ['cmv', 'Custo dos produtos vendidos'], ['taxas', 'Taxas de cartão e marketplace'], ['fretes', 'Fretes das vendas']];
+const FIN_MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const FIN_MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const FIN = { carregado: false, store: null, mes: '', ano: 0, aba: 'fechamento', pendentes: new Set(), catsAlteradas: false, timer: null, chart: null };
+
+function finParse(str) {
+  let s = String(str == null ? '' : str).replace(/R\$|\s/g, '').trim();
+  if (!s) return null;
+  const neg = s.startsWith('-'); s = s.replace(/[^\d.,]/g, '');
+  if (!s) return null;
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? (neg ? -n : n) : null;
+}
+function finMesLabel(mes) { const [y, m] = String(mes).split('-'); return (FIN_MESES_NOME[Number(m) - 1] || mes) + ' de ' + y; }
+function finSlug(s) { return nameKey(s).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || ('c' + Date.now()); }
+function finStoreVazio() { return { versao: 1, categorias: FIN_CATEGORIAS_PADRAO.map(n => ({ id: finSlug(n), nome: n })), meses: {} }; }
+function finMesKey(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function finNumFmt(v) { return v == null || v === '' ? '' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function finMes(mes, criar) {
+  let m = FIN.store.meses[mes];
+  if (!m && criar) m = FIN.store.meses[mes] = { desp: {} };
+  if (m && !m.desp) m.desp = {};
+  return m || null;
+}
+function finCalc(m) {
+  m = m || {};
+  const n = k => Number(m[k]) || 0;
+  const receita = n('receita_vendas') + n('receita_outras');
+  const custos = n('impostos') + n('cmv') + n('taxas') + n('fretes');
+  const lucroBrutoAuto = round2(receita - custos);
+  const lbManual = m.lucro_bruto_manual != null;
+  const lucroBruto = lbManual ? Number(m.lucro_bruto_manual) : lucroBrutoAuto;
+  const desp = round2(Object.values(m.desp || {}).reduce((s, v) => s + (Number(v) || 0), 0));
+  const lucroLiquidoAuto = round2(lucroBruto - desp);
+  const llManual = m.lucro_liquido_manual != null;
+  const lucroLiquido = llManual ? Number(m.lucro_liquido_manual) : lucroLiquidoAuto;
+  const temDados = receita !== 0 || custos !== 0 || desp !== 0 || lbManual || llManual;
+  return { receita: round2(receita), custos: round2(custos), lucroBrutoAuto, lucroBruto, lbManual, desp, lucroLiquidoAuto, lucroLiquido, llManual, temDados, margem: receita > 0 ? (lucroLiquido / receita) * 100 : null };
+}
+
+async function finBuscarRemoto() {
+  const client = getSupabaseClient();
+  const session = await getSupabaseSession();
+  if (!client || !session) return null;
+  const { data, error } = await client.from('gso_calc_store').select('data').eq('id', FIN_STORE_ID).maybeSingle();
+  if (error) { console.warn('Financeiro: não consegui ler', error.message); return null; }
+  return data && data.data && data.data.meses ? data.data : null;
+}
+async function loadFinStore() {
+  if (FIN.pendentes.size) return; // há edição ainda não gravada: não sobrescreve
+  const remoto = await finBuscarRemoto();
+  FIN.store = remoto || FIN.store || finStoreVazio();
+  if (!Array.isArray(FIN.store.categorias) || !FIN.store.categorias.length) FIN.store.categorias = finStoreVazio().categorias;
+  FIN.carregado = true;
+}
+function finStatus(txt, erro) {
+  const el = document.getElementById('fin-mes-status');
+  if (!el) return;
+  el.textContent = txt || '';
+  el.style.color = erro ? 'var(--red-text, #B0322F)' : '';
+}
+function finAgendarSalvar(mes, categorias) {
+  if (mes) FIN.pendentes.add(mes);
+  if (categorias) FIN.catsAlteradas = true;
+  finStatus('Salvando…');
+  clearTimeout(FIN.timer);
+  FIN.timer = setTimeout(finPersistir, 600);
+}
+async function finPersistir() {
+  const client = getSupabaseClient();
+  const session = await getSupabaseSession();
+  if (!client || !session) { finStatus('Sem conexão — não salvou', true); return; }
+  const meses = [...FIN.pendentes];
+  const cats = FIN.catsAlteradas;
+  try {
+    // Lê o que já está gravado e troca só os meses mexidos (duas pessoas editando meses diferentes não se atropelam).
+    const remoto = (await finBuscarRemoto()) || finStoreVazio();
+    meses.forEach(mes => {
+      const local = FIN.store.meses[mes];
+      if (local && (finCalc(local).temDados || local.obs)) remoto.meses[mes] = local; else delete remoto.meses[mes];
+    });
+    if (cats || !Array.isArray(remoto.categorias) || !remoto.categorias.length) remoto.categorias = FIN.store.categorias;
+    const { error } = await client.from('gso_calc_store').upsert({ id: FIN_STORE_ID, data: remoto, updated_at: new Date().toISOString() });
+    if (error) throw error;
+    meses.forEach(m => FIN.pendentes.delete(m));
+    if (cats) FIN.catsAlteradas = false;
+    Object.keys(remoto.meses).forEach(m => { if (!FIN.pendentes.has(m)) FIN.store.meses[m] = remoto.meses[m]; });
+    if (!FIN.catsAlteradas) FIN.store.categorias = remoto.categorias;
+    finStatus('Salvo ✓');
+    setTimeout(() => { const el = document.getElementById('fin-mes-status'); if (el && el.textContent === 'Salvo ✓') el.textContent = ''; }, 2500);
+  } catch (err) {
+    console.warn('Financeiro: erro ao salvar', err);
+    finStatus('Não consegui salvar: ' + (err.message || err), true);
+  }
+}
+
+function finMesesDisponiveis() {
+  const atual = finMesKey(new Date());
+  const todos = new Set([atual, FIN.mes].filter(Boolean));
+  Object.keys(FIN.store.meses).forEach(m => todos.add(m));
+  let ini = '2026-01';
+  const ord = [...todos].sort();
+  if (ord[0] < ini) ini = ord[0];
+  const fim = ord[ord.length - 1] > atual ? ord[ord.length - 1] : atual;
+  const out = [];
+  let [y, mo] = ini.split('-').map(Number);
+  while (true) {
+    const k = y + '-' + String(mo).padStart(2, '0');
+    out.push(k);
+    if (k >= fim) break;
+    mo++; if (mo > 12) { mo = 1; y++; }
+  }
+  return out;
+}
+function finRenderMesSelect() {
+  const sel = document.getElementById('fin-mes-select');
+  if (!sel) return;
+  const lista = finMesesDisponiveis();
+  sel.innerHTML = lista.slice().reverse().map(m => `<option value="${m}"${m === FIN.mes ? ' selected' : ''}>${escapeHtml(finMesLabel(m))}${FIN.store.meses[m] && finCalc(FIN.store.meses[m]).temDados ? ' •' : ''}</option>`).join('');
+}
+function finEscolherMes(m) { FIN.mes = m; FIN.ano = Number(m.slice(0, 4)); finRenderTudo(); }
+function finMesAnterior() { const l = finMesesDisponiveis(); const i = l.indexOf(FIN.mes); if (i > 0) finEscolherMes(l[i - 1]); }
+function finMesProximo() { const l = finMesesDisponiveis(); const i = l.indexOf(FIN.mes); if (i >= 0 && i < l.length - 1) finEscolherMes(l[i + 1]); }
+
+function finIrAba(aba) {
+  FIN.aba = aba;
+  ['fechamento', 'evolucao', 'despesas'].forEach(a => document.getElementById('fin-aba-' + a)?.classList.toggle('hidden', a !== aba));
+  document.querySelectorAll('#fin-subtabs .subtab').forEach(el => el.classList.toggle('active', el.dataset.finAba === aba));
+  if (aba === 'evolucao') finRenderEvolucao();
+  if (aba === 'despesas') renderDespesas();
+}
+
+/* ---- Fechamento do mês ---- */
+function finCampoHtml(campo, valor, extraClasse) {
+  return `<span class="fx-campo${extraClasse ? ' ' + extraClasse : ''}"><i>R$</i><input class="fx-input" type="text" inputmode="decimal" placeholder="0,00" data-campo="${escapeHtml(campo)}" value="${finNumFmt(valor)}" onfocus="finFoco(this)" onblur="finSalvarCampo(this)" onkeydown="if(event.key==='Enter')this.blur()"></span>`;
+}
+function finLinhaHtml(rot, campo, valor) {
+  return `<div class="fx-linha"><span class="fx-rot">${escapeHtml(rot)}</span>${finCampoHtml(campo, valor)}</div>`;
+}
+function finRenderDemonstrativo(m) {
+  const c = finCalc(m);
+  const d = (m && m.desp) || {};
+  const catsHtml = FIN.store.categorias.map(cat => `
+    <div class="fx-linha fx-cat">
+      <span class="fx-rot"><button type="button" class="fx-cat-nome" onclick="finRenomearCategoria('${cat.id}')" title="Clique para renomear">${escapeHtml(cat.nome)}</button></span>
+      ${finCampoHtml('desp:' + cat.id, d[cat.id])}
+      <button type="button" class="fx-cat-del" onclick="finRemoverCategoria('${cat.id}')" title="Remover esta categoria" aria-label="Remover categoria">✕</button>
+    </div>`).join('');
+  const lucroLinha = (campo, rot, valor, manual, auto) => `
+    <div class="fx-linha fx-lucro">
+      <span class="fx-rot"><b>${rot}</b> <span class="fx-badge ${manual ? 'manual' : 'auto'}" id="fin-badge-${campo}">${manual ? 'ajustado' : 'calculado'}</span></span>
+      ${finCampoHtml(campo, valor, manual ? 'manual' : 'auto')}
+      <button type="button" class="fx-reset${manual ? '' : ' fx-oculto'}" id="fin-reset-${campo}" onclick="finRestaurarLucro('${campo}')" title="Voltar ao valor calculado (R$ ${finNumFmt(auto)})">↺</button>
+    </div>`;
+  return `
+    <div class="fx-secao">Receitas</div>
+    ${FIN_LINHAS_RECEITA.map(([k, r]) => finLinhaHtml(r, k, m && m[k])).join('')}
+    <div class="fx-linha fx-subtotal"><span class="fx-rot">Receita total</span><b id="fin-t-receita">${fmtBR(c.receita)}</b></div>
+
+    <div class="fx-secao">(−) Custos e deduções das vendas</div>
+    ${FIN_LINHAS_CUSTO.map(([k, r]) => finLinhaHtml(r, k, m && m[k])).join('')}
+    <div class="fx-linha fx-subtotal"><span class="fx-rot">Total de custos</span><b id="fin-t-custos">${fmtBR(c.custos)}</b></div>
+    ${lucroLinha('lucro_bruto', 'Lucro bruto', c.lucroBruto, c.lbManual, c.lucroBrutoAuto)}
+
+    <div class="fx-secao">(−) Despesas operacionais</div>
+    ${catsHtml}
+    <div class="fx-add"><button type="button" class="btn btn-small btn-soft" onclick="finAdicionarCategoria()">+ Adicionar categoria</button></div>
+    <div class="fx-linha fx-subtotal"><span class="fx-rot">Total de despesas</span><b id="fin-t-despesas">${fmtBR(c.desp)}</b></div>
+    ${lucroLinha('lucro_liquido', 'Lucro líquido', c.lucroLiquido, c.llManual, c.lucroLiquidoAuto)}
+    <div class="fx-linha fx-margem"><span class="fx-rot">Margem líquida</span><b id="fin-t-margem">${c.margem == null ? '—' : String(round2(c.margem)).replace('.', ',') + '%'}</b></div>`;
+}
+function finKpiHtml(rotulo, valor, sub, cls) {
+  return `<div class="fx-kpi${cls ? ' ' + cls : ''}"><span>${escapeHtml(rotulo)}</span><strong>${valor}</strong><small>${sub || '&nbsp;'}</small></div>`;
+}
+function finVariacaoTexto(atual, anterior, rotulo) {
+  if (anterior == null) return '';
+  if (anterior === 0) return atual === 0 ? '' : `${rotulo}: novo`;
+  const pct = round2(((atual - anterior) / Math.abs(anterior)) * 100);
+  return `${pct > 0 ? '▲' : (pct < 0 ? '▼' : '=')} ${Math.abs(pct).toString().replace('.', ',')}% ${rotulo}`;
+}
+function finRenderKpis() {
+  const el = document.getElementById('fin-kpis');
+  if (!el) return;
+  const m = finMes(FIN.mes);
+  const c = finCalc(m);
+  const lista = finMesesDisponiveis();
+  const i = lista.indexOf(FIN.mes);
+  const ant = i > 0 ? finMes(lista[i - 1]) : null;
+  const ca = ant ? finCalc(ant) : null;
+  const neg = c.lucroLiquido < 0;
+  el.innerHTML =
+    finKpiHtml('Receita total', fmtBR(c.receita), finVariacaoTexto(c.receita, ca && ca.temDados ? ca.receita : null, 'vs mês anterior')) +
+    finKpiHtml('Custos + despesas', fmtBR(round2(c.custos + c.desp)), 'Custos ' + fmtBR(c.custos) + ' · Despesas ' + fmtBR(c.desp)) +
+    finKpiHtml('Lucro líquido', fmtBR(c.lucroLiquido), (c.llManual ? 'ajustado por você' : 'calculado') + (ca && ca.temDados ? ' · ' + finVariacaoTexto(c.lucroLiquido, ca.lucroLiquido, 'vs anterior') : ''), neg ? 'fx-neg' : 'fx-pos') +
+    finKpiHtml('Margem líquida', c.margem == null ? '—' : String(round2(c.margem)).replace('.', ',') + '%', 'lucro líquido ÷ receita total');
+}
+function finAtualizarTotais() {
+  const m = finMes(FIN.mes);
+  const c = finCalc(m);
+  const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  set('fin-t-receita', fmtBR(c.receita));
+  set('fin-t-custos', fmtBR(c.custos));
+  set('fin-t-despesas', fmtBR(c.desp));
+  set('fin-t-margem', c.margem == null ? '—' : String(round2(c.margem)).replace('.', ',') + '%');
+  [['lucro_bruto', c.lucroBruto, c.lbManual, c.lucroBrutoAuto], ['lucro_liquido', c.lucroLiquido, c.llManual, c.lucroLiquidoAuto]].forEach(([campo, valor, manual, auto]) => {
+    const inp = document.querySelector(`#fin-demonstrativo input[data-campo="${campo}"]`);
+    if (inp && document.activeElement !== inp) inp.value = finNumFmt(valor);
+    if (inp) { const w = inp.closest('.fx-campo'); w.classList.toggle('manual', manual); w.classList.toggle('auto', !manual); }
+    const b = document.getElementById('fin-badge-' + campo); if (b) { b.textContent = manual ? 'ajustado' : 'calculado'; b.className = 'fx-badge ' + (manual ? 'manual' : 'auto'); }
+    const r = document.getElementById('fin-reset-' + campo); if (r) { r.classList.toggle('fx-oculto', !manual); r.title = 'Voltar ao valor calculado (R$ ' + finNumFmt(auto) + ')'; }
+  });
+  finRenderKpis();
+}
+function finFoco(inp) {
+  const v = finParse(inp.value);
+  inp.value = v == null ? '' : v.toFixed(2).replace('.', ',');
+  try { inp.select(); } catch (e) {}
+}
+function finSalvarCampo(inp) {
+  const campo = inp.dataset.campo;
+  const valor = finParse(inp.value);
+  const m = finMes(FIN.mes, true);
+  if (campo === 'lucro_bruto' || campo === 'lucro_liquido') {
+    const c = finCalc(m);
+    const chave = campo + '_manual';
+    const auto = campo === 'lucro_bruto' ? c.lucroBrutoAuto : null;
+    if (valor == null) delete m[chave];
+    else {
+      // compara com o valor automático que valeria SEM este ajuste
+      const sem = Object.assign({}, m); delete sem[chave];
+      const cSem = finCalc(sem);
+      const alvo = campo === 'lucro_bruto' ? cSem.lucroBrutoAuto : cSem.lucroLiquidoAuto;
+      if (round2(valor) === round2(alvo)) delete m[chave]; else m[chave] = round2(valor);
+    }
+  } else if (campo.startsWith('desp:')) {
+    const id = campo.slice(5);
+    if (valor == null) delete m.desp[id]; else m.desp[id] = round2(valor);
+  } else {
+    if (valor == null) delete m[campo]; else m[campo] = round2(valor);
+  }
+  inp.value = finNumFmt(valor);
+  if (campo === 'lucro_bruto' || campo === 'lucro_liquido') {
+    // se limpou/igualou, volta a mostrar o calculado
+    const c = finCalc(m);
+    inp.value = finNumFmt(campo === 'lucro_bruto' ? c.lucroBruto : c.lucroLiquido);
+  }
+  finAtualizarTotais();
+  finAgendarSalvar(FIN.mes);
+  finRenderMesSelectSeMudou();
+}
+function finRenderMesSelectSeMudou() {
+  const sel = document.getElementById('fin-mes-select');
+  if (!sel) return;
+  const opt = [...sel.options].find(o => o.value === FIN.mes);
+  const tem = finCalc(finMes(FIN.mes)).temDados;
+  if (opt && (opt.textContent.endsWith('•') !== tem)) finRenderMesSelect();
+}
+function finRestaurarLucro(campo) {
+  const m = finMes(FIN.mes);
+  if (!m) return;
+  delete m[campo + '_manual'];
+  const inp = document.querySelector(`#fin-demonstrativo input[data-campo="${campo}"]`);
+  if (inp) { const c = finCalc(m); inp.value = finNumFmt(campo === 'lucro_bruto' ? c.lucroBruto : c.lucroLiquido); }
+  finAtualizarTotais();
+  finAgendarSalvar(FIN.mes);
+}
+function finSalvarObs(txt) {
+  const m = finMes(FIN.mes, true);
+  const t = String(txt || '').trim();
+  if ((m.obs || '') === t) return;
+  if (t) m.obs = t; else delete m.obs;
+  finAgendarSalvar(FIN.mes);
+}
+function finAdicionarCategoria() {
+  const nome = (prompt('Nome da nova categoria de despesa:') || '').trim();
+  if (!nome) return;
+  if (FIN.store.categorias.some(c => nameKey(c.nome) === nameKey(nome))) { alert('Já existe uma categoria com esse nome.'); return; }
+  let id = finSlug(nome); while (FIN.store.categorias.some(c => c.id === id)) id += '_';
+  FIN.store.categorias.push({ id, nome });
+  finAgendarSalvar(null, true);
+  finRenderFechamento();
+}
+function finRenomearCategoria(id) {
+  const cat = FIN.store.categorias.find(c => c.id === id);
+  if (!cat) return;
+  const nome = (prompt('Novo nome da categoria:', cat.nome) || '').trim();
+  if (!nome || nome === cat.nome) return;
+  if (FIN.store.categorias.some(c => c.id !== id && nameKey(c.nome) === nameKey(nome))) { alert('Já existe uma categoria com esse nome.'); return; }
+  cat.nome = nome;
+  finAgendarSalvar(null, true);
+  finRenderFechamento();
+}
+function finRemoverCategoria(id) {
+  const cat = FIN.store.categorias.find(c => c.id === id);
+  if (!cat) return;
+  const usada = Object.values(FIN.store.meses).some(m => m.desp && m.desp[id] != null);
+  if (!confirm(`Remover a categoria "${cat.nome}"?` + (usada ? '\n\nOs valores já preenchidos nela, em todos os meses, serão apagados.' : ''))) return;
+  FIN.store.categorias = FIN.store.categorias.filter(c => c.id !== id);
+  const mexidos = [];
+  Object.entries(FIN.store.meses).forEach(([mes, m]) => { if (m.desp && m.desp[id] != null) { delete m.desp[id]; mexidos.push(mes); } });
+  mexidos.forEach(mes => FIN.pendentes.add(mes));
+  finAgendarSalvar(mexidos[0] || null, true);
+  finRenderFechamento();
+}
+
+/* ---- Sugestões do sistema (só consulta; "Usar" é opcional) ---- */
+function finSugestoesDoMes(mes) {
+  const fat = (computeMensal().find(x => x.mes === mes) || {}).fat;
+  const lb = computeLucroBrutoMensal().map[mes];
+  const custoSistema = (fat != null && lb != null) ? round2(fat - lb) : null;
+  const porCat = {};
+  state.despesas.forEach(d => despesaExpenseEntries(d).forEach(entry => {
+    const dt = dashboardDateObj(entry.data);
+    if (!dt || finMesKey(dt) !== mes) return;
+    const nome = despesaCategoriaLabel(d) || 'Outras despesas';
+    porCat[nome] = round2((porCat[nome] || 0) + entry.valor);
+  }));
+  return { fat: fat != null ? round2(fat) : null, custoSistema, despesas: Object.entries(porCat).map(([nome, valor]) => ({ nome, valor })).sort((a, b) => b.valor - a.valor) };
+}
+function finRenderSugestoes() {
+  const el = document.getElementById('fin-sugestoes');
+  if (!el) return;
+  const s = finSugestoesDoMes(FIN.mes);
+  const linha = (rot, valor, onclick) => `<div class="fx-sug"><span>${escapeHtml(rot)}</span><b>${fmtBR(valor)}</b><button type="button" class="fx-usar" onclick="${onclick}">Usar</button></div>`;
+  let html = '<div class="card-title">Sugestões do sistema</div><div class="card-sub" style="margin-bottom:10px">Só para consulta — nada é preenchido sozinho. Clique em "Usar" para copiar o valor para o campo.</div>';
+  if (s.fat != null) html += linha('Faturamento de vendas', s.fat, `finUsarSugestao('receita_vendas', ${s.fat})`);
+  if (s.custoSistema != null) html += linha('Custo + impostos das vendas', s.custoSistema, `finUsarSugestao('cmv', ${s.custoSistema})`);
+  if (s.despesas.length) {
+    html += '<div class="fx-sug-titulo">Despesas lançadas neste mês</div>';
+    html += s.despesas.map((d, i) => linha(d.nome, d.valor, `finUsarDespesa(${i})`)).join('');
+    html += '<div style="margin-top:8px"><button type="button" class="btn btn-small btn-soft" onclick="finUsarTodasDespesas()">Usar todas as despesas lançadas</button></div>';
+  }
+  if (s.fat == null && s.custoSistema == null && !s.despesas.length) html += '<div class="table-empty" style="padding:14px 0">O sistema não tem vendas nem despesas lançadas neste mês.</div>';
+  el.innerHTML = html;
+  FIN.sugestoes = s;
+}
+function finConfirmarSubstituir(rot, atual) {
+  return atual == null || confirm(`"${rot}" já está preenchido com R$ ${finNumFmt(atual)}. Substituir pelo valor sugerido?`);
+}
+function finUsarSugestao(campo, valor) {
+  const m = finMes(FIN.mes, true);
+  if (!finConfirmarSubstituir(campo === 'receita_vendas' ? 'Faturamento de vendas' : 'Custo dos produtos vendidos', m[campo])) return;
+  m[campo] = round2(valor);
+  finAgendarSalvar(FIN.mes);
+  finRenderFechamento();
+}
+function finGarantirCategoria(nome) {
+  let cat = FIN.store.categorias.find(c => nameKey(c.nome) === nameKey(nome));
+  if (cat) return cat;
+  let id = finSlug(nome); while (FIN.store.categorias.some(c => c.id === id)) id += '_';
+  cat = { id, nome };
+  FIN.store.categorias.push(cat);
+  FIN.catsAlteradas = true;
+  return cat;
+}
+function finUsarDespesa(i) {
+  const d = FIN.sugestoes && FIN.sugestoes.despesas[i];
+  if (!d) return;
+  const m = finMes(FIN.mes, true);
+  const cat = finGarantirCategoria(d.nome);
+  if (!finConfirmarSubstituir(cat.nome, m.desp[cat.id])) return;
+  m.desp[cat.id] = d.valor;
+  finAgendarSalvar(FIN.mes, true);
+  finRenderFechamento();
+}
+function finUsarTodasDespesas() {
+  const s = FIN.sugestoes;
+  if (!s || !s.despesas.length) return;
+  const m = finMes(FIN.mes, true);
+  const preenchidas = s.despesas.filter(d => { const c = FIN.store.categorias.find(x => nameKey(x.nome) === nameKey(d.nome)); return c && m.desp[c.id] != null; });
+  if (preenchidas.length && !confirm('Algumas categorias já têm valor e serão substituídas pelas despesas lançadas. Continuar?')) return;
+  s.despesas.forEach(d => { const cat = finGarantirCategoria(d.nome); m.desp[cat.id] = d.valor; });
+  finAgendarSalvar(FIN.mes, true);
+  finRenderFechamento();
+}
+
+function finRenderFechamento() {
+  const m = finMes(FIN.mes);
+  const demo = document.getElementById('fin-demonstrativo');
+  if (demo) demo.innerHTML = finRenderDemonstrativo(m);
+  const obs = document.getElementById('fin-obs');
+  if (obs) obs.value = (m && m.obs) || '';
+  finRenderKpis();
+  finRenderSugestoes();
+}
+
+/* ---- Evolução (ano) ---- */
+function finAnosDisponiveis() {
+  const anos = new Set([new Date().getFullYear(), 2026]);
+  Object.keys(FIN.store.meses).forEach(m => anos.add(Number(m.slice(0, 4))));
+  return [...anos].sort((a, b) => a - b);
+}
+function finEscolherAno(a) { FIN.ano = Number(a); finRenderEvolucao(); }
+function finAnoDelta(d) { const l = finAnosDisponiveis(); const i = l.indexOf(FIN.ano); const n = l[i + d]; if (n != null) finEscolherAno(n); }
+function finDadosAno(ano) {
+  return FIN_MESES_ABREV.map((ab, i) => {
+    const mes = ano + '-' + String(i + 1).padStart(2, '0');
+    const m = FIN.store.meses[mes];
+    const c = finCalc(m);
+    return { mes, ab, m, c };
+  });
+}
+function finRenderEvolucao() {
+  const selAno = document.getElementById('fin-ano-select');
+  if (selAno) selAno.innerHTML = finAnosDisponiveis().slice().reverse().map(a => `<option value="${a}"${a === FIN.ano ? ' selected' : ''}>${a}</option>`).join('');
+  const dados = finDadosAno(FIN.ano);
+  const tot = dados.reduce((t, d) => { if (d.c.temDados) { t.receita += d.c.receita; t.custos += d.c.custos; t.lb += d.c.lucroBruto; t.desp += d.c.desp; t.ll += d.c.lucroLiquido; } return t; }, { receita: 0, custos: 0, lb: 0, desp: 0, ll: 0 });
+  const margemAno = tot.receita > 0 ? (tot.ll / tot.receita) * 100 : null;
+  const kp = document.getElementById('fin-kpis-ano');
+  if (kp) kp.innerHTML =
+    finKpiHtml('Receita do ano', fmtBR(round2(tot.receita)), String(FIN.ano)) +
+    finKpiHtml('Custos + despesas', fmtBR(round2(tot.custos + tot.desp)), 'Custos ' + fmtBR(round2(tot.custos)) + ' · Despesas ' + fmtBR(round2(tot.desp))) +
+    finKpiHtml('Lucro líquido do ano', fmtBR(round2(tot.ll)), 'soma dos meses preenchidos', tot.ll < 0 ? 'fx-neg' : 'fx-pos') +
+    finKpiHtml('Margem líquida', margemAno == null ? '—' : String(round2(margemAno)).replace('.', ',') + '%', 'lucro ÷ receita do ano');
+  const body = document.getElementById('fin-evolucao-body');
+  if (body) {
+    let anterior = null;
+    body.innerHTML = dados.map(d => {
+      if (!d.c.temDados) return `<tr class="fx-vazio" onclick="finAbrirMes('${d.mes}')"><td class="strong stack-title">${finMesLabel(d.mes)}</td><td colspan="7" class="fx-vazio-txt">sem lançamentos — clique para preencher</td></tr>`;
+      let varHtml = '<span style="color:var(--text-2)">—</span>';
+      if (anterior != null) {
+        if (anterior === 0) varHtml = d.c.lucroLiquido ? '<span class="pill pill-' + (d.c.lucroLiquido > 0 ? 'green' : 'red') + '">novo</span>' : '—';
+        else { const pct = round2(((d.c.lucroLiquido - anterior) / Math.abs(anterior)) * 100); varHtml = `<span class="pill ${pct > 0 ? 'pill-green' : (pct < 0 ? 'pill-red' : 'pill-blue')}">${pct > 0 ? '+' : ''}${pct}%</span>`; }
+      }
+      anterior = d.c.lucroLiquido;
+      return `<tr class="fx-clic" onclick="finAbrirMes('${d.mes}')">
+        <td class="strong stack-title">${finMesLabel(d.mes)}</td>
+        <td class="num" data-label="Receita">${fmtBR(d.c.receita)}</td>
+        <td class="num" data-label="Custos">${fmtBR(d.c.custos)}</td>
+        <td class="num" data-label="Lucro bruto">${fmtBR(d.c.lucroBruto)}</td>
+        <td class="num" data-label="Despesas">${fmtBR(d.c.desp)}</td>
+        <td class="num" data-label="Lucro líquido"><span class="fin-lucro-final${d.c.lucroLiquido < 0 ? ' fin-lucro-neg' : ''}">${fmtBR(d.c.lucroLiquido)}</span></td>
+        <td class="num" data-label="Margem">${d.c.margem == null ? '—' : String(round2(d.c.margem)).replace('.', ',') + '%'}</td>
+        <td class="num" data-label="Variação">${varHtml}</td></tr>`;
+    }).join('') + `<tr class="fx-total"><td class="strong">Total ${FIN.ano}</td><td class="num">${fmtBR(round2(tot.receita))}</td><td class="num">${fmtBR(round2(tot.custos))}</td><td class="num">${fmtBR(round2(tot.lb))}</td><td class="num">${fmtBR(round2(tot.desp))}</td><td class="num"><b>${fmtBR(round2(tot.ll))}</b></td><td class="num">${margemAno == null ? '—' : String(round2(margemAno)).replace('.', ',') + '%'}</td><td></td></tr>`;
+  }
+  finRenderGraficoEvolucao(dados);
+}
+function finAbrirMes(mes) { finEscolherMes(mes); finIrAba('fechamento'); }
+function finRenderGraficoEvolucao(dados) {
+  const canvas = document.getElementById('fin-chart-evolucao');
+  if (!canvas || typeof Chart === 'undefined') return;
+  if (FIN.chart) { FIN.chart.destroy(); FIN.chart = null; }
+  const escuro = isDarkThemeEnabled();
+  const cinza = escuro ? '#B3B3B3' : '#8A8A8A', claro = escuro ? '#6E6E6E' : '#C9C9C9', verde = escuro ? '#34D399' : '#2E8B57', texto = escuro ? '#DADADA' : '#555';
+  FIN.chart = new Chart(canvas, {
+    data: {
+      labels: dados.map(d => d.ab),
+      datasets: [
+        { type: 'bar', label: 'Receita', data: dados.map(d => d.c.temDados ? d.c.receita : null), backgroundColor: cinza, borderRadius: 4, order: 2 },
+        { type: 'bar', label: 'Custos + despesas', data: dados.map(d => d.c.temDados ? round2(d.c.custos + d.c.desp) : null), backgroundColor: claro, borderRadius: 4, order: 1 },
+        { type: 'line', order: 0, label: 'Lucro líquido', borderWidth: 3, data: dados.map(d => d.c.temDados ? d.c.lucroLiquido : null), borderColor: verde, backgroundColor: verde, tension: .3, pointRadius: 4, spanGaps: true }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: texto, boxWidth: 12 } }, tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmtBR(ctx.parsed.y) } } }, scales: { x: { ticks: { color: texto }, grid: { display: false } }, y: { ticks: { color: texto, callback: v => 'R$ ' + Number(v).toLocaleString('pt-BR') }, grid: { color: escuro ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)' } } } }
+  });
+}
+
+/* ---- Exportar Excel (ano) ---- */
+async function finExportarExcel() {
+  if (!FIN.store) { alert('O Financeiro ainda está carregando.'); return; }
+  const dados = finDadosAno(FIN.ano).filter(d => d.c.temDados);
+  if (!dados.length) { alert('Não há meses preenchidos em ' + FIN.ano + ' para exportar.'); return; }
+  const linhas = dados.map(d => ({
+    mes: finMesLabel(d.mes), vendas: Number(d.m.receita_vendas) || 0, outras: Number(d.m.receita_outras) || 0, receita: d.c.receita,
+    impostos: Number(d.m.impostos) || 0, cmv: Number(d.m.cmv) || 0, taxas: Number(d.m.taxas) || 0, fretes: Number(d.m.fretes) || 0, custos: d.c.custos,
+    lucroBruto: d.c.lucroBruto, despesas: d.c.desp, lucroLiquido: d.c.lucroLiquido, margem: d.c.margem == null ? null : d.c.margem / 100, obs: d.m.obs || ''
+  }));
+  const receitaAno = linhas.reduce((s, l) => s + l.receita, 0), lucroAno = linhas.reduce((s, l) => s + l.lucroLiquido, 0);
+  const colsCat = FIN_MESES_ABREV.map((ab, i) => ({ cab: ab, chave: 'm' + i, tipo: 'dinheiro', total: true, larg: 13 }));
+  const linhasCat = FIN.store.categorias.map(cat => {
+    const l = { categoria: cat.nome };
+    FIN_MESES_ABREV.forEach((ab, i) => { const m = FIN.store.meses[FIN.ano + '-' + String(i + 1).padStart(2, '0')]; l['m' + i] = (m && m.desp && Number(m.desp[cat.id])) || 0; });
+    l.total = FIN_MESES_ABREV.reduce((s, ab, i) => s + l['m' + i], 0);
+    return l;
+  }).filter(l => l.total > 0);
+  try {
+    await gsoExportarExcelEstilizado({
+      arquivo: `financeiro-gso-${FIN.ano}.xlsx`,
+      aba: 'Resumo ' + FIN.ano,
+      titulo: 'GSO Effects Line  —  Financeiro ' + FIN.ano,
+      subtitulo: `Gerado em ${gsoAgoraBR()} por ${currentUserName()}   •   valores preenchidos no fechamento mensal`,
+      resumo: [
+        { rotulo: 'Receita do ano', valor: fmtBR(round2(receitaAno)) },
+        { rotulo: 'Lucro líquido do ano', valor: fmtBR(round2(lucroAno)) },
+        { rotulo: 'Margem líquida', valor: receitaAno > 0 ? String(round2(lucroAno / receitaAno * 100)).replace('.', ',') + '%' : '—' },
+        { rotulo: 'Meses preenchidos', valor: String(linhas.length) }
+      ],
+      colunas: [
+        { cab: 'Mês', chave: 'mes', larg: 20 },
+        { cab: 'Faturamento de vendas', chave: 'vendas', tipo: 'dinheiro', total: true, larg: 17 },
+        { cab: 'Outras receitas', chave: 'outras', tipo: 'dinheiro', total: true, larg: 15 },
+        { cab: 'Receita total', chave: 'receita', tipo: 'dinheiro', total: true, larg: 16 },
+        { cab: 'Impostos', chave: 'impostos', tipo: 'dinheiro', total: true, larg: 14 },
+        { cab: 'Custo dos produtos', chave: 'cmv', tipo: 'dinheiro', total: true, larg: 17 },
+        { cab: 'Taxas', chave: 'taxas', tipo: 'dinheiro', total: true, larg: 13 },
+        { cab: 'Fretes', chave: 'fretes', tipo: 'dinheiro', total: true, larg: 13 },
+        { cab: 'Total de custos', chave: 'custos', tipo: 'dinheiro', total: true, larg: 16 },
+        { cab: 'Lucro bruto', chave: 'lucroBruto', tipo: 'dinheiro', total: true, larg: 15 },
+        { cab: 'Despesas', chave: 'despesas', tipo: 'dinheiro', total: true, larg: 15 },
+        { cab: 'Lucro líquido', chave: 'lucroLiquido', tipo: 'dinheiro', total: true, larg: 16 },
+        { cab: 'Margem', chave: 'margem', tipo: 'percentual', larg: 10 },
+        { cab: 'Observações', chave: 'obs', max: 50 }
+      ],
+      linhas,
+      abasExtras: linhasCat.length ? [{ aba: 'Despesas por categoria', titulo: 'GSO Effects Line  —  Despesas por categoria ' + FIN.ano, colunas: [{ cab: 'Categoria', chave: 'categoria', max: 34 }].concat(colsCat, [{ cab: 'Total', chave: 'total', tipo: 'dinheiro', total: true, larg: 15 }]), linhas: linhasCat }] : []
+    });
+  } catch (err) { alert('Não consegui gerar a planilha: ' + err.message); }
+}
+
+function finRenderTudo() {
+  if (!FIN.store) return;
+  finRenderMesSelect();
+  finRenderFechamento();
+  if (FIN.aba === 'evolucao') finRenderEvolucao();
+  if (FIN.aba === 'despesas') renderDespesas();
+}
 async function renderFinanceiro() {
   await loadDespesas();
-  await loadFinanceiroAjustes();
-  renderEvolucaoMensal();
+  await loadFinStore();
+  if (!FIN.store) FIN.store = finStoreVazio();
+  if (!FIN.mes) { FIN.mes = finMesKey(new Date()); FIN.ano = Number(FIN.mes.slice(0, 4)); }
   const mesSel = document.getElementById('fin-desp-mes');
   if (mesSel) {
     const atual = mesSel.value;
     const meses = [...new Set(state.despesas.map(d => String(d.data || '').slice(0, 7)).filter(Boolean))].sort().reverse();
-    mesSel.innerHTML = '<option value="">Todos os meses</option>' + meses.map(m => `<option value="${m}" ${m === atual ? 'selected' : ''}>${reportMonthLabel(m)}</option>`).join('');
+    mesSel.innerHTML = '<option value="">Todos os meses</option>' + meses.map(m => `<option value="${m}" ${m === atual ? 'selected' : ''}>${finMesLabel(m)}</option>`).join('');
   }
   const catSel = document.getElementById('fin-desp-categoria');
   if (catSel) {
@@ -18448,8 +19088,11 @@ async function renderFinanceiro() {
     const cats = [...new Set(state.despesas.map(despesaCategoriaLabel).filter(Boolean))].sort();
     catSel.innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => `<option value="${escapeHtml(c)}" ${c === atual ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
   }
-  renderDespesas();
+  finIrAba(FIN.aba);
+  finRenderTudo();
 }
+// Compatibilidade: outras telas (boleto/anotado de despesa) chamam isto depois de mudar uma despesa.
+function renderEvolucaoMensal() { finRenderTudo(); }
 function finAjusteValor(mes, campo) {
   const ajuste = state.financeiroAjustes.find(a => a.mes === mes);
   return ajuste && ajuste[campo] != null ? Number(ajuste[campo]) : null;
@@ -18469,95 +19112,6 @@ function parseBRLInput(str) {
   }
   const n = parseFloat(clean);
   return Number.isFinite(n) ? n : null;
-}
-function finAjusteCellHtml(mes, campo, valorAtual, valorComputado) {
-  const override = finAjusteValor(mes, campo);
-  const isOverride = override != null;
-  const tip = isOverride
-    ? `Ajustado manualmente. Valor calculado: ${fmtBR(valorComputado)} — apague o campo e saia do campo para restaurar.`
-    : 'Clique para ajustar este valor manualmente';
-  return `<div class="fin-ajuste-wrap">
-    <input type="text" inputmode="decimal" class="input fin-ajuste-input${isOverride ? ' fin-ajuste-override' : ''}"
-      value="${fmtBR(valorAtual)}"
-      data-tip="${escapeHtml(tip)}"
-      onclick="event.stopPropagation()"
-      onfocus="this.value = finRawEditValue(${valorAtual})"
-      onblur="salvarAjusteFinanceiro('${mes}','${campo}', this.value, ${valorComputado})">
-    <button type="button" class="fin-ajuste-reset${isOverride ? '' : ' fin-ajuste-reset-hidden'}" data-tip="Restaurar valor calculado" onclick="event.stopPropagation(); restaurarAjusteFinanceiro('${mes}','${campo}')" tabindex="${isOverride ? '0' : '-1'}">↺</button>
-  </div>`;
-}
-function renderEvolucaoMensal() {
-  const body = document.getElementById('fin-evolucao-body');
-  if (!body) return;
-  const receitaMap = {}; computeMensal().forEach(m => { receitaMap[m.mes] = m.fat; });
-  const despesaCadastradaMap = computeDespesasMensal();
-  const { map: lucroBrutoMap } = computeLucroBrutoMensal();
-  const meses = [...new Set([...Object.keys(receitaMap), ...Object.keys(despesaCadastradaMap), ...Object.keys(lucroBrutoMap), ...state.financeiroAjustes.map(a => a.mes)])].filter(m => m >= '2026-01').sort();
-  if (!meses.length) { body.innerHTML = '<tr><td colspan="5" class="table-empty">Sem dados a partir de 2026 ainda.</td></tr>'; return; }
-  let lucroLiquidoAnterior = null;
-  body.innerHTML = meses.map(mes => {
-    const receitaComputada = receitaMap[mes] || 0;
-    const lucroBruto = lucroBrutoMap[mes] || 0;
-    const custoEImposto = round2(receitaComputada - lucroBruto);
-    const despesaComputada = round2((despesaCadastradaMap[mes] || 0) + custoEImposto);
-    const receitaOverride = finAjusteValor(mes, 'receita_ajustada');
-    const despesaOverride = finAjusteValor(mes, 'despesas_ajustada');
-    const receita = receitaOverride != null ? receitaOverride : receitaComputada;
-    const despesa = despesaOverride != null ? despesaOverride : despesaComputada;
-    const lucroLiquido = round2(receita - despesa);
-    let variacaoHtml = '<span style="color:var(--text-2,#8A8A8A)">—</span>';
-    if (lucroLiquidoAnterior !== null) {
-      if (lucroLiquidoAnterior === 0) {
-        variacaoHtml = lucroLiquido > 0 ? '<span class="pill pill-green">novo</span>' : (lucroLiquido < 0 ? '<span class="pill pill-red">novo</span>' : '—');
-      } else {
-        const pct = round2(((lucroLiquido - lucroLiquidoAnterior) / Math.abs(lucroLiquidoAnterior)) * 100);
-        const sinal = pct > 0 ? '+' : '';
-        variacaoHtml = `<span class="pill ${pct > 0 ? 'pill-green' : (pct < 0 ? 'pill-red' : 'pill-blue')}">${sinal}${pct}%</span>`;
-      }
-    }
-    lucroLiquidoAnterior = lucroLiquido;
-    return `<tr>
-      <td class="strong stack-title">${reportMonthLabel(mes)}</td>
-      <td class="num" data-label="Receita">${finAjusteCellHtml(mes, 'receita_ajustada', receita, receitaComputada)}</td>
-      <td class="num" data-label="Despesas">${finAjusteCellHtml(mes, 'despesas_ajustada', despesa, despesaComputada)}</td>
-      <td class="num" data-label="Lucro líquido"><span class="fin-lucro-final${lucroLiquido < 0 ? ' fin-lucro-neg' : ''}">${fmtBR(lucroLiquido)}</span></td>
-      <td class="num" data-label="Variação">${variacaoHtml}</td>
-    </tr>`;
-  }).join('');
-}
-async function salvarAjusteFinanceiro(mes, campo, valorStr, valorComputado) {
-  const client = requireSupabaseSession();
-  if (!client) { renderEvolucaoMensal(); return; }
-  const novoValor = parseBRLInput(valorStr);
-  const overrideAtual = finAjusteValor(mes, campo);
-  if (novoValor === null || round2(novoValor) === round2(valorComputado)) {
-    if (overrideAtual != null) await restaurarAjusteFinanceiro(mes, campo); else renderEvolucaoMensal();
-    return;
-  }
-  if (overrideAtual != null && round2(novoValor) === round2(overrideAtual)) { renderEvolucaoMensal(); return; }
-  const existente = state.financeiroAjustes.find(a => a.mes === mes);
-  const row = { mes, receita_ajustada: existente?.receita_ajustada ?? null, despesas_ajustada: existente?.despesas_ajustada ?? null, atualizado_em: new Date().toISOString() };
-  row[campo] = round2(novoValor);
-  const { data, error } = await client.from('crm_financeiro_ajustes').upsert(row, { onConflict: 'mes' }).select().single();
-  if (error) { alert('Não consegui salvar o ajuste: ' + error.message); renderEvolucaoMensal(); return; }
-  if (existente) Object.assign(existente, data); else state.financeiroAjustes.push(data);
-  renderEvolucaoMensal();
-}
-async function restaurarAjusteFinanceiro(mes, campo) {
-  const client = requireSupabaseSession();
-  if (!client) return;
-  const existente = state.financeiroAjustes.find(a => a.mes === mes);
-  if (!existente) { renderEvolucaoMensal(); return; }
-  existente[campo] = null;
-  if (existente.receita_ajustada == null && existente.despesas_ajustada == null) {
-    const { error } = await client.from('crm_financeiro_ajustes').delete().eq('mes', mes);
-    if (error) { alert('Não consegui restaurar: ' + error.message); return; }
-    state.financeiroAjustes = state.financeiroAjustes.filter(a => a.mes !== mes);
-  } else {
-    const { error } = await client.from('crm_financeiro_ajustes').update({ [campo]: null, atualizado_em: new Date().toISOString() }).eq('mes', mes);
-    if (error) { alert('Não consegui restaurar: ' + error.message); return; }
-  }
-  renderEvolucaoMensal();
 }
 let finChartDespesas = null;
 function renderDespesasChart() {
