@@ -15727,7 +15727,8 @@ function normalizeTextoSimples(s) { return String(s || '').trim().toLowerCase();
 // emite nota fiscal saber na hora que precisa agir, sem precisar ficar dando F5.
 function notifyNewVendasIfNeeded(idsAntes) {
   const meuNome = normalizeTextoSimples(currentUserName());
-  const novas = (state.vendas || []).filter(v => !idsAntes.has(v.id));
+  const visiveis = new Set(vendasVisiveisAoUsuario().map(v => v.id));
+  const novas = (state.vendas || []).filter(v => !idsAntes.has(v.id) && visiveis.has(v.id));
   const deOutros = novas.filter(v => normalizeTextoSimples(v.vendedor) !== meuNome);
   if (!deOutros.length) return;
   if ('Notification' in window && Notification.permission === 'granted') {
@@ -17849,7 +17850,7 @@ function saleLucroLiquido(venda) {
 }
 function aggregateCatalogSales() {
   const aggregate = {};
-  state.vendas.forEach(venda => {
+  vendasVisiveisAoUsuario().forEach(venda => {
     saleCatalogItems(venda).forEach(item => {
       const key = item.produto + '|' + item.tamanho;
       if (!aggregate[key]) aggregate[key] = { produto: item.produto, tamanho: item.tamanho, qtd: 0, fat: 0, pedidos: 0, ultima: null };
@@ -18154,6 +18155,22 @@ function switchTransmissaoTab(tab) {
 }
 
 // ============ COMPUTAÇÕES ============
+// Usuário comum NÃO enxerga vendas Direto Lab nem do Mercado Livre (todo comprador do ML é Direto Lab;
+// o pagamento "Mercado Livre" também esconde a venda mesmo se o cadastro do cliente ainda não foi marcado).
+// Todo lugar que lista, soma ou avisa sobre vendas passa por aqui.
+function nomesDiretoLabSet() {
+  return new Set(state.clientes.filter(c => c.tipoCliente === 'Direto Lab').map(c => nameKey(c.nome)));
+}
+function vendasVisiveisAoUsuario() {
+  if (isAdminUser()) return state.vendas;
+  const dl = nomesDiretoLabSet();
+  return state.vendas.filter(v => !dl.has(nameKey(v.cliente)) && !/mercado\s*livre/i.test(v.pagamento || ''));
+}
+function clientesSugeridosParaUsuario(clis) {
+  if (isAdminUser()) return clis;
+  const dl = nomesDiretoLabSet();
+  return clis.filter(c => !dl.has(nameKey(c.nome)));
+}
 function computeClientes() {
   // Agrega vendas por cliente, enriquecendo com o cadastro único de Clientes - Dados.
   const map = {};
@@ -18214,7 +18231,7 @@ function computeClientes() {
     return map[k];
   };
 
-  state.vendas.forEach(v => {
+  vendasVisiveisAoUsuario().forEach(v => {
     const e = ensureCli(v.cliente);
     e.total += parseFloat(v.valor) || 0;
     e.pedidos += 1;
@@ -20154,7 +20171,7 @@ function renderVendas() {
   // reclassificações feitas depois da venda.
   const nomesDiretoLab = new Set(state.clientes.filter(c => c.tipoCliente === 'Direto Lab').map(c => nameKey(c.nome)));
   const nomesMercadoLivre = new Set(state.clientes.filter(c => c.metadata?.origem === 'Mercado Livre').map(c => nameKey(c.nome)));
-  const vendasVisiveis = isAdminUser() ? state.vendas : state.vendas.filter(v => !nomesDiretoLab.has(nameKey(v.cliente)));
+  const vendasVisiveis = vendasVisiveisAoUsuario();
   document.getElementById('vendas-count').textContent = vendasVisiveis.length.toLocaleString('pt-BR');
 
   // Filtros fixos + dinâmicos de vendas
@@ -20553,7 +20570,7 @@ async function confirmarExportarVendas() {
   const pagamentosFiltro = exportVendasPagamentosSelecionados;
 
   const nomesDiretoLab = new Set(state.clientes.filter(c => c.tipoCliente === 'Direto Lab').map(c => nameKey(c.nome)));
-  let rows = isAdminUser() ? state.vendas : state.vendas.filter(v => !nomesDiretoLab.has(nameKey(v.cliente)));
+  let rows = vendasVisiveisAoUsuario();
   if (dataDe) rows = rows.filter(r => dashboardDateKey(r.data) >= dataDe);
   if (dataAte) rows = rows.filter(r => dashboardDateKey(r.data) <= dataAte);
   if (vendedoresFiltro.length) rows = rows.filter(r => vendedoresFiltro.includes(canonicalSellerName(r.vendedor || 'Sem vendedor')));
@@ -26084,8 +26101,8 @@ function initEditVenda(id) {
   }
   renderSaleItemsList();
 
-  const clis = computeClientes();
-  document.getElementById('clientesList').innerHTML = clis.map(c => `<option value="${c.nome}">`).join('');
+  const clis = clientesSugeridosParaUsuario(computeClientes());
+  document.getElementById('clientesList').innerHTML = clis.map(c => `<option value="${escapeHtml(c.nome)}">`).join('');
   updateProductSelectOptions();
   updateProductSizeOptions();
   pagDivReset();
@@ -26494,8 +26511,8 @@ function initNova() {
   popularSelectProdutoEstoque('f-estoque-produto', null);
 
   // Datalist com clientes
-  const clis = computeClientes();
-  document.getElementById('clientesList').innerHTML = clis.map(c => `<option value="${c.nome}">`).join('');
+  const clis = clientesSugeridosParaUsuario(computeClientes());
+  document.getElementById('clientesList').innerHTML = clis.map(c => `<option value="${escapeHtml(c.nome)}">`).join('');
   updateProductSelectOptions();
   updateProductSizeOptions();
   togglePaymentFields();
