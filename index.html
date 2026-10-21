@@ -30363,6 +30363,21 @@ body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gc
 #gso-calc .gc-head{ display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:4px; }
 #gso-calc .gc-head h1{ font-size:24px; font-weight:800; margin:0; }
 #gso-calc .gc-sub{ color:var(--gcmut); font-size:13px; margin:2px 0 18px; }
+#gso-calc .gc-bat-lbl{ font:700 12px inherit; color:var(--gcfnt); margin-right:2px; }
+#gso-calc .gc-bat-campo{ display:inline-flex; align-items:center; gap:6px; border:1px solid var(--gcln2); border-radius:8px; padding:0 10px; background:var(--gcsf); }
+#gso-calc .gc-bat-in{ width:90px; border:0 !important; outline:0 !important; background:transparent !important; text-align:right; font:700 14px inherit; font-variant-numeric:tabular-nums; padding:7px 0 !important; color:var(--gcink); box-shadow:none !important; }
+#gso-calc .gc-bat-campo i{ font-style:normal; font-size:12px; color:var(--gcfnt); }
+#gso-calc .gc-bat-res{ margin-top:16px; padding-top:12px; border-top:1px dashed var(--gcln2); max-width:520px; }
+#gso-calc .gc-peca-add{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+#gso-calc .gc-peca-add input{ border:1px solid var(--gcln2); border-radius:8px; padding:8px 11px; font:600 13px inherit; background:var(--gcsf); color:var(--gcink); }
+#gso-calc .gc-peca-add #gc-peca-novo-nome{ flex:1; min-width:180px; } #gso-calc .gc-peca-add #gc-peca-novo-qtd{ width:80px; }
+#gso-calc .gc-peca-nome{ width:100%; border:1px solid transparent; background:transparent; font:600 14px inherit; color:var(--gcink); padding:6px 8px; border-radius:8px; }
+#gso-calc .gc-peca-nome:hover, #gso-calc .gc-peca-nome:focus{ border-color:var(--gcln2); background:var(--gcsf); outline:0; }
+#gso-calc .gc-peca-qtd{ display:inline-flex; align-items:center; gap:6px; }
+#gso-calc .gc-peca-in{ width:64px; text-align:center; border:1px solid var(--gcln2); border-radius:8px; padding:7px 4px; font:700 14px inherit; background:var(--gcsf); color:var(--gcink); }
+#gso-calc .gc-peca-mm{ width:30px; height:30px; border:1px solid var(--gcln2); border-radius:8px; background:var(--gcsf); color:var(--gcink); font:700 16px inherit; cursor:pointer; line-height:1; }
+#gso-calc .gc-peca-x{ border:1px solid rgba(176,50,47,.4); background:rgba(176,50,47,.09); color:#B0322F; font:600 12px inherit; padding:7px 12px; border-radius:9px; cursor:pointer; }
+#gso-calc .gc-peca-x:hover{ background:rgba(176,50,47,.2); }
 #gso-calc .gc-tabs{ display:flex; gap:22px; border-bottom:1px solid var(--gcln); margin-bottom:22px; flex-wrap:wrap; }
 #gso-calc .gc-tabs button{ border:0; background:none; padding:0 2px 12px; font-weight:600; font-size:14px; font-family:inherit; color:var(--gcmut); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
 #gso-calc .gc-tabs button.on{ color:var(--gcink); border-color:var(--gcac); }
@@ -31157,8 +31172,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<div class="gc-head"><h1>Calculadora</h1></div>' +
       '<div class="gc-sub">Monte o pedido e veja na hora se vale a pena fechar.</div>' +
       '<div class="gc-tabs">' +
-      '<button data-t="pedido" class="on">Pedido</button></div>' +
-      '<section id="gc-pedido"></section><section id="gc-formulacao" style="display:none"></section><section id="gc-estrategia" style="display:none"></section><section id="gc-ml" style="display:none"></section>';
+      '<button data-t="pedido" class="on">Pedido</button><button data-t="batelada">Batelada</button></div>' +
+      '<section id="gc-pedido"></section><section id="gc-batelada" style="display:none"></section><section id="gc-formulacao" style="display:none"></section><section id="gc-estrategia" style="display:none"></section><section id="gc-ml" style="display:none"></section>';
     view.appendChild(root);
     if (!$('#gso-calc-ovl')) {
       var ovl = document.createElement('div'); ovl.id = 'gso-calc-ovl'; document.body.appendChild(ovl);
@@ -31202,7 +31217,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       });
     }
     bind(root);
-    renderPedido(); renderFormulacao(); renderEstrategia(); renderML();
+    renderPedido(); renderBatelada(); renderFormulacao(); renderEstrategia(); renderML();
   }
   function drOpen(t, html) { $('#gc-dr-t').textContent = t; $('#gc-dr-b').innerHTML = html; document.body.classList.add('gc-dro'); }
   function drClose() { document.body.classList.remove('gc-dro', 'gc-dr-flutuante'); var b = $('#gc-dr-b'); if (b) b.innerHTML = ''; }
@@ -31219,7 +31234,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function setTab(t) {
     UI.tab = t;
     $all('#gso-calc .gc-tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
-    ['pedido', 'formulacao', 'estrategia', 'ml'].forEach(function (k) { var el = $('#gc-' + k); if (el) el.style.display = (k === t) ? '' : 'none'; });
+    ['pedido', 'batelada', 'formulacao', 'estrategia', 'ml'].forEach(function (k) { var el = $('#gc-' + k); if (el) el.style.display = (k === t) ? '' : 'none'; });
+    if (t === 'batelada') renderBatelada();
     if (t === 'estrategia') renderEstrategia();
     if (t === 'formulacao') renderFormulacao();
     if (t === 'ml') renderML();
@@ -31882,6 +31898,87 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       return '<div class="gc-kv"><span class="l">' + pdef[0] + '</span><b><span data-pov="' + pdef[1] + '" style="border-bottom:1px dotted var(--gcfnt);cursor:text">' + inVal(P[pdef[1]]) + '</span></b></div>';
     }).join('');
   }
+  /* ---------- ABA BATELADA: regra de 3 pela matéria-prima que eu tenho ---------- */
+  function bateladaProdutos() {
+    var nomes = [], vist = {}, nomesCatalogo = {};
+    prodRows().forEach(function (r) {
+      if (!r.produto) return;
+      var nk = normNome(r.produto); if (!nk) return;
+      if (!nomesCatalogo[nk]) nomesCatalogo[nk] = r.produto;
+      if (litrosDe(r.tamanho) > 0 && !vist[nk]) { vist[nk] = 1; nomes.push(r.produto); }
+    });
+    (store.receitaProdutosExtra || []).forEach(function (nk) { if (!vist[nk] && nomesCatalogo[nk]) { vist[nk] = 1; nomes.push(nomesCatalogo[nk]); } });
+    return nomes;
+  }
+  function batNum(x) { return (Math.round(x * 100) / 100).toString().replace('.', ','); }
+  function renderBatelada() {
+    var el = $('#gc-batelada'); if (!el) return;
+    var nomes = bateladaProdutos();
+    if (!UI.bat) UI.bat = { produto: '', tenho: {} };
+    if (nomes.indexOf(UI.bat.produto) < 0) { UI.bat.produto = nomes[0] || ''; UI.bat.tenho = {}; }
+    var k = normNome(UI.bat.produto);
+    var ativos = k ? receitaAtivosDe(k) : [];
+    var r = k ? receitaDe(k) : {};
+    var linhas = ativos.map(function (i) {
+      var un = insUnidade(i);
+      var v = UI.bat.tenho[i] != null ? UI.bat.tenho[i] : '';
+      return '<tr data-bat-l="' + esc(i) + '"><td><b>' + esc(insLabel(i)) + '</b></td>' +
+        '<td class="num">' + batNum(r[i] || 0) + ' ' + esc(un) + '</td>' +
+        '<td class="num"><span class="gc-bat-campo"><input type="text" inputmode="decimal" class="gc-bat-in" data-bat-in="' + esc(i) + '" value="' + esc(v) + '" placeholder="0"><i>' + esc(un) + '</i></span></td>' +
+        '<td class="num gc-bat-prec" data-bat-prec="' + esc(i) + '">—</td>' +
+        '<td data-bat-sit="' + esc(i) + '"></td></tr>';
+    }).join('');
+    el.innerHTML =
+      '<div class="gc-blk"><h2>Batelada <span>quanto de cada matéria-prima eu preciso, a partir do que eu tenho</span></h2>' +
+      '<div class="gc-hint" style="padding:0;margin-bottom:12px">Escolha o produto, digite na coluna <b>Eu tenho</b> o quanto você tem de uma matéria-prima (ou de mais de uma) e o sistema calcula, pela formulação, quanto precisa das outras — uma regra de 3. Ex.: a receita usa 10 de A1 e você só tem 7 → faz 70% da batelada.</div>' +
+      '<div class="gc-filters"><label class="gc-bat-lbl">Produto que eu quero fazer</label>' +
+      '<select data-bat-prod>' + nomes.map(function (n) { return '<option' + (n === UI.bat.produto ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') + '</select>' +
+      '<button type="button" class="clear" data-bat-limpar>limpar valores</button></div>' +
+      (ativos.length
+        ? '<div class="gc-table-wrap"><table class="gct" id="gc-bat-tab"><thead><tr><th>MATÉRIA-PRIMA</th><th class="num">RECEITA (1 BATELADA)</th><th class="num">EU TENHO</th><th class="num">PRECISO PARA ESTA BATELADA</th><th>SITUAÇÃO</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' +
+          '<div id="gc-bat-res" class="gc-bat-res"></div>'
+        : '<div class="gc-hint">Este produto ainda não tem matérias-primas na Formulação (Laboratório → Formulação).</div>') +
+      '</div>';
+    batRecalcular();
+    var sel = $('[data-bat-prod]', el);
+    if (sel) sel.addEventListener('change', function () { UI.bat.produto = sel.value; UI.bat.tenho = {}; renderBatelada(); });
+    var limpar = $('[data-bat-limpar]', el);
+    if (limpar) limpar.addEventListener('click', function () { UI.bat.tenho = {}; renderBatelada(); });
+    $all('[data-bat-in]', el).forEach(function (inp) {
+      inp.addEventListener('input', function () { UI.bat.tenho[inp.dataset.batIn] = inp.value; batRecalcular(); });
+    });
+  }
+  function batRecalcular() {
+    var el = $('#gc-batelada'); if (!el || !UI.bat) return;
+    var k = normNome(UI.bat.produto); if (!k) return;
+    var ativos = receitaAtivosDe(k), r = receitaDe(k);
+    var bat = params().batelada || BATELADA_L_DEFAULT;
+    // fração da batelada que cabe em cada matéria-prima informada; a menor delas manda (é o gargalo)
+    var frac = {}, ratio = null, gargalo = null;
+    ativos.forEach(function (i) {
+      var t = num(UI.bat.tenho[i]);
+      if (t > 0 && r[i] > 0) { frac[i] = t / r[i]; if (ratio == null || frac[i] < ratio) { ratio = frac[i]; gargalo = i; } }
+    });
+    ativos.forEach(function (i) {
+      var prec = $('[data-bat-prec="' + i + '"]', el), sit = $('[data-bat-sit="' + i + '"]', el); if (!prec || !sit) return;
+      var un = insUnidade(i);
+      if (ratio == null) { prec.textContent = '—'; sit.innerHTML = ''; return; }
+      var precisa = (r[i] || 0) * ratio; var t = num(UI.bat.tenho[i]);
+      prec.innerHTML = '<b>' + batNum(precisa) + ' ' + esc(un) + '</b>';
+      if (t > 0 && i === gargalo) sit.innerHTML = '<span class="gc-pill warn">É a que limita a batelada</span>';
+      else if (t > 0) sit.innerHTML = '<span class="gc-pill ok">Sobra ' + batNum(t - precisa) + ' ' + esc(un) + '</span>';
+      else sit.innerHTML = '<span class="gc-hint" style="padding:0">Separe ' + batNum(precisa) + ' ' + esc(un) + '</span>';
+    });
+    var res = $('#gc-bat-res', el); if (!res) return;
+    if (ratio == null) { res.innerHTML = '<div class="gc-hint" style="padding:0">Digite quanto você tem de uma matéria-prima para calcular.</div>'; return; }
+    var cl = custoLitroDe(k);
+    res.innerHTML =
+      '<div class="gc-kv"><span class="l">Quanto da batelada dá pra fazer</span><b>' + batNum(ratio * 100) + '%</b></div>' +
+      '<div class="gc-kv"><span class="l">Rendimento aproximado</span><b>' + batNum(ratio * bat) + ' L <small style="font-weight:400">(de ' + batNum(bat) + ' L)</small></b></div>' +
+      '<div class="gc-kv"><span class="l">Custo desta batelada (matérias-primas)</span><b>' + fmt(round2((cl.custoBatelada || 0) * ratio)) + '</b></div>' +
+      (Object.keys(frac).length > 1 ? '<div class="gc-hint" style="padding:0;margin-top:6px">Você informou mais de uma matéria-prima: vale a que acaba primeiro (<b>' + esc(insLabel(gargalo)) + '</b>).</div>' : '');
+  }
+
   function renderFormulacao() {
     var el = $('#gc-formulacao'); if (!el) return;
     el.innerHTML = mpCardHTML();
@@ -32916,13 +33013,75 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function mlSubtabsHtml() {
     var atencao = vendasMLPrecisamAtencao().length;
     return '<div class="gc-ml-subtabs">' +
-      '<button type="button" class="gc-ml-subtab' + (UI.mlView !== 'vendas' ? ' on' : '') + '" data-ml-view="anuncios">Anúncios</button>' +
+      '<button type="button" class="gc-ml-subtab' + (UI.mlView !== 'vendas' && UI.mlView !== 'pecas' ? ' on' : '') + '" data-ml-view="anuncios">Anúncios</button>' +
       '<button type="button" class="gc-ml-subtab' + (UI.mlView === 'vendas' ? ' on' : '') + '" data-ml-view="vendas">Vendas' + (atencao ? ' <span class="gc-pill bad" style="margin-left:4px">' + atencao + '</span>' : '') + '</button>' +
+      '<button type="button" class="gc-ml-subtab' + (UI.mlView === 'pecas' ? ' on' : '') + '" data-ml-view="pecas">Peças</button>' +
     '</div>';
   }
+  /* ---------- ML > PEÇAS: quantidade de cada peça que eu tenho ---------- */
+  function pecasLista() { if (!Array.isArray(store.pecas)) store.pecas = []; return store.pecas; }
+  function pecasHtml() {
+    var lista = pecasLista();
+    var total = lista.reduce(function (s, p) { return s + (Number(p.qtd) || 0); }, 0);
+    var linhas = lista.map(function (p) {
+      var sem = p.qtd === 0;
+      return '<tr data-peca="' + esc(p.id) + '">' +
+        '<td><input type="text" class="gc-peca-nome" data-peca-nome="' + esc(p.id) + '" value="' + esc(p.nome) + '" title="Clique para renomear"></td>' +
+        '<td class="num"><span class="gc-peca-qtd"><button type="button" class="gc-peca-mm" data-peca-delta="' + esc(p.id) + '|-1" title="Tirar 1">−</button><input type="text" inputmode="numeric" class="gc-peca-in" data-peca-qtd="' + esc(p.id) + '" value="' + (p.qtd == null ? '' : p.qtd) + '" placeholder="—"><button type="button" class="gc-peca-mm" data-peca-delta="' + esc(p.id) + '|1" title="Colocar 1">+</button></span></td>' +
+        '<td>' + (p.qtd == null ? '<span class="gc-pill gray">Sem quantidade</span>' : (sem ? '<span class="gc-pill bad">Acabou</span>' : '<span class="gc-pill ok">Em estoque</span>')) + '</td>' +
+        '<td class="num"><button type="button" class="gc-peca-x" data-peca-del="' + esc(p.id) + '" title="Excluir esta peça">✕ Excluir</button></td></tr>';
+    }).join('');
+    return '<div class="gc-blk"><h2>Peças <span>quantas de cada peça eu tenho · clique no nome para renomear · − e + ajustam a quantidade</span></h2>' +
+      '<div class="gc-peca-add"><input type="text" id="gc-peca-novo-nome" placeholder="+ Nova peça (nome)"><input type="text" inputmode="numeric" id="gc-peca-novo-qtd" placeholder="Qtd"><button type="button" class="gc-btn dark" data-peca-add="1">Adicionar</button></div>' +
+      (lista.length
+        ? '<div class="gc-table-wrap"><table class="gct"><thead><tr><th>PEÇA</th><th class="num">QUANTIDADE</th><th>SITUAÇÃO</th><th class="num">AÇÕES</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' +
+          '<div class="gc-hint" style="padding:10px 0 0">Total de peças: <b>' + total + '</b></div>'
+        : '<div class="gc-hint">Nenhuma peça cadastrada ainda.</div>') +
+      '</div>';
+  }
+  function pecasBind(el) {
+    function achar(id) { return pecasLista().filter(function (p) { return p.id === id; })[0]; }
+    function qtdDe(v) { v = String(v == null ? '' : v).trim(); if (v === '') return null; var n = parseInt(v, 10); return isNaN(n) ? null : Math.max(0, n); }
+    $all('[data-peca-nome]', el).forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        var p = achar(inp.dataset.pecaNome); if (!p) return;
+        var nome = inp.value.trim(); if (!nome) { inp.value = p.nome; return; }
+        p.nome = nome; save(); renderML();
+      });
+    });
+    $all('[data-peca-qtd]', el).forEach(function (inp) {
+      inp.addEventListener('change', function () { var p = achar(inp.dataset.pecaQtd); if (!p) return; p.qtd = qtdDe(inp.value); save(); renderML(); });
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') inp.blur(); });
+    });
+    $all('[data-peca-delta]', el).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var pt = btn.dataset.pecaDelta.split('|'); var p = achar(pt[0]); if (!p) return;
+        p.qtd = Math.max(0, (Number(p.qtd) || 0) + parseInt(pt[1], 10)); save(); renderML();
+      });
+    });
+    $all('[data-peca-del]', el).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var p = achar(btn.dataset.pecaDel); if (!p) return;
+        if (!confirm('Excluir a peça "' + p.nome + '"?')) return;
+        store.pecas = pecasLista().filter(function (x) { return x.id !== p.id; }); save(); renderML();
+      });
+    });
+    var add = $('[data-peca-add]', el);
+    function adicionar() {
+      var nome = ($('#gc-peca-novo-nome', el).value || '').trim();
+      if (!nome) { alert('Digite o nome da peça.'); return; }
+      if (pecasLista().some(function (p) { return normNome(p.nome) === normNome(nome); })) { alert('Já existe uma peça com esse nome.'); return; }
+      pecasLista().push({ id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5), nome: nome, qtd: qtdDe($('#gc-peca-novo-qtd', el).value) });
+      save(); renderML();
+    }
+    if (add) add.addEventListener('click', adicionar);
+    var nn = $('#gc-peca-novo-nome', el); if (nn) nn.addEventListener('keydown', function (e) { if (e.key === 'Enter') adicionar(); });
+  }
+
   function renderML() {
     var el = $('#gc-ml'); if (!el) return;
     if (UI.mlView === 'vendas') { el.innerHTML = mlSubtabsHtml() + renderMLVendasHtml(); return; }
+    if (UI.mlView === 'pecas') { el.innerHTML = mlSubtabsHtml() + pecasHtml(); pecasBind(el); return; }
     var anuncios = store.anuncios || [];
     var blocos = blocosAtuais();
     var porChave = {}; blocos.forEach(function (b) { porChave[b.chave] = []; });
@@ -33661,10 +33820,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           if (v === 'calculadora') {
             mount(); placeInView('view-calculadora');
             // Formulação e Estratégia moraram aqui; agora ficam no Laboratório. A Calculadora é só o Pedido.
-            var tabsBar = $('#gso-calc .gc-tabs'); if (tabsBar) tabsBar.style.display = 'none';
+            var tabsBar = $('#gso-calc .gc-tabs'); if (tabsBar) tabsBar.style.display = '';
             var head = $('#gso-calc .gc-head'); if (head) head.style.display = '';
             var headT = $('#gso-calc .gc-head h1'); if (headT) headT.textContent = 'Calculadora';
-            var sub = $('#gso-calc .gc-sub'); if (sub) { sub.style.display = ''; sub.textContent = 'Monte o pedido e veja na hora se vale a pena fechar.'; }
+            var sub = $('#gso-calc .gc-sub'); if (sub) { sub.style.display = ''; sub.textContent = 'Monte o pedido e veja na hora se vale a pena fechar — ou calcule uma batelada pela matéria-prima que você tem.'; }
             setTab('pedido');
             renderPedido(); renderFormulacao(); renderEstrategia();
           }
@@ -33681,7 +33840,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       };
     }
   }
-  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _params: params, _materiais: materiais, _materiaisLabels: function () { return Object.assign({}, store.materiaisLabels); }, _precoEntrada: precoEntradaPara, mostrarNoLab: mostrarNoLab, refresh: function () { renderPedido(); renderFormulacao(); renderEstrategia(); renderML(); } };
+  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _params: params, _materiais: materiais, _materiaisLabels: function () { return Object.assign({}, store.materiaisLabels); }, _precoEntrada: precoEntradaPara, mostrarNoLab: mostrarNoLab, refresh: function () { renderPedido(); renderBatelada(); renderFormulacao(); renderEstrategia(); renderML(); } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 0);
 })();
