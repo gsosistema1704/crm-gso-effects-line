@@ -32422,11 +32422,22 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var blocos = blocosAtuais();
     var chave = 'blk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
     var novo = { chave: chave, nome: 'Novo bloco', cor: '', produto: null, tamanho: null, colapsado: false, lembretes: [] };
-    var idxSemProduto = blocos.findIndex(function (b) { return b.chave === ''; });
-    if (idxSemProduto === -1) blocos.push(novo); else blocos.splice(idxSemProduto, 0, novo);
+    // Bloco novo entra como o PRIMEIRO do quadro (não no fim), pra não precisar procurar.
+    blocos.unshift(novo);
     save();
     UI.mlEditando = chave;
     renderML();
+    mlDestacar('[data-ml-group="' + chave + '"]', '.gc-ml-edit-nome');
+  }
+  // Rola até o item recém-criado e dá um destaque rápido, pra achar na hora onde ele foi parar.
+  function mlDestacar(seletor, focar) {
+    setTimeout(function () {
+      var el = $(seletor); if (!el) return;
+      try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { el.scrollIntoView(); }
+      el.classList.add('gc-ml-flash');
+      setTimeout(function () { el.classList.remove('gc-ml-flash'); }, 2600);
+      if (focar) { var f = $(focar, el); if (f) { f.focus(); if (f.select) f.select(); } }
+    }, 60);
   }
   function blocoApagar(chave) {
     var blocos = blocosAtuais();
@@ -33111,10 +33122,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         store.anuncios = store.anuncios || [];
         var idx = store.anuncios.findIndex(function (x) { return x.id === draft.id; });
         var paraSalvar = JSON.parse(JSON.stringify(draft));
-        if (idx >= 0) store.anuncios[idx] = paraSalvar; else store.anuncios.push(paraSalvar);
+        if (idx >= 0) store.anuncios[idx] = paraSalvar; else store.anuncios.unshift(paraSalvar);
         save();
         drClose();
         renderML();
+        if (idx < 0) mlDestacar('[data-open-anuncio="' + paraSalvar.id + '"]');
       });
       var delBtn = $('#gc-ml-del');
       if (delBtn) delBtn.addEventListener('click', function () {
@@ -37744,6 +37756,8 @@ body.theme-dark #gso-calc .gc-ml-collapse:hover, body.theme-dark #gso-calc .gc-m
 #gso-calc .gc-ml-lembrete-flag{ border:0 !important; background:none !important; box-shadow:none !important; min-height:0 !important; padding:0 2px !important; flex:0 0 auto; cursor:pointer; font-size:12px; opacity:.35; filter:grayscale(1); }
 #gso-calc .gc-ml-lembrete-flag.on{ opacity:1; filter:none; }
 #gso-calc .gc-ml-lembrete-add{ width:100%; border:0; border-bottom:1px dotted var(--gcln2); background:none; padding:2px 0; font:500 11.5px inherit; font-family:inherit; color:var(--gcink); }
+@keyframes gcMlFlash{0%,100%{box-shadow:0 0 0 0 rgba(255,140,0,0)}20%,60%{box-shadow:0 0 0 4px rgba(255,140,0,.55)}}
+#gso-calc .gc-ml-flash{ animation:gcMlFlash 2.6s ease; }
 #gso-calc .gc-ml-mini{ border:1px solid var(--gcln2); border-radius:9px; padding:8px 10px; background:var(--gcsf); cursor:grab; }
 #gso-calc .gc-ml-mini:active{ cursor:grabbing; }
 #gso-calc .gc-ml-mini.dragging{ opacity:.4; }
