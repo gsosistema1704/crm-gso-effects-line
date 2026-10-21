@@ -30906,13 +30906,123 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     return !!((s.custos && Object.keys(s.custos).length) || (s.tabelas && Object.keys(s.tabelas).length) ||
       (s.anuncios && s.anuncios.length) || (s.sims && s.sims.length) || (s.aromas && Object.keys(s.aromas).length));
   }
+  /* ---------- sincronização segura entre computadores ----------
+     O store inteiro mora numa linha só do Supabase. Antes, quem salvava por último apagava o que
+     o outro computador tinha mudado. Agora cada salvamento (e a cada minuto, e ao voltar pra aba)
+     mescla "o que eu mudei" com "o que o outro mudou" (mescla de 3 vias: base = último estado que
+     eu vi do servidor). Itens com id (anúncios, peças, blocos…) são mesclados um a um; se os dois
+     mexeram no MESMO campo, vale o que foi digitado por último neste computador. */
+  var baseRemote = null, remoteUpdatedAt = null, pushEmAndamento = false, pushPendente = false, refreshPendente = false;
+  function jclone(o) { return o === undefined ? undefined : JSON.parse(JSON.stringify(o)); }
+  function canon(o) {
+    if (Array.isArray(o)) return '[' + o.map(canon).join(',') + ']';
+    if (o && typeof o === 'object') return '{' + Object.keys(o).sort().filter(function (k) { return o[k] !== undefined; }).map(function (k) { return JSON.stringify(k) + ':' + canon(o[k]); }).join(',') + '}';
+    return JSON.stringify(o === undefined ? null : o);
+  }
+  function jeq(a, b) { return canon(a) === canon(b); }
+  function isObj(x) { return x && typeof x === 'object' && !Array.isArray(x); }
+  function temK(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+  function itemKey(x) { return (x && typeof x === 'object' && !Array.isArray(x)) ? (x.id != null ? 'id:' + x.id : (x.chave != null ? 'ch:' + x.chave : null)) : null; }
+  function mergeLista(b, l, r) {
+    var mb = {}, ml = {}, mr = {}, ordem = [];
+    b.forEach(function (x) { mb[itemKey(x)] = x; });
+    l.forEach(function (x) { ml[itemKey(x)] = x; });
+    r.forEach(function (x) { var k = itemKey(x); mr[k] = x; ordem.push(k); });
+    l.forEach(function (x) { var k = itemKey(x); if (!temK(mr, k)) ordem.push(k); });
+    var out = [];
+    ordem.forEach(function (k) {
+      var nB = temK(mb, k), nL = temK(ml, k), nR = temK(mr, k);
+      if (nL && nR) out.push(merge3(nB ? mb[k] : undefined, ml[k], mr[k]));
+      else if (nL) { if (!(nB && jeq(ml[k], mb[k]))) out.push(ml[k]); }      // sumiu no servidor: só some se eu não mexi
+      else if (nR) { if (!(nB && jeq(mr[k], mb[k]))) out.push(mr[k]); }      // eu apaguei: só some se o outro não mexeu
+    });
+    return out;
+  }
+  function merge3(b, l, r) {
+    if (jeq(l, r)) return l;
+    if (jeq(l, b)) return r;
+    if (jeq(r, b)) return l;
+    if (Array.isArray(l) && Array.isArray(r) && (b == null || Array.isArray(b))) {
+      var todos = l.concat(r, b || []);
+      if (todos.length && todos.every(function (x) { return itemKey(x) != null; })) return mergeLista(b || [], l, r);
+      return l;
+    }
+    if (isObj(l) && isObj(r) && (b == null || isObj(b))) {
+      var base = b || {}, out = {}, vistos = {};
+      [base, l, r].forEach(function (o) { Object.keys(o).forEach(function (k) { vistos[k] = 1; }); });
+      Object.keys(vistos).forEach(function (k) {
+        var nB = temK(base, k), nL = temK(l, k), nR = temK(r, k);
+        if (nL && nR) out[k] = merge3(nB ? base[k] : undefined, l[k], r[k]);
+        else if (nL) { if (!(nB && jeq(l[k], base[k]))) out[k] = l[k]; }
+        else if (nR) { if (!(nB && jeq(r[k], base[k]))) out[k] = r[k]; }
+      });
+      return out;
+    }
+    return l;
+  }
+  function adotarStore(novo) {
+    Object.keys(store).forEach(function (k) { if (!temK(novo, k)) delete store[k]; });
+    Object.keys(novo).forEach(function (k) { store[k] = novo[k]; });
+    try { localStorage.setItem(LS, JSON.stringify(store)); } catch (e) {}
+  }
+  function usuarioEditandoCalc() {
+    var a = document.activeElement;
+    return !!((a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.closest && a.closest('#gso-calc, #gso-calc-dr, #gso-calc-mbg')) || document.body.classList.contains('gc-dro') || document.body.classList.contains('gc-mo'));
+  }
+  function atualizarTelas() {
+    if (usuarioEditandoCalc()) { refreshPendente = true; return; }
+    refreshPendente = false;
+    try { if (window.gsoCalc && typeof window.gsoCalc.refresh === 'function') window.gsoCalc.refresh(); } catch (e) {}
+  }
   async function pushRemote() {
     var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : null;
     if (!client) return;
+    remoteSaveTimer = null;
+    if (pushEmAndamento) { pushPendente = true; return; }
+    pushEmAndamento = true;
     try {
-      await client.from('gso_calc_store').upsert({ id: 'default', data: store, updated_at: new Date().toISOString() });
+      var res = await client.from('gso_calc_store').select('data,updated_at').eq('id', 'default').maybeSingle();
+      if (res.error) throw res.error;
+      var alvo = store;
+      if (res.data && res.data.data && storeTemDados(res.data.data)) {
+        var remoto = res.data.data;
+        var mesclado = merge3(baseRemote || {}, store, remoto);
+        if (!jeq(mesclado, store)) {
+          try { localStorage.setItem(LS + '_antes_da_mescla', JSON.stringify(store)); } catch (e) {}
+          adotarStore(mesclado);
+          atualizarTelas();
+        }
+        alvo = store;
+      }
+      var agora = new Date().toISOString();
+      var up = await client.from('gso_calc_store').upsert({ id: 'default', data: alvo, updated_at: agora });
+      if (up.error) throw up.error;
+      baseRemote = jclone(alvo); remoteUpdatedAt = agora;
     } catch (e) { console.warn('gso-calc: falha ao salvar no Supabase', e); }
+    finally {
+      pushEmAndamento = false;
+      if (pushPendente) { pushPendente = false; clearTimeout(remoteSaveTimer); remoteSaveTimer = setTimeout(pushRemote, 300); }
+    }
   }
+  // Puxa mudanças feitas em outro computador (a cada minuto e ao voltar pra aba), sem apagar o que está pendente aqui.
+  async function pullRemote() {
+    var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : null;
+    if (!client || remoteSaveTimer || pushEmAndamento) return;
+    try {
+      var res = await client.from('gso_calc_store').select('data,updated_at').eq('id', 'default').maybeSingle();
+      if (res.error || !res.data || !res.data.data || !storeTemDados(res.data.data)) return;
+      if (res.data.updated_at === remoteUpdatedAt) { if (refreshPendente) atualizarTelas(); return; }
+      var remoto = res.data.data;
+      var mesclado = merge3(baseRemote || {}, store, remoto);
+      baseRemote = jclone(remoto); remoteUpdatedAt = res.data.updated_at;
+      if (!jeq(mesclado, store)) { adotarStore(mesclado); ensureInsumosLabels(); ensureMateriaisLabels(); atualizarTelas(); }
+      // se a mescla trouxe algo diferente do servidor (mudei algo aqui também), devolve ao servidor
+      if (!jeq(mesclado, remoto)) { clearTimeout(remoteSaveTimer); remoteSaveTimer = setTimeout(pushRemote, 300); }
+    } catch (e) { console.warn('gso-calc: falha ao puxar mudanças', e); }
+  }
+  setInterval(function () { if (!document.hidden) pullRemote(); }, 60000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) pullRemote(); });
+  window.addEventListener('focus', function () { pullRemote(); });
   // No load/login: o Supabase (quando já tem dado) é a fonte de verdade entre computadores.
   // Só empurra o local pra lá se o Supabase ainda não tiver nada — nunca sobrescreve um
   // Supabase com dado real usando um "store" local vazio (evita apagar matéria-prima cadastrada).
@@ -30920,9 +31030,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var client = (typeof getSupabaseClient === 'function') ? getSupabaseClient() : null;
     if (!client) return;
     try {
-      var res = await client.from('gso_calc_store').select('data').eq('id', 'default').maybeSingle();
+      var res = await client.from('gso_calc_store').select('data,updated_at').eq('id', 'default').maybeSingle();
       if (res.error) { console.warn('gso-calc: falha ao ler do Supabase', res.error.message); return; }
       if (res.data && res.data.data && storeTemDados(res.data.data)) {
+        baseRemote = jclone(res.data.data); remoteUpdatedAt = res.data.updated_at;
         store = Object.assign({ custos: {}, tabelas: {}, aromas: {}, sims: [], revisados: {}, pov: {}, modo: 'simples' }, res.data.data);
         // store veio inteiro do Supabase por cima do local — se for a primeira vez que o
         // dado remoto é lido depois dessa funcionalidade existir, ele ainda não tem
@@ -34110,7 +34221,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       };
     }
   }
-  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _params: params, _materiais: materiais, _materiaisLabels: function () { return Object.assign({}, store.materiaisLabels); }, _precoEntrada: precoEntradaPara, mostrarNoLab: mostrarNoLab, refresh: function () { renderPedido(); renderBatelada(); renderFormulacao(); renderEstrategia(); renderML(); } };
+  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _merge3: merge3, _pull: pullRemote, _params: params, _materiais: materiais, _materiaisLabels: function () { return Object.assign({}, store.materiaisLabels); }, _precoEntrada: precoEntradaPara, mostrarNoLab: mostrarNoLab, refresh: function () { renderPedido(); renderBatelada(); renderFormulacao(); renderEstrategia(); renderML(); } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 0);
 })();
