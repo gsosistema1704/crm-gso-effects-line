@@ -11973,6 +11973,12 @@ body.theme-dark .fx-legenda .fx-leg-ed b { color: #FFD68A; } body.theme-dark .fx
 .saude-acoes + .saude-x{ margin-left:10px; }
 .saude-restaurar{ margin-left:auto; }
 body.theme-dark .saude-x{ color:#F08A8A !important; }
+.cont-barra{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+.cont-barra .input{ max-width:240px; } .cont-chk{ display:inline-flex; align-items:center; gap:6px; font-size:13px; } .cont-resumo{ margin-left:auto; font-size:12.5px; color:var(--text-2); }
+.cont-tab .cont-cat td{ background:rgba(127,127,127,.1); font-weight:800; letter-spacing:.06em; text-transform:uppercase; font-size:11.5px; }
+.cont-in{ width:110px; text-align:right; } .cont-dif{ font-weight:800; font-variant-numeric:tabular-nums; }
+.cont-dif.ok{ color:#1E6B3A; } .cont-dif.mais{ color:#1E6B3A; } .cont-dif.menos{ color:#B0322F; }
+.cont-tab td.num, .cont-tab th.num{ text-align:right !important; }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -12997,6 +13003,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <button class="btn btn-soft" onclick="Lab.abrirEscolhaExport('excel')">Exportar Excel</button>
           <button class="btn btn-soft" onclick="Lab.abrirEscolhaExport('pdf')">Exportar PDF</button>
           <button class="btn btn-soft" onclick="Lab.openImportInsumosModal()">+ Importar em lote</button>
+          <button class="btn btn-soft" id="btn-contagem-fisica" onclick="Lab.abrirContagem()" data-tip="Conta o estoque de verdade e ajusta o do sistema">📋 Contagem física</button>
           <button class="btn btn-primary" onclick="Lab.openInsumoModal()">+ Adicionar insumo</button>
         </div>
         <div class="stats-bar" id="insumosStats"></div>
@@ -13039,6 +13046,26 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     </div>
 
     <!-- ===== MODAL: CATEGORIA DE INSUMOS (tela cheia) ===== -->
+    <!-- ===== MODAL: CONTAGEM FÍSICA DO ESTOQUE ===== -->
+    <div class="modal-bg" id="modal-contagem">
+      <div class="modal modal-fullscreen">
+        <div class="header" style="margin-bottom:10px">
+          <div><div class="h-title" style="font-size:18px">Contagem física do estoque</div>
+            <div class="h-sub">Digite quanto você tem de verdade em cada item. Só o que você preencher é conferido — o resto fica como está. Nada muda até você aplicar.</div></div>
+          <div class="h-actions"><button class="btn" onclick="Lab.fecharContagem()">← Voltar</button></div>
+        </div>
+        <div class="cont-barra">
+          <input class="input" id="cont-busca" placeholder="Buscar item..." oninput="Lab.contagemFiltrar()">
+          <select class="input" id="cont-tipo" onchange="Lab.contagemFiltrar()"><option value="">Todas as categorias</option></select>
+          <label class="cont-chk"><input type="checkbox" id="cont-so-dif" onchange="Lab.contagemFiltrar()"> só com diferença</label>
+          <span class="cont-resumo" id="cont-resumo"></span>
+          <button class="btn btn-small" onclick="Lab.contagemLimpar()">Limpar contagem</button>
+          <button class="btn btn-primary" onclick="Lab.contagemRevisar()">Revisar e aplicar ajustes</button>
+        </div>
+        <div id="cont-corpo" class="modal-fullscreen-body"></div>
+      </div>
+    </div>
+
     <div class="modal-bg" id="modal-categoria-insumos">
       <div class="modal modal-fullscreen">
         <div class="header" style="margin-bottom:14px">
@@ -36180,6 +36207,91 @@ async function renderIndicadores() {
     };
   }
 
+// ============ CONTAGEM FÍSICA ============
+// Compara o que você contou com o saldo do sistema e ajusta (tipo "definir"), registrando no histórico
+// de cada item como "Contagem física dd/mm/aaaa". Rascunho salvo neste navegador até aplicar.
+var CONT_TIPOS = { garrafa: 'Garrafas', tampa: 'Tampas', rotulo: 'Rótulos', essencia: 'Essências', produto: 'Produtos prontos', materia_prima: 'Matérias-primas', caixa: 'Caixas', deionizador: 'Deionizador', outro: 'Outros' };
+var CONT_LS = 'gso_contagem_rascunho';
+function contagemRascunho() { try { return JSON.parse(localStorage.getItem(CONT_LS) || '{}') || {}; } catch (e) { return {}; } }
+function contagemSalvar(r) { try { localStorage.setItem(CONT_LS, JSON.stringify(r)); } catch (e) {} }
+function contagemItens() { return state.insumos.filter(function (i) { return i.ativo !== false; }).sort(function (a, b) { return String(a.tipo).localeCompare(String(b.tipo)) || String(a.titulo).localeCompare(String(b.titulo), 'pt-BR'); }); }
+function contagemNum(v) { v = String(v == null ? '' : v).trim().replace(/\./g, '').replace(',', '.'); if (v === '') return null; var n = Number(v); return isNaN(n) ? null : n; }
+function abrirContagem() {
+  if (typeof isAdminUser === 'function' && !isAdminUser()) { alert('Apenas administradores podem fazer a contagem física.'); return; }
+  var sel = document.getElementById('cont-tipo');
+  var tipos = {}; contagemItens().forEach(function (i) { tipos[i.tipo] = 1; });
+  sel.innerHTML = '<option value="">Todas as categorias</option>' + Object.keys(tipos).map(function (t) { return '<option value="' + t + '">' + (CONT_TIPOS[t] || t) + '</option>'; }).join('');
+  document.getElementById('cont-busca').value = ''; document.getElementById('cont-so-dif').checked = false;
+  renderContagem();
+  openModal('modal-contagem');
+}
+function fecharContagem() { closeModal('modal-contagem'); }
+function renderContagem() {
+  var rasc = contagemRascunho();
+  var termo = (document.getElementById('cont-busca').value || '').toLowerCase();
+  var tipo = document.getElementById('cont-tipo').value;
+  var soDif = document.getElementById('cont-so-dif').checked;
+  var itens = contagemItens().filter(function (i) {
+    if (tipo && i.tipo !== tipo) return false;
+    if (termo && String(i.titulo).toLowerCase().indexOf(termo) < 0) return false;
+    if (soDif) { var c = contagemNum(rasc[i.id]); if (c == null || c === Number(i.estoque)) return false; }
+    return true;
+  });
+  var html = '', atual = null;
+  itens.forEach(function (i) {
+    if (i.tipo !== atual) { atual = i.tipo; html += '<tr class="cont-cat"><td colspan="4">' + (CONT_TIPOS[atual] || atual) + '</td></tr>'; }
+    html += '<tr data-cid="' + i.id + '"><td>' + escapeHtml(i.titulo) + '</td><td class="num">' + fmtNum(i.estoque) + (i.unidade ? ' <small>' + escapeHtml(i.unidade) + '</small>' : '') + '</td>' +
+      '<td class="num"><input class="form-input cont-in" inputmode="decimal" placeholder="—" value="' + escapeHtml(rasc[i.id] != null ? rasc[i.id] : '') + '" oninput="Lab.contagemInput(\'' + i.id + '\', this.value)"></td>' +
+      '<td class="num cont-dif" id="cont-dif-' + i.id + '"></td></tr>';
+  });
+  document.getElementById('cont-corpo').innerHTML = itens.length
+    ? '<table class="stack-table cont-tab"><thead><tr><th>Item</th><th class="num">No sistema</th><th class="num">Contei</th><th class="num">Diferença</th></tr></thead><tbody>' + html + '</tbody></table>'
+    : '<div class="table-empty">Nenhum item com esses filtros.</div>';
+  itens.forEach(function (i) { contagemPintarDif(i); });
+  contagemResumo();
+}
+function contagemPintarDif(i) {
+  var el = document.getElementById('cont-dif-' + i.id); if (!el) return;
+  var c = contagemNum(contagemRascunho()[i.id]);
+  if (c == null) { el.textContent = ''; el.className = 'num cont-dif'; return; }
+  var d = Math.round((c - Number(i.estoque)) * 1000) / 1000;
+  el.textContent = d === 0 ? '✔ igual' : (d > 0 ? '+' : '−') + fmtNum(Math.abs(d));
+  el.className = 'num cont-dif ' + (d === 0 ? 'ok' : (d > 0 ? 'mais' : 'menos'));
+}
+function contagemInput(id, valor) {
+  var r = contagemRascunho(); if (String(valor).trim() === '') delete r[id]; else r[id] = valor; contagemSalvar(r);
+  var i = state.insumos.find(function (x) { return x.id === id; }); if (i) contagemPintarDif(i);
+  contagemResumo();
+}
+function contagemFiltrar() { renderContagem(); }
+function contagemDiferencas() {
+  var r = contagemRascunho(); var out = [];
+  contagemItens().forEach(function (i) { var c = contagemNum(r[i.id]); if (c != null && c >= 0 && c !== Number(i.estoque)) out.push({ item: i, contado: c, atual: Number(i.estoque) }); });
+  return out;
+}
+function contagemResumo() {
+  var r = contagemRascunho(); var preenchidos = Object.keys(r).filter(function (k) { return contagemNum(r[k]) != null; }).length;
+  var el = document.getElementById('cont-resumo'); if (el) el.textContent = preenchidos + ' item(ns) contado(s) · ' + contagemDiferencas().length + ' com diferença';
+}
+function contagemLimpar() { if (!confirm('Limpar tudo o que você digitou na contagem? (O estoque do sistema não muda.)')) return; contagemSalvar({}); renderContagem(); }
+async function contagemRevisar() {
+  var dif = contagemDiferencas();
+  if (!dif.length) { alert('Nenhuma diferença para ajustar — o que você contou bate com o sistema (ou nada foi preenchido).'); return; }
+  var linhas = dif.slice(0, 40).map(function (d) { return '• ' + d.item.titulo + ': ' + fmtNum(d.atual) + ' → ' + fmtNum(d.contado); }).join('\n');
+  if (!confirm('Aplicar ' + dif.length + ' ajuste(s) de estoque?\n\n' + linhas + (dif.length > 40 ? '\n… e mais ' + (dif.length - 40) : '') + '\n\nCada ajuste fica registrado no histórico do item como "Contagem física".')) return;
+  var client = getSupabaseClient(); var hoje = new Date().toLocaleDateString('pt-BR'); var erros = [], ok = 0;
+  for (var k = 0; k < dif.length; k++) {
+    var d = dif[k];
+    var r = await client.rpc('gso_ajustar_insumo', { p_insumo_id: d.item.id, p_tipo: 'definir', p_quantidade: d.contado, p_origem: 'Contagem física ' + hoje + ' (sistema ' + fmtNum(d.atual) + ' → contado ' + fmtNum(d.contado) + ')' });
+    if (r.error) erros.push(d.item.titulo + ': ' + r.error.message); else ok++;
+  }
+  // tira do rascunho só o que foi aplicado com sucesso
+  var rasc = contagemRascunho(); var falhou = {}; erros.forEach(function (e) { falhou[e.split(':')[0]] = 1; });
+  dif.forEach(function (d) { if (!falhou[d.item.titulo]) delete rasc[d.item.id]; }); contagemSalvar(rasc);
+  await loadInsumos(); renderInsumos(); renderContagem();
+  alert('✅ ' + ok + ' ajuste(s) aplicado(s).' + (erros.length ? '\n\nNão consegui ajustar:\n' + erros.join('\n') : ''));
+}
+
   window.Lab = {
     state: state,
     abrir: abrir,
@@ -36225,6 +36337,7 @@ async function renderIndicadores() {
     navTo: navTo,
     switchInsumosTab: switchInsumosTab,
     openAjusteModal: openAjusteModal,
+    abrirContagem: abrirContagem, fecharContagem: fecharContagem, contagemInput: contagemInput, contagemFiltrar: contagemFiltrar, contagemLimpar: contagemLimpar, contagemRevisar: contagemRevisar,
     atualizarDivisoriasRow: atualizarDivisoriasRow,
     atualizarTampaJunto: atualizarTampaJunto,
     abrirEncaixotar: abrirEncaixotar,
