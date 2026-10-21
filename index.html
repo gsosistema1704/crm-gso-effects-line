@@ -12370,12 +12370,17 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               <select class="input" id="filterVendedorLojista" onchange="renderVendasLojista()">
                 <option value="">Todos os vendedores</option>
               </select>
+              <select class="input" id="filterNFLojista" onchange="renderVendasLojista()">
+                <option value="">Todas as NFs</option>
+                <option value="com">Com NF</option>
+                <option value="sem">Sem NF</option>
+              </select>
               <button class="btn btn-soft" onclick="limparFiltrosLojista()">Limpar</button>
             </div>
 
             <div class="card table-card">
               <table class="sales-table mobile-card-table">
-                <colgroup><col style="width:10%"><col style="width:20%"><col style="width:20%"><col style="width:8%"><col style="width:5%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:10%"></colgroup>
+                <colgroup><col style="width:8.71%"><col style="width:11.36%"><col style="width:19%"><col style="width:7.58%"><col style="width:4.55%"><col style="width:8.71%"><col style="width:9.85%"><col style="width:8.5%"><col style="width:11%"><col style="width:11%"></colgroup>
                 <thead>
                   <tr>
                     <th>Data</th>
@@ -12386,6 +12391,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
                     <th class="num">Valor</th>
                     <th>Pagamento</th>
                     <th>Vendedor</th>
+                    <th class="col-nf">Nota Fiscal</th>
                     <th class="col-acoes">Ações</th>
                   </tr>
                 </thead>
@@ -13690,7 +13696,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
             <input type="date" class="form-input" id="f-data">
           </div>
           <div>
-            <label class="form-label">Cliente</label>
+            <label class="form-label" id="f-cliente-label">Cliente</label>
             <input type="text" class="form-input" id="f-cliente" placeholder="Nome ou CPF/CNPJ do cliente" list="clientesList" oninput="buscarClientePorDocumentoNoInput(this); atualizarTipoVendaPeloCliente();" onchange="atualizarTipoVendaPeloCliente()">
             <datalist id="clientesList"></datalist>
             <div id="f-cliente-doc-hint" class="form-help hidden" style="cursor:pointer;color:var(--primary);"></div>
@@ -17904,7 +17910,9 @@ function buscarClientePorDocumentoNoInput(el) {
   if (!hint) return;
   const digitado = onlyDigits(el.value);
   if (digitado.length < 6) { hint.classList.add('hidden'); hint.textContent = ''; return; }
-  const fiscal = state.fiscais.find(f => (f.cpf && onlyDigits(f.cpf) === digitado) || (f.cnpj && onlyDigits(f.cnpj) === digitado));
+  const fiscal = vendaModoLojista
+    ? state.lojistas.find(l => (l.cpf && onlyDigits(l.cpf) === digitado) || (l.cnpj && onlyDigits(l.cnpj) === digitado))
+    : state.fiscais.find(f => (f.cpf && onlyDigits(f.cpf) === digitado) || (f.cnpj && onlyDigits(f.cnpj) === digitado));
   if (!fiscal || !fiscal.nome) { hint.classList.add('hidden'); hint.textContent = ''; return; }
   hint.textContent = `Encontrado: ${fiscal.nome} — clique para usar`;
   hint.classList.remove('hidden');
@@ -18445,7 +18453,7 @@ function navTo(view) {
   if (view === 'recados') renderRecados();
   if (view === 'config') renderConfig();
   if (view === 'perfil') renderPerfil();
-  if (view === 'nova') { if (editingVendaId) initEditVenda(editingVendaId); else initNova(); }
+  if (view === 'nova') { if (!__abrindoLojista) vendaModoLojista = false; __abrindoLojista = false; if (editingVendaId) initEditVenda(editingVendaId); else initNova(); }
   setTimeout(enhanceButtonTooltips, 0);
 }
 
@@ -22135,7 +22143,7 @@ function nextSaleNumberLojista() {
 }
 
 function limparFiltrosLojista() {
-  ['searchLojista','filterDataLojista','filterDataLojistaAte','filterAnoLojista','filterProdutoLojista','filterAromaLojista','filterPagamentoLojista','filterVendedorLojista'].forEach(id => {
+  ['searchLojista','filterDataLojista','filterDataLojistaAte','filterAnoLojista','filterProdutoLojista','filterAromaLojista','filterPagamentoLojista','filterVendedorLojista','filterNFLojista'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -22187,30 +22195,58 @@ function renderVendasLojista() {
   if (aromaFiltro) rows = rows.filter(r => saleAromaValues(r).some(aroma => nameKey(aroma) === nameKey(aromaFiltro)));
   if (pagamentoFiltro) rows = rows.filter(r => canonicalPayment(r.pagamento || '') === pagamentoFiltro);
   if (vendedorFiltro) rows = rows.filter(r => canonicalSellerName(r.vendedor || 'Sem vendedor') === vendedorFiltro);
+  const nfFiltroLoj = document.getElementById('filterNFLojista')?.value || '';
+  if (nfFiltroLoj === 'com') rows = rows.filter(saleHasNf);
+  if (nfFiltroLoj === 'sem') rows = rows.filter(r => !saleHasNf(r));
   const tbody = document.getElementById('lojistaTable');
   if (!tbody) return;
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="table-empty">Nenhuma venda para lojista registrada ainda</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="table-empty">Nenhuma venda para lojista registrada ainda</td></tr>';
     return;
   }
-  tbody.innerHTML = rows.map(r => `
-      <tr>
-        <td data-label="Data">${typeof gsoDateCell==='function'?gsoDateCell(r.data):fmtDate(r.data)}</td>
-        <td data-label="Lojista">${escapeHtml(r.cliente || '')}</td>
+  tbody.innerHTML = rows.map(r => {
+    const nfNumero = saleNfNumber(r);
+    const hasNfPdf = dashboardHasSaleFile(r, 'nf');
+    const nfNeedsAlert = !hasNfPdf && !nfNumero && !saleSomenteDinheiro(r);
+    const lojCad = nfNumero ? state.lojistas.find(l => nameKey(l.nome) === nameKey(r.cliente)) : null;
+    const nfWaTel = lojCad ? intelWaDigits(lojCad.telefone) : '';
+    const nfWaMsg = `Olá ${r.cliente}, tudo bem?\nEsta é a sua nota fiscal referente a compra ${r.numeroVenda || ''}, feita no dia ${fmtDate(r.data)} !\nAtt Equipe GSO Effects Line 💨`;
+    const nfWaBtn = !nfNumero ? '' : nfWaTel
+      ? `<a class="nf-wa-btn" target="_blank" rel="noopener" href="https://wa.me/${nfWaTel}?text=${encodeURIComponent(nfWaMsg)}" onclick="event.stopPropagation()" data-tip="Enviar a nota fiscal pelo WhatsApp do lojista">Enviar NF | Whatsapp</a>`
+      : `<span class="nf-wa-btn is-disabled" onclick="event.stopPropagation()" data-tip="Lojista sem telefone cadastrado">Enviar NF | Whatsapp</span>`;
+    const nfCompact = `
+      <div class="nf-inline-wrap" onclick="event.stopPropagation()">
+        <input type="text" class="input nf-inline-input${nfNeedsAlert ? ' nf-inline-alert' : ''}"
+          value="${escapeHtml(nfNumero)}"
+          placeholder="${nfNeedsAlert ? 'Emitir NF!' : 'Nº NF'}"
+          data-tip="${nfNeedsAlert ? 'Pagamento não é em dinheiro — a Nota Fiscal ainda não foi emitida. Digite o número aqui.' : 'Número da Nota Fiscal desta venda'}"
+          onchange="salvarNfNumeroInline('${r.id}', this.value)">
+        ${hasNfPdf ? `<button type="button" class="nf-inline-pdf-btn" onclick="openNF('${r.id}')" data-tip="Abrir PDF da NF anexado">PDF</button>` : ''}
+      </div>
+      ${nfWaBtn}`;
+    return `
+      <tr onclick="gsoToggleMobileCard(event, this)">
+        <td data-label="Data" data-preview="1"><div class="venda-data-cell"><div class="venda-numero-linha">nº ${r.numeroVenda || '—'}</div><div>${typeof gsoDateCell==='function'?gsoDateCell(r.data):fmtDate(r.data)}</div></div></td>
+        <td data-label="Lojista" data-preview="1">${escapeHtml(r.cliente || '')}</td>
         <td data-label="Produto">${escapeHtml(r.produto || '')}</td>
         <td data-label="Aroma"><span class="pill pill-aroma ${typeof gsoAromaClass==='function'?gsoAromaClass(r.aroma):''}">${escapeHtml(r.aroma || 'Neutro')}</span></td>
         <td data-label="Qtd" class="num">${r.qtd}</td>
-        <td data-label="Valor" class="num">${fmtBR(r.valor)}</td>
+        <td data-label="Valor" data-preview="1" class="num">${fmtBR(r.valor)}</td>
         <td data-label="Pagamento">${paymentDisplay(r)}</td>
         <td data-label="Vendedor"><span class="pill pill-blue">${escapeHtml(r.vendedor || '')}</span></td>
+        <td data-label="Nota fiscal">${nfCompact}</td>
         <td data-label="Ações">
           <div class="row-actions">
             <button class="btn btn-small" onclick="openVendaLojistaModal('${r.id}')">Editar</button>
-            <button class="btn btn-small btn-danger" onclick="excluirVendaLojista('${r.id}')" data-tip="Apagar venda" aria-label="Apagar venda">${trashIconSvg()}</button>
+            <div class="row-actions-pair">
+              <button class="btn btn-small btn-danger" onclick="excluirVendaLojista('${r.id}')" data-tip="Apagar venda" aria-label="Apagar venda">${trashIconSvg()}</button>
+            </div>
+            <button class="btn btn-small" onclick="verMaisVenda('${r.id}')">Ver mais</button>
           </div>
         </td>
       </tr>
-    `).join('');
+    `;
+  }).join('');
 }
 
 function currentLojistaItem() {
@@ -22309,39 +22345,15 @@ function removerProdutoLojista(index) {
   renderLojistaItemsList();
 }
 
+// Venda de lojista abre o MESMO formulário da venda de cliente (view-nova), em modo lojista.
 function openVendaLojistaModal(id = '') {
   if (id && !isAdminUser()) { alert('Apenas administradores podem editar vendas de lojistas.'); return; }
   const venda = id ? state.vendasLojista.find(v => v.id === id) : null;
-  document.getElementById('ml-id').value = venda ? venda.id : '';
-  document.getElementById('ml-data').value = venda ? String(venda.data || '').slice(0, 10) : dashboardDateKey(new Date());
-  document.getElementById('ml-cliente').value = venda?.cliente || '';
-  document.getElementById('ml-produto').value = 'Palco';
-  document.getElementById('ml-tamanho').value = '5L';
-  document.getElementById('ml-aroma').value = 'Neutro';
-  document.getElementById('ml-qtd').value = 1;
-  const valorInput = document.getElementById('ml-valor');
-  valorInput.value = venda?.valor || '';
-  delete valorInput.dataset.tocado;
-  document.getElementById('ml-pag').value = venda?.pagamento || 'Dinheiro';
-  document.getElementById('ml-vend').value = venda?.vendedor || 'Luísa Oliveira';
-  document.getElementById('ml-obs').value = venda?.obs || '';
-  document.getElementById('ml-frete').value = venda?.frete || '';
-  document.getElementById('ml-parcelas').value = venda?.pagamentoDetalhes?.parcelas || '';
-  const parcelasBoletoExistentesLojista = venda ? saleBoletoParcelas(venda) : [];
-  document.getElementById('ml-boleto-parcelas').value = (venda && saleIsBoleto(venda) && parcelasBoletoExistentesLojista.length) ? parcelasBoletoExistentesLojista.length : 1;
-  document.getElementById('ml-boleto-pdf').value = '';
-  currentLojistaItems = venda
-    ? (Array.isArray(venda.items) && venda.items.length
-        ? venda.items.map(it => ({ ...it, precoUnit: it.precoUnit != null ? it.precoUnit : lojistaPrecoUnitario(it.produto, it.tamanho) }))
-        : [{ produto: venda.produto, tamanho: venda.tamanho, aroma: venda.aroma, qtd: venda.qtd, precoUnit: lojistaPrecoUnitario(venda.produto, venda.tamanho), preco: venda.valor, descricao: `${venda.qtd} ${venda.produto} ${venda.tamanho}` }])
-    : [];
-  if (venda) valorInput.dataset.tocado = '1';
-  renderLojistaItemsList();
-  updateLojistaPreview();
-  toggleLojistaPaymentFields(venda && saleIsBoleto(venda) ? parcelasBoletoExistentesLojista : null);
-  const title = document.getElementById('modal-lojista-title');
-  if (title) title.textContent = venda ? 'Editar venda lojista' : 'Nova venda lojista';
-  document.getElementById('modal-lojista').classList.add('show');
+  if (id && !venda) return;
+  editingVendaId = venda ? venda.id : null;
+  vendaModoLojista = true;
+  __abrindoLojista = true;
+  navTo('nova');
 }
 
 async function salvarVendaLojista() {
@@ -22676,6 +22688,12 @@ function readPdfAsDataUrl(file) {
   });
 }
 
+// Vendas comuns e vendas de lojista usam as mesmas telas de NF/boleto/"Ver mais" — estes helpers
+// acham a venda (id 'v_...' ou 'vl_...') e sabem em qual coleção ela mora.
+function findVendaAny(id) { return state.vendas.find(v => v.id === id) || state.vendasLojista.find(v => v.id === id) || null; }
+function vendaColKey(venda) { return state.vendasLojista.includes(venda) ? 'vendasLojista' : 'vendas'; }
+function vendaPersistir(venda) { const k = vendaColKey(venda); STORE.save(k, state[k]); return syncCollectionToSupabase(k, state[k]); }
+function vendaRerender(venda) { if (vendaColKey(venda) === 'vendasLojista') renderVendasLojista(); else renderVendas(); }
 async function saveSalePdf(venda, file, kind) {
   if (!file) return null;
   validatePdfFile(file);
@@ -22705,20 +22723,20 @@ async function saveSalePdf(venda, file, kind) {
 // o número digitado quando os dados do servidor chegam por cima do que ainda não foi salvo.
 // Re-renderiza a lista IMEDIATAMENTE com o valor local, sem esperar a rede.
 async function salvarNfNumeroInline(id, valor) {
-  const venda = state.vendas.find(v => v.id === id);
+  const venda = findVendaAny(id);
   if (!venda) return;
   const novo = (valor || '').trim();
   if ((saleNfNumber(venda) || '') === novo) return;
   venda.nfNumber = novo;
-  STORE.save('vendas', state.vendas);
-  renderVendas();
+  STORE.save(vendaColKey(venda), state[vendaColKey(venda)]);
+  vendaRerender(venda);
   if (!document.getElementById('view-notas')?.classList.contains('hidden')) renderNotasFiscais();
   try {
     const client = getSupabaseClient();
     const session = await getSupabaseSession();
     if (!client || !session) return;
     const row = saleToRow(venda);
-    const { error } = await client.from('crm_vendas').update({ metadata: row.metadata }).eq('id', id);
+    const { error } = await client.from(vendaColKey(venda) === 'vendasLojista' ? 'crm_vendas_lojista' : 'crm_vendas').update({ metadata: row.metadata }).eq('id', id);
     if (error) throw error;
   } catch (err) {
     console.warn('Não consegui salvar o número da NF no Supabase agora (vai tentar de novo na próxima sincronização):', err);
@@ -22728,14 +22746,13 @@ async function salvarNfNumeroInline(id, valor) {
 async function uploadNF(id, ev) {
   const file = ev.target.files[0];
   if (!file) return;
-  const venda = state.vendas.find(v => v.id === id);
+  const venda = findVendaAny(id);
   if (!venda) return;
   try {
     venda.nf = await saveSalePdf(venda, file, 'nf');
     venda.nfUpdatedAt = new Date().toISOString();
-    STORE.save('vendas', state.vendas);
-    await syncCollectionToSupabase('vendas', state.vendas);
-    renderVendas();
+    await vendaPersistir(venda);
+    vendaRerender(venda);
     if (!document.getElementById('view-notas')?.classList.contains('hidden')) renderNotasFiscais();
   } catch (err) {
     alert(err.message);
@@ -22747,14 +22764,13 @@ async function uploadNF(id, ev) {
 async function uploadBoletoSale(id, ev) {
   const file = ev.target.files[0];
   if (!file) return;
-  const venda = state.vendas.find(v => v.id === id);
+  const venda = findVendaAny(id);
   if (!venda) return;
   try {
     venda.boleto = await saveSalePdf(venda, file, 'boleto');
     venda.boletoUpdatedAt = new Date().toISOString();
-    STORE.save('vendas', state.vendas);
-    await syncCollectionToSupabase('vendas', state.vendas);
-    renderVendas();
+    await vendaPersistir(venda);
+    vendaRerender(venda);
     renderDash();
   } catch (err) {
     alert(err.message);
@@ -22764,7 +22780,7 @@ async function uploadBoletoSale(id, ev) {
 }
 
 async function openNF(id) {
-  const venda = state.vendas.find(v => v.id === id);
+  const venda = findVendaAny(id);
   if (!venda?.nf) return;
   if (venda.nf.data) {
     window.open(venda.nf.data, '_blank');
@@ -22787,7 +22803,7 @@ async function openNF(id) {
 }
 
 async function openBoleto(id) {
-  const venda = state.vendas.find(v => v.id === id);
+  const venda = findVendaAny(id);
   if (!venda?.boleto) return;
   if (venda.boleto.data) {
     window.open(venda.boleto.data, '_blank');
@@ -22811,7 +22827,7 @@ async function openBoleto(id) {
 
 async function removeSaleFile(id, kind, label) {
   if (!confirm(`Apagar ${label} anexado nesta venda?`)) return;
-  const venda = state.vendas.find(v => v.id === id);
+  const venda = findVendaAny(id);
   if (!venda || !venda[kind]) return;
   const client = getSupabaseClient();
   const session = await getSupabaseSession();
@@ -22823,15 +22839,14 @@ async function removeSaleFile(id, kind, label) {
   }
   delete venda[kind];
   venda[`${kind}UpdatedAt`] = new Date().toISOString();
-  STORE.save('vendas', state.vendas);
-  await syncCollectionToSupabase('vendas', state.vendas);
-  renderVendas();
+  await vendaPersistir(venda);
+  vendaRerender(venda);
   renderDash();
   if (!document.getElementById('view-notas')?.classList.contains('hidden')) renderNotasFiscais();
 }
 
 async function removeNF(id) {
-  const venda = state.vendas.find(v => v.id === id);
+  const venda = findVendaAny(id);
   if (!venda) return;
   const hasPdf = dashboardHasSaleFile(venda, 'nf');
   const hasNumber = Boolean(saleNfNumber(venda));
@@ -22850,9 +22865,8 @@ async function removeNF(id) {
   delete venda.numeroNotaFiscal;
   delete venda.notaFiscalNumero;
   venda.nfUpdatedAt = new Date().toISOString();
-  STORE.save('vendas', state.vendas);
-  await syncCollectionToSupabase('vendas', state.vendas);
-  renderVendas();
+  await vendaPersistir(venda);
+  vendaRerender(venda);
   renderDash();
   if (!document.getElementById('view-notas')?.classList.contains('hidden')) renderNotasFiscais();
 }
@@ -22885,7 +22899,7 @@ function verMaisVenda(id) {
 }
 
 function renderVerMaisVenda(id) {
-  const r = state.vendas.find(v => v.id === id);
+  const r = findVendaAny(id);
   if (!r) { closeVerMais(); return; }
   const nfLabel = r.nf?.name ? (r.nf.name.length > 18 ? r.nf.name.slice(0, 18) + '…' : r.nf.name) : '';
   const nfNumero = saleNfNumber(r);
@@ -27031,7 +27045,7 @@ function escapeHtml(value) {
   }[ch]));
 }
 function printSaleLabelById(id) {
-  const venda = state.vendas.find(v => v.id === id);
+  const venda = findVendaAny(id);
   if (venda) printSaleLabel(venda);
 }
 // Monta as linhas de item da Nota simplificada a partir de venda.items (que já carrega o
@@ -27155,6 +27169,21 @@ function printSaleLabel(venda) {
 let currentSaleItems = [];
 let currentLojistaItems = [];
 let editingVendaId = null;
+// Venda de lojista usa o MESMO formulário da venda de cliente (view-nova) — só muda onde salva
+// (vendasLojista), a tabela de preços (lojista), o cadastro do cliente (Lojistas) e a numeração.
+let vendaModoLojista = false;
+let __abrindoLojista = false;
+function vendaColAlvo() { return vendaModoLojista ? 'vendasLojista' : 'vendas'; }
+function aplicarModoLojistaForm() {
+  const L = vendaModoLojista;
+  const lab = document.getElementById('f-cliente-label'); if (lab) lab.textContent = L ? 'Lojista' : 'Cliente';
+  const cli = document.getElementById('f-cliente'); if (cli) cli.placeholder = L ? 'Nome ou CPF/CNPJ do lojista' : 'Nome ou CPF/CNPJ do cliente';
+  const pag = document.getElementById('f-pag');
+  if (pag) Array.from(pag.options).forEach(o => { if (o.value === 'Mercado Livre' || o.text === 'Mercado Livre') { o.hidden = L; o.disabled = L; } });
+  if (L) { document.getElementById('f-tipo-venda-row')?.classList.add('hidden'); document.getElementById('nova-recado-btn')?.classList.add('hidden'); }
+  const lista = L ? state.lojistas.map(l => l.nome) : clientesSugeridosParaUsuario(computeClientes()).map(c => c.nome);
+  const dl = document.getElementById('clientesList'); if (dl) dl.innerHTML = lista.map(n => `<option value="${escapeHtml(n)}">`).join('');
+}
 // Guarda sku/título do anúncio quando a venda é aberta a partir de "Registrar venda" num
 // anúncio do Mercado Livre (Calculadora) — some ao pagamentoDetalhes ao salvar, pra manter
 // o vínculo com o anúncio real (usado no ranking "Anúncio mais vendido"), e é limpo depois.
@@ -27217,12 +27246,13 @@ let lastVendaDataUsada = null;
 
 function cancelarNovaOuEdicaoVenda() {
   const wasEditing = Boolean(editingVendaId);
+  const eraLojista = vendaModoLojista;
   editingVendaId = null;
-  navTo(wasEditing ? 'vendas' : 'inteligencia');
+  navTo(eraLojista ? 'lojista' : (wasEditing ? 'vendas' : 'inteligencia'));
 }
 
 function initEditVenda(id) {
-  const venda = state.vendas.find(v => v.id === id);
+  const venda = state[vendaColAlvo()].find(v => v.id === id);
   if (!venda) { editingVendaId = null; initNova(); return; }
   anuncioOrigemVenda = null;
   popularSelectProdutoEstoque('f-estoque-produto', null);
@@ -27245,13 +27275,22 @@ function initEditVenda(id) {
   document.getElementById('f-boleto-pdf').value = '';
   document.getElementById('f-aroma-custom').value = '';
   document.getElementById('f-aroma-custom-row').classList.add('hidden');
-  atualizarTipoVendaPeloCliente();
-  document.getElementById('f-tipo-venda-row').classList.toggle('hidden', !isAdminUser());
+  if (!vendaModoLojista) atualizarTipoVendaPeloCliente();
+  document.getElementById('f-tipo-venda-row').classList.toggle('hidden', vendaModoLojista || !isAdminUser());
   const nfNumeroInput = document.getElementById('f-nf-numero');
   if (nfNumeroInput) nfNumeroInput.value = saleNfNumber(venda) || '';
 
   if (Array.isArray(venda.items) && venda.items.length) {
-    currentSaleItems = venda.items.map(it => ({ ...it }));
+    // itens antigos de lojista vêm com "qtd" em vez de qtdEntrada/qtdUnidades — normaliza pro formulário comum
+    currentSaleItems = venda.items.map(it => ({
+      ...it,
+      catalogProduto: it.catalogProduto || it.produto, catalogTamanho: it.catalogTamanho || it.tamanho,
+      formato: it.formato || 'UN', aroma: it.aroma || 'Neutro',
+      qtdEntrada: it.qtdEntrada != null ? it.qtdEntrada : (it.qtd || 1),
+      qtdUnidades: it.qtdUnidades != null ? it.qtdUnidades : (it.qtd || 1),
+      produtoEnvasadoId: it.produtoEnvasadoId || null,
+      descricao: it.descricao || ((it.qtd || 1) + ' ' + (it.formato || 'UN') + ' ' + it.produto + ' ' + it.tamanho)
+    }));
   } else if (venda.catalogProduto && venda.catalogTamanho) {
     currentSaleItems = [{
       produto: venda.catalogProduto,
@@ -27287,8 +27326,7 @@ function initEditVenda(id) {
   }
   renderSaleItemsList();
 
-  const clis = clientesSugeridosParaUsuario(computeClientes());
-  document.getElementById('clientesList').innerHTML = clis.map(c => `<option value="${escapeHtml(c.nome)}">`).join('');
+  aplicarModoLojistaForm();
   updateProductSelectOptions();
   updateProductSizeOptions();
   pagDivReset();
@@ -27307,16 +27345,17 @@ function initEditVenda(id) {
   const titleEl = document.getElementById('nova-h-title');
   const subEl = document.getElementById('nova-h-sub');
   const saveBtn = document.getElementById('nova-save-btn');
-  if (titleEl) titleEl.textContent = 'Editar venda nº ' + (venda.numeroVenda || '');
+  if (titleEl) titleEl.textContent = (vendaModoLojista ? 'Editar venda lojista nº ' : 'Editar venda nº ') + (venda.numeroVenda || '');
   if (subEl) subEl.textContent = 'Atualize os dados do pedido';
   if (saveBtn) saveBtn.textContent = 'Salvar alterações';
   const numeroEl = document.getElementById('f-numero-venda');
-  if (numeroEl) numeroEl.textContent = 'Venda nº ' + (venda.numeroVenda || '—');
-  document.getElementById('nova-recado-btn')?.classList.remove('hidden');
+  if (numeroEl) numeroEl.textContent = (vendaModoLojista ? 'Venda lojista nº ' : 'Venda nº ') + (venda.numeroVenda || '—');
+  if (!vendaModoLojista) document.getElementById('nova-recado-btn')?.classList.remove('hidden');
 }
 
 // ---- Caixa fechada: sempre mostra o valor unitário e o desconto da caixa sobre ele ----
 function precoUnitarioTabelaVenda(produto, tamanho) {
+  if (vendaModoLojista) return lojistaPrecoUnitario(produto, tamanho);
   const viaCalc = (window.gsoCalc && typeof window.gsoCalc._precoEntrada === 'function')
     ? window.gsoCalc._precoEntrada(produto, tamanho, 'UN', 'Consumidor final') : null;
   if (typeof viaCalc === 'number' && viaCalc > 0) return viaCalc;
@@ -27366,11 +27405,14 @@ function currentSaleItem() {
     if (custom) aroma = custom;
   }
   const precoEstrategia = (window.gsoCalc && typeof window.gsoCalc._precoEntrada === 'function')
-    ? window.gsoCalc._precoEntrada(produto, tamanho, tipo, 'Consumidor final')
+    ? window.gsoCalc._precoEntrada(produto, tamanho, tipo, vendaModoLojista ? 'Revendedor (Lojista)' : 'Consumidor final')
     : null;
-  const preco = (typeof precoEstrategia === 'number' && precoEstrategia > 0)
-    ? qtdEntrada * precoEstrategia
-    : (p ? (tipo === 'CX' && unCx > 0 && p.caixa2026 > 0 ? qtdEntrada * p.caixa2026 : qtdEntrada * (p.unit2026 || 0)) : 0);
+  const precoLojistaUn = vendaModoLojista ? lojistaPrecoUnitario(produto, tamanho) : null;
+  const preco = vendaModoLojista
+    ? ((typeof precoEstrategia === 'number' && precoEstrategia > 0) ? qtdEntrada * precoEstrategia : (precoLojistaUn != null ? qtdUnidades * precoLojistaUn : 0))
+    : ((typeof precoEstrategia === 'number' && precoEstrategia > 0)
+      ? qtdEntrada * precoEstrategia
+      : (p ? (tipo === 'CX' && unCx > 0 && p.caixa2026 > 0 ? qtdEntrada * p.caixa2026 : qtdEntrada * (p.unit2026 || 0)) : 0));
   return {
     produto,
     tamanho,
@@ -27659,11 +27701,11 @@ function initNova() {
   const titleEl = document.getElementById('nova-h-title');
   const subEl = document.getElementById('nova-h-sub');
   const saveBtn = document.getElementById('nova-save-btn');
-  if (titleEl) titleEl.textContent = 'Nova venda';
-  if (subEl) subEl.textContent = 'Registrar pedido';
+  if (titleEl) titleEl.textContent = vendaModoLojista ? 'Nova venda lojista' : 'Nova venda';
+  if (subEl) subEl.textContent = vendaModoLojista ? 'Registrar pedido de lojista/revendedor (tabela de valores do lojista)' : 'Registrar pedido';
   if (saveBtn) saveBtn.textContent = 'Salvar venda';
   const numeroEl = document.getElementById('f-numero-venda');
-  if (numeroEl) numeroEl.textContent = 'Venda nº ' + nextSaleNumber() + ' (próximo número)';
+  if (numeroEl) numeroEl.textContent = vendaModoLojista ? 'Venda lojista nº ' + nextSaleNumberLojista() + ' (próximo número)' : 'Venda nº ' + nextSaleNumber() + ' (próximo número)';
   document.getElementById('nova-recado-btn')?.classList.add('hidden');
   document.getElementById('f-data').value = lastVendaDataUsada || dashboardDateKey(new Date());
   document.getElementById('f-cliente').value = '';
@@ -27691,14 +27733,14 @@ function initNova() {
   document.getElementById('f-aroma-custom').value = '';
   document.getElementById('f-aroma-custom-row').classList.add('hidden');
   setTipoVendaForm('');
-  document.getElementById('f-tipo-venda-row').classList.toggle('hidden', !isAdminUser());
+  document.getElementById('f-tipo-venda-row').classList.toggle('hidden', vendaModoLojista || !isAdminUser());
   currentSaleItems = [];
   renderSaleItemsList();
   popularSelectProdutoEstoque('f-estoque-produto', null);
 
-  // Datalist com clientes
-  const clis = clientesSugeridosParaUsuario(computeClientes());
-  document.getElementById('clientesList').innerHTML = clis.map(c => `<option value="${escapeHtml(c.nome)}">`).join('');
+  // Datalist com clientes (ou lojistas, no modo lojista) + ajustes do modo
+  aplicarModoLojistaForm();
+  document.getElementById('f-vend').value = vendaModoLojista ? 'Luísa Oliveira' : (document.getElementById('f-vend').value || 'Luísa Oliveira');
   updateProductSelectOptions();
   updateProductSizeOptions();
   togglePaymentFields();
@@ -27718,6 +27760,7 @@ function setTipoVendaForm(tipo) {
   }
 }
 function atualizarTipoVendaPeloCliente() {
+  if (vendaModoLojista) return;
   const nome = document.getElementById('f-cliente')?.value.trim() || '';
   const cliente = state.clientes.find(c => nameKey(c.nome) === nameKey(nome));
   setTipoVendaForm(cliente?.tipoCliente === 'Direto Lab' ? 'Direto Lab' : '');
@@ -27800,7 +27843,7 @@ async function salvarVenda() {
       alert('Informe a data de vencimento de todas as parcelas do boleto.');
       return;
     }
-    const vendaParaEditarBoleto = editingVendaId ? state.vendas.find(v => v.id === editingVendaId) : null;
+    const vendaParaEditarBoleto = editingVendaId ? state[vendaColAlvo()].find(v => v.id === editingVendaId) : null;
     const parcelasAnteriores = vendaParaEditarBoleto ? saleBoletoParcelas(vendaParaEditarBoleto) : [];
     pagamentoDetalhes.parcelasBoleto = vencimentoInputs.map((inp, i) => {
       const anterior = parcelasAnteriores[i] || {};
@@ -27848,23 +27891,28 @@ async function salvarVenda() {
   }
 
   const isEditing = Boolean(editingVendaId);
-  const existingVenda = isEditing ? state.vendas.find(v => v.id === editingVendaId) : null;
+  const colAlvo = vendaColAlvo();
+  if (vendaModoLojista && isEditing && !isAdminUser()) { alert('Apenas administradores podem editar vendas de lojistas.'); return; }
+  const existingVenda = isEditing ? state[colAlvo].find(v => v.id === editingVendaId) : null;
   if (isEditing && !existingVenda) {
     alert('Não encontrei essa venda para editar.');
     editingVendaId = null;
-    navTo('vendas');
+    navTo(vendaModoLojista ? 'lojista' : 'vendas');
     return;
   }
 
-  const aliasResolvido = resolveClienteAlias(cliente);
-  const clienteCadastrado = state.clientes.some(c => nameKey(c.nome) === nameKey(aliasResolvido.cliente));
+  const lojistaDigitado = vendaModoLojista ? state.lojistas.find(l => nameKey(l.nome) === nameKey(cliente)) : null;
+  const aliasResolvido = vendaModoLojista
+    ? { cliente: lojistaDigitado ? lojistaDigitado.nome : cliente, clienteOriginal: null, revisaoCliente: false, revisaoCandidatos: null }
+    : resolveClienteAlias(cliente);
+  const clienteCadastrado = vendaModoLojista ? Boolean(lojistaDigitado) : state.clientes.some(c => nameKey(c.nome) === nameKey(aliasResolvido.cliente));
   if (!clienteCadastrado) {
-    const irCadastrar = confirm('Cliente "' + aliasResolvido.cliente + '" ainda não está cadastrado.\n\nCadastre o cliente antes de lançar a venda.\n\nAbrir o cadastro agora?');
-    if (irCadastrar) openClienteModal(aliasResolvido.cliente);
+    const irCadastrar = confirm((vendaModoLojista ? 'Lojista "' : 'Cliente "') + aliasResolvido.cliente + '" ainda não está cadastrado.\n\nCadastre ' + (vendaModoLojista ? 'o lojista' : 'o cliente') + ' antes de lançar a venda.\n\nAbrir o cadastro agora?');
+    if (irCadastrar) { if (vendaModoLojista) openLojistaCadastroModal(aliasResolvido.cliente); else openClienteModal(aliasResolvido.cliente); }
     return;
   }
-  if (/mercado\s*livre/i.test(pagamento || '')) await marcarClienteDiretoLabMercadoLivre(aliasResolvido.cliente);
-  const numeroVenda = isEditing ? existingVenda.numeroVenda : nextSaleNumber();
+  if (!vendaModoLojista && /mercado\s*livre/i.test(pagamento || '')) await marcarClienteDiretoLabMercadoLivre(aliasResolvido.cliente);
+  const numeroVenda = isEditing ? existingVenda.numeroVenda : (vendaModoLojista ? nextSaleNumberLojista() : nextSaleNumber());
   const items = currentSaleItems.length > 0 ? [...currentSaleItems] : [currentSaleItem()];
   const precoSugerido = items.reduce((sum, item) => sum + (parseFloat(item.preco) || 0), 0);
   const precoSugeridoComFrete = precoSugerido + frete;
@@ -27903,7 +27951,7 @@ async function salvarVenda() {
   };
   const venda = isEditing
     ? Object.assign(existingVenda, vendaFields)
-    : { id: 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), ...vendaFields };
+    : { id: (vendaModoLojista ? 'vl_' : 'v_') + Date.now() + '_' + Math.random().toString(36).slice(2, 7), ...vendaFields };
 
   const nfFile = saleSomenteDinheiro(venda) ? null : document.getElementById('f-nf-pdf').files[0];
   const boletoFile = pagamento === 'Boleto' ? document.getElementById('f-boleto-pdf').files[0] : null;
@@ -27923,28 +27971,28 @@ async function salvarVenda() {
     return;
   }
 
-  const avisoEstoque = await ajustarEstoqueLaboratorioNaVenda(venda, isEditing ? existingVenda : null, 'Venda nº ' + numeroVenda);
+  const avisoEstoque = await ajustarEstoqueLaboratorioNaVenda(venda, isEditing ? existingVenda : null, (vendaModoLojista ? 'Venda lojista nº ' : 'Venda nº ') + numeroVenda);
 
   if (isEditing) {
     venda.editedFields = venda.editedFields || {};
     venda.editedAt = new Date().toISOString();
-    STORE.save('vendas', state.vendas);
+    STORE.save(colAlvo, state[colAlvo]);
     updateSaleReviewBadge();
     editingVendaId = null;
-    alert('✅ Venda nº ' + numeroVenda + ' atualizada!');
+    alert('✅ Venda' + (vendaModoLojista ? ' lojista' : '') + ' nº ' + numeroVenda + ' atualizada!');
     if (avisoEstoque) alert(avisoEstoque);
-    navTo('vendas');
+    navTo(vendaModoLojista ? 'lojista' : 'vendas');
     return;
   }
 
-  state.vendas.push(venda);
-  STORE.save('vendas', state.vendas);
+  state[colAlvo].push(venda);
+  STORE.save(colAlvo, state[colAlvo]);
   updateSaleReviewBadge();
   lastVendaDataUsada = venda.data;
-  const imprimir = confirm('✅ Venda nº ' + numeroVenda + ' registrada!\n\n' + aliasResolvido.cliente + ' — ' + fmtBR(valor) + '\n\nDeseja imprimir a nota simplificada desta venda agora?');
+  const imprimir = confirm('✅ Venda' + (vendaModoLojista ? ' lojista' : '') + ' nº ' + numeroVenda + ' registrada!\n\n' + aliasResolvido.cliente + ' — ' + fmtBR(valor) + '\n\nDeseja imprimir a nota simplificada desta venda agora?');
   if (imprimir) printSaleLabel(venda);
   if (avisoEstoque) alert(avisoEstoque);
-  navTo('inteligencia');
+  navTo(vendaModoLojista ? 'lojista' : 'inteligencia');
 }
 
 
