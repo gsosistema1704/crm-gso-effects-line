@@ -11948,6 +11948,9 @@ body.theme-dark .fx-legenda .fx-leg-ed b { color: #FFD68A; } body.theme-dark .fx
 .brinde-check{ display:flex; align-items:center; gap:8px; margin:2px 0 10px; font-size:13px; color:var(--text-2); cursor:pointer; }
 .brinde-check input{ width:auto; margin:0; }
 .brinde-check b{ color:#8A5A00; } body.theme-dark .brinde-check b{ color:#FFD68A; }
+.mc-lojista-bloco{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin:14px 0 4px; padding:12px 14px; border:1px solid var(--border,#E2E2E2); border-radius:12px; background:rgba(127,127,127,.05); }
+.mc-lojista-bloco b{ font-size:13.5px; }
+.mc-lojista-bloco .btn{ flex:0 0 auto; }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -14462,6 +14465,13 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <span class="intel-chip" data-tipo="Direto Lab" onclick="setTipoClienteForm('Direto Lab')">Direto Lab</span>
         </div>
       </div>
+    </div>
+    <div class="mc-lojista-bloco hidden" id="mc-tornar-lojista-bloco">
+      <div>
+        <b>Tornar lojista</b>
+        <div class="form-help" style="margin:2px 0 0">Passa este cadastro para a aba Lojistas e ele deixa de aparecer em Clientes. O histórico de vendas é mantido.</div>
+      </div>
+      <button type="button" class="btn" onclick="tornarClienteLojistaDireto()">Tornar lojista</button>
     </div>
 	    <div class="form-actions">
       <button class="btn" onclick="document.getElementById('modal-cliente').classList.remove('show')">Cancelar</button>
@@ -23212,7 +23222,46 @@ function openClienteModal(nome = '') {
         `<span>Última compra <b>${agg.ultima ? fmtDate(agg.ultima) : '—'}</b></span>`;
     }
   }
+  document.getElementById('mc-tornar-lojista-bloco')?.classList.toggle('hidden', !(isAdminUser() && foundExisting));
   document.getElementById('modal-cliente').classList.add('show');
+}
+
+// "Tornar lojista": passa o cadastro pra aba Lojistas num clique só (com uma confirmação) —
+// cria o lojista com o que está no formulário, remove o cliente comum e leva pra Lojistas > Cadastros.
+// O histórico de vendas continua (ligado pelo nome).
+async function tornarClienteLojistaDireto() {
+  if (!isAdminUser()) { alert('Apenas administradores podem tornar um cliente lojista.'); return; }
+  const nome = document.getElementById('mc-original-nome')?.value.trim() || '';
+  if (!nome) { alert('Salve o cliente primeiro.'); return; }
+  if (state.lojistas.some(l => nameKey(l.nome) === nameKey(nome))) {
+    alert('Já existe um lojista cadastrado com esse nome. Edite o cadastro dele em Lojistas.');
+    return;
+  }
+  if (!confirm('Tornar "' + nome + '" lojista?\n\nEle passa para a aba Lojistas e deixa de aparecer em Clientes. O histórico de vendas é mantido.')) return;
+  const val = id => document.getElementById(id)?.value.trim() || '';
+  const fiscal = fiscalRecordForCliente(nome) || {};
+  const docs = splitFiscalDocs(fiscal);
+  const payload = {
+    nome,
+    telefone: val('mc-tel'), email: val('mc-email'),
+    cpf: val('mc-cpf') || docs.cpf || '', cnpj: val('mc-cnpj') || docs.cnpj || '',
+    cep: val('mc-cep'), rua: val('mc-rua'), numero: val('mc-numero'), bairro: val('mc-bairro'),
+    cidade: val('mc-cidade'), estado: val('mc-estado'),
+    nascimentoDia: val('mc-nasc-dia'), nascimentoMes: val('mc-nasc-mes')
+  };
+  payload.id = safeId('lj', [payload.nome, payload.telefone, payload.email]);
+  state.lojistas.push(payload);
+  STORE.save('lojistas', state.lojistas);
+  try {
+    const client = getSupabaseClient();
+    const session = await getSupabaseSession();
+    if (client && session) await client.from('crm_lojistas').upsert(lojistaToRow(payload), { onConflict: 'id' });
+  } catch (err) { console.warn('Não consegui salvar o lojista no Supabase agora:', err); }
+  document.getElementById('modal-cliente').classList.remove('show');
+  await removerCadastroClienteAposConversao(nome);
+  navTo('lojista');
+  switchLojistaTab('cadastros');
+  alert('✅ "' + nome + '" agora é lojista (aba Lojistas → Cadastros).');
 }
 function selecionarTipoClienteLojista() {
   const originalNome = document.getElementById('mc-original-nome')?.value.trim() || '';
