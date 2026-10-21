@@ -11963,6 +11963,16 @@ body.theme-dark .fx-legenda .fx-leg-ed b { color: #FFD68A; } body.theme-dark .fx
 .saude-item{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 10px; border-radius:8px; font-size:13px; background:rgba(127,127,127,.06); }
 .saude-item span{ min-width:0; overflow-wrap:anywhere; }
 .saude-acoes{ display:inline-flex; gap:6px; flex:0 0 auto; }
+.saude-topo{ cursor:pointer; user-select:none; }
+.saude-min{ border:0 !important; background:none !important; box-shadow:none !important; padding:0 4px !important; min-height:0 !important; font-size:15px; color:var(--text-2); cursor:pointer; }
+.saude-card.colapsado .saude-corpo{ display:none; }
+.saude-card.colapsado .saude-topo{ margin-bottom:0; }
+.saude-txt{ flex:1; }
+.saude-x{ flex:0 0 auto; width:22px; height:22px; margin-left:4px; padding:0 !important; min-height:0 !important; border:1px solid rgba(176,50,47,.35) !important; background:rgba(176,50,47,.07) !important; color:#B0322F !important; border-radius:6px !important; font-size:11px; line-height:1; cursor:pointer; }
+.saude-x:hover{ background:rgba(176,50,47,.2) !important; }
+.saude-acoes + .saude-x{ margin-left:10px; }
+.saude-restaurar{ margin-left:auto; }
+body.theme-dark .saude-x{ color:#F08A8A !important; }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -26794,8 +26804,19 @@ async function gsoAuditoriaSync() {
   } catch (err) { itens.push({ txt: 'Falha ao conferir a sincronização: ' + (err && err.message || err) }); }
   return itens.length ? [{ id: 'sync', nivel: 'alto', titulo: 'Dados diferentes entre este computador e o servidor', detalhe: 'Pode ser um lançamento que não salvou ou uma tela desatualizada.', itens }] : [];
 }
+function saudeDispensados() { try { const st = window.gsoCalc && window.gsoCalc._store(); return (st && st.saudeDispensados) || {}; } catch (e) { return {}; } }
+function saudeChave(p, it) { return p.id + '||' + it.txt; }
+function saudeColapsados() { try { return new Set(JSON.parse(localStorage.getItem('gso_saude_colapsados') || '[]')); } catch (e) { return new Set(); } }
+function saudeSalvarColapsados(set) { try { localStorage.setItem('gso_saude_colapsados', JSON.stringify([...set])); } catch (e) {} }
+// Tira os avisos que você dispensou (um a um) — voltam sozinhos se o texto do aviso mudar (ex.: valor diferente).
+function saudeAplicarDispensados(problemas) {
+  const disp = saudeDispensados(); let total = 0;
+  const out = problemas.map(p => { const itens = p.itens.filter(it => !disp[saudeChave(p, it)]); total += p.itens.length - itens.length; return { ...p, itens }; }).filter(p => p.itens.length);
+  return { problemas: out, dispensados: total };
+}
 const SAUDE_NIVEL = { alto: ['Urgente', 'bad'], medio: ['Atenção', 'warn'], baixo: ['Organização', 'gray'] };
 let saudeUltimo = [];
+let saudeChaves = [];
 async function renderSaude(forcar) {
   const lista = document.getElementById('saude-lista'), resumo = document.getElementById('saude-resumo');
   if (!lista) return;
@@ -26803,19 +26824,44 @@ async function renderSaude(forcar) {
   let problemas = [];
   try { problemas = gsoAuditoria().concat(await gsoAuditoriaSync()); }
   catch (err) { problemas = [{ id: 'erro-auditoria', nivel: 'alto', titulo: 'A verificação falhou', detalhe: String(err && err.message || err), itens: [{ txt: 'Avise o suporte com esta mensagem.' }] }]; }
+  const filtrado = saudeAplicarDispensados(problemas); problemas = filtrado.problemas;
   const ordem = { alto: 0, medio: 1, baixo: 2 }; problemas.sort((a, b) => ordem[a.nivel] - ordem[b.nivel]);
-  saudeUltimo = problemas;
+  saudeUltimo = problemas; saudeChaves = [];
   const n = { alto: 0, medio: 0, baixo: 0 }; problemas.forEach(p => n[p.nivel]++);
   atualizarBadgeSaude(n);
   const sub = document.getElementById('saude-sub'); if (sub) sub.textContent = 'Última verificação: ' + new Date().toLocaleString('pt-BR');
   resumo.innerHTML = ['alto', 'medio', 'baixo'].map(k => `<div class="saude-chip ${SAUDE_NIVEL[k][1]}"><b>${n[k]}</b><span>${SAUDE_NIVEL[k][0]}</span></div>`).join('') +
-    (problemas.length ? '' : '<div class="saude-ok">✅ Tudo certo — nenhum problema encontrado.</div>');
-  lista.innerHTML = problemas.map(p => `
-    <div class="card saude-card ${SAUDE_NIVEL[p.nivel][1]}">
-      <div class="saude-topo"><span class="pill ${p.nivel === 'alto' ? 'pill-red' : (p.nivel === 'medio' ? 'pill-amber' : 'pill-blue')}">${SAUDE_NIVEL[p.nivel][0]}</span><b>${escapeHtml(p.titulo)}</b><span class="saude-qtd">${p.itens.length}</span></div>
-      <div class="card-sub">${escapeHtml(p.detalhe)}</div>
-      <div class="saude-itens">${p.itens.map(it => `<div class="saude-item"><span>${escapeHtml(it.txt)}</span>${(it.acoes || (it.acao ? [it.acao] : [])).length ? `<span class="saude-acoes">${(it.acoes || [it.acao]).map(a => `<button class="btn btn-small${a.neutro ? '' : ' btn-primary'}" onclick="${a.fn}">${escapeHtml(a.label)}</button>`).join('')}</span>` : ''}</div>`).join('')}</div>
-    </div>`).join('');
+    (problemas.length ? '' : '<div class="saude-ok">✅ Tudo certo — nenhum aviso pendente.</div>') +
+    (filtrado.dispensados ? `<button class="btn btn-small btn-soft saude-restaurar" onclick="saudeRestaurarDispensados()" data-tip="Traz de volta os avisos que você tirou">${filtrado.dispensados} aviso(s) dispensado(s) — restaurar</button>` : '');
+  const colapsados = saudeColapsados();
+  lista.innerHTML = problemas.map(p => {
+    const fechado = colapsados.has(p.id);
+    return `
+    <div class="card saude-card ${SAUDE_NIVEL[p.nivel][1]}${fechado ? ' colapsado' : ''}">
+      <div class="saude-topo" onclick="saudeAlternarBloco('${p.id}')" title="${fechado ? 'Expandir' : 'Minimizar'}">
+        <button type="button" class="saude-min" aria-label="${fechado ? 'Expandir' : 'Minimizar'}">${fechado ? '▸' : '▾'}</button>
+        <span class="pill ${p.nivel === 'alto' ? 'pill-red' : (p.nivel === 'medio' ? 'pill-amber' : 'pill-blue')}">${SAUDE_NIVEL[p.nivel][0]}</span><b>${escapeHtml(p.titulo)}</b><span class="saude-qtd">${p.itens.length}</span>
+      </div>
+      <div class="saude-corpo">
+        <div class="card-sub">${escapeHtml(p.detalhe)}</div>
+        <div class="saude-itens">${p.itens.map(it => { saudeChaves.push(saudeChave(p, it)); const idx = saudeChaves.length - 1; return `<div class="saude-item"><span class="saude-txt">${escapeHtml(it.txt)}</span>${(it.acoes || (it.acao ? [it.acao] : [])).length ? `<span class="saude-acoes">${(it.acoes || [it.acao]).map(a => `<button class="btn btn-small${a.neutro ? '' : ' btn-primary'}" onclick="${a.fn}">${escapeHtml(a.label)}</button>`).join('')}</span>` : ''}<button type="button" class="saude-x" onclick="saudeDispensar(${idx})" title="Dispensar este aviso" aria-label="Dispensar este aviso">✕</button></div>`; }).join('')}</div>
+      </div>
+    </div>`; }).join('');
+}
+function saudeAlternarBloco(id) {
+  const c = saudeColapsados(); if (c.has(id)) c.delete(id); else c.add(id);
+  saudeSalvarColapsados(c); renderSaude();
+}
+function saudeDispensar(idx) {
+  const chave = saudeChaves[idx]; if (!chave) return;
+  const st = window.gsoCalc && window.gsoCalc._store(); if (!st) return;
+  st.saudeDispensados = st.saudeDispensados || {};
+  st.saudeDispensados[chave] = new Date().toISOString().slice(0, 10);
+  window.gsoCalc._save(); renderSaude();
+}
+function saudeRestaurarDispensados() {
+  const st = window.gsoCalc && window.gsoCalc._store(); if (!st) return;
+  st.saudeDispensados = {}; window.gsoCalc._save(); renderSaude();
 }
 function atualizarBadgeSaude(n) {
   const b = document.getElementById('saudeBadge'); if (!b) return;
@@ -26840,7 +26886,7 @@ async function saudeDarBaixa(id) {
 }
 // Verificação silenciosa: pinta o selo no menu sem precisar abrir a tela.
 async function saudeVerificarEmSegundoPlano() {
-  try { if (!isAdminUser()) return; const p = gsoAuditoria(); const n = { alto: 0, medio: 0, baixo: 0 }; p.forEach(x => n[x.nivel]++); atualizarBadgeSaude(n); } catch (e) {}
+  try { if (!isAdminUser()) return; const p = saudeAplicarDispensados(gsoAuditoria()).problemas; const n = { alto: 0, medio: 0, baixo: 0 }; p.forEach(x => n[x.nivel]++); atualizarBadgeSaude(n); } catch (e) {}
 }
 setTimeout(saudeVerificarEmSegundoPlano, 25000);
 setInterval(saudeVerificarEmSegundoPlano, 10 * 60 * 1000);
@@ -34232,7 +34278,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       };
     }
   }
-  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _merge3: merge3, _pull: pullRemote, _params: params, _materiais: materiais, _materiaisLabels: function () { return Object.assign({}, store.materiaisLabels); }, _precoEntrada: precoEntradaPara, mostrarNoLab: mostrarNoLab, refresh: function () { renderPedido(); renderBatelada(); renderFormulacao(); renderEstrategia(); renderML(); } };
+  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _save: save, _merge3: merge3, _pull: pullRemote, _params: params, _materiais: materiais, _materiaisLabels: function () { return Object.assign({}, store.materiaisLabels); }, _precoEntrada: precoEntradaPara, mostrarNoLab: mostrarNoLab, refresh: function () { renderPedido(); renderBatelada(); renderFormulacao(); renderEstrategia(); renderML(); } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 0);
 })();
