@@ -11979,6 +11979,12 @@ body.theme-dark .saude-x{ color:#F08A8A !important; }
 .cont-in{ width:110px; text-align:right; } .cont-dif{ font-weight:800; font-variant-numeric:tabular-nums; }
 .cont-dif.ok{ color:#1E6B3A; } .cont-dif.mais{ color:#1E6B3A; } .cont-dif.menos{ color:#B0322F; }
 .cont-tab td.num, .cont-tab th.num{ text-align:right !important; }
+.saude-drag{ cursor:grab; color:var(--text-2); font-size:16px; padding:0 4px; }
+.saude-ordem{ display:inline-flex; gap:2px; }
+.saude-ordem button{ width:22px; height:22px; padding:0 !important; min-height:0 !important; border:1px solid var(--border,#D6D6D6) !important; background:var(--card,#fff) !important; border-radius:6px !important; font-size:12px; cursor:pointer; color:var(--text) !important; line-height:1; }
+.saude-ordem button:hover{ background:rgba(127,127,127,.12) !important; }
+.saude-card.arrastando{ opacity:.45; }
+.saude-card.sobre-antes{ box-shadow:0 -3px 0 0 #D9A441; } .saude-card.sobre-depois{ box-shadow:0 3px 0 0 #D9A441; }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -26884,21 +26890,32 @@ function saudePintar(problemas) {
   const lista = document.getElementById('saude-lista'), resumo = document.getElementById('saude-resumo');
   if (!lista || !resumo) return;
   try {
+    saudeBase = problemas.slice();
     const filtrado = saudeAplicarDispensados(problemas); problemas = filtrado.problemas;
-    const ordem = { alto: 0, medio: 1, baixo: 2 }; problemas.sort((a, b) => ordem[a.nivel] - ordem[b.nivel]);
+    const ordem = { alto: 0, medio: 1, baixo: 2 };
+    const ord = saudeOrdemSalva();
+    problemas.sort((a, b) => {
+      const ia = ord.indexOf(a.id), ib = ord.indexOf(b.id);
+      if (ia >= 0 && ib >= 0) return ia - ib;
+      if (ia >= 0) return -1; if (ib >= 0) return 1;
+      return ordem[a.nivel] - ordem[b.nivel];
+    });
     saudeUltimo = problemas; saudeChaves = [];
     const n = { alto: 0, medio: 0, baixo: 0 }; problemas.forEach(p => n[p.nivel]++);
     atualizarBadgeSaude(n);
     const sub = document.getElementById('saude-sub'); if (sub) sub.textContent = 'Última verificação: ' + new Date().toLocaleString('pt-BR');
     resumo.innerHTML = ['alto', 'medio', 'baixo'].map(k => `<div class="saude-chip ${SAUDE_NIVEL[k][1]}"><b>${n[k]}</b><span>${SAUDE_NIVEL[k][0]}</span></div>`).join('') +
       (problemas.length ? '' : '<div class="saude-ok">✅ Tudo certo — nenhum aviso pendente.</div>') +
+      (saudeOrdemSalva().length ? `<button class="btn btn-small btn-soft" onclick="saudeRestaurarOrdem()" data-tip="Volta os blocos para a ordem padrão (do mais urgente ao menos)">Ordem padrão</button>` : '') +
       (filtrado.dispensados ? `<button class="btn btn-small btn-soft saude-restaurar" onclick="saudeRestaurarDispensados()" data-tip="Traz de volta os avisos que você tirou">${filtrado.dispensados} aviso(s) dispensado(s) — restaurar</button>` : '');
     const colapsados = saudeColapsados();
     lista.innerHTML = problemas.map(p => {
       const fechado = colapsados.has(p.id);
       return `
-    <div class="card saude-card ${SAUDE_NIVEL[p.nivel][1]}${fechado ? ' colapsado' : ''}">
+    <div class="card saude-card ${SAUDE_NIVEL[p.nivel][1]}${fechado ? ' colapsado' : ''}" data-saude-id="${p.id}">
       <div class="saude-topo" onclick="saudeAlternarBloco('${p.id}')" title="${fechado ? 'Expandir' : 'Minimizar'}">
+        <span class="saude-drag" draggable="true" data-id="${p.id}" onclick="event.stopPropagation()" title="Arraste para mudar a ordem">⠿</span>
+        <span class="saude-ordem" onclick="event.stopPropagation()"><button type="button" onclick="saudeMoverBloco('${p.id}',-1)" title="Subir este bloco" aria-label="Subir">↑</button><button type="button" onclick="saudeMoverBloco('${p.id}',1)" title="Descer este bloco" aria-label="Descer">↓</button></span>
         <button type="button" class="saude-min" aria-label="${fechado ? 'Expandir' : 'Minimizar'}">${fechado ? '▸' : '▾'}</button>
         <span class="pill ${p.nivel === 'alto' ? 'pill-red' : (p.nivel === 'medio' ? 'pill-amber' : 'pill-blue')}">${SAUDE_NIVEL[p.nivel][0]}</span><b>${escapeHtml(p.titulo)}</b><span class="saude-qtd">${p.itens.length}</span>
       </div>
@@ -26907,11 +26924,47 @@ function saudePintar(problemas) {
         <div class="saude-itens">${p.itens.map(it => { saudeChaves.push(saudeChave(p, it)); const idx = saudeChaves.length - 1; return `<div class="saude-item"><span class="saude-txt">${escapeHtml(it.txt)}</span>${(it.acoes || (it.acao ? [it.acao] : [])).length ? `<span class="saude-acoes">${(it.acoes || [it.acao]).map(a => `<button class="btn btn-small${a.neutro ? '' : ' btn-primary'}" onclick="${a.fn}">${escapeHtml(a.label)}</button>`).join('')}</span>` : ''}<button type="button" class="saude-x" onclick="saudeDispensar(${idx})" title="Dispensar este aviso" aria-label="Dispensar este aviso">✕</button></div>`; }).join('')}</div>
       </div>
     </div>`; }).join('');
+    saudeLigarArrastar();
   } catch (err) {
     // nunca deixar a tela presa em "Verificando…": mostra o erro de verdade
     console.error('Saúde do sistema:', err);
     lista.innerHTML = '<div class="card"><div class="card-title">Não consegui montar a lista</div><div class="card-sub">' + escapeHtml(String(err && err.message || err)) + '</div><div style="margin-top:10px"><button class="btn btn-small" onclick="renderSaude(true)">Tentar de novo</button></div></div>';
   }
+}
+let saudeBase = [];
+function saudeOrdemSalva() { try { const st = window.gsoCalc && window.gsoCalc._store(); return (st && Array.isArray(st.saudeOrdem)) ? st.saudeOrdem : []; } catch (e) { return []; } }
+// Guarda a ordem atual na tela (mais as que não estão visíveis agora, pra não perder a posição delas).
+function saudeGuardarOrdem(idsVisiveis) {
+  const st = window.gsoCalc && window.gsoCalc._store(); if (!st) return;
+  const resto = saudeOrdemSalva().filter(id => idsVisiveis.indexOf(id) < 0);
+  st.saudeOrdem = idsVisiveis.concat(resto);
+  window.gsoCalc._save();
+}
+function saudeMoverBloco(id, dir) {
+  const ids = saudeUltimo.map(p => p.id); const i = ids.indexOf(id), j = i + dir;
+  if (i < 0 || j < 0 || j >= ids.length) return;
+  ids.splice(j, 0, ids.splice(i, 1)[0]);
+  saudeGuardarOrdem(ids); saudePintar(saudeBase);
+}
+function saudeMoverPara(id, destinoId, depois) {
+  if (id === destinoId) return;
+  const ids = saudeUltimo.map(p => p.id).filter(x => x !== id);
+  let j = ids.indexOf(destinoId); if (j < 0) return; if (depois) j++;
+  ids.splice(j, 0, id);
+  saudeGuardarOrdem(ids); saudePintar(saudeBase);
+}
+function saudeRestaurarOrdem() { const st = window.gsoCalc && window.gsoCalc._store(); if (!st) return; st.saudeOrdem = []; window.gsoCalc._save(); saudePintar(saudeBase); }
+function saudeLigarArrastar() {
+  let arrastando = null;
+  document.querySelectorAll('.saude-drag').forEach(h => {
+    h.addEventListener('dragstart', e => { arrastando = h.dataset.id; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', arrastando); } catch (x) {} h.closest('.saude-card').classList.add('arrastando'); });
+    h.addEventListener('dragend', () => { document.querySelectorAll('.saude-card').forEach(c => c.classList.remove('arrastando', 'sobre-antes', 'sobre-depois')); arrastando = null; });
+  });
+  document.querySelectorAll('.saude-card').forEach(c => {
+    c.addEventListener('dragover', e => { if (!arrastando) return; e.preventDefault(); const r = c.getBoundingClientRect(); const depois = e.clientY > r.top + r.height / 2; c.classList.toggle('sobre-antes', !depois); c.classList.toggle('sobre-depois', depois); });
+    c.addEventListener('dragleave', () => c.classList.remove('sobre-antes', 'sobre-depois'));
+    c.addEventListener('drop', e => { if (!arrastando) return; e.preventDefault(); const r = c.getBoundingClientRect(); saudeMoverPara(arrastando, c.dataset.saudeId, e.clientY > r.top + r.height / 2); });
+  });
 }
 function saudeAlternarBloco(id) {
   const c = saudeColapsados(); if (c.has(id)) c.delete(id); else c.add(id);
