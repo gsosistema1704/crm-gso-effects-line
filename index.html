@@ -11945,6 +11945,9 @@ body.theme-dark .fx-item-del { color: #F08A8A !important; }
 .fx-legenda b { flex: 0 0 auto; color: var(--text); font-size: 12px; }
 .fx-legenda .fx-leg-ed b { color: #8A5A00; } .fx-legenda .fx-leg-x b { color: #B0322F; }
 body.theme-dark .fx-legenda .fx-leg-ed b { color: #FFD68A; } body.theme-dark .fx-legenda .fx-leg-x b { color: #F08A8A; }
+.brinde-check{ display:flex; align-items:center; gap:8px; margin:2px 0 10px; font-size:13px; color:var(--text-2); cursor:pointer; }
+.brinde-check input{ width:auto; margin:0; }
+.brinde-check b{ color:#8A5A00; } body.theme-dark .brinde-check b{ color:#FFD68A; }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -13763,6 +13766,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
             </div>
           </div>
           <div id="f-caixa-preview"></div>
+          <label class="brinde-check" for="f-brinde"><input type="checkbox" id="f-brinde" onchange="updatePreview()"> 🎁 Este produto é <b>brinde</b> — sai do estoque normalmente, mas o valor dele não entra no pedido (nem como desconto)</label>
           <div class="estoque-auto" id="f-estoque-auto-wrap">
             <span class="estoque-auto-txt" id="f-estoque-auto"></span>
             <button type="button" class="estoque-auto-trocar" onclick="toggleEstoqueManual()" id="f-estoque-trocar">trocar</button>
@@ -18083,16 +18087,18 @@ function saleCatalogItems(venda) {
         produto,
         tamanho: correctedCatalogSize(produto, item.catalogTamanho || item.tamanho),
         qtd: parseInt(item.qtdUnidades ?? item.qtd, 10) || 1,
-        preco: parseFloat(item.preco || 0)
+        preco: parseFloat(item.preco || 0),
+        brinde: Boolean(item.brinde)
       };
     }).filter(item => item.produto && item.tamanho && item.qtd > 0);
-    const weights = items.map(item => item.preco || catalogLinePrice(item.produto, item.tamanho, item.qtd) || item.qtd);
+    // brinde sai do estoque mas não leva parte do faturamento do pedido
+    const weights = items.map(item => item.brinde ? 0 : (item.preco || catalogLinePrice(item.produto, item.tamanho, item.qtd) || item.qtd));
     const weightTotal = weights.reduce((sum, weight) => sum + weight, 0) || items.length || 1;
     return items.map((item, index) => ({
       produto: item.produto,
       tamanho: item.tamanho,
       qtd: item.qtd,
-      fat: total * (weights[index] || 1) / weightTotal,
+      fat: items[index].brinde ? 0 : total * (weights[index] || 1) / weightTotal,
       pedidos: 1,
       data: venda.data
     }));
@@ -27089,6 +27095,14 @@ function receiptItemRows(venda) {
         }
       }
     }
+    if (item.brinde) {
+      return `<tr>
+      <td>${escapeHtml(descricao.replace(/\s*\(brinde\)\s*$/i, ''))} <b>(BRINDE)</b></td>
+      <td class="num">${escapeHtml(qtd)}</td>
+      <td class="num">—</td>
+      <td class="num">Brinde</td>
+    </tr>`;
+    }
     return `<tr>
       <td>${escapeHtml(descricao)}</td>
       <td class="num">${escapeHtml(qtd)}</td>
@@ -27423,6 +27437,7 @@ function currentSaleItem() {
     : ((typeof precoEstrategia === 'number' && precoEstrategia > 0)
       ? qtdEntrada * precoEstrategia
       : (p ? (tipo === 'CX' && unCx > 0 && p.caixa2026 > 0 ? qtdEntrada * p.caixa2026 : qtdEntrada * (p.unit2026 || 0)) : 0));
+  const brinde = Boolean(document.getElementById('f-brinde')?.checked);
   return {
     produto,
     tamanho,
@@ -27432,9 +27447,10 @@ function currentSaleItem() {
     aroma,
     qtdEntrada,
     qtdUnidades,
-    preco,
+    preco: brinde ? 0 : preco,
+    brinde: brinde || undefined,
     produtoEnvasadoId: document.getElementById('f-estoque-produto')?.value || null,
-    descricao: `${qtdEntrada} ${tipo} ${produto} ${tamanho}`
+    descricao: `${qtdEntrada} ${tipo} ${produto} ${tamanho}${brinde ? ' (brinde)' : ''}`
   };
 }
 
@@ -27522,8 +27538,10 @@ function renderSaleItemsList() {
         <div class="sale-item-sub">${escapeHtml(item.aroma || 'Neutro')} • ${item.qtdUnidades} unidade(s) contabilizadas${(() => { const r = estoqueResolvido(item.catalogProduto || item.produto, item.tamanho, item.aroma, item.produtoEnvasadoId); return r === undefined ? '' : (r && r.nenhum ? ' • <span class="estoque-auto-txt">🚫 não tira do estoque</span>' : r ? ` • <span class="estoque-auto-txt ok">📦 sai do estoque: ${escapeHtml(r.nome)}</span>` : ' • <span class="estoque-auto-txt aviso">⚠ sem baixa de estoque (não encontrado)</span>'); })()}</div>
       </div>
       <div class="sale-item-value-edit">
-        <label class="form-label" style="margin-bottom:2px;">Valor cobrado</label>
-        <input type="number" class="form-input sale-item-value-input" step="0.01" value="${item.preco || ''}" placeholder="0,00" oninput="atualizarPrecoItemVenda(${index}, this.value)">
+        ${item.brinde
+          ? '<span class="pill pill-amber" data-tip="Sai do estoque, mas não entra no valor do pedido">🎁 Brinde — sem cobrança</span>'
+          : `<label class="form-label" style="margin-bottom:2px;">Valor cobrado</label>
+        <input type="number" class="form-input sale-item-value-input" step="0.01" value="${item.preco || ''}" placeholder="0,00" oninput="atualizarPrecoItemVenda(${index}, this.value)">`}
       </div>
       <button class="btn btn-small btn-danger" onclick="removerProdutoVenda(${index})">Remover</button>
     </div>
@@ -27550,6 +27568,7 @@ function adicionarProdutoVenda() {
   }
   currentSaleItems.push(item);
   document.getElementById('f-qtd').value = 1;
+  const brindeChk = document.getElementById('f-brinde'); if (brindeChk) brindeChk.checked = false;
   const estoqueSelect = document.getElementById('f-estoque-produto');
   if (estoqueSelect) estoqueSelect.value = '';
   document.getElementById('f-estoque-manual-row')?.classList.add('hidden');
