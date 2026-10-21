@@ -18208,8 +18208,9 @@ function updateSaleTypeOptions() {
   const tamanho = document.getElementById('f-tamanho')?.value;
   if (!tipo) return;
   const cxOption = tipo.querySelector('option[value="CX"]');
-  const hasBox = getUnCx(tamanho) > 0;
-  if (cxOption) cxOption.disabled = !hasBox;
+  // Lojista não tem caixa fechada: só unidade.
+  const hasBox = getUnCx(tamanho) > 0 && !vendaModoLojista;
+  if (cxOption) { cxOption.disabled = !hasBox; cxOption.hidden = Boolean(vendaModoLojista); }
   if (!hasBox && tipo.value === 'CX') tipo.value = 'UN';
 }
 function saleSortTime(venda) {
@@ -27189,6 +27190,7 @@ function aplicarModoLojistaForm() {
   const pag = document.getElementById('f-pag');
   if (pag) Array.from(pag.options).forEach(o => { if (o.value === 'Mercado Livre' || o.text === 'Mercado Livre') { o.hidden = L; o.disabled = L; } });
   if (L) { document.getElementById('f-tipo-venda-row')?.classList.add('hidden'); document.getElementById('nova-recado-btn')?.classList.add('hidden'); }
+  updateSaleTypeOptions();
   const lista = L ? state.lojistas.map(l => l.nome) : clientesSugeridosParaUsuario(computeClientes()).map(c => c.nome);
   const dl = document.getElementById('clientesList'); if (dl) dl.innerHTML = lista.map(n => `<option value="${escapeHtml(n)}">`).join('');
 }
