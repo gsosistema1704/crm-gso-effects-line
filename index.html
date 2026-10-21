@@ -32033,7 +32033,6 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       return ma - mb;
     });
     var rows = dados.map(function (d) {
-      var faixaHtml = d.faixa ? '<span class="gc-dot ' + d.faixa.cls + '" title="' + esc(d.faixa.label) + '"></span>' : '<span class="gc-dot gray" title="Sem faixa"></span>';
       var margemHtml = d.margemSt ? '<span class="gc-margem-val ' + d.margemSt.cls + '" title="' + esc(d.margemSt.label) + '">' + fmtPct(d.margem) + '</span>' : '<span class="gc-dot gray" title="Sem margem"></span>';
       var revisadoHtml = d.revisado ? ' <span class="gc-dot gray" title="Revisado em ' + esc(d.revisado.em) + '"></span>' : '';
       var fParts = [d.r.produto];
@@ -32048,7 +32047,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<td class="num">' + fmt(d.ci.total) + '</td>' +
         '<td class="num" data-ed="tab" data-campo="' + UI.estrTabela + '" data-k="' + esc(d.k) + '">' + fmt(d.preco) + '</td>' +
         sugeridoHtml +
-        '<td>' + faixaHtml + '</td>' +
+        '<td class="num">' + (d.lucro == null ? '<span class="gc-dot gray" title="Sem lucro calculado"></span>' : '<span class="gc-margem-val ' + (d.margemSt ? d.margemSt.cls : 'gray') + '" title="Lucro em R$ por unidade (preço − custo − fiscal' + (UI.estrTaxaFin ? ' − taxa financeira' : '') + ')">' + fmt(d.lucro) + '</span>') + '</td>' +
         '<td>' + margemHtml + revisadoHtml + '</td>' +
         '<td><button class="gc-lnk" data-prod-det="' + esc(d.ciKey) + '" data-prod-k="' + esc(d.k) + '" data-prod-preco="' + (d.preco == null ? '' : d.preco) + '">Composição</button> · <button class="gc-lnk" data-simular="' + esc(d.k) + '">Simular</button> · <button class="gc-lnk" data-rev="' + esc(d.k) + '">' + (d.revisado ? 'Desmarcar' : 'Revisado') + '</button></td></tr>';
     }).join('');
@@ -32067,10 +32066,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<button class="clear" data-clr="te">limpar filtros</button><span class="gc-hint-ed">· Clique no preço para editar · Margem = preço − custo − fiscal (' + inVal(params().fiscal) + '%)' + (UI.estrTaxaFin ? ' − taxa financeira (' + inVal(params().taxa) + '%)' : '') + ' · Metas desta tabela: mín. ' + inVal(metasDe(UI.estrTabela || 'consumidor').margemMin) + '% · ideal ' + inVal(metasDe(UI.estrTabela || 'consumidor').margem) + '% · premium ' + inVal(metasDe(UI.estrTabela || 'consumidor').margemPremium) + '%</span></div>' +
       '<div class="gc-table-wrap"><table class="gct" id="gc-te"><colgroup>' +
       (mostraSugerido
-        ? '<col style="width:16%"><col style="width:7%"><col style="width:9%"><col style="width:11%"><col style="width:12%"><col style="width:15%"><col style="width:6%"><col style="width:6%"><col style="width:18%">'
-        : '<col style="width:20%"><col style="width:8%"><col style="width:11%"><col style="width:13%"><col style="width:14%"><col style="width:6%"><col style="width:6%"><col style="width:22%">') +
+        ? '<col style="width:15%"><col style="width:6%"><col style="width:8%"><col style="width:10%"><col style="width:11%"><col style="width:14%"><col style="width:10%"><col style="width:7%"><col style="width:19%">'
+        : '<col style="width:19%"><col style="width:7%"><col style="width:10%"><col style="width:12%"><col style="width:13%"><col style="width:11%"><col style="width:7%"><col style="width:21%">') +
       '</colgroup>' +
-      '<thead><tr><th>PRODUTO</th><th>EMB.</th><th>AROMA</th><th class="num">CUSTO</th><th class="num">PREÇO</th>' + (mostraSugerido ? '<th>VALOR SUGERIDO</th>' : '') + '<th>FAIXA</th><th>MARGEM</th><th>AÇÕES</th></tr></thead>' +
+      '<thead><tr><th>PRODUTO</th><th>EMB.</th><th>AROMA</th><th class="num">CUSTO</th><th class="num">PREÇO</th>' + (mostraSugerido ? '<th>VALOR SUGERIDO</th>' : '') + '<th class="num">LUCRO (R$)</th><th>MARGEM</th><th>AÇÕES</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div><div class="gc-empty" id="gc-te-e">Nada com esses filtros.</div></div>' +
       metasTabelaHTML() +
       '<div class="gc-blk gc-params-grid" style="margin-top:14px"><h2>Parâmetros globais <span>clique em um valor para editar</span></h2>' + paramsKvHTML() + '</div>';
