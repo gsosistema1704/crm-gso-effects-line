@@ -11951,6 +11951,17 @@ body.theme-dark .fx-legenda .fx-leg-ed b { color: #FFD68A; } body.theme-dark .fx
 .mc-lojista-bloco{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin:14px 0 4px; padding:12px 14px; border:1px solid var(--border,#E2E2E2); border-radius:12px; background:rgba(127,127,127,.05); }
 .mc-lojista-bloco b{ font-size:13.5px; }
 .mc-lojista-bloco .btn{ flex:0 0 auto; }
+.saude-resumo{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin:4px 0 20px; }
+.saude-chip{ display:flex; flex-direction:column; min-width:120px; padding:12px 18px; border-radius:14px; border:1px solid var(--border,#E2E2E2); background:var(--card,#fff); }
+.saude-chip b{ font-size:26px; line-height:1; } .saude-chip span{ font-size:12px; color:var(--text-2); margin-top:4px; }
+.saude-chip.bad b{ color:#B0322F; } .saude-chip.warn b{ color:#B07A12; }
+.saude-ok{ font-weight:700; color:#1E6B3A; padding:10px 16px; }
+.saude-card{ margin-bottom:16px; border-left:5px solid #9aa; }
+.saude-card.bad{ border-left-color:#B0322F; } .saude-card.warn{ border-left-color:#D9A441; }
+.saude-topo{ display:flex; align-items:center; gap:10px; margin-bottom:4px; } .saude-topo b{ font-size:15px; } .saude-qtd{ margin-left:auto; font-weight:800; color:var(--text-2); }
+.saude-itens{ margin-top:10px; display:flex; flex-direction:column; gap:2px; }
+.saude-item{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 10px; border-radius:8px; font-size:13px; background:rgba(127,127,127,.06); }
+.saude-item span{ min-width:0; overflow-wrap:anywhere; }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -12238,6 +12249,11 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     </div>
 
     <div class="sb-section">SISTEMA</div>
+    <div class="nav-item" data-view="saude" data-label="Saúde do sistema" onclick="navTo('saude')">
+      <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14s-5.5-3.2-5.5-7.3A3 3 0 0 1 8 5a3 3 0 0 1 5.5 1.7C13.5 10.8 8 14 8 14z"/><path d="M4.5 8h2l1-2 1.5 4 1-2h1.5"/></svg>
+      <span class="nav-label">Saúde do sistema</span>
+      <span class="client-alert-badge hidden" id="saudeBadge">0</span>
+    </div>
     <div class="nav-item" data-view="config" data-label="Configurações" onclick="navTo('config')">
       <svg class="nav-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M15 8h-2M3 8H1M12.95 3.05l-1.41 1.41M4.46 11.54l-1.41 1.41M12.95 12.95l-1.41-1.41M4.46 4.46L3.05 3.05"/></svg>
       Configurações
@@ -13540,6 +13556,18 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     </div>
 
     <!-- ============ CONFIGURACOES ============ -->
+    <div id="view-saude" class="hidden">
+      <div class="header">
+        <div>
+          <div class="h-title">Saúde do sistema</div>
+          <div class="h-sub" id="saude-sub">Verificação automática de erros, estoque, pagamentos e cadastros</div>
+        </div>
+        <div class="h-actions"><button class="btn btn-primary" onclick="renderSaude(true)">Verificar de novo</button></div>
+      </div>
+      <div id="saude-resumo" class="saude-resumo"></div>
+      <div id="saude-lista"></div>
+    </div>
+
     <div id="view-config" class="hidden">
       <div class="header">
         <div>
@@ -18376,7 +18404,7 @@ function showApp() {
 }
 
 // ============ NAVEGAÇÃO ============
-const VIEWS = ['vendas','lojista','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','calculadora','mercadolivre','laboratorio','cotacoes','inteligencia','financeiro','recados','config','perfil','nova'];
+const VIEWS = ['vendas','lojista','boletos','notas','clientes','estoque','produtos','transmissao','mensagens','calculadora','mercadolivre','laboratorio','cotacoes','inteligencia','financeiro','recados','saude','config','perfil','nova'];
 function applySidebarPreference() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
@@ -18479,6 +18507,7 @@ function navTo(view) {
   if (view === 'financeiro') renderFinanceiro();
   if (view === 'recados') renderRecados();
   if (view === 'config') renderConfig();
+  if (view === 'saude') renderSaude();
   if (view === 'perfil') renderPerfil();
   if (view === 'nova') { if (!__abrindoLojista) vendaModoLojista = false; __abrindoLojista = false; if (editingVendaId) initEditVenda(editingVendaId); else initNova(); }
   setTimeout(enhanceButtonTooltips, 0);
@@ -26642,6 +26671,169 @@ function copiarResumoPrecificacaoUnitaria() {
 }
 
 // ============ RENDER CONFIG ============
+/* ============ SAÚDE DO SISTEMA — auditoria automática ============ */
+// Cada verificação devolve { id, nivel: 'alto'|'medio'|'baixo', titulo, detalhe, itens: [{txt, acao?}] }.
+// 'alto' = pode causar prejuízo/erro agora; 'medio' = precisa de atenção; 'baixo' = organização.
+const SAUDE_CORTE_ESTOQUE_PADRAO = '2026-08-12';
+function saudeId(v) { return (state.vendasLojista.includes(v) ? 'L' : '') + (v.numeroVenda || '—'); }
+function saudeVendas() { return [...state.vendas, ...state.vendasLojista]; }
+function saudeDiasAtras(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
+function gsoAuditoria() {
+  const out = [];
+  const add = (id, nivel, titulo, detalhe, itens) => { if (itens && itens.length) out.push({ id, nivel, titulo, detalhe, itens }); };
+  const vendas = saudeVendas();
+  const dia = v => String(v.data || '').slice(0, 10);
+  const insumos = (window.Lab && Lab.state && Lab.state.insumos) || [];
+  const produtosLab = (window.Lab && Lab.state && Lab.state.produtos) || [];
+
+  // 1. Estoque negativo
+  add('estoque-negativo', 'alto', 'Estoque negativo', 'Algum item ficou com saldo abaixo de zero — normalmente sinal de baixa duplicada ou entrada não lançada.',
+    insumos.filter(i => Number(i.estoque) < 0).map(i => ({ txt: `${i.titulo}: ${i.estoque}` })));
+
+  // 2. Produtos vendidos recentemente sem vínculo com o estoque (a baixa não acontece)
+  if (window.Lab && typeof Lab.resolverProdutoEstoque === 'function' && produtosLab.length) {
+    const vistos = {};
+    vendas.filter(v => dia(v) >= saudeDiasAtras(120)).forEach(v => (v.items || []).forEach(it => {
+      if (it.produtoEnvasadoId === '__nenhum__') return;
+      const p = it.catalogProduto || it.produto, t = it.catalogTamanho || it.tamanho, a = it.aroma || 'Neutro';
+      if (!p || !t) return;
+      const k = p + '|' + t + '|' + a; vistos[k] = (vistos[k] || 0) + 1;
+    }));
+    const sem = Object.keys(vistos).filter(k => { const [p, t, a] = k.split('|'); try { return !Lab.resolverProdutoEstoque(p, t, a); } catch (e) { return true; } });
+    add('sem-vinculo', 'alto', 'Produto vendido sem vínculo com o estoque', 'Vendas desse produto não dão baixa automática. Cadastre/ligue o produto em Laboratório → Estoque.',
+      sem.map(k => ({ txt: k.replace(/\|/g, ' · ') + ` (${vistos[k]} venda${vistos[k] > 1 ? 's' : ''} nos últimos 120 dias)` })));
+  }
+
+  // 3. Vendas sem baixa de estoque (desde que o controle de estoque começou)
+  const comBaixaDatas = vendas.filter(v => Array.isArray(v.estoqueBaixado) && v.estoqueBaixado.length).map(dia).sort();
+  const corte = comBaixaDatas[0] || SAUDE_CORTE_ESTOQUE_PADRAO;
+  const semBaixa = vendas.filter(v => dia(v) >= corte
+    && !(Array.isArray(v.estoqueBaixado) && v.estoqueBaixado.length)
+    && !/importado do relat/i.test(v.obs || '') && !/sem baixa de estoque/i.test(v.obs || '')
+    && !(v.items || []).every(it => it.produtoEnvasadoId === '__nenhum__')
+    && ((v.items && v.items.length) || v.catalogProduto)
+    && !(v.pagamentoDetalhes && v.pagamentoDetalhes.mlManual && !v.items?.some(it => it.catalogProduto)));
+  add('sem-baixa', 'medio', 'Vendas sem baixa de estoque', 'Vendas registradas depois do início do controle de estoque que não deram baixa. (Vendas importadas do Mercado Livre e as lançadas "sem baixa" de propósito não aparecem aqui.)',
+    semBaixa.slice(0, 25).map(v => ({ txt: `Venda ${saudeId(v)} · ${fmtDate(v.data)} · ${v.cliente} · ${v.produto}`, acao: { label: 'Dar baixa agora', fn: `saudeDarBaixa('${v.id}')` } })));
+
+  // 4. Itens de estoque duplicados (nome quase igual)
+  const dup = {};
+  insumos.filter(i => ['produto', 'garrafa', 'tampa', 'rotulo', 'caixa'].includes(i.tipo) && i.ativo !== false).forEach(i => {
+    const k = i.tipo + '|' + String(i.titulo).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+    (dup[k] = dup[k] || []).push(i);
+  });
+  add('estoque-duplicado', 'medio', 'Itens de estoque duplicados', 'Dois cadastros do mesmo item dividem o saldo — a baixa automática pode sair do errado. Una ou desative o que está zerado.',
+    Object.values(dup).filter(a => a.length > 1).map(a => ({ txt: a.map(i => `${i.titulo} (${i.estoque})`).join('  ·  ') })));
+
+  // 5. Estoque baixo / zerado
+  add('estoque-baixo', 'medio', 'Estoque abaixo do mínimo', 'Itens com saldo menor que o estoque mínimo cadastrado.',
+    insumos.filter(i => i.ativo !== false && Number(i.estoque_minimo) > 0 && Number(i.estoque) < Number(i.estoque_minimo) && !/^z /i.test(i.titulo)).sort((a, b) => Number(a.estoque) - Number(b.estoque)).slice(0, 25).map(i => ({ txt: `${i.titulo}: ${i.estoque} (mínimo ${i.estoque_minimo})` })));
+  add('sem-minimo', 'baixo', 'Itens de estoque sem estoque mínimo', 'Sem mínimo cadastrado o sistema não consegue avisar quando está acabando.',
+    insumos.filter(i => ['produto', 'garrafa', 'tampa', 'rotulo', 'caixa'].includes(i.tipo) && i.ativo !== false && !Number(i.estoque_minimo) && !/^z /i.test(i.titulo)).slice(0, 25).map(i => ({ txt: i.titulo })));
+
+  // 6. Pagamentos
+  const hoje = saudeDiasAtras(0), em3 = (() => { const d = new Date(); d.setDate(d.getDate() + 3); return d.toISOString().slice(0, 10); })();
+  const vencidas = [], vencendo = [];
+  vendas.forEach(v => { if (canonicalPayment(v.pagamento || '') !== 'Boleto') return; saleBoletoParcelas(v).forEach(p => {
+    if (p.pago || !p.vencimento) return;
+    const txt = `Venda ${saudeId(v)} · ${v.cliente} · ${fmtBR(p.valor)} · vence ${fmtDate(p.vencimento)}`;
+    if (p.vencimento < hoje) vencidas.push({ txt }); else if (p.vencimento <= em3) vencendo.push({ txt });
+  }); });
+  add('boleto-vencido', 'alto', 'Boletos vencidos e não pagos', 'Parcelas que passaram do vencimento sem baixa de pagamento.', vencidas);
+  add('boleto-vencendo', 'medio', 'Boletos vencendo em até 3 dias', 'Fique de olho — cobrar antes do vencimento evita atraso.', vencendo);
+  add('anotado-aberto', 'medio', 'Vendas "anotado" com saldo em aberto', 'Fiado ainda não quitado.',
+    vendas.filter(v => saleIsAnotado(v) && saleAnotadoSaldoDevedor(v) > 0.01).map(v => ({ txt: `Venda ${saudeId(v)} · ${v.cliente} · falta receber ${fmtBR(saleAnotadoSaldoDevedor(v))}` })));
+  add('sem-pagamento', 'medio', 'Vendas sem forma de pagamento', 'Sem a forma de pagamento o financeiro (boletos, taxas, fiscal) não fecha certo.',
+    vendas.filter(v => !v.pagamento && dia(v) >= saudeDiasAtras(90)).slice(0, 25).map(v => ({ txt: `Venda ${saudeId(v)} · ${fmtDate(v.data)} · ${v.cliente} · ${fmtBR(v.valor)}` })));
+  add('sem-nf', 'medio', 'Vendas sem nota fiscal', 'Pagamento que não é dinheiro e ainda sem número de NF.',
+    vendas.filter(v => dia(v) >= saudeDiasAtras(45) && !saleSomenteDinheiro(v) && !saleHasNf(v)).slice(0, 25).map(v => ({ txt: `Venda ${saudeId(v)} · ${fmtDate(v.data)} · ${v.cliente} · ${fmtBR(v.valor)}` })));
+
+  // 7. Integridade das vendas
+  const nums = {}; state.vendas.forEach(v => { if (v.numeroVenda) (nums[v.numeroVenda] = nums[v.numeroVenda] || []).push(v); });
+  const numsL = {}; state.vendasLojista.forEach(v => { if (v.numeroVenda) (numsL[v.numeroVenda] = numsL[v.numeroVenda] || []).push(v); });
+  add('numero-repetido', 'alto', 'Número de venda repetido', 'Dois computadores lançaram vendas ao mesmo tempo com o mesmo número.',
+    [...Object.entries(nums), ...Object.entries(numsL)].filter(([k, a]) => a.length > 1).map(([k, a]) => ({ txt: `Número ${k}: ${a.map(v => v.cliente).join(' / ')}` })));
+  const chave = {};
+  vendas.filter(v => dia(v) >= saudeDiasAtras(120) && Number(v.valor) > 0).forEach(v => { const k = [nameKey(v.cliente), dia(v), Number(v.valor).toFixed(2), (v.produto || '').toLowerCase()].join('|'); (chave[k] = chave[k] || []).push(v); });
+  add('possivel-dobra', 'medio', 'Possíveis vendas lançadas em dobro', 'Mesmo cliente, dia, produto e valor — confira se não é repetição.',
+    Object.values(chave).filter(a => a.length > 1).map(a => ({ txt: `Vendas ${a.map(saudeId).join(' e ')} · ${a[0].cliente} · ${fmtDate(a[0].data)} · ${fmtBR(a[0].valor)}` })));
+  add('valor-zero', 'baixo', 'Vendas com valor zero', 'Se não for brinde/troca, falta preencher o valor.',
+    vendas.filter(v => !(Number(v.valor) > 0)).slice(0, 15).map(v => ({ txt: `Venda ${saudeId(v)} · ${fmtDate(v.data)} · ${v.cliente}` })));
+  const cad = new Set([...state.clientes, ...state.lojistas].map(c => nameKey(c.nome)));
+  const orfas = [...new Set(state.vendas.filter(v => !cad.has(nameKey(v.cliente))).map(v => v.cliente))];
+  add('cliente-sem-cadastro', 'baixo', 'Clientes de vendas sem cadastro', `${orfas.length} nome(s) aparecem em vendas mas não têm cadastro (sem telefone/endereço/documento).`, orfas.slice(0, 20).map(n => ({ txt: n })));
+
+  // 8. Mercado Livre / calculadora
+  const st = window.gsoCalc && window.gsoCalc._store ? window.gsoCalc._store() : null;
+  if (st) {
+    add('anuncio-sem-custo', 'medio', 'Anúncios do Mercado Livre sem custo', 'Sem produto do kit nem custo manual o lucro mostrado é falso.',
+      (st.anuncios || []).filter(a => !(a.itensCatalogo && a.itensCatalogo.length) && !(Number(a.custoManual) > 0)).map(a => ({ txt: a.nome })));
+    add('anuncio-sem-codigo', 'baixo', 'Anúncios sem código do Mercado Livre', 'Sem o código (MLB…) fica difícil conferir com o Mercado Livre.',
+      (st.anuncios || []).filter(a => !String(a.codigo || '').trim()).map(a => ({ txt: a.nome })));
+    add('materia-sem-preco', 'medio', 'Matéria-prima sem preço', 'O custo dos produtos fica subestimado.',
+      Object.entries(st.insumos || {}).filter(([k, v]) => !(Number(v) > 0)).map(([k]) => ({ txt: (st.insumosLabels && st.insumosLabels[k]) || k })));
+  }
+  const ordem = { alto: 0, medio: 1, baixo: 2 };
+  return out.sort((a, b) => ordem[a.nivel] - ordem[b.nivel]);
+}
+async function gsoAuditoriaSync() {
+  const itens = [];
+  try {
+    const client = getSupabaseClient(); const session = await getSupabaseSession();
+    if (!client || !session) return [{ id: 'sync-offline', nivel: 'alto', titulo: 'Sem conexão com o servidor', detalhe: 'Você está em modo local: o que for lançado agora pode não chegar nos outros computadores.', itens: [{ txt: 'Entre de novo no sistema / confira a internet.' }] }];
+    const pares = [['crm_vendas', state.vendas.length, 'vendas'], ['crm_vendas_lojista', state.vendasLojista.length, 'vendas de lojista'], ['crm_clientes', state.clientes.length, 'clientes'], ['crm_lojistas', state.lojistas.length, 'lojistas'], ['crm_fiscais', state.fiscais.length, 'dados fiscais']];
+    for (const [tab, local, nome] of pares) {
+      const r = await client.from(tab).select('id', { count: 'exact', head: true });
+      if (r.error) itens.push({ txt: `${nome}: erro ao consultar o servidor (${r.error.message})` });
+      else if (r.count !== local) itens.push({ txt: `${nome}: ${local} neste computador × ${r.count} no servidor — recarregue a página; se persistir, avise o suporte.` });
+    }
+  } catch (err) { itens.push({ txt: 'Falha ao conferir a sincronização: ' + (err && err.message || err) }); }
+  return itens.length ? [{ id: 'sync', nivel: 'alto', titulo: 'Dados diferentes entre este computador e o servidor', detalhe: 'Pode ser um lançamento que não salvou ou uma tela desatualizada.', itens }] : [];
+}
+const SAUDE_NIVEL = { alto: ['Urgente', 'bad'], medio: ['Atenção', 'warn'], baixo: ['Organização', 'gray'] };
+let saudeUltimo = [];
+async function renderSaude(forcar) {
+  const lista = document.getElementById('saude-lista'), resumo = document.getElementById('saude-resumo');
+  if (!lista) return;
+  lista.innerHTML = '<div class="card"><div class="card-sub">Verificando…</div></div>';
+  let problemas = [];
+  try { problemas = gsoAuditoria().concat(await gsoAuditoriaSync()); }
+  catch (err) { problemas = [{ id: 'erro-auditoria', nivel: 'alto', titulo: 'A verificação falhou', detalhe: String(err && err.message || err), itens: [{ txt: 'Avise o suporte com esta mensagem.' }] }]; }
+  const ordem = { alto: 0, medio: 1, baixo: 2 }; problemas.sort((a, b) => ordem[a.nivel] - ordem[b.nivel]);
+  saudeUltimo = problemas;
+  const n = { alto: 0, medio: 0, baixo: 0 }; problemas.forEach(p => n[p.nivel]++);
+  atualizarBadgeSaude(n);
+  const sub = document.getElementById('saude-sub'); if (sub) sub.textContent = 'Última verificação: ' + new Date().toLocaleString('pt-BR');
+  resumo.innerHTML = ['alto', 'medio', 'baixo'].map(k => `<div class="saude-chip ${SAUDE_NIVEL[k][1]}"><b>${n[k]}</b><span>${SAUDE_NIVEL[k][0]}</span></div>`).join('') +
+    (problemas.length ? '' : '<div class="saude-ok">✅ Tudo certo — nenhum problema encontrado.</div>');
+  lista.innerHTML = problemas.map(p => `
+    <div class="card saude-card ${SAUDE_NIVEL[p.nivel][1]}">
+      <div class="saude-topo"><span class="pill ${p.nivel === 'alto' ? 'pill-red' : (p.nivel === 'medio' ? 'pill-amber' : 'pill-blue')}">${SAUDE_NIVEL[p.nivel][0]}</span><b>${escapeHtml(p.titulo)}</b><span class="saude-qtd">${p.itens.length}</span></div>
+      <div class="card-sub">${escapeHtml(p.detalhe)}</div>
+      <div class="saude-itens">${p.itens.map(it => `<div class="saude-item"><span>${escapeHtml(it.txt)}</span>${it.acao ? `<button class="btn btn-small" onclick="${it.acao.fn}">${escapeHtml(it.acao.label)}</button>` : ''}</div>`).join('')}</div>
+    </div>`).join('');
+}
+function atualizarBadgeSaude(n) {
+  const b = document.getElementById('saudeBadge'); if (!b) return;
+  const total = (n.alto || 0) + (n.medio || 0);
+  b.textContent = total; b.classList.toggle('hidden', !total || !isAdminUser());
+  b.style.background = n.alto ? '' : '#D9A441';
+}
+async function saudeDarBaixa(id) {
+  const venda = findVendaAny(id); if (!venda) { alert('Não achei essa venda.'); return; }
+  if (!confirm('Dar baixa no estoque da venda nº ' + (venda.numeroVenda || '') + ' (' + venda.cliente + ')?\n\n' + venda.produto + '\n\nIsso desconta os produtos (e a caixa, se a regra for automática) do estoque agora.')) return;
+  const aviso = await ajustarEstoqueLaboratorioNaVenda(venda, null, 'Venda ' + (state.vendasLojista.includes(venda) ? 'lojista ' : '') + 'nº ' + venda.numeroVenda + ' (baixa retroativa)');
+  await vendaPersistir(venda);
+  if (aviso) alert(aviso);
+  renderSaude();
+}
+// Verificação silenciosa: pinta o selo no menu sem precisar abrir a tela.
+async function saudeVerificarEmSegundoPlano() {
+  try { if (!isAdminUser()) return; const p = gsoAuditoria(); const n = { alto: 0, medio: 0, baixo: 0 }; p.forEach(x => n[x.nivel]++); atualizarBadgeSaude(n); } catch (e) {}
+}
+setTimeout(saudeVerificarEmSegundoPlano, 25000);
+setInterval(saudeVerificarEmSegundoPlano, 10 * 60 * 1000);
+
 function renderConfig() {
   const anos = computeAnos();
   const periodo = anos.length > 0 ? `${Math.min(...anos)} a ${Math.max(...anos)}` : new Date().getFullYear();
@@ -28203,7 +28395,7 @@ async function ajustarEstoqueLaboratorioNaVenda(venda, vendaAnterior, origem) {
     return avisoCaixa;
   } catch (err) {
     console.warn('Erro ao ajustar estoque do Laboratório na venda:', err);
-    return null;
+    return '⚠ A venda foi salva, mas NÃO consegui dar baixa no estoque (' + (err && err.message ? err.message : 'erro de conexão') + ').\n\nAbra Saúde do sistema → "Vendas sem baixa de estoque" e use "Dar baixa agora" quando a conexão voltar.';
   }
 }
 
