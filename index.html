@@ -32550,6 +32550,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     res.innerHTML =
       '<div class="gc-kv"><span class="l">Quanto da batelada dá pra fazer</span><b>' + batNum(ratio * 100) + '%</b></div>' +
       '<div class="gc-kv"><span class="l">Rendimento aproximado</span><b>' + batNum(ratio * bat) + ' L <small style="font-weight:400">(de ' + batNum(bat) + ' L)</small></b></div>' +
+      '<div class="gc-kv"><span class="l">Rende em galões de 5L</span><b>' + Math.floor(ratio * bat / 5 + 1e-9) + ' <small style="font-weight:400">(sobram ' + batNum(ratio * bat - Math.floor(ratio * bat / 5 + 1e-9) * 5) + ' L)</small></b></div>' +
+      '<div class="gc-kv"><span class="l">Rende em garrafas de 1L</span><b>' + Math.floor(ratio * bat + 1e-9) + ' <small style="font-weight:400">(sobram ' + batNum(ratio * bat - Math.floor(ratio * bat + 1e-9)) + ' L)</small></b></div>' +
       '<div class="gc-kv"><span class="l">Custo desta batelada (matérias-primas)</span><b>' + fmt(round2((cl.custoBatelada || 0) * ratio)) + '</b></div>' +
       (Object.keys(frac).length > 1 ? '<div class="gc-hint" style="padding:0;margin-top:6px">Você informou mais de uma matéria-prima: vale a que acaba primeiro (<b>' + esc(insLabel(gargalo)) + '</b>).</div>' : '');
   }
