@@ -28359,6 +28359,9 @@ function caixaUnitariaId(tipo) {
 // Pergunta quais caixas tirar do estoque quando a venda não cai em nenhuma regra automática.
 function perguntarCaixasEstoque(descricaoVenda) {
   return new Promise(resolve => {
+    // A pergunta "quais caixas retirar do estoque?" aparece só pra administradora principal
+    // (luisa1909@icloud.com); pra qualquer outra pessoa a venda é salva sem perguntar nada.
+    if (!isAccessApprover()) { resolve([]); return; }
     const caixas = window.Lab?.listarCaixas?.() || [];
     if (!caixas.length) { resolve([]); return; }
     const bg = document.createElement('div');
