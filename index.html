@@ -16226,6 +16226,24 @@ function setupRealtime() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_produtos' }, scheduleRemoteRefresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_fiscais' }, scheduleRemoteRefresh)
     .subscribe();
+  // Estoque do Laboratório e Calculadora/Mercado Livre/Peças: atualizam sozinhos quando outro computador mexe
+  // (precisa das tabelas gso_* no Realtime — ver SQL_1_realtime_estoque.sql).
+  try {
+    client.channel('gso-estoque-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gso_insumos' }, scheduleEstoqueRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gso_produtos_envasados' }, scheduleEstoqueRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gso_calc_store' }, scheduleCalcPull)
+      .subscribe();
+  } catch (err) { console.warn('Realtime do estoque indisponível:', err); }
+}
+let estoqueRefreshTimer = null, calcPullTimer = null;
+function scheduleEstoqueRefresh() {
+  clearTimeout(estoqueRefreshTimer);
+  estoqueRefreshTimer = setTimeout(() => { try { if (window.Lab && Lab.recarregarEstoque) Lab.recarregarEstoque(); } catch (e) {} }, 700);
+}
+function scheduleCalcPull() {
+  clearTimeout(calcPullTimer);
+  calcPullTimer = setTimeout(() => { try { if (window.gsoCalc && window.gsoCalc._pull) window.gsoCalc._pull(); } catch (e) {} }, 800);
 }
 
 function scheduleGsoRefresh() {
@@ -36337,6 +36355,7 @@ async function contagemRevisar() {
     navTo: navTo,
     switchInsumosTab: switchInsumosTab,
     openAjusteModal: openAjusteModal,
+    recarregarEstoque: async function () { try { await loadInsumos(); var v = document.getElementById('view-insumos'); if (v && !v.classList.contains('hidden')) renderInsumos(); } catch (e) {} },
     abrirContagem: abrirContagem, fecharContagem: fecharContagem, contagemInput: contagemInput, contagemFiltrar: contagemFiltrar, contagemLimpar: contagemLimpar, contagemRevisar: contagemRevisar,
     atualizarDivisoriasRow: atualizarDivisoriasRow,
     atualizarTampaJunto: atualizarTampaJunto,
