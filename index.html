@@ -11879,6 +11879,62 @@ body.theme-dark .fx-rapido-ok { color: #86D9A6; }
 .fx-nova-cat input { flex: 1; min-width: 0; border: 1px dashed var(--border, #C9C9C9) !important; background: transparent !important; border-radius: 9px !important; padding: 8px 12px !important; font-size: 13px !important; color: var(--text); min-height: 0 !important; height: auto !important; }
 .fx-mover { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12.5px; color: var(--text-2); }
 @media (max-width: 560px) { .fx-cat { flex-wrap: wrap; } .fx-cat .fx-rot { flex: 1 0 100%; } .fx-cat .fx-campo { flex: 1; width: auto; } .fx-cat .fx-cat-lista { min-width: 40px; } }
+/* --- Financeiro v3: blocos mais separados, botões explicados (editar = âmbar, excluir = vermelho) --- */
+.fx-mes-bar { margin-bottom: 22px; }
+.fx-kpis { gap: 16px; margin-bottom: 28px; }
+.fx-rapido { margin-bottom: 28px; }
+.fx-grid { gap: 28px; }
+.fx-lateral { gap: 24px; }
+.fx-card { padding: 22px 24px; }
+.fx-demo { background: transparent; border: 0; padding: 0; }
+.fx-demo > .fx-card-head { margin-bottom: 6px; }
+.fx-bloco { background: var(--card, #fff); border: 1px solid var(--border, #E2E2E2); border-left-width: 5px; border-radius: 16px; padding: 4px 22px 18px; margin-top: 24px; }
+.fx-demo .fx-bloco:first-of-type { margin-top: 16px; }
+.fx-bloco-rec { border-left-color: #6FA37F; } .fx-bloco-custo { border-left-color: #7C90B5; } .fx-bloco-desp { border-left-color: #C28E6A; }
+.fx-bloco .fx-secao { margin: 0 -22px 10px; padding: 15px 22px 13px; border-bottom: 1px solid var(--border, #E2E2E2); font-size: 12px; background: rgba(127,127,127,.06); border-radius: 0 11px 0 0; }
+.fx-bloco .fx-linha { padding: 8px 0; }
+.fx-bloco .fx-lucro { margin: 14px 0 0; padding: 10px 12px; }
+.fx-secao-btn { border-color: rgba(111,163,127,.6) !important; color: #2F6B45 !important; background: rgba(111,163,127,.12) !important; padding: 4px 13px !important; font-size: 11.5px !important; }
+body.theme-dark .fx-secao-btn { color: #A9E2BC !important; }
+/* legenda dos botões */
+.fx-legenda { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; padding: 12px 14px; margin: 4px 0 16px; border: 1px dashed var(--border, #CFCFCF); border-radius: 12px; background: rgba(127,127,127,.04); font-size: 12px; color: var(--text-2); }
+.fx-legenda b { flex: 1 0 100%; color: var(--text); font-size: 12.5px; }
+.fx-legenda span { display: inline-flex; align-items: center; gap: 7px; }
+.fx-legenda .fx-bt { pointer-events: none; font-style: normal; }
+/* cada categoria vira uma caixinha própria */
+.fx-bloco .fx-cat-bloco { border: 1px solid var(--border, #E2E2E2); border-radius: 12px; padding: 10px 14px 12px; margin-bottom: 12px; background: var(--card, #fff); }
+.fx-bloco .fx-cat-bloco .fx-linha { padding: 2px 0 4px; }
+.fx-bloco .fx-meta { padding-right: 0; margin: 2px 0 6px; }
+.fx-cat-ferr { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 8px; padding-top: 10px; border-top: 1px dashed rgba(127,127,127,.3); }
+.fx-ferr-grupo { display: flex; align-items: center; gap: 6px; }
+.fx-ferr-dir { margin-left: auto; }
+.fx-ferr-rot { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); margin-right: 2px; }
+.fx-bt { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border, #D0D0D0) !important; background: var(--card, #fff) !important; color: var(--text) !important; font: inherit; font-size: 12px !important; font-weight: 600; line-height: 1; padding: 7px 12px !important; min-height: 0 !important; height: auto !important; border-radius: 9px !important; cursor: pointer; box-shadow: none !important; white-space: nowrap; }
+.fx-bt:hover { background: rgba(127,127,127,.1) !important; }
+.fx-bt[disabled] { opacity: .38; cursor: not-allowed; }
+.fx-bt-det.aberta { background: rgba(127,127,127,.16) !important; }
+.fx-bt-ed { color: #8A5A00 !important; background: rgba(217,164,65,.16) !important; border-color: rgba(217,164,65,.6) !important; }
+.fx-bt-ed:hover { background: rgba(217,164,65,.30) !important; }
+.fx-bt-x { color: #B0322F !important; background: rgba(176,50,47,.09) !important; border-color: rgba(176,50,47,.4) !important; }
+.fx-bt-x:hover { background: rgba(176,50,47,.2) !important; }
+body.theme-dark .fx-bt-ed { color: #FFD68A !important; } body.theme-dark .fx-bt-x { color: #F08A8A !important; }
+.fx-btn-amarelo { color: #8A5A00 !important; background: rgba(217,164,65,.16) !important; border-color: rgba(217,164,65,.6) !important; }
+body.theme-dark .fx-btn-amarelo { color: #FFD68A !important; }
+/* lançamentos dentro da categoria */
+.fx-itens { margin: 10px 0 2px 0; border-left-width: 3px; }
+.fx-item-del { width: 30px !important; height: 30px; border: 1px solid rgba(176,50,47,.4) !important; background: rgba(176,50,47,.09) !important; color: #B0322F !important; border-radius: 8px !important; }
+.fx-item-del:hover { background: rgba(176,50,47,.2) !important; }
+body.theme-dark .fx-item-del { color: #F08A8A !important; }
+.fx-item-add { width: 30px !important; height: 30px; border: 1px solid rgba(47,107,69,.4) !important; background: rgba(111,163,127,.14) !important; color: #2F6B45 !important; border-radius: 8px !important; }
+.fx-nova-cat { margin: 14px 0 6px; padding-top: 14px; border-top: 1px dashed rgba(127,127,127,.3); }
+/* modal de categoria em seções */
+.fx-mod-sec { border: 1px solid var(--border, #E2E2E2); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+.fx-mod-tit { font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-2); margin-bottom: 8px; }
+.fx-mod-tit span { font-weight: 500; text-transform: none; letter-spacing: 0; }
+.fx-mod-perigo { border-color: rgba(176,50,47,.4); background: rgba(176,50,47,.05); }
+.fx-mod-perigo .fx-mod-tit { color: #B0322F; }
+.fx-mover { display: flex; gap: 8px; }
+@media (max-width: 560px) { .fx-bloco { padding: 2px 14px 14px; } .fx-bloco .fx-secao { margin: 0 -14px 10px; padding: 13px 14px 11px; } .fx-ferr-dir { margin-left: 0; } .fx-cat-ferr { gap: 8px 12px; } .fx-bloco .fx-cat-bloco { padding: 10px 10px 12px; } }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -14125,7 +14181,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
         <div class="fx-grid">
           <div class="fx-card fx-demo">
-            <div class="fx-card-head"><div><div class="card-title">Demonstrativo do mês</div><div class="card-sub">Clique num valor para editar. Campos em branco contam como zero. Em cada categoria, ☰ abre os lançamentos dela.</div></div></div>
+            <div class="fx-card-head"><div><div class="card-title">Demonstrativo do mês</div><div class="card-sub">Clique num valor para editar. Campos em branco contam como zero. Cada categoria de despesa tem os botões Lançamentos, Ordem, Editar e Excluir logo abaixo dela.</div></div></div>
             <div class="fx-cols-cab"><span></span><span>Mês anterior</span><span>Este mês</span></div>
             <div id="fin-demonstrativo"></div>
           </div>
@@ -14209,15 +14265,32 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 
     <!-- Modal: categoria de despesa (nome + meta mensal) -->
     <div class="modal-bg" id="modal-fin-cat">
-      <div class="modal" style="max-width:440px">
+      <div class="modal" style="max-width:480px">
         <div class="modal-title" id="fin-cat-titulo">Categoria de despesa</div>
         <input type="hidden" id="fin-cat-id">
-        <div class="form-row"><div><label class="form-label">Nome da categoria</label><input class="form-input" id="fin-cat-nome" placeholder="ex.: Marketing / Anúncios" onkeydown="if(event.key==='Enter')finSalvarCategoria()"></div></div>
-        <div class="form-row"><div><label class="form-label">Meta mensal (R$) <span style="font-weight:400;color:var(--text-2)">— opcional</span></label><input class="form-input" id="fin-cat-meta" inputmode="decimal" placeholder="Quanto você pretende gastar no máximo por mês" onkeydown="if(event.key==='Enter')finSalvarCategoria()"></div></div>
-        <div class="form-help">Com meta, a categoria mostra uma barra de quanto já foi gasto e avisa quando passa do limite.</div>
-        <div class="fx-mover" id="fin-cat-mover"><span>Posição na lista:</span><button type="button" class="btn btn-small" onclick="finMoverCategoria(document.getElementById('fin-cat-id').value,-1);finAbrirCategoria(document.getElementById('fin-cat-id').value)">↑ Subir</button><button type="button" class="btn btn-small" onclick="finMoverCategoria(document.getElementById('fin-cat-id').value,1);finAbrirCategoria(document.getElementById('fin-cat-id').value)">↓ Descer</button></div>
+        <div class="fx-mod-sec">
+          <div class="fx-mod-tit">Nome da categoria</div>
+          <input class="form-input" id="fin-cat-nome" placeholder="ex.: Marketing / Anúncios" onkeydown="if(event.key==='Enter')finSalvarCategoria()">
+        </div>
+        <div class="fx-mod-sec">
+          <div class="fx-mod-tit">Meta mensal (R$) <span>— opcional</span></div>
+          <input class="form-input" id="fin-cat-meta" inputmode="decimal" placeholder="Quanto você pretende gastar no máximo por mês" onkeydown="if(event.key==='Enter')finSalvarCategoria()">
+          <div class="form-help" style="margin-top:6px">Com meta, a categoria mostra uma barra de quanto já foi gasto e avisa quando passa do limite.</div>
+        </div>
+        <div class="fx-mod-sec" id="fin-cat-mover">
+          <div class="fx-mod-tit">Ordem na lista</div>
+          <div class="form-help" style="margin:0 0 8px">Muda a posição desta categoria no demonstrativo.</div>
+          <div class="fx-mover" style="margin:0">
+            <button type="button" class="fx-bt fx-bt-mv" onclick="finMoverCategoria(document.getElementById('fin-cat-id').value,-1);finAbrirCategoria(document.getElementById('fin-cat-id').value)">↑ Subir</button>
+            <button type="button" class="fx-bt fx-bt-mv" onclick="finMoverCategoria(document.getElementById('fin-cat-id').value,1);finAbrirCategoria(document.getElementById('fin-cat-id').value)">↓ Descer</button>
+          </div>
+        </div>
+        <div class="fx-mod-sec fx-mod-perigo" id="fin-cat-perigo">
+          <div class="fx-mod-tit">Excluir categoria</div>
+          <div class="form-help" style="margin:0 0 8px">Apaga a categoria e os valores e lançamentos dela em todos os meses. Não dá para desfazer.</div>
+          <button type="button" class="fx-bt fx-bt-x" id="fin-cat-remover" onclick="finRemoverCategoria(document.getElementById('fin-cat-id').value)">✕ Excluir esta categoria</button>
+        </div>
         <div class="form-actions">
-          <button class="btn btn-danger" id="fin-cat-remover" onclick="finRemoverCategoria(document.getElementById('fin-cat-id').value)">Remover categoria</button>
           <button class="btn" onclick="document.getElementById('modal-fin-cat').classList.remove('show')">Cancelar</button>
           <button class="btn btn-primary" onclick="finSalvarCategoria()">Salvar</button>
         </div>
@@ -18839,7 +18912,7 @@ function finAntHtml(valor) { return `<span class="fx-ant" title="Mês anterior">
 function finLinhaHtml(rot, campo, valor, ant) {
   return `<div class="fx-linha"><span class="fx-rot">${escapeHtml(rot)}</span>${finAntHtml(ant)}${finCampoHtml(campo, valor)}</div>`;
 }
-function finCatLinhaHtml(cat, m, ant) {
+function finCatLinhaHtml(cat, m, ant, pos, tot) {
   const itens = finItens(m, cat.id);
   const total = finTotalCat(m, cat.id);
   const aberta = FIN.expandidas.has(cat.id);
@@ -18856,7 +18929,7 @@ function finCatLinhaHtml(cat, m, ant) {
       ${itens.map(it => `<div class="fx-item">
         <input class="fx-item-desc" type="text" value="${escapeHtml(it.desc || '')}" placeholder="Descrição"${dis} onblur="finSalvarItemDesc('${cat.id}','${it.id}', this.value)">
         <span class="fx-campo"><i>R$</i><input class="fx-input" type="text" inputmode="decimal" placeholder="0,00" value="${finNumFmt(it.valor)}"${dis} data-campo="item:${cat.id}:${it.id}" onfocus="finFoco(this)" onblur="finSalvarCampo(this)" onkeydown="if(event.key==='Enter')this.blur()"></span>
-        <button type="button" class="fx-item-del" title="Remover lançamento"${dis} onclick="finRemoverItem('${cat.id}','${it.id}')">✕</button>
+        <button type="button" class="fx-item-del" title="Excluir este lançamento" aria-label="Excluir lançamento"${dis} onclick="finRemoverItem('${cat.id}','${it.id}')">✕</button>
       </div>`).join('')}
       <div class="fx-item fx-item-novo">
         <input class="fx-item-desc" type="text" id="fin-novo-desc-${cat.id}" placeholder="+ Novo lançamento: descrição"${dis} onkeydown="if(event.key==='Enter')document.getElementById('fin-novo-val-${cat.id}').focus()">
@@ -18865,16 +18938,30 @@ function finCatLinhaHtml(cat, m, ant) {
       </div>
     </div>`;
   }
+  const idsq = cat.id.replace(/'/g, '');
+  const ferr = `<div class="fx-cat-ferr">
+      <div class="fx-ferr-grupo">
+        <button type="button" class="fx-bt fx-bt-det${aberta ? ' aberta' : ''}" onclick="finAlternarItens('${idsq}')" title="Abre ou fecha a lista de lançamentos (itens) desta categoria">☰ Lançamentos${itens.length ? ' (' + itens.length + ')' : ''}</button>
+      </div>
+      <div class="fx-ferr-grupo">
+        <span class="fx-ferr-rot">Ordem</span>
+        <button type="button" class="fx-bt fx-bt-mv" onclick="finMoverCategoria('${idsq}',-1)"${pos === 0 ? ' disabled' : ''} title="Sobe esta categoria uma posição na lista">↑ Subir</button>
+        <button type="button" class="fx-bt fx-bt-mv" onclick="finMoverCategoria('${idsq}',1)"${pos === tot - 1 ? ' disabled' : ''} title="Desce esta categoria uma posição na lista">↓ Descer</button>
+      </div>
+      <div class="fx-ferr-grupo fx-ferr-dir">
+        <button type="button" class="fx-bt fx-bt-ed" onclick="finAbrirCategoria('${idsq}')" title="Editar o nome e a meta mensal desta categoria">✎ Editar</button>
+        <button type="button" class="fx-bt fx-bt-x" onclick="finRemoverCategoria('${idsq}')" title="Excluir esta categoria">✕ Excluir</button>
+      </div>
+    </div>`;
   return `<div class="fx-cat-bloco">
     <div class="fx-linha fx-cat">
-      <span class="fx-rot"><button type="button" class="fx-cat-nome" onclick="finRenomearInline('${cat.id}', this)" title="Clique para renomear">${escapeHtml(cat.nome)}</button></span>
+      <span class="fx-rot"><button type="button" class="fx-cat-nome" onclick="finRenomearInline('${idsq}', this)" title="Clique no nome para renomear">${escapeHtml(cat.nome)}</button></span>
       ${finAntHtml(ant)}
       ${campo}
-      <button type="button" class="fx-cat-lista${aberta ? ' aberta' : ''}${itens.length ? ' tem' : ''}" onclick="finAlternarItens('${cat.id}')" title="Lançamentos desta categoria">☰${itens.length ? ' ' + itens.length : ''}</button>
-      <button type="button" class="fx-cat-ed" onclick="finAbrirCategoria('${cat.id}')" title="Editar nome, meta mensal e posição" aria-label="Editar categoria">✎</button>
-      <button type="button" class="fx-cat-x" onclick="finRemoverCategoria('${cat.id}')" title="Remover categoria" aria-label="Remover categoria">✕</button>
     </div>
-    ${metaHtml}${sub}
+    ${metaHtml}
+    ${ferr}
+    ${sub}
   </div>`;
 }
 function finRenderDemonstrativo(m) {
@@ -18889,22 +18976,37 @@ function finRenderDemonstrativo(m) {
       ${finCampoHtml(campo, valor, manual ? 'manual' : 'auto')}
       <button type="button" class="fx-reset${manual ? '' : ' fx-oculto'}" id="fin-reset-${campo}" onclick="finRestaurarLucro('${campo}')" title="Voltar ao valor calculado (R$ ${finNumFmt(auto)})">↺</button>
     </div>`;
+  const legenda = `<div class="fx-legenda">
+      <b>Como usar os botões de cada categoria</b>
+      <span><i class="fx-bt fx-bt-det">☰ Lançamentos</i> abre a lista de itens que formam o valor</span>
+      <span><i class="fx-bt fx-bt-mv">↑ ↓ Ordem</i> muda a posição na lista</span>
+      <span><i class="fx-bt fx-bt-ed">✎ Editar</i> muda o nome e a meta do mês</span>
+      <span><i class="fx-bt fx-bt-x">✕ Excluir</i> apaga a categoria</span>
+    </div>`;
+  const totCat = FIN.store.categorias.length;
   return `
-    <div class="fx-secao">Receitas</div>
-    ${FIN_LINHAS_RECEITA.map(([k, r]) => finLinhaHtml(r, k, m && m[k], mp[k])).join('')}
-    <div class="fx-linha fx-subtotal"><span class="fx-rot">Receita total</span>${finAntHtml(cp.receita)}<b id="fin-t-receita">${fmtBR(c.receita)}</b></div>
+    <section class="fx-bloco fx-bloco-rec">
+      <div class="fx-secao"><span>Receitas</span></div>
+      ${FIN_LINHAS_RECEITA.map(([k, r]) => finLinhaHtml(r, k, m && m[k], mp[k])).join('')}
+      <div class="fx-linha fx-subtotal"><span class="fx-rot">Receita total</span>${finAntHtml(cp.receita)}<b id="fin-t-receita">${fmtBR(c.receita)}</b></div>
+    </section>
 
-    <div class="fx-secao">(−) Custos e deduções das vendas</div>
-    ${FIN_LINHAS_CUSTO.map(([k, r]) => finLinhaHtml(r, k, m && m[k], mp[k])).join('')}
-    <div class="fx-linha fx-subtotal"><span class="fx-rot">Total de custos</span>${finAntHtml(cp.custos)}<b id="fin-t-custos">${fmtBR(c.custos)}</b></div>
-    ${lucroLinha('lucro_bruto', 'Lucro bruto', c.lucroBruto, c.lbManual, c.lucroBrutoAuto, cp.temDados ? cp.lucroBruto : 0)}
+    <section class="fx-bloco fx-bloco-custo">
+      <div class="fx-secao"><span>(−) Custos e deduções das vendas</span></div>
+      ${FIN_LINHAS_CUSTO.map(([k, r]) => finLinhaHtml(r, k, m && m[k], mp[k])).join('')}
+      <div class="fx-linha fx-subtotal"><span class="fx-rot">Total de custos</span>${finAntHtml(cp.custos)}<b id="fin-t-custos">${fmtBR(c.custos)}</b></div>
+      ${lucroLinha('lucro_bruto', 'Lucro bruto', c.lucroBruto, c.lbManual, c.lucroBrutoAuto, cp.temDados ? cp.lucroBruto : 0)}
+    </section>
 
-    <div class="fx-secao">(−) Despesas operacionais <button type="button" class="fx-secao-btn" onclick="finAbrirCategoria('')">+ categoria</button></div>
-    ${FIN.store.categorias.map(cat => finCatLinhaHtml(cat, m, finTotalCat(mp, cat.id))).join('')}
-    <div class="fx-nova-cat"><input type="text" id="fin-nova-cat" placeholder="+ Nova categoria (ex.: Seguro)" onkeydown="if(event.key==='Enter')finAdicionarCategoriaInline()"><button type="button" class="btn btn-small btn-primary" onclick="finAdicionarCategoriaInline()">Adicionar</button></div>
-    <div class="fx-linha fx-subtotal"><span class="fx-rot">Total de despesas</span>${finAntHtml(cp.desp)}<b id="fin-t-despesas">${fmtBR(c.desp)}</b></div>
-    ${lucroLinha('lucro_liquido', 'Lucro líquido', c.lucroLiquido, c.llManual, c.lucroLiquidoAuto, cp.temDados ? cp.lucroLiquido : 0)}
-    <div class="fx-linha fx-margem"><span class="fx-rot">Margem líquida</span><span class="fx-ant"></span><b id="fin-t-margem">${finPct(c.margem)}</b></div>`;
+    <section class="fx-bloco fx-bloco-desp">
+      <div class="fx-secao"><span>(−) Despesas operacionais</span><button type="button" class="fx-secao-btn" onclick="finAbrirCategoria('')">+ Nova categoria</button></div>
+      ${legenda}
+      ${FIN.store.categorias.map((cat, i) => finCatLinhaHtml(cat, m, finTotalCat(mp, cat.id), i, totCat)).join('')}
+      <div class="fx-nova-cat"><input type="text" id="fin-nova-cat" placeholder="+ Nova categoria (ex.: Seguro)" onkeydown="if(event.key==='Enter')finAdicionarCategoriaInline()"><button type="button" class="btn btn-small btn-primary" onclick="finAdicionarCategoriaInline()">Adicionar</button></div>
+      <div class="fx-linha fx-subtotal"><span class="fx-rot">Total de despesas</span>${finAntHtml(cp.desp)}<b id="fin-t-despesas">${fmtBR(c.desp)}</b></div>
+      ${lucroLinha('lucro_liquido', 'Lucro líquido', c.lucroLiquido, c.llManual, c.lucroLiquidoAuto, cp.temDados ? cp.lucroLiquido : 0)}
+      <div class="fx-linha fx-margem"><span class="fx-rot">Margem líquida</span><span class="fx-ant"></span><b id="fin-t-margem">${finPct(c.margem)}</b></div>
+    </section>`;
 }
 function finKpiHtml(rotulo, valor, sub, cls) {
   return `<div class="fx-kpi${cls ? ' ' + cls : ''}"><span>${escapeHtml(rotulo)}</span><strong>${valor}</strong><small>${sub || '&nbsp;'}</small></div>`;
@@ -19088,7 +19190,7 @@ function finAbrirCategoria(id) {
   document.getElementById('fin-cat-id').value = cat ? cat.id : '';
   document.getElementById('fin-cat-nome').value = cat ? cat.nome : '';
   document.getElementById('fin-cat-meta').value = cat && cat.meta ? finNumFmt(cat.meta) : '';
-  document.getElementById('fin-cat-remover').style.display = cat ? '' : 'none';
+  document.getElementById('fin-cat-perigo').style.display = cat ? '' : 'none';
   document.getElementById('fin-cat-mover').style.display = cat ? '' : 'none';
   finModalNoBody('modal-fin-cat').classList.add('show');
   setTimeout(() => document.getElementById('fin-cat-nome').focus(), 50);
@@ -19714,7 +19816,7 @@ function renderDespesas() {
       <td data-label="Descrição">${escapeHtml(d.descricao || '—')}</td>
       <td data-label="Pagamento">${escapeHtml(despesaPaymentDisplay(d))}${pendenciaHtml ? '<br>' + pendenciaHtml : ''}</td>
       <td data-label="Valor" class="num">${fmtBR(d.valor)}</td>
-      <td data-label="Ações"><div class="row-actions"><button class="btn btn-small" onclick="openDespesaModal('${d.id}')">Editar</button></div></td>
+      <td data-label="Ações"><div class="row-actions"><button class="btn btn-small fx-btn-amarelo" onclick="openDespesaModal('${d.id}')">✎ Editar</button></div></td>
     </tr>
   `;
   }).join('');
