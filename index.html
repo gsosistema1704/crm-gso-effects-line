@@ -11985,6 +11985,7 @@ body.theme-dark .saude-x{ color:#F08A8A !important; }
 .saude-ordem button:hover{ background:rgba(127,127,127,.12) !important; }
 .saude-card.arrastando{ opacity:.45; }
 .saude-card.sobre-antes{ box-shadow:0 -3px 0 0 #D9A441; } .saude-card.sobre-depois{ box-shadow:0 3px 0 0 #D9A441; }
+.saude-x-bloco{ margin-left:8px; }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -26860,10 +26861,12 @@ function saudeChave(p, it) { return p.id + '||' + it.txt; }
 function saudeColapsados() { try { return new Set(JSON.parse(localStorage.getItem('gso_saude_colapsados') || '[]')); } catch (e) { return new Set(); } }
 function saudeSalvarColapsados(set) { try { localStorage.setItem('gso_saude_colapsados', JSON.stringify([...set])); } catch (e) {} }
 // Tira os avisos que você dispensou (um a um) — voltam sozinhos se o texto do aviso mudar (ex.: valor diferente).
+function saudeBlocosOcultos() { try { const st = window.gsoCalc && window.gsoCalc._store(); return (st && Array.isArray(st.saudeBlocosOcultos)) ? st.saudeBlocosOcultos : []; } catch (e) { return []; } }
 function saudeAplicarDispensados(problemas) {
-  const disp = saudeDispensados(); let total = 0;
-  const out = problemas.map(p => { const itens = p.itens.filter(it => !disp[saudeChave(p, it)]); total += p.itens.length - itens.length; return { ...p, itens }; }).filter(p => p.itens.length);
-  return { problemas: out, dispensados: total };
+  const disp = saudeDispensados(); const ocultos = saudeBlocosOcultos(); let total = 0, blocos = 0;
+  const out = problemas.filter(p => { if (ocultos.indexOf(p.id) >= 0) { blocos++; return false; } return true; })
+    .map(p => { const itens = p.itens.filter(it => !disp[saudeChave(p, it)]); total += p.itens.length - itens.length; return { ...p, itens }; }).filter(p => p.itens.length);
+  return { problemas: out, dispensados: total, blocosOcultos: blocos };
 }
 const SAUDE_NIVEL = { alto: ['Urgente', 'bad'], medio: ['Atenção', 'warn'], baixo: ['Organização', 'gray'] };
 let saudeUltimo = [];
@@ -26906,6 +26909,7 @@ function saudePintar(problemas) {
     const sub = document.getElementById('saude-sub'); if (sub) sub.textContent = 'Última verificação: ' + new Date().toLocaleString('pt-BR');
     resumo.innerHTML = ['alto', 'medio', 'baixo'].map(k => `<div class="saude-chip ${SAUDE_NIVEL[k][1]}"><b>${n[k]}</b><span>${SAUDE_NIVEL[k][0]}</span></div>`).join('') +
       (problemas.length ? '' : '<div class="saude-ok">✅ Tudo certo — nenhum aviso pendente.</div>') +
+      (filtrado.blocosOcultos ? `<button class="btn btn-small btn-soft" onclick="saudeRestaurarBlocos()" data-tip="Traz de volta os blocos que você excluiu">${filtrado.blocosOcultos} bloco(s) excluído(s) — restaurar</button>` : '') +
       (saudeOrdemSalva().length ? `<button class="btn btn-small btn-soft" onclick="saudeRestaurarOrdem()" data-tip="Volta os blocos para a ordem padrão (do mais urgente ao menos)">Ordem padrão</button>` : '') +
       (filtrado.dispensados ? `<button class="btn btn-small btn-soft saude-restaurar" onclick="saudeRestaurarDispensados()" data-tip="Traz de volta os avisos que você tirou">${filtrado.dispensados} aviso(s) dispensado(s) — restaurar</button>` : '');
     const colapsados = saudeColapsados();
@@ -26918,6 +26922,7 @@ function saudePintar(problemas) {
         <span class="saude-ordem" onclick="event.stopPropagation()"><button type="button" onclick="saudeMoverBloco('${p.id}',-1)" title="Subir este bloco" aria-label="Subir">↑</button><button type="button" onclick="saudeMoverBloco('${p.id}',1)" title="Descer este bloco" aria-label="Descer">↓</button></span>
         <button type="button" class="saude-min" aria-label="${fechado ? 'Expandir' : 'Minimizar'}">${fechado ? '▸' : '▾'}</button>
         <span class="pill ${p.nivel === 'alto' ? 'pill-red' : (p.nivel === 'medio' ? 'pill-amber' : 'pill-blue')}">${SAUDE_NIVEL[p.nivel][0]}</span><b>${escapeHtml(p.titulo)}</b><span class="saude-qtd">${p.itens.length}</span>
+        <button type="button" class="saude-x saude-x-bloco" onclick="event.stopPropagation();saudeExcluirBloco('${p.id}')" title="Excluir este bloco" aria-label="Excluir este bloco">✕</button>
       </div>
       <div class="saude-corpo">
         <div class="card-sub">${escapeHtml(p.detalhe)}</div>
@@ -26932,6 +26937,17 @@ function saudePintar(problemas) {
   }
 }
 let saudeBase = [];
+function saudeExcluirBloco(id) {
+  const p = saudeBase.find(x => x.id === id); if (!p) return;
+  if (!confirm('Excluir o bloco "' + p.titulo + '"?\n\nEle deixa de aparecer na Saúde do sistema (e no número do menu). Você pode trazer de volta em "bloco(s) excluído(s) — restaurar".')) return;
+  const st = window.gsoCalc && window.gsoCalc._store(); if (!st) return;
+  st.saudeBlocosOcultos = (Array.isArray(st.saudeBlocosOcultos) ? st.saudeBlocosOcultos : []).filter(x => x !== id).concat(id);
+  window.gsoCalc._save(); saudePintar(saudeBase);
+}
+function saudeRestaurarBlocos() {
+  const st = window.gsoCalc && window.gsoCalc._store(); if (!st) return;
+  st.saudeBlocosOcultos = []; window.gsoCalc._save(); saudePintar(saudeBase);
+}
 function saudeOrdemSalva() { try { const st = window.gsoCalc && window.gsoCalc._store(); return (st && Array.isArray(st.saudeOrdem)) ? st.saudeOrdem : []; } catch (e) { return []; } }
 // Guarda a ordem atual na tela (mais as que não estão visíveis agora, pra não perder a posição delas).
 function saudeGuardarOrdem(idsVisiveis) {
