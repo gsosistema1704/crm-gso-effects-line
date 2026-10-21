@@ -11935,6 +11935,16 @@ body.theme-dark .fx-item-del { color: #F08A8A !important; }
 .fx-mod-perigo .fx-mod-tit { color: #B0322F; }
 .fx-mover { display: flex; gap: 8px; }
 @media (max-width: 560px) { .fx-bloco { padding: 2px 14px 14px; } .fx-bloco .fx-secao { margin: 0 -14px 10px; padding: 13px 14px 11px; } .fx-ferr-dir { margin-left: 0; } .fx-cat-ferr { gap: 8px 12px; } .fx-bloco .fx-cat-bloco { padding: 10px 10px 12px; } }
+/* v3.1: barra de botões da categoria mais compacta, tudo na mesma altura */
+.fx-cat-ferr { gap: 8px 12px; margin-top: 6px; padding-top: 8px; }
+.fx-cat-ferr .fx-bt { height: 28px !important; padding: 0 10px !important; font-size: 11.5px !important; border-radius: 8px !important; justify-content: center; }
+.fx-cat-ferr .fx-bt-mv { width: 28px; padding: 0 !important; font-size: 14px !important; }
+.fx-cat-ferr .fx-bt-ed, .fx-cat-ferr .fx-bt-x { width: 76px; }
+.fx-legenda { gap: 6px 18px; padding: 8px 12px; margin: 2px 0 12px; font-size: 11.5px; }
+.fx-legenda span { gap: 5px; }
+.fx-legenda b { flex: 0 0 auto; color: var(--text); font-size: 12px; }
+.fx-legenda .fx-leg-ed b { color: #8A5A00; } .fx-legenda .fx-leg-x b { color: #B0322F; }
+body.theme-dark .fx-legenda .fx-leg-ed b { color: #FFD68A; } body.theme-dark .fx-legenda .fx-leg-x b { color: #F08A8A; }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -18952,9 +18962,8 @@ function finCatLinhaHtml(cat, m, ant, pos, tot) {
         <button type="button" class="fx-bt fx-bt-det${aberta ? ' aberta' : ''}" onclick="finAlternarItens('${idsq}')" title="Abre ou fecha a lista de lançamentos (itens) desta categoria">☰ Lançamentos${itens.length ? ' (' + itens.length + ')' : ''}</button>
       </div>
       <div class="fx-ferr-grupo">
-        <span class="fx-ferr-rot">Ordem</span>
-        <button type="button" class="fx-bt fx-bt-mv" onclick="finMoverCategoria('${idsq}',-1)"${pos === 0 ? ' disabled' : ''} title="Sobe esta categoria uma posição na lista">↑ Subir</button>
-        <button type="button" class="fx-bt fx-bt-mv" onclick="finMoverCategoria('${idsq}',1)"${pos === tot - 1 ? ' disabled' : ''} title="Desce esta categoria uma posição na lista">↓ Descer</button>
+        <button type="button" class="fx-bt fx-bt-mv" onclick="finMoverCategoria('${idsq}',-1)"${pos === 0 ? ' disabled' : ''} title="Subir uma posição" aria-label="Subir">↑</button>
+        <button type="button" class="fx-bt fx-bt-mv" onclick="finMoverCategoria('${idsq}',1)"${pos === tot - 1 ? ' disabled' : ''} title="Descer uma posição" aria-label="Descer">↓</button>
       </div>
       <div class="fx-ferr-grupo fx-ferr-dir">
         <button type="button" class="fx-bt fx-bt-ed" onclick="finAbrirCategoria('${idsq}')" title="Editar o nome e a meta mensal desta categoria">✎ Editar</button>
@@ -18985,11 +18994,10 @@ function finRenderDemonstrativo(m) {
       <button type="button" class="fx-reset${manual ? '' : ' fx-oculto'}" id="fin-reset-${campo}" onclick="finRestaurarLucro('${campo}')" title="Voltar ao valor calculado (R$ ${finNumFmt(auto)})">↺</button>
     </div>`;
   const legenda = `<div class="fx-legenda">
-      <b>Como usar os botões de cada categoria</b>
-      <span><i class="fx-bt fx-bt-det">☰ Lançamentos</i> abre a lista de itens que formam o valor</span>
-      <span><i class="fx-bt fx-bt-mv">↑ ↓ Ordem</i> muda a posição na lista</span>
-      <span><i class="fx-bt fx-bt-ed">✎ Editar</i> muda o nome e a meta do mês</span>
-      <span><i class="fx-bt fx-bt-x">✕ Excluir</i> apaga a categoria</span>
+      <span><b>☰</b> itens do valor</span>
+      <span><b>↑ ↓</b> mudar ordem</span>
+      <span class="fx-leg-ed"><b>✎</b> editar nome/meta</span>
+      <span class="fx-leg-x"><b>✕</b> excluir categoria</span>
     </div>`;
   const totCat = FIN.store.categorias.length;
   return `
