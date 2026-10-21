@@ -26863,25 +26863,40 @@ const SAUDE_NIVEL = { alto: ['Urgente', 'bad'], medio: ['Atenção', 'warn'], ba
 let saudeUltimo = [];
 let saudeChaves = [];
 async function renderSaude(forcar) {
-  const lista = document.getElementById('saude-lista'), resumo = document.getElementById('saude-resumo');
+  const lista = document.getElementById('saude-lista');
   if (!lista) return;
   lista.innerHTML = '<div class="card"><div class="card-sub">Verificando…</div></div>';
-  let problemas = [];
-  try { problemas = gsoAuditoria().concat(await gsoAuditoriaSync()); }
-  catch (err) { problemas = [{ id: 'erro-auditoria', nivel: 'alto', titulo: 'A verificação falhou', detalhe: String(err && err.message || err), itens: [{ txt: 'Avise o suporte com esta mensagem.' }] }]; }
-  const filtrado = saudeAplicarDispensados(problemas); problemas = filtrado.problemas;
-  const ordem = { alto: 0, medio: 1, baixo: 2 }; problemas.sort((a, b) => ordem[a.nivel] - ordem[b.nivel]);
-  saudeUltimo = problemas; saudeChaves = [];
-  const n = { alto: 0, medio: 0, baixo: 0 }; problemas.forEach(p => n[p.nivel]++);
-  atualizarBadgeSaude(n);
-  const sub = document.getElementById('saude-sub'); if (sub) sub.textContent = 'Última verificação: ' + new Date().toLocaleString('pt-BR');
-  resumo.innerHTML = ['alto', 'medio', 'baixo'].map(k => `<div class="saude-chip ${SAUDE_NIVEL[k][1]}"><b>${n[k]}</b><span>${SAUDE_NIVEL[k][0]}</span></div>`).join('') +
-    (problemas.length ? '' : '<div class="saude-ok">✅ Tudo certo — nenhum aviso pendente.</div>') +
-    (filtrado.dispensados ? `<button class="btn btn-small btn-soft saude-restaurar" onclick="saudeRestaurarDispensados()" data-tip="Traz de volta os avisos que você tirou">${filtrado.dispensados} aviso(s) dispensado(s) — restaurar</button>` : '');
-  const colapsados = saudeColapsados();
-  lista.innerHTML = problemas.map(p => {
-    const fechado = colapsados.has(p.id);
-    return `
+  // 1) verificações locais (instantâneas) aparecem na hora; 2) a conferência com o servidor vem depois, com limite de tempo
+  let locais = [];
+  try { locais = gsoAuditoria(); }
+  catch (err) { locais = [{ id: 'erro-auditoria', nivel: 'alto', titulo: 'A verificação falhou', detalhe: String(err && err.message || err), itens: [{ txt: 'Avise o suporte com esta mensagem.' }] }]; }
+  saudePintar(locais);
+  let sync = [];
+  try {
+    sync = await Promise.race([
+      gsoAuditoriaSync(),
+      new Promise(resolve => setTimeout(() => resolve([{ id: 'sync-demora', nivel: 'medio', titulo: 'Não consegui conferir com o servidor', detalhe: 'O servidor demorou mais de 10 segundos para responder.', itens: [{ txt: 'Clique em "Verificar de novo" em instantes.' }] }]), 10000))
+    ]);
+  } catch (err) { sync = []; }
+  if (sync.length) saudePintar(locais.concat(sync));
+}
+function saudePintar(problemas) {
+  const lista = document.getElementById('saude-lista'), resumo = document.getElementById('saude-resumo');
+  if (!lista || !resumo) return;
+  try {
+    const filtrado = saudeAplicarDispensados(problemas); problemas = filtrado.problemas;
+    const ordem = { alto: 0, medio: 1, baixo: 2 }; problemas.sort((a, b) => ordem[a.nivel] - ordem[b.nivel]);
+    saudeUltimo = problemas; saudeChaves = [];
+    const n = { alto: 0, medio: 0, baixo: 0 }; problemas.forEach(p => n[p.nivel]++);
+    atualizarBadgeSaude(n);
+    const sub = document.getElementById('saude-sub'); if (sub) sub.textContent = 'Última verificação: ' + new Date().toLocaleString('pt-BR');
+    resumo.innerHTML = ['alto', 'medio', 'baixo'].map(k => `<div class="saude-chip ${SAUDE_NIVEL[k][1]}"><b>${n[k]}</b><span>${SAUDE_NIVEL[k][0]}</span></div>`).join('') +
+      (problemas.length ? '' : '<div class="saude-ok">✅ Tudo certo — nenhum aviso pendente.</div>') +
+      (filtrado.dispensados ? `<button class="btn btn-small btn-soft saude-restaurar" onclick="saudeRestaurarDispensados()" data-tip="Traz de volta os avisos que você tirou">${filtrado.dispensados} aviso(s) dispensado(s) — restaurar</button>` : '');
+    const colapsados = saudeColapsados();
+    lista.innerHTML = problemas.map(p => {
+      const fechado = colapsados.has(p.id);
+      return `
     <div class="card saude-card ${SAUDE_NIVEL[p.nivel][1]}${fechado ? ' colapsado' : ''}">
       <div class="saude-topo" onclick="saudeAlternarBloco('${p.id}')" title="${fechado ? 'Expandir' : 'Minimizar'}">
         <button type="button" class="saude-min" aria-label="${fechado ? 'Expandir' : 'Minimizar'}">${fechado ? '▸' : '▾'}</button>
@@ -26892,6 +26907,11 @@ async function renderSaude(forcar) {
         <div class="saude-itens">${p.itens.map(it => { saudeChaves.push(saudeChave(p, it)); const idx = saudeChaves.length - 1; return `<div class="saude-item"><span class="saude-txt">${escapeHtml(it.txt)}</span>${(it.acoes || (it.acao ? [it.acao] : [])).length ? `<span class="saude-acoes">${(it.acoes || [it.acao]).map(a => `<button class="btn btn-small${a.neutro ? '' : ' btn-primary'}" onclick="${a.fn}">${escapeHtml(a.label)}</button>`).join('')}</span>` : ''}<button type="button" class="saude-x" onclick="saudeDispensar(${idx})" title="Dispensar este aviso" aria-label="Dispensar este aviso">✕</button></div>`; }).join('')}</div>
       </div>
     </div>`; }).join('');
+  } catch (err) {
+    // nunca deixar a tela presa em "Verificando…": mostra o erro de verdade
+    console.error('Saúde do sistema:', err);
+    lista.innerHTML = '<div class="card"><div class="card-title">Não consegui montar a lista</div><div class="card-sub">' + escapeHtml(String(err && err.message || err)) + '</div><div style="margin-top:10px"><button class="btn btn-small" onclick="renderSaude(true)">Tentar de novo</button></div></div>';
+  }
 }
 function saudeAlternarBloco(id) {
   const c = saudeColapsados(); if (c.has(id)) c.delete(id); else c.add(id);
