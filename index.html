@@ -15762,7 +15762,8 @@ function saleToRow(v) {
       revisaoCandidatos: v.revisaoCandidatos || null,
       estoqueBaixado: v.estoqueBaixado || null,
       tipoVenda: v.tipoVenda || '',
-      semBaixaEstoque: Boolean(v.semBaixaEstoque) || undefined
+      semBaixaEstoque: Boolean(v.semBaixaEstoque) || undefined,
+      pecasBaixadas: (Array.isArray(v.pecasBaixadas) && v.pecasBaixadas.length) ? v.pecasBaixadas : undefined
     }
   };
 }
@@ -15805,7 +15806,8 @@ function rowToSale(r) {
     revisaoCandidatos: Array.isArray(r.metadata?.revisaoCandidatos) ? r.metadata.revisaoCandidatos : null,
     estoqueBaixado: Array.isArray(r.metadata?.estoqueBaixado) ? r.metadata.estoqueBaixado : null,
     tipoVenda: r.metadata?.tipoVenda || '',
-    semBaixaEstoque: Boolean(r.metadata?.semBaixaEstoque)
+    semBaixaEstoque: Boolean(r.metadata?.semBaixaEstoque),
+    pecasBaixadas: Array.isArray(r.metadata?.pecasBaixadas) ? r.metadata.pecasBaixadas : null
   };
 }
 
@@ -21613,6 +21615,7 @@ async function excluirVenda(id) {
     const session = await getSupabaseSession();
     if (client && session) await client.storage.from(SUPABASE_BUCKET_NF).remove([venda.boleto.path]);
   }
+  if (venda.pecasBaixadas?.length && window.gsoCalc?._baixarPecas) { try { window.gsoCalc._baixarPecas(venda.pecasBaixadas, -1); } catch (e) {} }
   if (typeof Lab !== 'undefined' && venda.estoqueBaixado?.length) {
     try { await Lab.reverterEstoque(venda.estoqueBaixado, 'Exclusão venda nº ' + (venda.numeroVenda || id)); }
     catch (err) { console.warn('Erro ao estornar estoque do Laboratório:', err); }
@@ -22579,6 +22582,7 @@ async function excluirVendaLojista(id) {
   if (!venda) return;
   const label = venda.numeroVenda ? `nº ${venda.numeroVenda}` : venda.cliente;
   if (!confirm(`Excluir a venda lojista ${label}?`)) return;
+  if (venda.pecasBaixadas?.length && window.gsoCalc?._baixarPecas) { try { window.gsoCalc._baixarPecas(venda.pecasBaixadas, -1); } catch (e) {} }
   if (typeof Lab !== 'undefined' && venda.estoqueBaixado?.length) {
     try { await Lab.reverterEstoque(venda.estoqueBaixado, 'Exclusão venda lojista nº ' + (venda.numeroVenda || id)); }
     catch (err) { console.warn('Erro ao estornar estoque do Laboratório:', err); }
@@ -28335,6 +28339,7 @@ async function salvarVenda() {
     pagamentoDetalhes.mlManual = true;
     if (anuncioOrigemVenda) {
       pagamentoDetalhes.mlSku = anuncioOrigemVenda.sku || '';
+      pagamentoDetalhes.mlAnuncioId = anuncioOrigemVenda.id || '';
       pagamentoDetalhes.mlTituloAnuncio = anuncioOrigemVenda.titulo || '';
     }
   }
@@ -28559,6 +28564,19 @@ async function marcarClienteDiretoLabMercadoLivre(nome) {
 // Retorna uma string de aviso (pra alertar a usuária) quando algum item não é encontrado,
 // ou null quando está tudo certo — nunca bloqueia o salvamento da venda.
 async function ajustarEstoqueLaboratorioNaVenda(venda, vendaAnterior, origem) {
+  // Peças do anúncio do Mercado Livre (aba Peças): devolve as da versão anterior da venda e desconta as novas.
+  let avisoPecas = '';
+  try {
+    if (window.gsoCalc && window.gsoCalc._baixarPecas) {
+      if (vendaAnterior && Array.isArray(vendaAnterior.pecasBaixadas) && vendaAnterior.pecasBaixadas.length) window.gsoCalc._baixarPecas(vendaAnterior.pecasBaixadas, -1);
+      venda.pecasBaixadas = venda.pagamentoDetalhes && venda.pagamentoDetalhes.mlAnuncioId ? window.gsoCalc._pecasDoAnuncio(venda.pagamentoDetalhes.mlAnuncioId) : [];
+      if (venda.pecasBaixadas.length) avisoPecas = window.gsoCalc._baixarPecas(venda.pecasBaixadas, 1);
+    }
+  } catch (errPecas) { console.warn('Erro ao dar baixa nas peças:', errPecas); }
+  const avisoEstoquePrincipal = await ajustarEstoqueLaboratorioNaVendaPrincipal(venda, vendaAnterior, origem);
+  return [avisoEstoquePrincipal, avisoPecas].filter(Boolean).join('\n\n') || null;
+}
+async function ajustarEstoqueLaboratorioNaVendaPrincipal(venda, vendaAnterior, origem) {
   if (typeof Lab === 'undefined') return null;
   try {
     const baixasAnteriores = vendaAnterior ? (vendaAnterior.estoqueBaixado || []) : [];
@@ -33595,6 +33613,30 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<button type="button" class="gc-ml-subtab' + (UI.mlView === 'pecas' ? ' on' : '') + '" data-ml-view="pecas">Peças</button>' +
     '</div>';
   }
+  /* ---------- baixa automática de peças pelas vendas de um anúncio ---------- */
+  function pecasDoAnuncio(anuncioId) {
+    var a = (store.anuncios || []).filter(function (x) { return x.id === anuncioId; })[0];
+    if (!a || !Array.isArray(a.pecasUsadas)) return [];
+    return a.pecasUsadas.map(function (u) {
+      var p = (store.pecas || []).filter(function (x) { return x.id === u.pecaId; })[0];
+      return p ? { id: p.id, nome: p.nome, qtd: Number(u.qtd) || 0 } : null;
+    }).filter(function (x) { return x && x.qtd > 0; });
+  }
+  // sinal +1 = tira do estoque (venda); -1 = devolve (edição/exclusão da venda)
+  function baixarPecas(lista, sinal) {
+    var avisos = [];
+    (lista || []).forEach(function (l) {
+      var p = (store.pecas || []).filter(function (x) { return x.id === l.id; })[0];
+      if (!p || p.qtd == null) return;
+      var novo = (Number(p.qtd) || 0) - sinal * l.qtd;
+      if (novo < 0) { avisos.push('Peça "' + p.nome + '": tinha ' + (Number(p.qtd) || 0) + ' e a venda usa ' + l.qtd + ' — ficou em 0.'); novo = 0; }
+      p.qtd = novo;
+    });
+    save();
+    try { if (UI.mlView === 'pecas') renderML(); } catch (e) {}
+    return avisos.length ? '⚠ ' + avisos.join('\n') : '';
+  }
+
   /* ---------- ML > PEÇAS: quantidade de cada peça que eu tenho ---------- */
   function pecasLista() { if (!Array.isArray(store.pecas)) store.pecas = []; return store.pecas; }
   function pecasHtml() {
@@ -33758,6 +33800,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     delete draft.comissaoPct; delete draft.custoExtraVendedor; delete draft.custoExtraComprador; delete draft.freteVendedorCobre;
     delete draft.flexPermitido; delete draft.flexValor;
     draft.produtoEnvasadoId = base.produtoEnvasadoId || null;
+    draft.pecasUsadas = (base.pecasUsadas || []).map(function (u) { return { pecaId: u.pecaId, qtd: u.qtd }; });
     draft.caixaEscolhida = base.caixaEscolhida || null;
     // Lista de produtos do estoque do Laboratório (cada um já é uma combinação específica
     // de produto + embalagem/garrafa usada) — carregada antes do primeiro render pra dar
@@ -33808,6 +33851,16 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           '<b class="gc-mat-chip-v">' + it.qtd + '×</b>' +
           '<span class="gc-mat-chip-u">' + fmt((ci.total || 0) * it.qtd) + '</span>' +
           '<button type="button" class="gc-mat-chip-x" data-ml-item-del="' + idx + '" title="Remover do kit">✕</button></div>';
+      }).join('');
+    }
+    function pecasChipsHtml() {
+      if (!draft.pecasUsadas.length) return '<span class="gc-hint" style="padding:0">Nenhuma peça vinculada — este anúncio não desconta peças.</span>';
+      return draft.pecasUsadas.map(function (u, idx) {
+        var pc = pecasLista().filter(function (x) { return x.id === u.pecaId; })[0];
+        return '<div class="gc-mat-chip gc-ml-kit-chip"><span class="gc-mat-chip-l">' + esc(pc ? pc.nome : '(peça apagada)') + '</span>' +
+          '<span class="gc-ml-kit-chip-sep">·</span><b class="gc-mat-chip-v">' + u.qtd + '×</b>' +
+          '<span class="gc-mat-chip-u">' + (pc && pc.qtd != null ? pc.qtd + ' em estoque' : 'sem quantidade') + '</span>' +
+          '<button type="button" class="gc-mat-chip-x" data-peca-uso-del="' + idx + '" title="Tirar esta peça do anúncio">✕</button></div>';
       }).join('');
     }
     function descontosHtml() {
@@ -33905,6 +33958,15 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
             return '<option value="' + key + '"' + (draft.caixaEscolhida === key ? ' selected' : '') + '>' + esc(matLabel(key)) + ' — ' + fmt(valor) + '</option>';
           }).join('') +
         '</select>' +
+        '<div class="gc-ml-kitbox">' +
+          '<div class="gc-ml-edit-label">Peças que saem do estoque <span style="font-weight:400;text-transform:none;letter-spacing:0">— da aba Peças; descontadas a cada venda registrada por este anúncio</span></div>' +
+          '<div class="gc-receita-chips" style="margin-bottom:8px">' + pecasChipsHtml() + '</div>' +
+          '<div class="gc-ml-kit-add">' +
+            '<select id="gc-ml-peca-add"><option value="">Escolha a peça…</option>' + pecasLista().map(function (pc) { return '<option value="' + esc(pc.id) + '">' + esc(pc.nome) + (pc.qtd == null ? '' : ' (' + pc.qtd + ' em estoque)') + '</option>'; }).join('') + '</select>' +
+            '<input id="gc-ml-peca-qtd" type="text" inputmode="numeric" value="1">' +
+            '<button type="button" class="gc-btn dark" id="gc-ml-peca-add-btn">+ adicionar</button>' +
+          '</div>' +
+        '</div>' +
         campoMoeda('Custo do produto manual (R$) — só se não usar o kit acima', 'gc-ml-customanual', draft.custoManual) +
         campoTxtFull('Observações', 'gc-ml-obs', draft.obs) +
         '<div class="gc-kv" style="margin-top:10px;border-top:1px solid var(--gcln);padding-top:10px"><span class="l">Preço</span><b>' + fmt(draft.preco) + '</b></div>' +
@@ -33983,6 +34045,17 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           render();
         });
       });
+      var pecaAdd = $('#gc-ml-peca-add-btn');
+      if (pecaAdd) pecaAdd.addEventListener('click', function () {
+        var sel = $('#gc-ml-peca-add'); var id = sel ? sel.value : ''; if (!id) return;
+        var q = Math.max(1, parseInt(num(($('#gc-ml-peca-qtd') || {}).value) || 1, 10));
+        var ex = draft.pecasUsadas.filter(function (u) { return u.pecaId === id; })[0];
+        if (ex) ex.qtd += q; else draft.pecasUsadas.push({ pecaId: id, qtd: q });
+        render();
+      });
+      $all('[data-peca-uso-del]', $('#gc-dr-b')).forEach(function (btn) {
+        btn.addEventListener('click', function () { draft.pecasUsadas.splice(parseInt(btn.dataset.pecaUsoDel, 10), 1); render(); });
+      });
       var addBtn = $('#gc-ml-item-add-btn');
       if (addBtn) addBtn.addEventListener('click', function () {
         var sel = $('#gc-ml-item-add');
@@ -34028,7 +34101,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         if (!draft.itensCatalogo.length) { alert('Vincule ao menos um produto do catálogo a este anúncio (seção "Produtos do kit") antes de registrar a venda — preciso saber qual produto/tamanho foi vendido.'); return; }
         var c = anuncioCalc(draft);
         var itens = draft.itensCatalogo.map(function (it) { return { produto: it.produto, tamanho: it.tamanho, qtd: it.qtd, produtoEnvasadoId: draft.produtoEnvasadoId || null }; });
-        var origem = { sku: draft.codigo || '', titulo: draft.nome || '' };
+        var origem = { sku: draft.codigo || '', titulo: draft.nome || '', id: draft.id };
         drClose();
         if (typeof navTo === 'function') navTo('nova');
         if (typeof prefillVendaDoAnuncio === 'function') prefillVendaDoAnuncio(itens, c.precoFinal, c.tarifaVenda, c.custoExtra, origem);
@@ -34417,7 +34490,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       };
     }
   }
-  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _save: save, _merge3: merge3, _pull: pullRemote, _params: params, _materiais: materiais, _materiaisLabels: function () { return Object.assign({}, store.materiaisLabels); }, _precoEntrada: precoEntradaPara, mostrarNoLab: mostrarNoLab, refresh: function () { renderPedido(); renderBatelada(); renderFormulacao(); renderEstrategia(); renderML(); } };
+  window.gsoCalc = { _custoInfo: custoInfo, _custoLitroDe: custoLitroDe, _receitaDe: receitaDe, _computeOrder: computeOrder, _num: num, _margemDe: margemDe, _statusDe: statusDe, _margemStatusDe: margemStatusDe, _faixaDe: faixaDe, _store: function () { return store; }, _save: save, _pecasDoAnuncio: pecasDoAnuncio, _baixarPecas: baixarPecas, _merge3: merge3, _pull: pullRemote, _params: params, _materiais: materiais, _materiaisLabels: function () { return Object.assign({}, store.materiaisLabels); }, _precoEntrada: precoEntradaPara, mostrarNoLab: mostrarNoLab, refresh: function () { renderPedido(); renderBatelada(); renderFormulacao(); renderEstrategia(); renderML(); } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 0);
 })();
