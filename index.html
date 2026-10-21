@@ -11962,6 +11962,7 @@ body.theme-dark .fx-legenda .fx-leg-ed b { color: #FFD68A; } body.theme-dark .fx
 .saude-itens{ margin-top:10px; display:flex; flex-direction:column; gap:2px; }
 .saude-item{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 10px; border-radius:8px; font-size:13px; background:rgba(127,127,127,.06); }
 .saude-item span{ min-width:0; overflow-wrap:anywhere; }
+.saude-acoes{ display:inline-flex; gap:6px; flex:0 0 auto; }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -15716,7 +15717,8 @@ function saleToRow(v) {
       revisaoCliente: Boolean(v.revisaoCliente),
       revisaoCandidatos: v.revisaoCandidatos || null,
       estoqueBaixado: v.estoqueBaixado || null,
-      tipoVenda: v.tipoVenda || ''
+      tipoVenda: v.tipoVenda || '',
+      semBaixaEstoque: Boolean(v.semBaixaEstoque) || undefined
     }
   };
 }
@@ -15758,7 +15760,8 @@ function rowToSale(r) {
     revisaoCliente: Boolean(r.metadata?.revisaoCliente),
     revisaoCandidatos: Array.isArray(r.metadata?.revisaoCandidatos) ? r.metadata.revisaoCandidatos : null,
     estoqueBaixado: Array.isArray(r.metadata?.estoqueBaixado) ? r.metadata.estoqueBaixado : null,
-    tipoVenda: r.metadata?.tipoVenda || ''
+    tipoVenda: r.metadata?.tipoVenda || '',
+    semBaixaEstoque: Boolean(r.metadata?.semBaixaEstoque)
   };
 }
 
@@ -26709,12 +26712,13 @@ function gsoAuditoria() {
   const corte = comBaixaDatas[0] || SAUDE_CORTE_ESTOQUE_PADRAO;
   const semBaixa = vendas.filter(v => dia(v) >= corte
     && !(Array.isArray(v.estoqueBaixado) && v.estoqueBaixado.length)
+    && !v.semBaixaEstoque
     && !/importado do relat/i.test(v.obs || '') && !/sem baixa de estoque/i.test(v.obs || '')
     && !(v.items || []).every(it => it.produtoEnvasadoId === '__nenhum__')
     && ((v.items && v.items.length) || v.catalogProduto)
     && !(v.pagamentoDetalhes && v.pagamentoDetalhes.mlManual && !v.items?.some(it => it.catalogProduto)));
   add('sem-baixa', 'medio', 'Vendas sem baixa de estoque', 'Vendas registradas depois do início do controle de estoque que não deram baixa. (Vendas importadas do Mercado Livre e as lançadas "sem baixa" de propósito não aparecem aqui.)',
-    semBaixa.slice(0, 25).map(v => ({ txt: `Venda ${saudeId(v)} · ${fmtDate(v.data)} · ${v.cliente} · ${v.produto}`, acao: { label: 'Dar baixa agora', fn: `saudeDarBaixa('${v.id}')` } })));
+    semBaixa.slice(0, 25).map(v => ({ txt: `Venda ${saudeId(v)} · ${fmtDate(v.data)} · ${v.cliente} · ${v.produto}`, acoes: [{ label: 'Dar baixa agora', fn: `saudeDarBaixa('${v.id}')` }, { label: 'Não dar baixa', fn: `saudeNaoDarBaixa('${v.id}')`, neutro: true }] })));
 
   // 4. Itens de estoque duplicados (nome quase igual)
   const dup = {};
@@ -26810,7 +26814,7 @@ async function renderSaude(forcar) {
     <div class="card saude-card ${SAUDE_NIVEL[p.nivel][1]}">
       <div class="saude-topo"><span class="pill ${p.nivel === 'alto' ? 'pill-red' : (p.nivel === 'medio' ? 'pill-amber' : 'pill-blue')}">${SAUDE_NIVEL[p.nivel][0]}</span><b>${escapeHtml(p.titulo)}</b><span class="saude-qtd">${p.itens.length}</span></div>
       <div class="card-sub">${escapeHtml(p.detalhe)}</div>
-      <div class="saude-itens">${p.itens.map(it => `<div class="saude-item"><span>${escapeHtml(it.txt)}</span>${it.acao ? `<button class="btn btn-small" onclick="${it.acao.fn}">${escapeHtml(it.acao.label)}</button>` : ''}</div>`).join('')}</div>
+      <div class="saude-itens">${p.itens.map(it => `<div class="saude-item"><span>${escapeHtml(it.txt)}</span>${(it.acoes || (it.acao ? [it.acao] : [])).length ? `<span class="saude-acoes">${(it.acoes || [it.acao]).map(a => `<button class="btn btn-small${a.neutro ? '' : ' btn-primary'}" onclick="${a.fn}">${escapeHtml(a.label)}</button>`).join('')}</span>` : ''}</div>`).join('')}</div>
     </div>`).join('');
 }
 function atualizarBadgeSaude(n) {
@@ -26818,6 +26822,13 @@ function atualizarBadgeSaude(n) {
   const total = (n.alto || 0) + (n.medio || 0);
   b.textContent = total; b.classList.toggle('hidden', !total || !isAdminUser());
   b.style.background = n.alto ? '' : '#D9A441';
+}
+async function saudeNaoDarBaixa(id) {
+  const venda = findVendaAny(id); if (!venda) { alert('Não achei essa venda.'); return; }
+  if (!confirm('Marcar a venda nº ' + (venda.numeroVenda || '') + ' (' + venda.cliente + ') como "não dar baixa"?\n\nO estoque NÃO será descontado e ela deixa de aparecer nesse alerta.')) return;
+  venda.semBaixaEstoque = true;
+  await vendaPersistir(venda);
+  renderSaude();
 }
 async function saudeDarBaixa(id) {
   const venda = findVendaAny(id); if (!venda) { alert('Não achei essa venda.'); return; }
