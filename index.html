@@ -11994,7 +11994,7 @@ body.theme-dark .saude-x{ color:#F08A8A !important; }
 .alex-cab{ padding:6px 10px; font-size:10.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-2); }
 .alex-cab span:nth-child(3), .alex-cab span:nth-child(4){ text-align:right; }
 .alex-mes{ cursor:pointer; user-select:none; align-items:center; } .alex-mes:hover{ background:rgba(127,127,127,.14); } .alex-mes b{ display:flex; align-items:center; gap:7px; } .alex-mes .alex-seta{ display:inline-block; width:12px; font-size:11px; color:var(--text-2); }
-.alex-tudo{ display:flex; justify-content:flex-end; gap:6px; margin:2px 0 -8px; } .alex-tudo .fx-bt{ height:26px !important; padding:0 10px !important; font-size:11.5px !important; border-radius:8px !important; }
+.alex-tudo{ display:flex; justify-content:flex-end; margin:0 0 -4px; }
 .alex-mes{ display:flex; justify-content:space-between; gap:10px; margin:18px 0 6px; padding:9px 12px; border-radius:10px; background:rgba(127,127,127,.08); font-size:13px; } .alex-mes span{ color:var(--text-2); font-size:12px; }
 .alex-linha{ padding:9px 10px; border-bottom:1px solid rgba(127,127,127,.14); font-size:13px; }
 .alex-linha.pagamento{ background:rgba(111,163,127,.07); }
@@ -19190,7 +19190,11 @@ function alexRender() {
       </div>`;
     }).join('');
   });
-  ex.innerHTML = `<div class="alex-tudo"><button type="button" class="fx-bt" onclick="alexMesesTodos(true)">▸ Esconder todos</button><button type="button" class="fx-bt" onclick="alexMesesTodos(false)">▾ Mostrar todos</button></div><div class="alex-cab"><span>Data</span><span>Descrição</span><span>Valor</span><span>Ele devia</span><span></span></div>` + (html || '<div class="card-sub">Nenhum lançamento ainda.</div>');
+  const todosFechados = Object.keys(grupos).length > 0 && Object.keys(grupos).every(alexMesFechado);
+  const setas = todosFechados
+    ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 6 5 5 5-5"/><path d="m7 13 5 5 5-5"/></svg>'
+    : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 11 5-5 5 5"/><path d="m7 18 5-5 5 5"/></svg>';
+  ex.innerHTML = `<div class="alex-tudo"><button type="button" class="fx-bt fx-bt-ic" onclick="alexMesesTodos(${!todosFechados})" title="${todosFechados ? 'Mostrar todos os meses' : 'Esconder todos os meses'}" aria-label="${todosFechados ? 'Mostrar todos os meses' : 'Esconder todos os meses'}">${setas}</button></div><div class="alex-cab"><span>Data</span><span>Descrição</span><span>Valor</span><span>Ele devia</span><span></span></div>` + (html || '<div class="card-sub">Nenhum lançamento ainda.</div>');
   // resumo por produto
   const prod = {}; let brindes = 0;
   d.entregas.forEach(en => (en.itens || []).forEach(l => { const c = alexClassificar(l); if (!c) return; const o = prod[c.prod] = prod[c.prod] || { qtd: 0, brinde: 0 }; if (c.brinde) { o.brinde += c.qtd; brindes += c.qtd; } else o.qtd += c.qtd; }));
