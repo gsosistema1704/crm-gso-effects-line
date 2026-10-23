@@ -12024,11 +12024,11 @@ body.theme-dark .saude-x{ color:#F08A8A !important; }
 .fx-va-kpis .fx-kpi small{ font-size:10.5px; }
 .fx-va-ed.ajustado{ border-color:rgba(217,164,65,.6); background:rgba(217,164,65,.07); }
 .fx-va-aj{ font-style:normal; text-transform:none; letter-spacing:0; font-size:9.5px; padding:0 6px; border-radius:999px; background:rgba(217,164,65,.22); color:#8A6410; margin-left:4px; } body.theme-dark .fx-va-aj{ color:#E6C34A; }
+.fx-va-ed > span{ display:flex; align-items:center; gap:4px; min-height:20px; }
+.fx-va-bts{ margin-left:auto; display:inline-flex; gap:3px; } .fx-va-bts .fx-bt.fx-bt-ic{ width:20px !important; height:20px !important; border-radius:6px !important; } .fx-va-bts .fx-bt-ic svg{ width:11px; height:11px; } .fx-va-reset{ font-size:12px !important; }
 .fx-va-campo{ display:flex; align-items:center; gap:4px; }
-.fx-va-campo i{ font-style:normal; font-size:12px; color:var(--text-2); }
-.fx-va-campo input{ width:100%; min-width:0; border:0 !important; border-bottom:1px dashed var(--border,#C9C9C9) !important; border-radius:0 !important; background:transparent !important; outline:0 !important; box-shadow:none !important; font:800 17px inherit; font-variant-numeric:tabular-nums; padding:0 0 1px !important; min-height:0 !important; height:auto !important; color:var(--text); }
-.fx-va-campo input:focus{ border-bottom-color:var(--text-2) !important; }
-.fx-va-reset{ border:0 !important; background:none !important; box-shadow:none !important; padding:0 2px !important; min-height:0 !important; cursor:pointer; color:var(--text-2); font-size:14px; }
+.fx-va-campo i{ font-style:normal; font-size:15px; font-weight:800; color:var(--text); }
+#fin-vendas-auto .fx-va-campo input{ width:100%; min-width:0; border:0 !important; border-bottom:2px solid var(--text) !important; border-radius:0 !important; background:transparent !important; outline:0 !important; box-shadow:none !important; font-family:inherit !important; font-weight:800 !important; font-size:17px !important; line-height:1.2; font-variant-numeric:tabular-nums; padding:0 !important; min-height:0 !important; height:auto !important; color:var(--text) !important; -webkit-text-fill-color:var(--text) !important; }
 .fx-va-tab .fx-va-cab, .fx-va-tab .fx-va-lin{ padding:6px 12px; font-size:12.5px; }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
@@ -19898,9 +19898,15 @@ function finRenderVendasAuto() {
   const colapsado = finVendasAutoColapsado();
   const chip = (rot, valor, cls, sub) => `<div class="fx-kpi ${cls || ''}"><span>${rot}</span><strong>${valor}</strong><small>${sub || '&nbsp;'}</small></div>`;
   const dis0 = finFechado() ? ' disabled' : '';
-  const chipEd = (rot, chave, valor, auto, manual, subAuto) => `<div class="fx-kpi fx-va-ed${manual ? ' ajustado' : ''}"><span>${rot}${manual ? ' <em class="fx-va-aj">ajustado</em>' : ''}</span>
-      <div class="fx-va-campo"><i>R$</i><input type="text" inputmode="decimal" value="${finNumFmt(valor)}"${dis0} title="Clique para editar este valor" onfocus="this.select()" onkeydown="if(event.key==='Enter')this.blur()" onblur="finVaSalvar('${chave}', this.value, ${auto})">${manual ? `<button type="button" class="fx-va-reset"${dis0} onclick="finVaSalvar('${chave}', '', ${auto})" title="Voltar ao valor calculado (R$ ${finNumFmt(auto)})">↺</button>` : ''}</div>
-      <small>${manual ? 'calculado: ' + fmtBR(auto) : (subAuto || '&nbsp;')}</small></div>`;
+  const chipEd = (rot, chave, valor, auto, manual, subAuto) => {
+    const edit = FIN.vaEditando === chave && !dis0;
+    const lapis = dis0 ? '' : `<button type="button" class="fx-bt fx-bt-ic fx-bt-ed fx-va-lapis" onclick="finVaEditar('${chave}')" title="Editar este valor" aria-label="Editar">${pencilIconSvg()}</button>`;
+    const reset = manual && !dis0 ? `<button type="button" class="fx-bt fx-bt-ic fx-va-reset" onclick="finVaSalvar('${chave}', '', ${auto})" title="Voltar ao valor calculado (R$ ${finNumFmt(auto)})" aria-label="Voltar ao calculado">↺</button>` : '';
+    const corpo = edit
+      ? `<div class="fx-va-campo"><i>R$</i><input type="text" inputmode="decimal" value="${finNumFmt(valor)}" onkeydown="if(event.key==='Enter')this.blur();else if(event.key==='Escape'){FIN.vaEditando=null;finRenderVendasAuto();}" onblur="finVaSalvar('${chave}', this.value, ${auto})"></div>`
+      : `<strong>${fmtBR(valor)}</strong>`;
+    return `<div class="fx-kpi fx-va-ed${manual ? ' ajustado' : ''}"><span>${rot}${manual ? ' <em class="fx-va-aj">ajustado</em>' : ''}<b class="fx-va-bts">${reset}${edit ? '' : lapis}</b></span>${corpo}<small>${manual ? 'calculado: ' + fmtBR(auto) : (subAuto || '&nbsp;')}</small></div>`;
+  };
   const dis = finFechado() ? ' disabled' : '';
   const pctProd = v => r.fat > 0 ? Math.round(v / r.fat * 100) + '%' : '—';
   el.innerHTML = `
@@ -19912,8 +19918,8 @@ function finRenderVendasAuto() {
     <div class="fx-va-corpo${colapsado ? ' hidden' : ''}">
       <div class="fx-kpis fx-va-kpis">
         ${chip('Recebido no mês', fmtBR(r.fat), '', 'vendido no mês: ' + fmtBR(r.vendido))}
-        ${chipEd('Custo dos produtos', 'va_custo_manual', r.custo, r.autoCusto, cMan, r.semCusto ? r.semCusto + ' venda(s) sem custo calculado' : 'clique para editar')}
-        ${chipEd('Impostos (fiscal)', 'va_fiscal_manual', r.fiscal, r.autoFiscal, fMan, 'clique para editar')}
+        ${chipEd('Custo dos produtos', 'va_custo_manual', r.custo, r.autoCusto, cMan, r.semCusto ? r.semCusto + ' venda(s) sem custo calculado' : '&nbsp;')}
+        ${chipEd('Impostos (fiscal)', 'va_fiscal_manual', r.fiscal, r.autoFiscal, fMan, '')}
         ${chip('Taxas e fretes ML', fmtBR(round2(r.taxasML + r.fretesML)), '', 'Mercado Livre')}
         ${chip('Lucro bruto', fmtBR(r.lucroBruto), r.lucroBruto < 0 ? 'fx-neg' : 'fx-pos', r.margem != null ? r.margem.toString().replace('.', ',') + '% de margem' : '')}
       </div>
@@ -19924,8 +19930,11 @@ function finRenderVendasAuto() {
         <button type="button" class="btn btn-small btn-soft"${dis} onclick="finUsarVendasAuto()" data-tip="Copia faturamento, custo, impostos e taxas para os campos do demonstrativo">Usar estes valores nos campos do mês</button>
       </div>
     </div>`;
+  if (FIN.vaEditando) { const f = el.querySelector('.fx-va-campo input'); if (f) { f.focus(); f.select(); } }
 }
+function finVaEditar(chave) { FIN.vaEditando = chave; finRenderVendasAuto(); }
 function finVaSalvar(chave, txt, auto) {
+  FIN.vaEditando = null;
   const m = finMes(FIN.mes, true);
   const t = String(txt == null ? '' : txt).trim();
   const antes = m[chave];
