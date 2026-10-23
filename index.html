@@ -11914,6 +11914,8 @@ body.theme-dark .fx-secao-btn { color: #A9E2BC !important; }
 .fx-bt[disabled] { opacity: .38; cursor: not-allowed; }
 .fx-bt-det.aberta { background: rgba(127,127,127,.16) !important; }
 .fx-bt-ed { color: #8A5A00 !important; background: rgba(217,164,65,.16) !important; border-color: rgba(217,164,65,.6) !important; }
+.fx-bt.fx-bt-ic, .fx-cat-ferr .fx-bt.fx-bt-ic, .alex-acoes .fx-bt.fx-bt-ic { width: 26px !important; height: 26px !important; min-width: 0 !important; padding: 0 !important; justify-content: center; border-radius: 8px !important; gap: 0; }
+.fx-bt-ic svg { width: 13px; height: 13px; pointer-events: none; }
 .fx-bt-ed:hover { background: rgba(217,164,65,.30) !important; }
 .fx-bt-x { color: #B0322F !important; background: rgba(176,50,47,.09) !important; border-color: rgba(176,50,47,.4) !important; }
 .fx-bt-x:hover { background: rgba(176,50,47,.2) !important; }
@@ -11939,7 +11941,7 @@ body.theme-dark .fx-item-del { color: #F08A8A !important; }
 .fx-cat-ferr { gap: 8px 12px; margin-top: 6px; padding-top: 8px; }
 .fx-cat-ferr .fx-bt { height: 28px !important; padding: 0 10px !important; font-size: 11.5px !important; border-radius: 8px !important; justify-content: center; }
 .fx-cat-ferr .fx-bt-mv { width: 28px; padding: 0 !important; font-size: 14px !important; }
-.fx-cat-ferr .fx-bt-ed, .fx-cat-ferr .fx-bt-x { width: 76px; }
+.fx-cat-ferr .fx-bt-ed, .fx-cat-ferr .fx-bt-x { width: 28px; }
 .fx-legenda { gap: 6px 18px; padding: 8px 12px; margin: 2px 0 12px; font-size: 11.5px; }
 .fx-legenda span { gap: 5px; }
 .fx-legenda b { flex: 0 0 auto; color: var(--text); font-size: 12px; }
@@ -11991,6 +11993,8 @@ body.theme-dark .saude-x{ color:#F08A8A !important; }
 .alex-cab, .alex-linha{ display:grid; grid-template-columns: 84px minmax(0,1fr) 112px 112px 170px; gap:12px; align-items:center; }
 .alex-cab{ padding:6px 10px; font-size:10.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-2); }
 .alex-cab span:nth-child(3), .alex-cab span:nth-child(4){ text-align:right; }
+.alex-mes{ cursor:pointer; user-select:none; align-items:center; } .alex-mes:hover{ background:rgba(127,127,127,.14); } .alex-mes b{ display:flex; align-items:center; gap:7px; } .alex-mes .alex-seta{ display:inline-block; width:12px; font-size:11px; color:var(--text-2); }
+.alex-tudo{ display:flex; justify-content:flex-end; gap:6px; margin:2px 0 -8px; } .alex-tudo .fx-bt{ height:26px !important; padding:0 10px !important; font-size:11.5px !important; border-radius:8px !important; }
 .alex-mes{ display:flex; justify-content:space-between; gap:10px; margin:18px 0 6px; padding:9px 12px; border-radius:10px; background:rgba(127,127,127,.08); font-size:13px; } .alex-mes span{ color:var(--text-2); font-size:12px; }
 .alex-linha{ padding:9px 10px; border-bottom:1px solid rgba(127,127,127,.14); font-size:13px; }
 .alex-linha.pagamento{ background:rgba(111,163,127,.07); }
@@ -14289,7 +14293,6 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="subtab active" data-fin-aba="fechamento" onclick="finIrAba('fechamento')">Fechamento do mês</div>
         <div class="subtab" data-fin-aba="contas" onclick="finIrAba('contas')">Contas a pagar e receber</div>
         <div class="subtab" data-fin-aba="evolucao" onclick="finIrAba('evolucao')">Evolução</div>
-        <div class="subtab" data-fin-aba="despesas" onclick="finIrAba('despesas')">Despesas lançadas</div>
         <div class="subtab" data-fin-aba="alexandre" onclick="finIrAba('alexandre')">Alexandre</div>
       </div>
 
@@ -18918,7 +18921,7 @@ function computeDespesasMensal() {
 function computeLucroBrutoMensal() {
   const map = {};
   const incompleto = {};
-  state.vendas.forEach(venda => {
+  vendasConsolidadas().forEach(venda => {
     const entries = saleRevenueEntries(venda);
     if (!entries.length) return;
     const lucroTotal = saleLucroLiquido(venda);
@@ -19170,8 +19173,9 @@ function alexRender() {
   Object.keys(grupos).sort((a, b) => a === 'saldo' ? -1 : (b === 'saldo' ? 1 : a.localeCompare(b))).forEach(m => {
     const g = grupos[m];
     const entM = round2(g.filter(e => e.tipo === 'entrega').reduce((s, e) => s + e.x.valor, 0)), pagM = round2(g.filter(e => e.tipo === 'pagamento').reduce((s, e) => s + e.x.valor, 0));
-    html += `<div class="alex-mes"><b>${m === 'saldo' ? 'Saldo de 2025' : finMesLabel(m)}</b><span>${entM ? 'entregue ' + fmtBR(entM) : ''}${entM && pagM ? ' · ' : ''}${pagM ? 'pago ' + fmtBR(pagM) : ''}</span></div>`;
-    html += g.map(e => {
+    const fechado = alexMesFechado(m);
+    html += `<div class="alex-mes" onclick="alexAlternarMes('${m}')" title="${fechado ? 'Mostrar' : 'Esconder'} os lançamentos deste mês"><b><i class="alex-seta">${fechado ? '▸' : '▾'}</i>${m === 'saldo' ? 'Saldo de 2025' : finMesLabel(m)}</b><span>${entM ? 'entregue ' + fmtBR(entM) : ''}${entM && pagM ? ' · ' : ''}${pagM ? 'pago ' + fmtBR(pagM) : ''}</span></div>`;
+    if (!fechado) html += g.map(e => {
       const x = e.x, v = fmtBR(x.valor);
       const desc = e.tipo === 'saldo' ? `<b>${escapeHtml(x.desc || 'Saldo anterior')}</b>` :
         e.tipo === 'pagamento' ? `<b>Pagamento</b>${x.ref ? ` <span class="alex-ref">${escapeHtml(x.ref)}</span>` : ''}` :
@@ -19181,11 +19185,11 @@ function alexRender() {
         <span class="alex-desc">${desc}</span>
         <span class="alex-val ${e.tipo === 'pagamento' ? 'pag' : 'ent'}">${e.tipo === 'pagamento' ? '− ' : '+ '}${v}</span>
         <span class="alex-saldo" title="Quanto ele devia depois deste lançamento">${fmtBR(e.saldo)}</span>
-        <span class="alex-acoes"><button type="button" class="fx-bt fx-bt-ed" onclick="alexAbrir('${e.tipo}','${x.id}')">✎ Editar</button><button type="button" class="fx-bt fx-bt-x" onclick="alexExcluir('${e.tipo}','${x.id}')">✕ Excluir</button></span>
+        <span class="alex-acoes"><button type="button" class="fx-bt fx-bt-ic fx-bt-ed" onclick="alexAbrir('${e.tipo}','${x.id}')" title="Editar" aria-label="Editar">${pencilIconSvg()}</button><button type="button" class="fx-bt fx-bt-ic fx-bt-x" onclick="alexExcluir('${e.tipo}','${x.id}')" title="Excluir" aria-label="Excluir">${trashIconSvg()}</button></span>
       </div>`;
     }).join('');
   });
-  ex.innerHTML = `<div class="alex-cab"><span>Data</span><span>Descrição</span><span>Valor</span><span>Ele devia</span><span></span></div>` + (html || '<div class="card-sub">Nenhum lançamento ainda.</div>');
+  ex.innerHTML = `<div class="alex-tudo"><button type="button" class="fx-bt" onclick="alexMesesTodos(true)">▸ Esconder todos</button><button type="button" class="fx-bt" onclick="alexMesesTodos(false)">▾ Mostrar todos</button></div><div class="alex-cab"><span>Data</span><span>Descrição</span><span>Valor</span><span>Ele devia</span><span></span></div>` + (html || '<div class="card-sub">Nenhum lançamento ainda.</div>');
   // resumo por produto
   const prod = {}; let brindes = 0;
   d.entregas.forEach(en => (en.itens || []).forEach(l => { const c = alexClassificar(l); if (!c) return; const o = prod[c.prod] = prod[c.prod] || { qtd: 0, brinde: 0 }; if (c.brinde) { o.brinde += c.qtd; brindes += c.qtd; } else o.qtd += c.qtd; }));
@@ -19235,6 +19239,15 @@ function alexSalvar() {
   alexPersistir();
   document.getElementById('modal-fin-alex').classList.remove('show');
   alexRender();
+}
+function alexMesesFechados() { try { return new Set(JSON.parse(localStorage.getItem('gso_alex_meses_fechados') || '[]')); } catch (e) { return new Set(); } }
+function alexMesFechado(m) { return alexMesesFechados().has(m); }
+function alexMesesSalvar(set) { try { localStorage.setItem('gso_alex_meses_fechados', JSON.stringify([...set])); } catch (e) {} alexRender(); }
+function alexAlternarMes(m) { const s = alexMesesFechados(); if (s.has(m)) s.delete(m); else s.add(m); alexMesesSalvar(s); }
+function alexMesesTodos(fechar) {
+  const s = new Set();
+  if (fechar) alexLinhas(alexDados()).forEach(e => s.add(e.tipo === 'saldo' ? 'saldo' : String(e.data).slice(0, 7)));
+  alexMesesSalvar(s);
 }
 function alexExcluir(tipo, id) {
   const d = alexDados(); if (!d) return;
@@ -19304,8 +19317,8 @@ function finCatLinhaHtml(cat, m, ant, pos, tot) {
         <button type="button" class="fx-bt fx-bt-mv" onclick="finMoverCategoria('${idsq}',1)"${pos === tot - 1 ? ' disabled' : ''} title="Descer uma posição" aria-label="Descer">↓</button>
       </div>
       <div class="fx-ferr-grupo fx-ferr-dir">
-        <button type="button" class="fx-bt fx-bt-ed" onclick="finAbrirCategoria('${idsq}')" title="Editar o nome e a meta mensal desta categoria">✎ Editar</button>
-        <button type="button" class="fx-bt fx-bt-x" onclick="finRemoverCategoria('${idsq}')" title="Excluir esta categoria">✕ Excluir</button>
+        <button type="button" class="fx-bt fx-bt-ic fx-bt-ed" onclick="finAbrirCategoria('${idsq}')" title="Editar o nome e a meta mensal desta categoria" aria-label="Editar categoria">${pencilIconSvg()}</button>
+        <button type="button" class="fx-bt fx-bt-ic fx-bt-x" onclick="finRemoverCategoria('${idsq}')" title="Excluir esta categoria" aria-label="Excluir categoria">${trashIconSvg()}</button>
       </div>
     </div>`;
   return `<div class="fx-cat-bloco">
@@ -19837,11 +19850,12 @@ function finRenderFechamento() {
 // reconhecimento do faturamento (boleto só quando pago, anotado quando recebido). Lucro bruto =
 // faturamento − custo dos produtos − impostos (fiscal) − taxas e fretes do Mercado Livre.
 function finVendasDoMes(mes) {
-  const r = { fat: 0, custo: 0, fiscal: 0, taxasML: 0, fretesML: 0, vendas: 0, semCusto: 0, produtos: {}, canais: { clientes: 0, lojistas: 0, ml: 0 } };
+  const r = { fat: 0, custo: 0, fiscal: 0, taxasML: 0, fretesML: 0, vendas: 0, semCusto: 0, vendido: 0, produtos: {}, canais: { clientes: 0, lojistas: 0, ml: 0 } };
   const fiscalPct = (window.gsoCalc && window.gsoCalc._params) ? (Number(window.gsoCalc._params().fiscal) || 0) : 0;
   const todas = [...state.vendas.map(v => ({ v, canal: 'clientes' })), ...state.vendasLojista.map(v => ({ v, canal: 'lojistas' }))];
   todas.forEach(({ v, canal }) => {
     const total = Number(v.valor) || 0; if (total <= 0) return;
+    const dv = dashboardDateObj(v.data); if (dv && finMesKey(dv) === mes) r.vendido += total;
     const entradas = saleRevenueEntries(v).filter(e => { const d = dashboardDateObj(e.data); return d && finMesKey(d) === mes; });
     if (!entradas.length) return;
     const prop = entradas.reduce((s, e) => s + e.valor, 0) / total; if (!prop) return;
@@ -19858,7 +19872,7 @@ function finVendasDoMes(mes) {
       o.qtd += it.qtd * prop; o.fat += it.fat * prop;
     });
   });
-  ['fat', 'custo', 'fiscal', 'taxasML', 'fretesML'].forEach(k => { r[k] = round2(r[k]); });
+  ['fat', 'custo', 'fiscal', 'taxasML', 'fretesML', 'vendido'].forEach(k => { r[k] = round2(r[k]); });
   r.lucroBruto = round2(r.fat - r.custo - r.fiscal - r.taxasML - r.fretesML);
   r.margem = r.fat > 0 ? round2(r.lucroBruto / r.fat * 100) : null;
   r.lista = Object.values(r.produtos).map(o => ({ nome: o.nome, qtd: Math.round(o.qtd), fat: round2(o.fat) })).sort((a, b) => b.fat - a.fat);
@@ -19893,11 +19907,11 @@ function finRenderVendasAuto() {
     <div class="fx-va-topo" onclick="finVendasAutoAlternar()">
       <button type="button" class="saude-min" aria-label="Minimizar">${colapsado ? '▸' : '▾'}</button>
       <div><div class="card-title">Vendas do mês <span class="fx-badge auto">automático</span></div>
-      <div class="card-sub">Tudo que entrou de vendas em ${finMesLabel(FIN.mes)} (clientes, lojistas e Mercado Livre) e o lucro bruto que isso deu.</div></div>
+      <div class="card-sub">O que foi recebido em ${finMesLabel(FIN.mes)} (clientes, lojistas e Mercado Livre — boleto e fiado só contam quando pagos) e o lucro bruto disso.</div></div>
     </div>
     <div class="fx-va-corpo${colapsado ? ' hidden' : ''}">
       <div class="fx-kpis fx-va-kpis">
-        ${chip('Valor vendido', fmtBR(r.fat), '', Math.round(r.vendas) + ' venda' + (Math.round(r.vendas) === 1 ? '' : 's'))}
+        ${chip('Recebido no mês', fmtBR(r.fat), '', 'vendido no mês: ' + fmtBR(r.vendido))}
         ${chipEd('Custo dos produtos', 'va_custo_manual', r.custo, r.autoCusto, cMan, r.semCusto ? r.semCusto + ' venda(s) sem custo calculado' : 'clique para editar')}
         ${chipEd('Impostos (fiscal)', 'va_fiscal_manual', r.fiscal, r.autoFiscal, fMan, 'clique para editar')}
         ${chip('Taxas e fretes ML', fmtBR(round2(r.taxasML + r.fretesML)), '', 'Mercado Livre')}
@@ -20270,7 +20284,7 @@ function renderDespesas() {
       <td data-label="Descrição">${escapeHtml(d.descricao || '—')}</td>
       <td data-label="Pagamento">${escapeHtml(despesaPaymentDisplay(d))}${pendenciaHtml ? '<br>' + pendenciaHtml : ''}</td>
       <td data-label="Valor" class="num">${fmtBR(d.valor)}</td>
-      <td data-label="Ações"><div class="row-actions"><button class="btn btn-small fx-btn-amarelo" onclick="openDespesaModal('${d.id}')">✎ Editar</button></div></td>
+      <td data-label="Ações"><div class="row-actions"><button type="button" class="fx-bt fx-bt-ic fx-bt-ed" onclick="openDespesaModal('${d.id}')" title="Editar" aria-label="Editar">${pencilIconSvg()}</button></div></td>
     </tr>
   `;
   }).join('');
@@ -20795,9 +20809,14 @@ async function excluirRecado(id) {
   renderRecados();
 }
 
+// Vendas que entram nos totais do painel: o administrador vê também as vendas de lojista
+// (antes só entravam as de cliente, então o faturamento aparecia menor que o real).
+function vendasConsolidadas() {
+  return isAdminUser() ? [...state.vendas, ...(state.vendasLojista || [])] : state.vendas;
+}
 function computeMensal() {
   const map = {};
-  state.vendas.forEach(v => {
+  vendasConsolidadas().forEach(v => {
     saleRevenueEntries(v).forEach(entry => {
       const d = dashboardDateObj(entry.data);
       if (!d) return;
@@ -20810,7 +20829,7 @@ function computeMensal() {
 
 function computeAnos() {
   const set = new Set();
-  state.vendas.forEach(v => { const d = dashboardDateObj(v.data); if (d) set.add(d.getFullYear()); });
+  vendasConsolidadas().forEach(v => { const d = dashboardDateObj(v.data); if (d) set.add(d.getFullYear()); });
   return [...set].sort().reverse();
 }
 
@@ -21348,7 +21367,7 @@ function dashboardStartOfWeek(date = new Date()) {
 function dashboardSalesInRange(start, end) {
   const startTime = start.getTime();
   const endTime = end.getTime();
-  return state.vendas.filter(venda => {
+  return vendasConsolidadas().filter(venda => {
     const dt = dashboardDateObj(venda.data);
     if (!dt) return false;
     const time = dt.getTime();
