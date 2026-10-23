@@ -12013,6 +12013,19 @@ body.theme-dark .saude-x{ color:#F08A8A !important; }
 .fx-va-rodape{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center; margin-top:12px; font-size:12.5px; color:var(--text-2); } .fx-va-rodape b{ color:var(--text); }
 @media (max-width:1100px){ .fx-va-kpis{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:560px){ .fx-va-kpis{ grid-template-columns:minmax(0,1fr); } .fx-va-cab, .fx-va-lin{ grid-template-columns:minmax(0,1fr) 44px 100px; } .fx-va-cab span:last-child, .fx-va-lin span:last-child{ display:none; } }
+.fx-va-kpis{ gap:10px; margin-bottom:12px; }
+.fx-va-kpis .fx-kpi{ padding:9px 12px; border-radius:11px; gap:1px; }
+.fx-va-kpis .fx-kpi span{ font-size:10px; }
+.fx-va-kpis .fx-kpi strong{ font-size:17px; }
+.fx-va-kpis .fx-kpi small{ font-size:10.5px; }
+.fx-va-ed.ajustado{ border-color:rgba(217,164,65,.6); background:rgba(217,164,65,.07); }
+.fx-va-aj{ font-style:normal; text-transform:none; letter-spacing:0; font-size:9.5px; padding:0 6px; border-radius:999px; background:rgba(217,164,65,.22); color:#8A6410; margin-left:4px; } body.theme-dark .fx-va-aj{ color:#E6C34A; }
+.fx-va-campo{ display:flex; align-items:center; gap:4px; }
+.fx-va-campo i{ font-style:normal; font-size:12px; color:var(--text-2); }
+.fx-va-campo input{ width:100%; min-width:0; border:0 !important; border-bottom:1px dashed var(--border,#C9C9C9) !important; border-radius:0 !important; background:transparent !important; outline:0 !important; box-shadow:none !important; font:800 17px inherit; font-variant-numeric:tabular-nums; padding:0 0 1px !important; min-height:0 !important; height:auto !important; color:var(--text); }
+.fx-va-campo input:focus{ border-bottom-color:var(--text-2) !important; }
+.fx-va-reset{ border:0 !important; background:none !important; box-shadow:none !important; padding:0 2px !important; min-height:0 !important; cursor:pointer; color:var(--text-2); font-size:14px; }
+.fx-va-tab .fx-va-cab, .fx-va-tab .fx-va-lin{ padding:6px 12px; font-size:12.5px; }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -19038,7 +19051,7 @@ async function finPersistir() {
     const remoto = (await finBuscarRemoto()) || finStoreVazio();
     meses.forEach(mes => {
       const local = FIN.store.meses[mes];
-      if (local && (finCalc(local).temDados || local.obs || local.fechado)) remoto.meses[mes] = local; else delete remoto.meses[mes];
+      if (local && (finCalc(local).temDados || local.obs || local.fechado || local.va_custo_manual != null || local.va_fiscal_manual != null)) remoto.meses[mes] = local; else delete remoto.meses[mes];
     });
     if (cats || !Array.isArray(remoto.categorias) || !remoto.categorias.length) remoto.categorias = FIN.store.categorias;
     remoto.versao = 2;
@@ -19860,9 +19873,20 @@ function finRenderVendasAuto() {
   const el = document.getElementById('fin-vendas-auto'); if (!el) return;
   let r;
   try { r = finVendasDoMes(FIN.mes); } catch (err) { el.innerHTML = '<div class="card-title">Vendas do mês</div><div class="card-sub">Não consegui calcular: ' + escapeHtml(String(err && err.message || err)) + '</div>'; return; }
+  // Custo e impostos podem ser ajustados à mão (valem só para este mês); o lucro bruto acompanha.
+  const mAj = finMes(FIN.mes) || {};
+  r.autoCusto = r.custo; r.autoFiscal = r.fiscal;
+  const cMan = mAj.va_custo_manual != null, fMan = mAj.va_fiscal_manual != null;
+  if (cMan) r.custo = Number(mAj.va_custo_manual); if (fMan) r.fiscal = Number(mAj.va_fiscal_manual);
+  r.lucroBruto = round2(r.fat - r.custo - r.fiscal - r.taxasML - r.fretesML);
+  r.margem = r.fat > 0 ? round2(r.lucroBruto / r.fat * 100) : null;
   FIN.vendasAuto = r;
   const colapsado = finVendasAutoColapsado();
   const chip = (rot, valor, cls, sub) => `<div class="fx-kpi ${cls || ''}"><span>${rot}</span><strong>${valor}</strong><small>${sub || '&nbsp;'}</small></div>`;
+  const dis0 = finFechado() ? ' disabled' : '';
+  const chipEd = (rot, chave, valor, auto, manual, subAuto) => `<div class="fx-kpi fx-va-ed${manual ? ' ajustado' : ''}"><span>${rot}${manual ? ' <em class="fx-va-aj">ajustado</em>' : ''}</span>
+      <div class="fx-va-campo"><i>R$</i><input type="text" inputmode="decimal" value="${finNumFmt(valor)}"${dis0} title="Clique para editar este valor" onfocus="this.select()" onkeydown="if(event.key==='Enter')this.blur()" onblur="finVaSalvar('${chave}', this.value, ${auto})">${manual ? `<button type="button" class="fx-va-reset"${dis0} onclick="finVaSalvar('${chave}', '', ${auto})" title="Voltar ao valor calculado (R$ ${finNumFmt(auto)})">↺</button>` : ''}</div>
+      <small>${manual ? 'calculado: ' + fmtBR(auto) : (subAuto || '&nbsp;')}</small></div>`;
   const dis = finFechado() ? ' disabled' : '';
   const pctProd = v => r.fat > 0 ? Math.round(v / r.fat * 100) + '%' : '—';
   el.innerHTML = `
@@ -19874,8 +19898,8 @@ function finRenderVendasAuto() {
     <div class="fx-va-corpo${colapsado ? ' hidden' : ''}">
       <div class="fx-kpis fx-va-kpis">
         ${chip('Valor vendido', fmtBR(r.fat), '', Math.round(r.vendas) + ' venda' + (Math.round(r.vendas) === 1 ? '' : 's'))}
-        ${chip('Custo dos produtos', fmtBR(r.custo), '', r.semCusto ? r.semCusto + ' venda(s) sem custo calculado' : '')}
-        ${chip('Impostos (fiscal)', fmtBR(r.fiscal), '', '')}
+        ${chipEd('Custo dos produtos', 'va_custo_manual', r.custo, r.autoCusto, cMan, r.semCusto ? r.semCusto + ' venda(s) sem custo calculado' : 'clique para editar')}
+        ${chipEd('Impostos (fiscal)', 'va_fiscal_manual', r.fiscal, r.autoFiscal, fMan, 'clique para editar')}
         ${chip('Taxas e fretes ML', fmtBR(round2(r.taxasML + r.fretesML)), '', 'Mercado Livre')}
         ${chip('Lucro bruto', fmtBR(r.lucroBruto), r.lucroBruto < 0 ? 'fx-neg' : 'fx-pos', r.margem != null ? r.margem.toString().replace('.', ',') + '% de margem' : '')}
       </div>
@@ -19886,6 +19910,15 @@ function finRenderVendasAuto() {
         <button type="button" class="btn btn-small btn-soft"${dis} onclick="finUsarVendasAuto()" data-tip="Copia faturamento, custo, impostos e taxas para os campos do demonstrativo">Usar estes valores nos campos do mês</button>
       </div>
     </div>`;
+}
+function finVaSalvar(chave, txt, auto) {
+  const m = finMes(FIN.mes, true);
+  const t = String(txt == null ? '' : txt).trim();
+  const antes = m[chave];
+  if (t === '') delete m[chave];
+  else { const v = finParse(t); if (round2(v) === round2(auto)) delete m[chave]; else m[chave] = round2(v); }
+  if (m[chave] === antes) { finRenderVendasAuto(); return; }
+  finTocar(m); finAgendarSalvar(FIN.mes); finRenderVendasAuto();
 }
 function finUsarVendasAuto() {
   const r = FIN.vendasAuto; if (!r) return;
