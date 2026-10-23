@@ -11882,6 +11882,19 @@ body.theme-dark .fx-rapido-ok { color: #86D9A6; }
 /* --- Financeiro v3: blocos mais separados, botões explicados (editar = âmbar, excluir = vermelho) --- */
 .fx-mes-bar { margin-bottom: 22px; }
 .fx-kpis { gap: 16px; margin-bottom: 28px; }
+#fin-kpis.fx-kpis { display: block; margin-bottom: 22px; }
+.fx-eq { display: flex; align-items: stretch; gap: 8px; }
+.fx-eq-i { flex: 1 1 0; min-width: 0; background: var(--card, #fff); border: 1px solid var(--border, #E2E2E2); border-radius: 12px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; }
+.fx-eq-i span { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
+.fx-eq-i strong { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fx-eq-i small { font-size: 11px; color: var(--text-2); line-height: 1.3; }
+.fx-eq-res { flex: 1.25 1 0; border-width: 2px; }
+.fx-eq-res.fx-pos { border-color: rgba(30,107,58,.45); } .fx-eq-res.fx-neg { border-color: rgba(176,50,47,.45); }
+.fx-eq-res.fx-pos strong { color: #1E6B3A; } .fx-eq-res.fx-neg strong { color: #B0322F; }
+body.theme-dark .fx-eq-res.fx-pos strong { color: #86D9A6; } body.theme-dark .fx-eq-res.fx-neg strong { color: #F08A8A; }
+.fx-eq-op { align-self: center; font-size: 20px; font-weight: 700; color: var(--text-2); flex: 0 0 auto; }
+.fx-eq-aviso { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; padding: 9px 14px; border-radius: 12px; background: rgba(217,164,65,.14); border: 1px solid rgba(217,164,65,.5); font-size: 12.5px; }
+@media (max-width: 760px) { .fx-eq { flex-wrap: wrap; } .fx-eq-i { flex: 1 1 calc(50% - 8px); } .fx-eq-op { display: none; } .fx-eq-res { flex-basis: 100%; } }
 .fx-rapido { margin-bottom: 28px; }
 .fx-grid { gap: 28px; }
 .fx-lateral { gap: 24px; }
@@ -19397,11 +19410,24 @@ function finRenderKpis() {
   const ant = FIN.store.meses[finMesDelta(FIN.mes, -1)];
   const ca = ant ? finCalc(ant) : null;
   const neg = c.lucroLiquido < 0;
-  el.innerHTML =
-    finKpiHtml('Receita total', fmtBR(c.receita), finVariacaoTexto(c.receita, ca && ca.temDados ? ca.receita : null, 'vs mês anterior')) +
-    finKpiHtml('Custos + despesas', fmtBR(round2(c.custos + c.desp)), 'Custos ' + fmtBR(c.custos) + ' · Despesas ' + fmtBR(c.desp)) +
-    finKpiHtml('Lucro líquido', fmtBR(c.lucroLiquido), (c.llManual ? 'ajustado por você' : 'calculado') + (ca && ca.temDados ? ' · ' + finVariacaoTexto(c.lucroLiquido, ca.lucroLiquido, 'vs anterior') : ''), neg ? 'fx-neg' : 'fx-pos') +
-    finKpiHtml('Margem líquida', finPct(c.margem), 'lucro líquido ÷ receita total');
+  // Resumo em forma de conta: Receita − Custos − Despesas = Lucro líquido (cada parte explica o que contém).
+  const eqI = (rot, valor, sub, cls) => `<div class="fx-eq-i${cls ? ' ' + cls : ''}"><span>${rot}</span><strong>${valor}</strong><small>${sub || '&nbsp;'}</small></div>`;
+  const op = t => `<div class="fx-eq-op" aria-hidden="true">${t}</div>`;
+  let aviso = '';
+  if (!finFechado()) {
+    try {
+      const f = finVendasDoMes(FIN.mes);
+      if (f.fat > 0 && Math.abs(c.receita - f.fat) > 0.5) {
+        aviso = `<div class="fx-eq-aviso"><span>${c.receita === 0 ? 'A receita deste mês ainda não foi preenchida, por isso o lucro aparece negativo.' : 'A receita preenchida difere das vendas recebidas calculadas pelo sistema.'} O sistema calculou <b>${fmtBR(f.fat)}</b> de vendas recebidas em ${finMesLabel(FIN.mes)}.</span><button type="button" class="btn btn-small btn-soft" onclick="finRenderVendasAuto();finUsarVendasAuto()">Usar valores do sistema</button></div>`;
+      }
+    } catch (e) {}
+  }
+  el.innerHTML = aviso + `<div class="fx-eq">` +
+    eqI('Receita', fmtBR(c.receita), 'vendas + outras receitas' + (ca && ca.temDados && finVariacaoTexto(c.receita, ca.receita, 'vs mês anterior') ? ' · ' + finVariacaoTexto(c.receita, ca.receita, 'vs mês anterior') : '')) + op('−') +
+    eqI('Custos', fmtBR(c.custos), 'produtos, impostos, taxas e fretes') + op('−') +
+    eqI('Despesas', fmtBR(c.desp), 'categorias lançadas abaixo') + op('=') +
+    eqI('Lucro líquido', fmtBR(c.lucroLiquido), (c.margem != null ? 'margem ' + finPct(c.margem) + ' · ' : '') + (c.llManual ? 'ajustado por você' : 'calculado') + (ca && ca.temDados ? ' · ' + finVariacaoTexto(c.lucroLiquido, ca.lucroLiquido, 'vs anterior') : ''), 'fx-eq-res ' + (neg ? 'fx-neg' : 'fx-pos')) +
+    `</div>`;
   finRenderIndicadores();
   const info = document.getElementById('fin-mes-info');
   if (info) info.textContent = m && m.em ? 'Última alteração: ' + new Date(m.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + (m.por ? ' por ' + m.por : '') : '';
