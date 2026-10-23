@@ -30860,6 +30860,11 @@ body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gc
 #gso-calc .gc-peca-mm{ width:30px; height:30px; border:1px solid var(--gcln2); border-radius:8px; background:var(--gcsf); color:var(--gcink); font:700 16px inherit; cursor:pointer; line-height:1; }
 #gso-calc .gc-peca-x{ border:1px solid rgba(176,50,47,.4); background:rgba(176,50,47,.09); color:#B0322F; font:600 12px inherit; padding:7px 12px; border-radius:9px; cursor:pointer; }
 #gso-calc .gc-peca-x:hover{ background:rgba(176,50,47,.2); }
+#gso-calc .gc-peca-add #gc-peca-novo-custo{ width:100px; }
+#gso-calc .gc-peca-custo{ display:inline-flex; align-items:center; gap:5px; border:1px solid var(--gcln2); border-radius:8px; padding:0 9px; background:var(--gcsf); }
+#gso-calc .gc-peca-custo i{ font-style:normal; font-size:12px; color:var(--gcfnt); }
+#gso-calc .gc-peca-custo input{ width:70px; border:0 !important; outline:0 !important; background:transparent !important; text-align:right; font:700 14px inherit; padding:7px 0 !important; color:var(--gcink); box-shadow:none !important; }
+#gso-calc .gc-peca-valor{ font-variant-numeric:tabular-nums; color:var(--gcfnt); }
 #gso-calc .gc-tabs{ display:flex; gap:22px; border-bottom:1px solid var(--gcln); margin-bottom:22px; flex-wrap:wrap; }
 #gso-calc .gc-tabs button{ border:0; background:none; padding:0 2px 12px; font-weight:600; font-size:14px; font-family:inherit; color:var(--gcmut); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
 #gso-calc .gc-tabs button.on{ color:var(--gcink); border-color:var(--gcac); }
@@ -33074,7 +33079,19 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var is5 = litrosDe(tamanho) >= 5;
     return is5 ? round2((m.cx5 || 0) / 4) : round2((m.cx1 || 0) / 6);
   }
+  // Custo das peças vinculadas ao anúncio (aba Peças): custo de cada peça × quantidade usada por venda.
+  function anuncioCustoPecas(a) {
+    var total = 0;
+    (a.pecasUsadas || []).forEach(function (u) {
+      var p = (store.pecas || []).filter(function (x) { return x.id === u.pecaId; })[0];
+      if (p) total += (num(p.custo) || 0) * (num(u.qtd) || 0);
+    });
+    return round2(total);
+  }
   function anuncioCustoProduto(a) {
+    return round2(anuncioCustoProdutoBase(a) + anuncioCustoPecas(a));
+  }
+  function anuncioCustoProdutoBase(a) {
     var itens = anuncioItens(a);
     if (!itens.length) return num(a.custoManual) || 0;
     return round2(itens.reduce(function (sum, it) {
@@ -33642,19 +33659,22 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function pecasHtml() {
     var lista = pecasLista();
     var total = lista.reduce(function (s, p) { return s + (Number(p.qtd) || 0); }, 0);
+    var valorEstoque = lista.reduce(function (s, p) { return s + (num(p.custo) || 0) * (Number(p.qtd) || 0); }, 0);
     var linhas = lista.map(function (p) {
       var sem = p.qtd === 0;
       return '<tr data-peca="' + esc(p.id) + '">' +
         '<td><input type="text" class="gc-peca-nome" data-peca-nome="' + esc(p.id) + '" value="' + esc(p.nome) + '" title="Clique para renomear"></td>' +
+        '<td class="num"><span class="gc-peca-custo"><i>R$</i><input type="text" inputmode="decimal" data-peca-custo="' + esc(p.id) + '" value="' + (p.custo ? String(p.custo).replace('.', ',') : '') + '" placeholder="0,00" title="Custo de uma peça"></span></td>' +
         '<td class="num"><span class="gc-peca-qtd"><button type="button" class="gc-peca-mm" data-peca-delta="' + esc(p.id) + '|-1" title="Tirar 1">−</button><input type="text" inputmode="numeric" class="gc-peca-in" data-peca-qtd="' + esc(p.id) + '" value="' + (p.qtd == null ? '' : p.qtd) + '" placeholder="—"><button type="button" class="gc-peca-mm" data-peca-delta="' + esc(p.id) + '|1" title="Colocar 1">+</button></span></td>' +
+        '<td class="num gc-peca-valor">' + (p.custo && p.qtd ? fmt(p.custo * p.qtd) : '—') + '</td>' +
         '<td>' + (p.qtd == null ? '<span class="gc-pill gray">Sem quantidade</span>' : (sem ? '<span class="gc-pill bad">Acabou</span>' : '<span class="gc-pill ok">Em estoque</span>')) + '</td>' +
         '<td class="num"><button type="button" class="gc-peca-x" data-peca-del="' + esc(p.id) + '" title="Excluir esta peça">✕ Excluir</button></td></tr>';
     }).join('');
     return '<div class="gc-blk"><h2>Peças <span>quantas de cada peça eu tenho · clique no nome para renomear · − e + ajustam a quantidade</span></h2>' +
-      '<div class="gc-peca-add"><input type="text" id="gc-peca-novo-nome" placeholder="+ Nova peça (nome)"><input type="text" inputmode="numeric" id="gc-peca-novo-qtd" placeholder="Qtd"><button type="button" class="gc-btn dark" data-peca-add="1">Adicionar</button></div>' +
+      '<div class="gc-peca-add"><input type="text" id="gc-peca-novo-nome" placeholder="+ Nova peça (nome)"><input type="text" inputmode="numeric" id="gc-peca-novo-qtd" placeholder="Qtd"><input type="text" inputmode="decimal" id="gc-peca-novo-custo" placeholder="Custo R$"><button type="button" class="gc-btn dark" data-peca-add="1">Adicionar</button></div>' +
       (lista.length
-        ? '<div class="gc-table-wrap"><table class="gct"><thead><tr><th>PEÇA</th><th class="num">QUANTIDADE</th><th>SITUAÇÃO</th><th class="num">AÇÕES</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' +
-          '<div class="gc-hint" style="padding:10px 0 0">Total de peças: <b>' + total + '</b></div>'
+        ? '<div class="gc-table-wrap"><table class="gct"><thead><tr><th>PEÇA</th><th class="num">CUSTO (UN.)</th><th class="num">QUANTIDADE</th><th class="num">VALOR EM ESTOQUE</th><th>SITUAÇÃO</th><th class="num">AÇÕES</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' +
+          '<div class="gc-hint" style="padding:10px 0 0">Total de peças: <b>' + total + '</b> · Valor em estoque (custo): <b>' + fmt(valorEstoque) + '</b></div>'
         : '<div class="gc-hint">Nenhuma peça cadastrada ainda.</div>') +
       '</div>';
   }
@@ -33667,6 +33687,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         var nome = inp.value.trim(); if (!nome) { inp.value = p.nome; return; }
         p.nome = nome; save(); renderML();
       });
+    });
+    $all('[data-peca-custo]', el).forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        var p = achar(inp.dataset.pecaCusto); if (!p) return;
+        var v = num(inp.value); if (v > 0) p.custo = round2(v); else delete p.custo;
+        save(); renderML();
+      });
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') inp.blur(); });
     });
     $all('[data-peca-qtd]', el).forEach(function (inp) {
       inp.addEventListener('change', function () { var p = achar(inp.dataset.pecaQtd); if (!p) return; p.qtd = qtdDe(inp.value); save(); renderML(); });
@@ -33690,7 +33718,9 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var nome = ($('#gc-peca-novo-nome', el).value || '').trim();
       if (!nome) { alert('Digite o nome da peça.'); return; }
       if (pecasLista().some(function (p) { return normNome(p.nome) === normNome(nome); })) { alert('Já existe uma peça com esse nome.'); return; }
-      pecasLista().push({ id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5), nome: nome, qtd: qtdDe($('#gc-peca-novo-qtd', el).value) });
+      var nova = { id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5), nome: nome, qtd: qtdDe($('#gc-peca-novo-qtd', el).value) };
+      var cNovo = num(($('#gc-peca-novo-custo', el) || {}).value); if (cNovo > 0) nova.custo = round2(cNovo);
+      pecasLista().push(nova);
       save(); renderML();
     }
     if (add) add.addEventListener('click', adicionar);
@@ -33859,7 +33889,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         var pc = pecasLista().filter(function (x) { return x.id === u.pecaId; })[0];
         return '<div class="gc-mat-chip gc-ml-kit-chip"><span class="gc-mat-chip-l">' + esc(pc ? pc.nome : '(peça apagada)') + '</span>' +
           '<span class="gc-ml-kit-chip-sep">·</span><b class="gc-mat-chip-v">' + u.qtd + '×</b>' +
-          '<span class="gc-mat-chip-u">' + (pc && pc.qtd != null ? pc.qtd + ' em estoque' : 'sem quantidade') + '</span>' +
+          '<span class="gc-mat-chip-u">' + (pc && pc.custo ? fmt(pc.custo * u.qtd) + ' · ' : '') + (pc && pc.qtd != null ? pc.qtd + ' em estoque' : 'sem quantidade') + '</span>' +
           '<button type="button" class="gc-mat-chip-x" data-peca-uso-del="' + idx + '" title="Tirar esta peça do anúncio">✕</button></div>';
       }).join('');
     }
@@ -33877,11 +33907,12 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var primeiraRenderizacao = true;
     var custoAberto = false;
     function custoBreakdownHtml() {
-      if (!draft.itensCatalogo.length) return 'Custo manual · ' + fmt(draft.custoManual);
+      var pecasTxt = anuncioCustoPecas(draft) > 0 ? '<br>Peças · ' + fmt(anuncioCustoPecas(draft)) + ' (' + draft.pecasUsadas.map(function (u) { var pc = pecasLista().filter(function (x) { return x.id === u.pecaId; })[0]; return pc ? esc(pc.nome) + ' ' + u.qtd + '× ' + fmt(num(pc.custo) || 0) : ''; }).filter(Boolean).join(' + ') + ')' : '';
+      if (!draft.itensCatalogo.length) return 'Custo manual · ' + fmt(draft.custoManual) + pecasTxt;
       return draft.itensCatalogo.map(function (it) {
         var ci = custoInfo(keyOf(it.produto, it.tamanho));
         return esc(it.produto) + ' ' + esc(it.tamanho) + ' · ' + it.qtd + '× ' + fmt(ci.total || 0) + ' = ' + fmt((ci.total || 0) * it.qtd);
-      }).join('<br>');
+      }).join('<br>') + pecasTxt;
     }
     function render() {
       // Na primeira renderização, o draft já veio pronto do anúncio clicado — não ler os
@@ -33959,7 +33990,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           }).join('') +
         '</select>' +
         '<div class="gc-ml-kitbox">' +
-          '<div class="gc-ml-edit-label">Peças que saem do estoque <span style="font-weight:400;text-transform:none;letter-spacing:0">— da aba Peças; descontadas a cada venda registrada por este anúncio</span></div>' +
+          '<div class="gc-ml-edit-label">Peças que saem do estoque <span style="font-weight:400;text-transform:none;letter-spacing:0">— da aba Peças; descontadas a cada venda registrada por este anúncio e o custo delas entra no custo do anúncio</span></div>' +
           '<div class="gc-receita-chips" style="margin-bottom:8px">' + pecasChipsHtml() + '</div>' +
           '<div class="gc-ml-kit-add">' +
             '<select id="gc-ml-peca-add"><option value="">Escolha a peça…</option>' + pecasLista().map(function (pc) { return '<option value="' + esc(pc.id) + '">' + esc(pc.nome) + (pc.qtd == null ? '' : ' (' + pc.qtd + ' em estoque)') + '</option>'; }).join('') + '</select>' +
