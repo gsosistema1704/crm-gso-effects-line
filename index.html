@@ -12001,6 +12001,18 @@ body.theme-dark .saude-x{ color:#F08A8A !important; }
 .alex-saldo{ text-align:right; font-variant-numeric:tabular-nums; color:var(--text-2); }
 .alex-acoes{ display:flex; gap:6px; justify-content:flex-end; } .alex-acoes .fx-bt{ height:28px !important; padding:0 9px !important; font-size:11.5px !important; }
 @media (max-width: 900px){ .alex-cab{ display:none; } .alex-linha{ grid-template-columns:1fr auto; } .alex-data{ grid-column:1 / -1; } .alex-saldo{ text-align:left; } .alex-acoes{ grid-column:1 / -1; justify-content:flex-start; } }
+.fx-vendas-auto{ margin-bottom:28px; }
+.fx-va-topo{ display:flex; align-items:flex-start; gap:8px; cursor:pointer; user-select:none; }
+.fx-va-corpo{ margin-top:14px; }
+.fx-va-kpis{ grid-template-columns:repeat(5,minmax(0,1fr)); margin-bottom:16px; }
+.fx-va-tab{ border:1px solid var(--border,#E2E2E2); border-radius:12px; overflow:hidden; }
+.fx-va-cab, .fx-va-lin{ display:grid; grid-template-columns:minmax(0,1fr) 70px 130px 80px; gap:12px; padding:9px 14px; align-items:center; font-size:13px; }
+.fx-va-cab{ background:rgba(127,127,127,.08); font-size:10.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-2); }
+.fx-va-lin{ border-top:1px solid rgba(127,127,127,.14); }
+.fx-va-cab span:not(:first-child), .fx-va-lin span:not(:first-child), .fx-va-lin b{ text-align:right; font-variant-numeric:tabular-nums; }
+.fx-va-rodape{ display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center; margin-top:12px; font-size:12.5px; color:var(--text-2); } .fx-va-rodape b{ color:var(--text); }
+@media (max-width:1100px){ .fx-va-kpis{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:560px){ .fx-va-kpis{ grid-template-columns:minmax(0,1fr); } .fx-va-cab, .fx-va-lin{ grid-template-columns:minmax(0,1fr) 44px 100px; } .fx-va-cab span:last-child, .fx-va-lin span:last-child{ display:none; } }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -14279,6 +14291,8 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <button type="button" class="btn btn-small fx-fechar" id="fin-btn-fechar" onclick="finAlternarFechamento()"></button>
         </div>
         <div class="fx-kpis" id="fin-kpis"></div>
+
+        <div class="fx-card fx-vendas-auto" id="fin-vendas-auto"></div>
 
         <div class="fx-card fx-rapido" id="fin-rapido">
           <div class="fx-rapido-tit"><b>Lançar despesa</b><span>Escolha a categoria, descreva e digite o valor — ela entra no mês e soma na categoria. Enter adiciona.</span></div>
@@ -19801,6 +19815,86 @@ function finRenderFechamento() {
   finRenderRapidoCategorias();
   finRenderKpis();
   finRenderSugestoes();
+  finRenderVendasAuto();
+}
+
+
+/* ---- Vendas do mês (automático): valores vendidos por produto + lucro bruto ---- */
+// Soma TODAS as vendas que entraram no mês (clientes, lojistas e Mercado Livre), com a mesma regra de
+// reconhecimento do faturamento (boleto só quando pago, anotado quando recebido). Lucro bruto =
+// faturamento − custo dos produtos − impostos (fiscal) − taxas e fretes do Mercado Livre.
+function finVendasDoMes(mes) {
+  const r = { fat: 0, custo: 0, fiscal: 0, taxasML: 0, fretesML: 0, vendas: 0, semCusto: 0, produtos: {}, canais: { clientes: 0, lojistas: 0, ml: 0 } };
+  const fiscalPct = (window.gsoCalc && window.gsoCalc._params) ? (Number(window.gsoCalc._params().fiscal) || 0) : 0;
+  const todas = [...state.vendas.map(v => ({ v, canal: 'clientes' })), ...state.vendasLojista.map(v => ({ v, canal: 'lojistas' }))];
+  todas.forEach(({ v, canal }) => {
+    const total = Number(v.valor) || 0; if (total <= 0) return;
+    const entradas = saleRevenueEntries(v).filter(e => { const d = dashboardDateObj(e.data); return d && finMesKey(d) === mes; });
+    if (!entradas.length) return;
+    const prop = entradas.reduce((s, e) => s + e.valor, 0) / total; if (!prop) return;
+    const ml = canal === 'clientes' && /mercado\s*livre/i.test(v.pagamento || '');
+    const custoV = saleCustoProduto(v);
+    if (custoV == null) r.semCusto++;
+    const sujeito = salePaymentParts(v).filter(p => p.forma !== 'Dinheiro').reduce((s, p) => s + p.valor, 0);
+    r.fat += total * prop; r.vendas += prop >= 0.999 ? 1 : prop;
+    r.custo += (custoV || 0) * prop; r.fiscal += sujeito * fiscalPct / 100 * prop;
+    if (ml) { r.taxasML += (Number(v.pagamentoDetalhes && v.pagamentoDetalhes.mlTarifaVenda) || 0) * prop; r.fretesML += (Number(v.pagamentoDetalhes && v.pagamentoDetalhes.mlFrete) || 0) * prop; r.canais.ml += total * prop; }
+    else r.canais[canal] += total * prop;
+    saleCatalogItems(v).forEach(it => {
+      const k = it.produto + ' ' + it.tamanho; const o = r.produtos[k] = r.produtos[k] || { nome: k, qtd: 0, fat: 0 };
+      o.qtd += it.qtd * prop; o.fat += it.fat * prop;
+    });
+  });
+  ['fat', 'custo', 'fiscal', 'taxasML', 'fretesML'].forEach(k => { r[k] = round2(r[k]); });
+  r.lucroBruto = round2(r.fat - r.custo - r.fiscal - r.taxasML - r.fretesML);
+  r.margem = r.fat > 0 ? round2(r.lucroBruto / r.fat * 100) : null;
+  r.lista = Object.values(r.produtos).map(o => ({ nome: o.nome, qtd: Math.round(o.qtd), fat: round2(o.fat) })).sort((a, b) => b.fat - a.fat);
+  // peças e itens que não estão no catálogo de produtos entram aqui, pra a soma da tabela fechar com o valor vendido
+  const resto = round2(r.fat - r.lista.reduce((s, p) => s + p.fat, 0));
+  if (resto > 0.5) r.lista.push({ nome: 'Outros (peças e itens fora do catálogo)', qtd: '—', fat: resto });
+  return r;
+}
+function finVendasAutoColapsado() { try { return localStorage.getItem('gso_fin_vendas_auto_colapsado') === '1'; } catch (e) { return false; } }
+function finVendasAutoAlternar() { try { localStorage.setItem('gso_fin_vendas_auto_colapsado', finVendasAutoColapsado() ? '0' : '1'); } catch (e) {} finRenderVendasAuto(); }
+function finRenderVendasAuto() {
+  const el = document.getElementById('fin-vendas-auto'); if (!el) return;
+  let r;
+  try { r = finVendasDoMes(FIN.mes); } catch (err) { el.innerHTML = '<div class="card-title">Vendas do mês</div><div class="card-sub">Não consegui calcular: ' + escapeHtml(String(err && err.message || err)) + '</div>'; return; }
+  FIN.vendasAuto = r;
+  const colapsado = finVendasAutoColapsado();
+  const chip = (rot, valor, cls, sub) => `<div class="fx-kpi ${cls || ''}"><span>${rot}</span><strong>${valor}</strong><small>${sub || '&nbsp;'}</small></div>`;
+  const dis = finFechado() ? ' disabled' : '';
+  const pctProd = v => r.fat > 0 ? Math.round(v / r.fat * 100) + '%' : '—';
+  el.innerHTML = `
+    <div class="fx-va-topo" onclick="finVendasAutoAlternar()">
+      <button type="button" class="saude-min" aria-label="Minimizar">${colapsado ? '▸' : '▾'}</button>
+      <div><div class="card-title">Vendas do mês <span class="fx-badge auto">automático</span></div>
+      <div class="card-sub">Tudo que entrou de vendas em ${finMesLabel(FIN.mes)} (clientes, lojistas e Mercado Livre) e o lucro bruto que isso deu.</div></div>
+    </div>
+    <div class="fx-va-corpo${colapsado ? ' hidden' : ''}">
+      <div class="fx-kpis fx-va-kpis">
+        ${chip('Valor vendido', fmtBR(r.fat), '', Math.round(r.vendas) + ' venda' + (Math.round(r.vendas) === 1 ? '' : 's'))}
+        ${chip('Custo dos produtos', fmtBR(r.custo), '', r.semCusto ? r.semCusto + ' venda(s) sem custo calculado' : '')}
+        ${chip('Impostos (fiscal)', fmtBR(r.fiscal), '', '')}
+        ${chip('Taxas e fretes ML', fmtBR(round2(r.taxasML + r.fretesML)), '', 'Mercado Livre')}
+        ${chip('Lucro bruto', fmtBR(r.lucroBruto), r.lucroBruto < 0 ? 'fx-neg' : 'fx-pos', r.margem != null ? r.margem.toString().replace('.', ',') + '% de margem' : '')}
+      </div>
+      ${r.lista.length ? `<div class="fx-va-tab"><div class="fx-va-cab"><span>Produto</span><span>Qtd</span><span>Valor vendido</span><span>% do total</span></div>
+        ${r.lista.map(p => `<div class="fx-va-lin"><span>${escapeHtml(p.nome)}</span><span>${p.qtd}</span><b>${fmtBR(p.fat)}</b><span>${pctProd(p.fat)}</span></div>`).join('')}</div>` : '<div class="table-empty" style="padding:12px 0">Nenhuma venda recebida neste mês.</div>'}
+      <div class="fx-va-rodape">
+        <span>Por canal: clientes <b>${fmtBR(round2(r.canais.clientes))}</b> · lojistas <b>${fmtBR(round2(r.canais.lojistas))}</b> · Mercado Livre <b>${fmtBR(round2(r.canais.ml))}</b></span>
+        <button type="button" class="btn btn-small btn-soft"${dis} onclick="finUsarVendasAuto()" data-tip="Copia faturamento, custo, impostos e taxas para os campos do demonstrativo">Usar estes valores nos campos do mês</button>
+      </div>
+    </div>`;
+}
+function finUsarVendasAuto() {
+  const r = FIN.vendasAuto; if (!r) return;
+  const m = finMes(FIN.mes, true);
+  const campos = [['receita_vendas', r.fat, 'Faturamento de vendas'], ['cmv', r.custo, 'Custo dos produtos vendidos'], ['impostos', r.fiscal, 'Impostos sobre vendas'], ['taxas', r.taxasML, 'Taxas de cartão e marketplace'], ['fretes', r.fretesML, 'Fretes das vendas']];
+  const preenchidos = campos.filter(([k]) => Number(m[k]) > 0).map(c => c[2]);
+  if (preenchidos.length && !confirm('Estes campos já têm valor e serão substituídos:\n\n• ' + preenchidos.join('\n• ') + '\n\nContinuar?')) return;
+  campos.forEach(([k, v]) => { m[k] = round2(v); });
+  finTocar(m); finAgendarSalvar(FIN.mes); finRenderFechamento();
 }
 
 /* ---- Contas a pagar e receber ---- */
