@@ -11986,6 +11986,21 @@ body.theme-dark .saude-x{ color:#F08A8A !important; }
 .saude-card.arrastando{ opacity:.45; }
 .saude-card.sobre-antes{ box-shadow:0 -3px 0 0 #D9A441; } .saude-card.sobre-depois{ box-shadow:0 3px 0 0 #D9A441; }
 .saude-x-bloco{ margin-left:8px; }
+.alex-barra{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:0 0 24px; }
+.alex-conf{ margin-left:auto; font-size:13px; display:inline-flex; gap:10px; align-items:center; } .alex-ok{ color:#1E6B3A; font-weight:700; } .alex-dif{ color:#B0322F; font-weight:700; }
+.alex-cab, .alex-linha{ display:grid; grid-template-columns: 84px minmax(0,1fr) 112px 112px 170px; gap:12px; align-items:center; }
+.alex-cab{ padding:6px 10px; font-size:10.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-2); }
+.alex-cab span:nth-child(3), .alex-cab span:nth-child(4){ text-align:right; }
+.alex-mes{ display:flex; justify-content:space-between; gap:10px; margin:18px 0 6px; padding:9px 12px; border-radius:10px; background:rgba(127,127,127,.08); font-size:13px; } .alex-mes span{ color:var(--text-2); font-size:12px; }
+.alex-linha{ padding:9px 10px; border-bottom:1px solid rgba(127,127,127,.14); font-size:13px; }
+.alex-linha.pagamento{ background:rgba(111,163,127,.07); }
+.alex-data{ color:var(--text-2); font-variant-numeric:tabular-nums; }
+.alex-itens{ display:flex; flex-direction:column; gap:1px; } .alex-itens span{ line-height:1.35; }
+.alex-ref{ display:inline-block; margin-top:3px; padding:1px 9px; border-radius:999px; font-size:11px; font-weight:700; background:rgba(217,164,65,.2); color:#8A6410; } body.theme-dark .alex-ref{ color:#E6C34A; }
+.alex-val{ text-align:right; font-weight:800; font-variant-numeric:tabular-nums; } .alex-val.pag{ color:#1E6B3A; }
+.alex-saldo{ text-align:right; font-variant-numeric:tabular-nums; color:var(--text-2); }
+.alex-acoes{ display:flex; gap:6px; justify-content:flex-end; } .alex-acoes .fx-bt{ height:28px !important; padding:0 9px !important; font-size:11.5px !important; }
+@media (max-width: 900px){ .alex-cab{ display:none; } .alex-linha{ grid-template-columns:1fr auto; } .alex-data{ grid-column:1 / -1; } .alex-saldo{ text-align:left; } .alex-acoes{ grid-column:1 / -1; justify-content:flex-start; } }
 /* Destaque sutil da sub-aba "Controle de Lote": um pontinho âmbar com brilho suave, em vez da etiqueta "Importante" */
 .subtab-importante { display: inline-block; width: 7px; height: 7px; margin-left: 7px; border-radius: 50%; background: #D9A441; vertical-align: middle; position: relative; top: -1px; box-shadow: 0 0 0 3px rgba(217,164,65,.20); }
 /* Estoque: linhas de categoria (versão original) mais altas e com mais presença */
@@ -14250,6 +14265,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="subtab" data-fin-aba="contas" onclick="finIrAba('contas')">Contas a pagar e receber</div>
         <div class="subtab" data-fin-aba="evolucao" onclick="finIrAba('evolucao')">Evolução</div>
         <div class="subtab" data-fin-aba="despesas" onclick="finIrAba('despesas')">Despesas lançadas</div>
+        <div class="subtab" data-fin-aba="alexandre" onclick="finIrAba('alexandre')">Alexandre</div>
       </div>
 
       <!-- ===== FECHAMENTO DO MÊS ===== -->
@@ -14327,6 +14343,24 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </div>
       </div>
 
+      <!-- ===== ALEXANDRE (ficha do revendedor) ===== -->
+      <div id="fin-aba-alexandre" class="hidden">
+        <div class="fx-kpis" id="alex-kpis"></div>
+        <div class="alex-barra">
+          <button type="button" class="btn btn-primary" onclick="alexAbrir('entrega')">+ Nova entrega</button>
+          <button type="button" class="btn" onclick="alexAbrir('pagamento')">+ Novo pagamento</button>
+          <button type="button" class="btn btn-soft" onclick="alexAbrir('saldo')">+ Saldo anterior</button>
+          <span class="alex-conf" id="alex-conf"></span>
+        </div>
+        <div class="fx-grid">
+          <div class="fx-card"><div class="card-title">Extrato</div><div class="card-sub">Tudo em ordem de data, com o saldo que ele devia depois de cada lançamento. Entregas somam, pagamentos descontam.</div><div id="alex-extrato" style="margin-top:12px"></div></div>
+          <div class="fx-lateral">
+            <div class="fx-card" id="alex-produtos"></div>
+            <div class="fx-card" id="alex-refs"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- ===== DESPESAS LANÇADAS ===== -->
       <div id="fin-aba-despesas" class="hidden">
         <div class="card" style="margin-bottom:16px;">
@@ -14389,6 +14423,23 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="form-actions">
           <button class="btn" onclick="document.getElementById('modal-fin-cat').classList.remove('show')">Cancelar</button>
           <button class="btn btn-primary" onclick="finSalvarCategoria()">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: lançamento da ficha do Alexandre -->
+    <div class="modal-bg" id="modal-fin-alex">
+      <div class="modal" style="max-width:480px">
+        <div class="modal-title" id="alex-titulo">Lançamento</div>
+        <input type="hidden" id="alex-id"><input type="hidden" id="alex-tipo">
+        <div class="fx-mod-sec" id="alex-sec-data"><div class="fx-mod-tit">Data</div><input type="date" class="form-input" id="alex-data"></div>
+        <div class="fx-mod-sec" id="alex-sec-desc" style="display:none"><div class="fx-mod-tit">Descrição</div><input class="form-input" id="alex-desc" placeholder="ex.: Em aberto 2025"></div>
+        <div class="fx-mod-sec" id="alex-sec-itens"><div class="fx-mod-tit">Produtos <span>— um por linha, como na ficha</span></div><textarea class="form-input" id="alex-itens" rows="5" placeholder="12 Palco 5L N (Q50)&#10;04 DJ 5L Tutti Frutti (Tabu)"></textarea></div>
+        <div class="fx-mod-sec"><div class="fx-mod-tit">Valor (R$)</div><input class="form-input" id="alex-valor" inputmode="decimal" placeholder="0,00"></div>
+        <div class="fx-mod-sec" id="alex-sec-ref"><div class="fx-mod-tit">Referência <span>— opcional (cliente final, evento, observação)</span></div><input class="form-input" id="alex-ref" placeholder="ex.: Q50, Tabu, Ocidente"></div>
+        <div class="form-actions">
+          <button class="btn" onclick="document.getElementById('modal-fin-alex').classList.remove('show')">Cancelar</button>
+          <button class="btn btn-primary" onclick="alexSalvar()">Salvar</button>
         </div>
       </div>
     </div>
@@ -19019,13 +19070,160 @@ function finMesProximo() { const l = finMesesDisponiveis(); const i = l.indexOf(
 
 function finIrAba(aba) {
   FIN.aba = aba;
-  ['fechamento', 'contas', 'evolucao', 'despesas'].forEach(a => document.getElementById('fin-aba-' + a)?.classList.toggle('hidden', a !== aba));
+  ['fechamento', 'contas', 'evolucao', 'despesas', 'alexandre'].forEach(a => document.getElementById('fin-aba-' + a)?.classList.toggle('hidden', a !== aba));
   document.querySelectorAll('#fin-subtabs .subtab').forEach(el => el.classList.toggle('active', el.dataset.finAba === aba));
   if (aba === 'evolucao') finRenderEvolucao();
   if (aba === 'contas') finRenderContas();
   if (aba === 'despesas') renderDespesas();
+  if (aba === 'alexandre') alexRender();
 }
 function finFechado() { const m = finMes(FIN.mes); return !!(m && m.fechado); }
+/* ============ FINANCEIRO > ALEXANDRE — ficha do revendedor (entregas × pagamentos) ============ */
+// Mora no mesmo documento compartilhado da Calculadora (store.alexandre), então sincroniza entre computadores.
+function alexDados() {
+  const st = window.gsoCalc && window.gsoCalc._store && window.gsoCalc._store();
+  if (!st) return null;
+  if (!st.alexandre) st.alexandre = { saldoInicial: [], entregas: [], pagamentos: [] };
+  ['saldoInicial', 'entregas', 'pagamentos'].forEach(k => { if (!Array.isArray(st.alexandre[k])) st.alexandre[k] = []; });
+  return st.alexandre;
+}
+function alexPersistir() { if (window.gsoCalc && window.gsoCalc._save) window.gsoCalc._save(); }
+function alexTotais(d) {
+  const soma = l => round2(l.reduce((s, x) => s + (Number(x.valor) || 0), 0));
+  const ini = soma(d.saldoInicial), ent = soma(d.entregas), pag = soma(d.pagamentos);
+  return { ini, ent, pag, aberto: round2(ini + ent - pag) };
+}
+function alexLinhas(d) {
+  const ev = [];
+  d.saldoInicial.forEach(x => ev.push({ tipo: 'saldo', ord: 0, data: x.data || '2025-12-31', x }));
+  d.entregas.forEach(x => ev.push({ tipo: 'entrega', ord: 1, data: x.data, x }));
+  d.pagamentos.forEach(x => ev.push({ tipo: 'pagamento', ord: 2, data: x.data, x }));
+  ev.sort((a, b) => String(a.data).localeCompare(String(b.data)) || a.ord - b.ord);
+  let saldo = 0;
+  ev.forEach(e => { const v = Number(e.x.valor) || 0; saldo = round2(saldo + (e.tipo === 'pagamento' ? -v : v)); e.saldo = saldo; });
+  return ev;
+}
+// Classifica uma linha da ficha ("12 Palco 5L N (Q50)") em produto + quantidade, pro resumo por produto.
+function alexClassificar(linha) {
+  const m = String(linha).match(/^(\d+)\s+(.*)$/); if (!m) return null;
+  const qtd = parseInt(m[1], 10), t = m[2].toLowerCase();
+  const brinde = /brinde|bonificad/.test(t);
+  let prod = null;
+  if (/haze\s*oil/.test(t)) prod = 'Haze Oil 5L';
+  else if (/palco/.test(t)) prod = 'Palco 5L';
+  else if (/\bdj/.test(t)) prod = /tutti|tuttifrut|frutii|\bt\b|tropical/.test(t) ? 'DJs and Clubs 5L (Tropical/Tutti Frutti)' : 'DJs and Clubs 5L (Neutro)';
+  else if (/haze/.test(t)) prod = 'Haze 5L';
+  else if (/co2|co₂/.test(t)) prod = 'CO₂ Simulator';
+  else if (/clean/.test(t)) prod = 'Clean 1L';
+  else if (/isoprop/.test(t)) prod = 'Álcool isopropílico 1L';
+  else if (/top\s*up|top\s*lens/.test(t)) prod = 'Top Up';
+  else prod = 'Outros';
+  return { qtd, prod, brinde };
+}
+function alexRender() {
+  const d = alexDados();
+  const kp = document.getElementById('alex-kpis'), ex = document.getElementById('alex-extrato');
+  if (!d || !kp || !ex) { if (ex) ex.innerHTML = '<div class="card-sub">Carregando… tente de novo em instantes.</div>'; return; }
+  const t = alexTotais(d);
+  kp.innerHTML =
+    finKpiHtml('Saldo de 2025', fmtBR(t.ini), 'em aberto + consignado do ano anterior') +
+    finKpiHtml('Entregue em 2026', fmtBR(t.ent), d.entregas.length + ' entrega' + (d.entregas.length === 1 ? '' : 's')) +
+    finKpiHtml('Pago em 2026', fmtBR(t.pag), d.pagamentos.length + ' pagamento' + (d.pagamentos.length === 1 ? '' : 's'), 'fx-pos') +
+    finKpiHtml('Total em aberto', fmtBR(t.aberto), 'saldo + entregas − pagamentos', t.aberto > 0 ? 'fx-neg' : 'fx-pos');
+  const inf = Number(d.informado);
+  const conf = document.getElementById('alex-conf');
+  if (conf) conf.innerHTML = inf ? (Math.abs(inf - t.aberto) < 0.05
+    ? `<span class="alex-ok">✔ Bate com o total da ficha (${fmtBR(inf)})</span>`
+    : `<span class="alex-dif">Diferença de ${fmtBR(round2(t.aberto - inf))} para o total da ficha (${fmtBR(inf)})</span>`)
+    + ` <button type="button" class="fx-bt" onclick="alexDefinirInformado()">Alterar total da ficha</button>`
+    : `<button type="button" class="fx-bt" onclick="alexDefinirInformado()">Informar o total da ficha para conferir</button>`;
+  // extrato agrupado por mês
+  const linhas = alexLinhas(d); let html = '', mesAtual = null;
+  const grupos = {}; linhas.forEach(e => { const m = e.tipo === 'saldo' ? 'saldo' : String(e.data).slice(0, 7); (grupos[m] = grupos[m] || []).push(e); });
+  Object.keys(grupos).sort((a, b) => a === 'saldo' ? -1 : (b === 'saldo' ? 1 : a.localeCompare(b))).forEach(m => {
+    const g = grupos[m];
+    const entM = round2(g.filter(e => e.tipo === 'entrega').reduce((s, e) => s + e.x.valor, 0)), pagM = round2(g.filter(e => e.tipo === 'pagamento').reduce((s, e) => s + e.x.valor, 0));
+    html += `<div class="alex-mes"><b>${m === 'saldo' ? 'Saldo de 2025' : finMesLabel(m)}</b><span>${entM ? 'entregue ' + fmtBR(entM) : ''}${entM && pagM ? ' · ' : ''}${pagM ? 'pago ' + fmtBR(pagM) : ''}</span></div>`;
+    html += g.map(e => {
+      const x = e.x, v = fmtBR(x.valor);
+      const desc = e.tipo === 'saldo' ? `<b>${escapeHtml(x.desc || 'Saldo anterior')}</b>` :
+        e.tipo === 'pagamento' ? `<b>Pagamento</b>${x.ref ? ` <span class="alex-ref">${escapeHtml(x.ref)}</span>` : ''}` :
+        `<div class="alex-itens">${(x.itens || []).map(i => `<span>${escapeHtml(i)}</span>`).join('')}</div>${x.ref ? `<span class="alex-ref">${escapeHtml(x.ref)}</span>` : ''}`;
+      return `<div class="alex-linha ${e.tipo}">
+        <span class="alex-data">${e.tipo === 'saldo' ? '—' : fmtDate(x.data)}</span>
+        <span class="alex-desc">${desc}</span>
+        <span class="alex-val ${e.tipo === 'pagamento' ? 'pag' : 'ent'}">${e.tipo === 'pagamento' ? '− ' : '+ '}${v}</span>
+        <span class="alex-saldo" title="Quanto ele devia depois deste lançamento">${fmtBR(e.saldo)}</span>
+        <span class="alex-acoes"><button type="button" class="fx-bt fx-bt-ed" onclick="alexAbrir('${e.tipo}','${x.id}')">✎ Editar</button><button type="button" class="fx-bt fx-bt-x" onclick="alexExcluir('${e.tipo}','${x.id}')">✕ Excluir</button></span>
+      </div>`;
+    }).join('');
+  });
+  ex.innerHTML = `<div class="alex-cab"><span>Data</span><span>Descrição</span><span>Valor</span><span>Ele devia</span><span></span></div>` + (html || '<div class="card-sub">Nenhum lançamento ainda.</div>');
+  // resumo por produto
+  const prod = {}; let brindes = 0;
+  d.entregas.forEach(en => (en.itens || []).forEach(l => { const c = alexClassificar(l); if (!c) return; const o = prod[c.prod] = prod[c.prod] || { qtd: 0, brinde: 0 }; if (c.brinde) { o.brinde += c.qtd; brindes += c.qtd; } else o.qtd += c.qtd; }));
+  const ordem = Object.keys(prod).sort((a, b) => prod[b].qtd - prod[a].qtd);
+  document.getElementById('alex-produtos').innerHTML = '<div class="card-title">O que ele recebeu em 2026</div><div class="card-sub" style="margin-bottom:6px">Soma das entregas por produto (sem contar o saldo de 2025)</div>' +
+    (ordem.length ? ordem.map(k => `<div class="fx-ind"><span>${escapeHtml(k)}</span><b>${prod[k].qtd}${prod[k].brinde ? ` <small>+ ${prod[k].brinde} brinde</small>` : ''}</b></div>`).join('') : '<div class="card-sub">Sem entregas.</div>');
+  // por referência (cliente final / evento)
+  const refs = {}; d.entregas.forEach(en => { if (!en.ref) return; refs[en.ref] = refs[en.ref] || { ent: 0, pag: 0 }; refs[en.ref].ent += Number(en.valor) || 0; });
+  d.pagamentos.forEach(p => { if (!p.ref) return; refs[p.ref] = refs[p.ref] || { ent: 0, pag: 0 }; refs[p.ref].pag += Number(p.valor) || 0; });
+  const rk = Object.keys(refs).sort((a, b) => refs[b].ent - refs[a].ent);
+  document.getElementById('alex-refs').innerHTML = '<div class="card-title">Por referência</div><div class="card-sub" style="margin-bottom:6px">Valor entregue por nome marcado na ficha (Q50, Tabu, Ocidente…) — só ajuda a separar, o saldo é um só</div>' +
+    (rk.length ? rk.map(k => `<div class="fx-ind"><span>${escapeHtml(k)}</span><b>${fmtBR(round2(refs[k].ent))}</b><small>${refs[k].pag ? 'pagamentos marcados com este nome: ' + fmtBR(round2(refs[k].pag)) : 'sem pagamento marcado com este nome'}</small></div>`).join('') : '<div class="card-sub">Nenhuma referência marcada.</div>');
+}
+function alexAbrir(tipo, id) {
+  const d = alexDados(); if (!d) return;
+  const lista = tipo === 'entrega' ? d.entregas : (tipo === 'pagamento' ? d.pagamentos : d.saldoInicial);
+  const x = id ? lista.find(i => i.id === id) : null;
+  document.getElementById('alex-titulo').textContent = (x ? 'Editar ' : 'Novo ') + (tipo === 'entrega' ? 'entrega' : (tipo === 'pagamento' ? 'pagamento' : 'saldo anterior'));
+  document.getElementById('alex-id').value = x ? x.id : ''; document.getElementById('alex-tipo').value = tipo;
+  document.getElementById('alex-data').value = x ? (x.data || '') : new Date().toISOString().slice(0, 10);
+  document.getElementById('alex-desc').value = x ? (x.desc || '') : '';
+  document.getElementById('alex-itens').value = x ? (x.itens || []).join('\n') : '';
+  document.getElementById('alex-valor').value = x ? String(x.valor).replace('.', ',') : '';
+  document.getElementById('alex-ref').value = x ? (x.ref || '') : '';
+  document.getElementById('alex-sec-itens').style.display = tipo === 'entrega' ? '' : 'none';
+  document.getElementById('alex-sec-desc').style.display = tipo === 'saldo' ? '' : 'none';
+  document.getElementById('alex-sec-data').style.display = tipo === 'saldo' ? 'none' : '';
+  document.getElementById('alex-sec-ref').style.display = tipo === 'saldo' ? 'none' : '';
+  finModalNoBody('modal-fin-alex').classList.add('show');
+}
+function alexSalvar() {
+  const d = alexDados(); if (!d) return;
+  const tipo = document.getElementById('alex-tipo').value, id = document.getElementById('alex-id').value;
+  const valor = finParse(document.getElementById('alex-valor').value);
+  const data = document.getElementById('alex-data').value;
+  if (!(valor > 0)) { alert('Informe o valor.'); return; }
+  if (tipo !== 'saldo' && !data) { alert('Informe a data.'); return; }
+  const lista = tipo === 'entrega' ? d.entregas : (tipo === 'pagamento' ? d.pagamentos : d.saldoInicial);
+  let x = id ? lista.find(i => i.id === id) : null;
+  if (!x) { x = { id: 'ax_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5) }; lista.push(x); }
+  x.valor = round2(valor);
+  if (tipo === 'saldo') { x.desc = document.getElementById('alex-desc').value.trim() || 'Saldo anterior'; }
+  else {
+    x.data = data; x.ref = document.getElementById('alex-ref').value.trim();
+    if (tipo === 'entrega') x.itens = document.getElementById('alex-itens').value.split('\n').map(l => l.trim()).filter(Boolean);
+  }
+  alexPersistir();
+  document.getElementById('modal-fin-alex').classList.remove('show');
+  alexRender();
+}
+function alexExcluir(tipo, id) {
+  const d = alexDados(); if (!d) return;
+  if (!confirm('Excluir este lançamento da ficha do Alexandre?')) return;
+  const k = tipo === 'entrega' ? 'entregas' : (tipo === 'pagamento' ? 'pagamentos' : 'saldoInicial');
+  d[k] = d[k].filter(i => i.id !== id);
+  alexPersistir(); alexRender();
+}
+function alexDefinirInformado() {
+  const d = alexDados(); if (!d) return;
+  const v = prompt('Total em aberto que está na ficha dele (R$):', d.informado ? String(d.informado).replace('.', ',') : '');
+  if (v == null) return;
+  const n = finParse(v); if (n > 0) d.informado = round2(n); else delete d.informado;
+  alexPersistir(); alexRender();
+}
+
 
 /* ---- Fechamento do mês ---- */
 function finCampoHtml(campo, valor, extraClasse) {
