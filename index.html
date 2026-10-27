@@ -11833,6 +11833,22 @@ body.theme-dark .fx-badge.manual { color: #E6C34A; }
 .fx-rapido-form { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, 2fr) 168px auto; gap: 10px; align-items: center; }
 .fx-rapido-ok { margin-top: 8px; font-size: 12.5px; color: #1E6B3A; min-height: 0; }
 body.theme-dark .fx-rapido-ok { color: #86D9A6; }
+.fx-ml { margin-bottom: 16px; }
+.fx-ml-form { display: grid; grid-template-columns: 160px minmax(220px, 2fr) 168px auto; gap: 10px; align-items: center; }
+.fx-ml-lista { margin-top: 12px; border-top: 1px solid var(--border, rgba(0,0,0,.08)); }
+.fx-ml-sem { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 2px 4px; font-size: 12px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--text-2); }
+.fx-ml-sem b { font-size: 13px; color: var(--text); text-transform: none; letter-spacing: 0; }
+.fx-ml-lin { display: grid; grid-template-columns: 96px minmax(0, 1fr) 130px 64px; gap: 10px; align-items: center; padding: 6px 2px; border-bottom: 1px dashed var(--border, rgba(0,0,0,.08)); font-size: 13.5px; }
+.fx-ml-lin.edit { grid-template-columns: 150px minmax(120px, 1fr) 150px auto; }
+.fx-ml-lin b { text-align: right; font-variant-numeric: tabular-nums; }
+.fx-ml-data { color: var(--text-2); font-variant-numeric: tabular-nums; }
+.fx-ml-desc { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-ml-bts { display: flex; gap: 6px; justify-content: flex-end; }
+.fx-ml-total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 2px 0; font-size: 13px; color: var(--text-2); }
+.fx-ml-total b { font-size: 18px; color: var(--text); }
+.fx-ml-vazio { margin-top: 10px; font-size: 13px; color: var(--text-2); }
+@media (max-width: 1100px) { .fx-ml-form { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .fx-ml-form { grid-template-columns: minmax(0, 1fr); } .fx-ml-lin, .fx-ml-lin.edit { grid-template-columns: 72px minmax(0, 1fr) 96px 58px; } .fx-ml-lin.edit { grid-template-columns: minmax(0, 1fr); } }
 .fx-cols-cab { display: flex; gap: 10px; padding: 10px 0 0; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }
 .fx-cols-cab span:first-child { flex: 1; }
 .fx-cols-cab span:nth-child(2) { width: 96px; text-align: right; }
@@ -14324,6 +14340,8 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="fx-kpis" id="fin-kpis"></div>
 
         <div class="fx-card fx-vendas-auto" id="fin-vendas-auto"></div>
+
+        <div class="fx-card fx-ml" id="fin-ml"></div>
 
         <div class="fx-card fx-rapido" id="fin-rapido">
           <div class="fx-rapido-tit"><b>Lançar despesa</b><span>Escolha a categoria, descreva e digite o valor — ela entra no mês e soma na categoria. Enter adiciona.</span></div>
@@ -18950,6 +18968,15 @@ function computeLucroBrutoMensal() {
       map[key] = (map[key] || 0) + lucroTotal * proporcao;
     });
   });
+  // Mercado Livre: as entradas lançadas no Financeiro são receita; o custo da mercadoria das vendas ML continua descontado.
+  mlEntradasTodas().forEach(e => { map[e.mes] = (map[e.mes] || 0) + e.valor; });
+  vendasConsolidadas().filter(saleIsML).forEach(venda => {
+    const d = dashboardDateObj(venda.data); if (!d) return;
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const custo = saleCustoProduto(venda);
+    if (custo == null) { incompleto[key] = true; return; }
+    map[key] = (map[key] || 0) - custo;
+  });
   Object.keys(map).forEach(k => { map[k] = round2(map[k]); });
   return { map, incompleto };
 }
@@ -18979,6 +19006,17 @@ const FIN_MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junh
 const FIN_MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const FIN = { carregado: false, store: null, mes: '', ano: 0, aba: 'fechamento', pendentes: new Set(), catsAlteradas: false, timer: null, chart: null, expandidas: new Set(), sugestoes: null };
 
+// Entradas do Mercado Livre (lançadas no Fechamento do mês): [{ mes:'YYYY-MM', id, data, valor }]. Só administradores.
+function mlEntradasTodas() {
+  try {
+    if (!isAdminUser() || !FIN.store) return [];
+    const out = [];
+    Object.keys(FIN.store.meses || {}).forEach(mes => ((FIN.store.meses[mes] || {}).ml_entradas || []).forEach(e => {
+      const v = Number(e && e.valor) || 0; if (v) out.push({ mes, id: e.id, data: e.data, valor: v });
+    }));
+    return out;
+  } catch (err) { return []; }
+}
 function finMesLabel(mes) { const [y, m] = String(mes).split('-'); return (FIN_MESES_NOME[Number(m) - 1] || mes) + ' de ' + y; }
 function finParse(str) {
   let s = String(str == null ? '' : str).replace(/R\$|\s/g, '').trim();
@@ -19070,7 +19108,7 @@ async function finPersistir() {
     const remoto = (await finBuscarRemoto()) || finStoreVazio();
     meses.forEach(mes => {
       const local = FIN.store.meses[mes];
-      if (local && (finCalc(local).temDados || local.obs || local.fechado || FIN_VA_CHAVES.some(k => local[k] != null))) remoto.meses[mes] = local; else delete remoto.meses[mes];
+      if (local && (finCalc(local).temDados || local.obs || local.fechado || (local.ml_entradas && local.ml_entradas.length) || FIN_VA_CHAVES.some(k => local[k] != null))) remoto.meses[mes] = local; else delete remoto.meses[mes];
     });
     if (cats || !Array.isArray(remoto.categorias) || !remoto.categorias.length) remoto.categorias = FIN.store.categorias;
     remoto.versao = 2;
@@ -19876,6 +19914,7 @@ function finRenderFechamento() {
   finRenderKpis();
   finRenderSugestoes();
   finRenderVendasAuto();
+  finRenderMl();
 }
 
 
@@ -19884,33 +19923,46 @@ function finRenderFechamento() {
 // reconhecimento do faturamento (boleto só quando pago, anotado quando recebido). Lucro bruto =
 // faturamento − custo dos produtos − impostos (fiscal) − taxas e fretes do Mercado Livre.
 function finVendasDoMes(mes) {
-  const r = { fat: 0, custo: 0, fiscal: 0, taxasML: 0, fretesML: 0, vendas: 0, semCusto: 0, vendido: 0, produtos: {}, canais: { clientes: 0, lojistas: 0, ml: 0 } };
+  const r = { fat: 0, custo: 0, fiscal: 0, taxasML: 0, fretesML: 0, vendas: 0, semCusto: 0, vendido: 0, mlVendas: 0, mlEntradas: 0, produtos: {}, canais: { clientes: 0, lojistas: 0, ml: 0 } };
   const fiscalPct = (window.gsoCalc && window.gsoCalc._params) ? (Number(window.gsoCalc._params().fiscal) || 0) : 0;
   const todas = [...state.vendas.map(v => ({ v, canal: 'clientes' })), ...state.vendasLojista.map(v => ({ v, canal: 'lojistas' }))];
   todas.forEach(({ v, canal }) => {
     const total = Number(v.valor) || 0; if (total <= 0) return;
-    const dv = dashboardDateObj(v.data); if (dv && finMesKey(dv) === mes) r.vendido += total;
+    const dv = dashboardDateObj(v.data);
+    if (canal === 'clientes' && saleIsML(v)) {
+      // Venda do Mercado Livre: não entra com valor (o dinheiro vem das "Entradas Mercado Livre"); só o custo da mercadoria.
+      if (dv && finMesKey(dv) === mes) {
+        r.mlVendas++;
+        const cML = saleCustoProduto(v);
+        if (cML == null) r.semCusto++; else r.custo += cML;
+      }
+      return;
+    }
+    if (dv && finMesKey(dv) === mes) r.vendido += total;
     const entradas = saleRevenueEntries(v).filter(e => { const d = dashboardDateObj(e.data); return d && finMesKey(d) === mes; });
     if (!entradas.length) return;
     const prop = entradas.reduce((s, e) => s + e.valor, 0) / total; if (!prop) return;
-    const ml = canal === 'clientes' && /mercado\s*livre/i.test(v.pagamento || '');
     const custoV = saleCustoProduto(v);
     if (custoV == null) r.semCusto++;
     const sujeito = salePaymentParts(v).filter(p => p.forma !== 'Dinheiro').reduce((s, p) => s + p.valor, 0);
     r.fat += total * prop; r.vendas += prop >= 0.999 ? 1 : prop;
     r.custo += (custoV || 0) * prop; r.fiscal += sujeito * fiscalPct / 100 * prop;
-    if (ml) { r.taxasML += (Number(v.pagamentoDetalhes && v.pagamentoDetalhes.mlTarifaVenda) || 0) * prop; r.fretesML += (Number(v.pagamentoDetalhes && v.pagamentoDetalhes.mlFrete) || 0) * prop; r.canais.ml += total * prop; }
-    else r.canais[canal] += total * prop;
+    r.canais[canal] += total * prop;
     saleCatalogItems(v).forEach(it => {
       const k = it.produto + ' ' + it.tamanho; const o = r.produtos[k] = r.produtos[k] || { nome: k, qtd: 0, fat: 0 };
       o.qtd += it.qtd * prop; o.fat += it.fat * prop;
     });
   });
+  // Entradas do Mercado Livre lançadas para este mês: já são o dinheiro líquido que caiu, então entram como receita.
+  const mlMes = FIN.store && FIN.store.meses && FIN.store.meses[mes];
+  r.mlEntradas = round2(((mlMes && mlMes.ml_entradas) || []).reduce((s, e) => s + (Number(e.valor) || 0), 0));
+  r.fat += r.mlEntradas; r.canais.ml = r.mlEntradas;
   ['fat', 'custo', 'fiscal', 'taxasML', 'fretesML', 'vendido'].forEach(k => { r[k] = round2(r[k]); });
   r.lucroBruto = round2(r.fat - r.custo - r.fiscal - r.taxasML - r.fretesML);
   r.margem = r.fat > 0 ? round2(r.lucroBruto / r.fat * 100) : null;
   r.lista = Object.values(r.produtos).map(o => ({ nome: o.nome, qtd: Math.round(o.qtd), fat: round2(o.fat) })).sort((a, b) => b.fat - a.fat);
   // peças e itens que não estão no catálogo de produtos entram aqui, pra a soma da tabela fechar com o valor vendido
+  if (r.mlEntradas > 0) r.lista.push({ nome: 'Entradas Mercado Livre', qtd: r.mlVendas ? r.mlVendas + ' venda' + (r.mlVendas === 1 ? '' : 's') : '—', fat: r.mlEntradas });
   const resto = round2(r.fat - r.lista.reduce((s, p) => s + p.fat, 0));
   if (resto > 0.5) r.lista.push({ nome: 'Outros (peças e itens fora do catálogo)', qtd: '—', fat: resto });
   return r;
@@ -19954,24 +20006,105 @@ function finRenderVendasAuto() {
     <div class="fx-va-topo" onclick="finVendasAutoAlternar()">
       <button type="button" class="saude-min" aria-label="Minimizar">${colapsado ? '▸' : '▾'}</button>
       <div><div class="card-title">Vendas do mês <span class="fx-badge auto">automático</span></div>
-      <div class="card-sub">O que foi recebido em ${finMesLabel(FIN.mes)} (clientes, lojistas e Mercado Livre — boleto e fiado só contam quando pagos) e o lucro bruto disso.</div></div>
+      <div class="card-sub">O que foi recebido em ${finMesLabel(FIN.mes)} (clientes e lojistas — boleto e fiado só contam quando pagos — mais as entradas do Mercado Livre lançadas abaixo) e o lucro bruto disso. As vendas do Mercado Livre só entram aqui com o custo da mercadoria.</div></div>
     </div>
     <div class="fx-va-corpo${colapsado ? ' hidden' : ''}">
       <div class="fx-kpis fx-va-kpis">
         ${chipEd('Recebido no mês', 'va_fat_manual', r.fat, r.auto.fat, rMan, 'vendido no mês: ' + fmtBR(r.vendido))}
         ${chipEd('Custo dos produtos', 'va_custo_manual', r.custo, r.auto.custo, cMan, r.semCusto ? r.semCusto + ' venda(s) sem custo calculado' : '&nbsp;')}
         ${chipEd('Impostos (fiscal)', 'va_fiscal_manual', r.fiscal, r.auto.fiscal, fMan, '')}
-        ${chipEd('Taxas e fretes ML', 'va_taxas_manual', r.taxasTotal, r.auto.taxas, tMan, 'Mercado Livre')}
+        ${chipEd('Taxas e fretes ML', 'va_taxas_manual', r.taxasTotal, r.auto.taxas, tMan, 'já descontados nas entradas do ML')}
         ${chipEd('Lucro bruto', 'va_lucro_manual', r.lucroBruto, r.autoLucro, lMan, r.margem != null ? r.margem.toString().replace('.', ',') + '% de margem' : '', r.lucroBruto < 0 ? 'fx-neg' : 'fx-pos')}
       </div>
       ${r.lista.length ? `<div class="fx-va-tab"><div class="fx-va-cab"><span>Produto</span><span>Qtd</span><span>Valor vendido</span><span>% do total</span></div>
         ${r.lista.map(p => `<div class="fx-va-lin"><span>${escapeHtml(p.nome)}</span><span>${p.qtd}</span><b>${fmtBR(p.fat)}</b><span>${pctProd(p.fat)}</span></div>`).join('')}</div>` : '<div class="table-empty" style="padding:12px 0">Nenhuma venda recebida neste mês.</div>'}
       <div class="fx-va-rodape">
-        <span>Por canal: clientes <b>${fmtBR(round2(r.canais.clientes))}</b> · lojistas <b>${fmtBR(round2(r.canais.lojistas))}</b> · Mercado Livre <b>${fmtBR(round2(r.canais.ml))}</b></span>
+        <span>Por canal: clientes <b>${fmtBR(round2(r.canais.clientes))}</b> · lojistas <b>${fmtBR(round2(r.canais.lojistas))}</b> · entradas Mercado Livre <b>${fmtBR(round2(r.canais.ml))}</b></span>
         <button type="button" class="btn btn-small btn-soft"${dis} onclick="finUsarVendasAuto()" data-tip="Copia faturamento, custo, impostos e taxas para os campos do demonstrativo">Usar estes valores nos campos do mês</button>
       </div>
     </div>`;
   if (FIN.vaEditando) { const f = el.querySelector('.fx-va-campo input'); if (f) { f.focus(); f.select(); } }
+}
+/* ---- Entradas Mercado Livre (lançadas por semana; podem ser várias na mesma semana) ---- */
+// Cada entrada é o dinheiro que caiu do Mercado Livre (já líquido de tarifa e frete). Fica no mês escolhido
+// em m.ml_entradas = [{ id, data, valor, desc }] e é gravada junto com o mês no Supabase.
+function finMlSemanaChave(data) {
+  const d = dashboardDateObj(data); if (!d) return 'sem-data';
+  const seg = new Date(d); seg.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return seg.getFullYear() + '-' + String(seg.getMonth() + 1).padStart(2, '0') + '-' + String(seg.getDate()).padStart(2, '0');
+}
+function finMlSemanaRotulo(chave, mes) {
+  if (chave === 'sem-data') return 'Sem data';
+  const seg = new Date(chave + 'T00:00:00'); const dom = new Date(seg); dom.setDate(seg.getDate() + 6);
+  const [y, mm] = mes.split('-').map(Number);
+  const ini = seg.getMonth() + 1 === mm && seg.getFullYear() === y ? seg : new Date(y, mm - 1, 1);
+  const fim = dom.getMonth() + 1 === mm && dom.getFullYear() === y ? dom : new Date(y, mm, 0);
+  const f = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+  return 'Semana de ' + f(ini) + ' a ' + f(fim);
+}
+function finRenderMl() {
+  const el = document.getElementById('fin-ml'); if (!el) return;
+  const m = finMes(FIN.mes) || {};
+  const lista = (m.ml_entradas || []).slice().sort((a, b) => String(a.data || '').localeCompare(String(b.data || '')) || 0);
+  const total = round2(lista.reduce((s, e) => s + (Number(e.valor) || 0), 0));
+  const dis = finFechado() ? ' disabled' : '';
+  const [y, mm] = FIN.mes.split('-').map(Number);
+  const min = FIN.mes + '-01', max = FIN.mes + '-' + String(new Date(y, mm, 0).getDate()).padStart(2, '0');
+  const hoje = new Date(); const padrao = finMesKey(hoje) === FIN.mes ? hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0') : min;
+  const grupos = {};
+  lista.forEach(e => { const k = finMlSemanaChave(e.data); (grupos[k] = grupos[k] || []).push(e); });
+  const linhas = Object.keys(grupos).sort().map(k => {
+    const itens = grupos[k]; const sub = round2(itens.reduce((s, e) => s + (Number(e.valor) || 0), 0));
+    return `<div class="fx-ml-sem"><span>${finMlSemanaRotulo(k, FIN.mes)}</span><b>${fmtBR(sub)}</b></div>` + itens.map(e => {
+      if (FIN.mlEditando === e.id && !dis) {
+        return `<div class="fx-ml-lin edit"><input class="input" type="date" id="fin-ml-ed-data" min="${min}" max="${max}" value="${escapeHtml(String(e.data || '').slice(0, 10))}"><input class="input" type="text" id="fin-ml-ed-desc" placeholder="Observação" value="${escapeHtml(e.desc || '')}"><span class="fx-campo"><i>R$</i><input class="fx-input" id="fin-ml-ed-valor" type="text" inputmode="decimal" value="${finNumFmt(e.valor)}" onkeydown="if(event.key==='Enter')finMlSalvarEdicao('${e.id}')"></span><span class="fx-ml-bts"><button type="button" class="btn btn-small btn-primary" onclick="finMlSalvarEdicao('${e.id}')">Salvar</button><button type="button" class="btn btn-small" onclick="FIN.mlEditando=null;finRenderMl()">Cancelar</button></span></div>`;
+      }
+      return `<div class="fx-ml-lin"><span class="fx-ml-data">${fmtDate(e.data)}</span><span class="fx-ml-desc">${escapeHtml(e.desc || '—')}</span><b>${fmtBR(e.valor)}</b><span class="fx-ml-bts">${dis ? '' : `<button type="button" class="fx-bt fx-bt-ic fx-bt-ed" onclick="FIN.mlEditando='${e.id}';finRenderMl()" title="Editar" aria-label="Editar">${pencilIconSvg()}</button><button type="button" class="fx-bt fx-bt-ic fx-bt-x" onclick="finMlRemover('${e.id}')" title="Excluir" aria-label="Excluir">${trashIconSvg()}</button>`}</span></div>`;
+    }).join('');
+  }).join('');
+  el.innerHTML = `
+    <div class="fx-rapido-tit"><b>Entradas Mercado Livre</b><span>Lance aqui o que caiu do Mercado Livre (em reais). Pode ter mais de uma entrada por semana — todas somam no mês. As vendas do ML só dão baixa no estoque.</span></div>
+    <div class="fx-ml-form">
+      <input class="input" type="date" id="fin-ml-data" min="${min}" max="${max}" value="${padrao}"${dis}>
+      <input class="input" id="fin-ml-desc" type="text" placeholder="Observação (opcional)"${dis} onkeydown="if(event.key==='Enter')finMlAdicionar()">
+      <span class="fx-campo"><i>R$</i><input class="fx-input" id="fin-ml-valor" type="text" inputmode="decimal" placeholder="0,00"${dis} onkeydown="if(event.key==='Enter')finMlAdicionar()"></span>
+      <button type="button" class="btn btn-primary"${dis} onclick="finMlAdicionar()">Adicionar</button>
+    </div>
+    ${lista.length ? `<div class="fx-ml-lista">${linhas}</div><div class="fx-ml-total"><span>Total de entradas em ${finMesLabel(FIN.mes)} · ${lista.length} lançamento${lista.length === 1 ? '' : 's'}</span><b>${fmtBR(total)}</b></div>` : '<div class="fx-ml-vazio">Nenhuma entrada do Mercado Livre lançada neste mês.</div>'}`;
+  if (FIN.mlEditando) { const f = document.getElementById('fin-ml-ed-valor'); if (f && !f.dataset.foc) { f.dataset.foc = '1'; f.focus(); f.select(); } }
+}
+function finMlAdicionar() {
+  if (finFechado()) { alert('Este mês está fechado. Reabra para lançar.'); return; }
+  const data = document.getElementById('fin-ml-data').value;
+  const desc = document.getElementById('fin-ml-desc').value.trim();
+  const valor = finParse(document.getElementById('fin-ml-valor').value);
+  if (!data) { document.getElementById('fin-ml-data').focus(); return; }
+  if (valor == null || valor === 0) { document.getElementById('fin-ml-valor').focus(); return; }
+  const m = finMes(FIN.mes, true);
+  if (!Array.isArray(m.ml_entradas)) m.ml_entradas = [];
+  m.ml_entradas.push({ id: finId(), data, desc, valor: round2(valor) });
+  finTocar(m); finAgendarSalvar(FIN.mes);
+  finRenderFechamento();
+  setTimeout(() => document.getElementById('fin-ml-valor')?.focus(), 30);
+}
+function finMlSalvarEdicao(id) {
+  if (finFechado()) return;
+  const m = finMes(FIN.mes); const e = m && (m.ml_entradas || []).find(x => x.id === id); if (!e) { FIN.mlEditando = null; finRenderMl(); return; }
+  const data = document.getElementById('fin-ml-ed-data').value;
+  const valor = finParse(document.getElementById('fin-ml-ed-valor').value);
+  if (!data || valor == null || valor === 0) { alert('Preencha a data e o valor.'); return; }
+  e.data = data; e.valor = round2(valor); e.desc = document.getElementById('fin-ml-ed-desc').value.trim();
+  FIN.mlEditando = null;
+  finTocar(m); finAgendarSalvar(FIN.mes);
+  finRenderFechamento();
+}
+function finMlRemover(id) {
+  if (finFechado()) return;
+  const m = finMes(FIN.mes); const e = m && (m.ml_entradas || []).find(x => x.id === id); if (!e) return;
+  if (!confirm('Excluir a entrada de ' + fmtBR(e.valor) + ' do dia ' + fmtDate(e.data) + '?')) return;
+  m.ml_entradas = m.ml_entradas.filter(x => x.id !== id);
+  finTocar(m); finAgendarSalvar(FIN.mes);
+  finRenderFechamento();
 }
 function finVaEditar(chave) { FIN.vaEditando = chave; finRenderVendasAuto(); }
 function finVaSalvar(chave, txt, auto) {
@@ -20874,6 +21007,7 @@ function computeMensal() {
       map[key] = (map[key] || 0) + entry.valor;
     });
   });
+  mlEntradasTodas().forEach(e => { map[e.mes] = (map[e.mes] || 0) + e.valor; });
   return Object.keys(map).sort().map(k => ({ mes: k, fat: map[k] }));
 }
 
@@ -21013,7 +21147,11 @@ function saleAnotadoSaldoDevedor(venda) {
 function saleAnotadoQuitado(venda) {
   return saleAnotadoSaldoDevedor(venda) <= 0.009;
 }
+// Venda do Mercado Livre: só mexe no estoque (e no custo da mercadoria). O dinheiro dela entra pelas
+// "Entradas Mercado Livre" lançadas na aba Financeiro > Fechamento do mês.
+function saleIsML(venda) { return /mercado\s*livre/i.test((venda && venda.pagamento) || ''); }
 function saleCountsInRevenue(venda) {
+  if (saleIsML(venda)) return false;
   if (saleIsBoleto(venda)) return saleBoletoPago(venda);
   if (saleIsAnotado(venda)) return false; // conta via saleRevenueEntries, por pagamento — nunca como valor único
   return true;
@@ -21024,6 +21162,7 @@ function saleCountsInRevenue(venda) {
 // uma na sua própria data — por isso uma venda anotada paga em partes pode contar em vários
 // meses diferentes.
 function saleRevenueEntries(venda) {
+  if (saleIsML(venda)) return [];
   if (saleIsBoleto(venda)) {
     if (!saleBoletoPago(venda)) return [];
     return [{ data: saleRevenueDate(venda), valor: saleBoletoValorTotal(venda) }];
@@ -25958,7 +26097,7 @@ function reportValidSales() {
   return (state.vendas || []).filter(v => v && v.data).map(v => ({
     ...v,
     _date: dateOnly(v.data) || new Date(v.data),
-    _valor: parseFloat(v.valor) || 0
+    _valor: saleIsML(v) ? 0 : (parseFloat(v.valor) || 0)
   })).filter(v => v._date && !Number.isNaN(v._date.getTime()));
 }
 
@@ -26133,6 +26272,7 @@ function reportMonthlyProductAroma(sales) {
 
 function renderRelatorios() {
   normalizeSellerNames();
+  if (isAdminUser() && !FIN.carregado && !renderRelatorios._fin) { renderRelatorios._fin = true; loadFinStore().then(() => renderRelatorios()).catch(() => {}); }
 
   const sales = reportValidSales();
   const totalFat = sales.reduce((sum, v) => sum + v._valor, 0);
