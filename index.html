@@ -11977,6 +11977,8 @@ body.theme-dark .fx-legenda .fx-leg-ed b { color: #FFD68A; } body.theme-dark .fx
 .saude-itens{ margin-top:10px; display:flex; flex-direction:column; gap:2px; }
 .saude-item{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 10px; border-radius:8px; font-size:13px; background:rgba(127,127,127,.06); }
 .saude-item span{ min-width:0; overflow-wrap:anywhere; }
+.saude-link{ cursor:pointer; flex:1; } .saude-link:hover{ text-decoration:underline; text-underline-offset:3px; } .saude-link:focus-visible{ outline:2px solid var(--text-2); outline-offset:2px; border-radius:4px; }
+.saude-seta{ font-style:normal; color:var(--text-2); font-size:12px; margin-left:4px; }
 .saude-acoes{ display:inline-flex; gap:6px; flex:0 0 auto; }
 .saude-topo{ cursor:pointer; user-select:none; }
 .saude-min{ border:0 !important; background:none !important; box-shadow:none !important; padding:0 4px !important; min-height:0 !important; font-size:15px; color:var(--text-2); cursor:pointer; }
@@ -27137,10 +27139,22 @@ function copiarResumoPrecificacaoUnitaria() {
 const SAUDE_CORTE_ESTOQUE_PADRAO = '2026-08-12';
 function saudeId(v) { return (state.vendasLojista.includes(v) ? 'L' : '') + (v.numeroVenda || '—'); }
 function saudeVendas() { return [...state.vendas, ...state.vendasLojista]; }
+function saudeAbrirVenda(id, origem) {
+  if (!findVendaAny(id)) { alert('Não encontrei essa venda (ela pode ter sido excluída).'); return; }
+  try { abrirVendaOrigem(id, origem); } catch (e) { console.warn('Saúde: não consegui abrir a venda', e); }
+}
 function saudeDiasAtras(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
 function gsoAuditoria() {
   const out = [];
-  const add = (id, nivel, titulo, detalhe, itens) => { if (itens && itens.length) out.push({ id, nivel, titulo, detalhe, itens }); };
+  // Cada aviso que cita "Venda 1234" / "Venda L12" ganha o vínculo com a venda, pra abrir com um clique.
+  const acharVenda = txt => {
+    const m = String(txt || '').match(/Venda (L?)(\d+)/); if (!m) return null;
+    const lista = m[1] ? state.vendasLojista : state.vendas;
+    const cand = lista.filter(v => String(v.numeroVenda) === m[2]);
+    const v = cand.find(c => c.cliente && String(txt).includes(c.cliente)) || cand[0];
+    return v ? { vendaId: v.id, origem: m[1] ? 'vendasLojista' : 'vendas' } : null;
+  };
+  const add = (id, nivel, titulo, detalhe, itens) => { if (itens && itens.length) { itens.forEach(it => { if (!it.vendaId) Object.assign(it, acharVenda(it.txt) || {}); }); out.push({ id, nivel, titulo, detalhe, itens }); } };
   const vendas = saudeVendas();
   const dia = v => String(v.data || '').slice(0, 10);
   const insumos = (window.Lab && Lab.state && Lab.state.insumos) || [];
@@ -27321,7 +27335,7 @@ function saudePintar(problemas) {
       </div>
       <div class="saude-corpo">
         <div class="card-sub">${escapeHtml(p.detalhe)}</div>
-        <div class="saude-itens">${p.itens.map(it => { saudeChaves.push(saudeChave(p, it)); const idx = saudeChaves.length - 1; return `<div class="saude-item"><span class="saude-txt">${escapeHtml(it.txt)}</span>${(it.acoes || (it.acao ? [it.acao] : [])).length ? `<span class="saude-acoes">${(it.acoes || [it.acao]).map(a => `<button class="btn btn-small${a.neutro ? '' : ' btn-primary'}" onclick="${a.fn}">${escapeHtml(a.label)}</button>`).join('')}</span>` : ''}<button type="button" class="saude-x" onclick="saudeDispensar(${idx})" title="Dispensar este aviso" aria-label="Dispensar este aviso">✕</button></div>`; }).join('')}</div>
+        <div class="saude-itens">${p.itens.map(it => { saudeChaves.push(saudeChave(p, it)); const idx = saudeChaves.length - 1; return `<div class="saude-item"><span class="saude-txt${it.vendaId ? ' saude-link' : ''}"${it.vendaId ? ` role="link" tabindex="0" title="Abrir esta venda" onclick="saudeAbrirVenda('${it.vendaId}','${it.origem}')" onkeydown="if(event.key==='Enter')saudeAbrirVenda('${it.vendaId}','${it.origem}')"` : ''}>${escapeHtml(it.txt)}${it.vendaId ? ' <i class="saude-seta">↗</i>' : ''}</span>${(it.acoes || (it.acao ? [it.acao] : [])).length ? `<span class="saude-acoes">${(it.acoes || [it.acao]).map(a => `<button class="btn btn-small${a.neutro ? '' : ' btn-primary'}" onclick="${a.fn}">${escapeHtml(a.label)}</button>`).join('')}</span>` : ''}<button type="button" class="saude-x" onclick="saudeDispensar(${idx})" title="Dispensar este aviso" aria-label="Dispensar este aviso">✕</button></div>`; }).join('')}</div>
       </div>
     </div>`; }).join('');
     saudeLigarArrastar();
