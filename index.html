@@ -14398,7 +14398,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <span class="alex-conf" id="alex-conf"></span>
         </div>
         <div class="fx-grid">
-          <div class="fx-card"><div class="card-title">Extrato</div><div class="card-sub">Tudo em ordem de data, com o saldo que ele devia depois de cada lançamento. Entregas somam, pagamentos descontam.</div><div id="alex-extrato" style="margin-top:12px"></div></div>
+          <div class="fx-card"><div class="card-title">Extrato</div><div class="card-sub">Do mais recente para o mais antigo, com o saldo que ele devia depois de cada lançamento. Entregas somam, pagamentos descontam.</div><div id="alex-extrato" style="margin-top:12px"></div></div>
           <div class="fx-lateral">
             <div class="fx-card" id="alex-produtos"></div>
             <div class="fx-card" id="alex-refs"></div>
@@ -19186,8 +19186,9 @@ function alexRender() {
   // extrato agrupado por mês
   const linhas = alexLinhas(d); let html = '', mesAtual = null;
   const grupos = {}; linhas.forEach(e => { const m = e.tipo === 'saldo' ? 'saldo' : String(e.data).slice(0, 7); (grupos[m] = grupos[m] || []).push(e); });
-  Object.keys(grupos).sort((a, b) => a === 'saldo' ? -1 : (b === 'saldo' ? 1 : a.localeCompare(b))).forEach(m => {
-    const g = grupos[m];
+  // Mais recente por cima: mês atual primeiro, "Saldo de 2025" por último; dentro do mês, o lançamento mais novo primeiro.
+  Object.keys(grupos).sort((a, b) => a === 'saldo' ? 1 : (b === 'saldo' ? -1 : b.localeCompare(a))).forEach(m => {
+    const g = grupos[m].slice().reverse();
     const entM = round2(g.filter(e => e.tipo === 'entrega').reduce((s, e) => s + e.x.valor, 0)), pagM = round2(g.filter(e => e.tipo === 'pagamento').reduce((s, e) => s + e.x.valor, 0));
     const fechado = alexMesFechado(m);
     html += `<div class="alex-mes" onclick="alexAlternarMes('${m}')" title="${fechado ? 'Mostrar' : 'Esconder'} os lançamentos deste mês"><b><i class="alex-seta">${fechado ? '▸' : '▾'}</i>${m === 'saldo' ? 'Saldo de 2025' : finMesLabel(m)}</b><span>${entM ? 'entregue ' + fmtBR(entM) : ''}${entM && pagM ? ' · ' : ''}${pagM ? 'pago ' + fmtBR(pagM) : ''}</span></div>`;
