@@ -11847,6 +11847,43 @@ body.theme-dark .fx-rapido-ok { color: #86D9A6; }
 .fx-ml-total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 2px 0; font-size: 13px; color: var(--text-2); }
 .fx-ml-total b { font-size: 18px; color: var(--text); }
 .fx-ml-vazio { margin-top: 10px; font-size: 13px; color: var(--text-2); }
+/* ---- Estoque do Laboratório: barra de ações compacta + sub-aba Compras ---- */
+.est-acoes { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.est-acoes .btn-small { font-size: 12.5px !important; padding: 6px 12px !important; min-height: 0 !important; height: auto !important; border-radius: 9px !important; }
+.est-menu { position: relative; }
+.est-menu summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; }
+.est-menu summary::-webkit-details-marker { display: none; }
+.est-menu-pop { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; min-width: 120px; background: var(--card, #fff); border: 1px solid var(--border, #D6D6D6); border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.18); padding: 5px; display: flex; flex-direction: column; }
+.est-menu-pop button { border: 0 !important; background: none !important; box-shadow: none !important; text-align: left; font: inherit; font-size: 13px; color: var(--text) !important; padding: 8px 10px !important; min-height: 0 !important; height: auto !important; border-radius: 7px !important; cursor: pointer; }
+.est-menu-pop button:hover { background: rgba(127,127,127,.14) !important; }
+.cmp-ajuda { margin: -2px 0 12px; max-width: 720px; }
+.cmp-card { border: 1px solid var(--border, #E2E2E2); border-radius: 12px; background: var(--card, #fff); margin-bottom: 8px; }
+.cmp-card summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 12px 16px; }
+.cmp-card summary::-webkit-details-marker { display: none; }
+.cmp-card[open] summary { border-bottom: 1px solid var(--border, #E8E8E8); }
+.cmp-data { font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; width: 78px; flex: 0 0 78px; }
+.cmp-forn { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.cmp-forn small { font-size: 12px; color: var(--text-2); font-weight: 400; }
+.cmp-resumo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmp-val { font-weight: 800; font-variant-numeric: tabular-nums; }
+.cmp-det { padding: 10px 16px 14px; }
+.cmp-tab { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cmp-tab th { text-align: left; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); padding: 4px 6px; }
+.cmp-tab td { padding: 6px; border-top: 1px solid var(--border, #EFEFEF); }
+.cmp-tab { background: transparent !important; box-shadow: none !important; border: 0 !important; border-radius: 0 !important; }
+.cmp-tab th, .cmp-tab td { text-align: left !important; background: transparent !important; }
+.cmp-tab th.num, .cmp-tab td.num { text-align: right !important; font-variant-numeric: tabular-nums; }
+.cmp-rodape { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px; }
+.cmp-rodape small { color: var(--text-2); }
+.cmp-cab { display: grid; grid-template-columns: 150px 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.cmp-itens-cab, .cmp-lin { display: grid; grid-template-columns: minmax(0, 1fr) 110px 130px 34px; gap: 8px; align-items: start; }
+.cmp-itens-cab { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); margin-bottom: 4px; }
+.cmp-lin { margin-bottom: 8px; }
+.cmp-tampa { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); margin-top: 4px; cursor: pointer; }
+.cmp-total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 2px; margin: 8px 0; border-top: 1px dashed var(--border, #D6D6D6); font-size: 13px; color: var(--text-2); }
+.cmp-total b { font-size: 20px; color: var(--text); }
+.cmp-erro { color: #B0322F; font-size: 13px; min-height: 0; margin-top: 8px; }
+@media (max-width: 640px) { .cmp-cab { grid-template-columns: minmax(0, 1fr); } .cmp-itens-cab { display: none; } .cmp-lin { grid-template-columns: minmax(0, 1fr) 90px 34px; } .cmp-lin-item { grid-column: 1 / -1; } .cmp-card summary { flex-wrap: wrap; } }
 /* ---- Demonstrativo do mês: blocos minimizáveis, linhas editáveis e menu de categoria ---- */
 .fd-bloco { background: var(--card, #fff); border: 1px solid var(--border, #E2E2E2); border-left-width: 5px; border-radius: 14px; margin-top: 14px; overflow: hidden; }
 .fd-demo-first, #fin-demonstrativo .fd-bloco:first-child { margin-top: 12px; }
@@ -11951,6 +11988,25 @@ body.theme-dark .fx-rapido-ok { color: #86D9A6; }
 .fx-mes-bar { margin-bottom: 22px; }
 .fx-kpis { gap: 16px; margin-bottom: 28px; }
 #fin-kpis.fx-kpis { display: block; margin-bottom: 22px; }
+.fx-res { background: var(--card, #fff); border: 1px solid var(--border, #E2E2E2); border-radius: 16px; padding: 16px 20px 14px; }
+.fx-res-tit { display: flex; flex-direction: column; gap: 3px; margin-bottom: 12px; }
+.fx-res-tit b { font-size: 15px; }
+.fx-res-tit span { font-size: 12.5px; color: var(--text-2); max-width: 820px; }
+.fx-res-grade { overflow-x: auto; }
+.fx-res-l { display: grid; grid-template-columns: minmax(170px, 1.3fr) repeat(4, minmax(110px, 1fr)); gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--border, #EDEDED); min-width: 640px; }
+.fx-res-l.cab { border-top: 0; padding: 0 0 4px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
+.fx-res-l.cab span, .fx-res-n { text-align: right; }
+.fx-res-rot { font-size: 13.5px; font-weight: 700; display: flex; flex-direction: column; gap: 1px; }
+.fx-res-rot small { font-size: 11px; font-weight: 400; color: var(--text-2); }
+.fx-res-n { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fx-res-l.eu .fx-res-n { font-size: 20px; }
+.fx-res-l.sis { background: rgba(127,127,127,.06); border-radius: 10px; padding: 8px 10px; margin: 0 -10px; }
+.fx-res-l.sis .fx-res-n { font-size: 15px; font-weight: 700; color: var(--text-2); }
+.fx-res-l.sis .fx-res-rot { font-weight: 600; color: var(--text-2); }
+.fx-res-n.pos { color: #1E6B3A !important; } .fx-res-n.neg { color: #B0322F !important; }
+.fx-res-rod { margin-top: 8px; font-size: 12px; color: var(--text-2); }
+.fx-eq-aviso.ok { background: rgba(30,107,58,.10); border-color: rgba(30,107,58,.35); }
+.fx-res .fx-eq-aviso { margin: 0 0 12px; }
 .fx-eq { display: flex; align-items: stretch; gap: 8px; }
 .fx-eq-i { flex: 1 1 0; min-width: 0; background: var(--card, #fff); border: 1px solid var(--border, #E2E2E2); border-radius: 12px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; }
 .fx-eq-i span { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
@@ -13130,15 +13186,21 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <div class="subtabs">
         <div class="subtab active" data-insumos-tab="estoque" onclick="Lab.switchInsumosTab('estoque')">Estoque</div>
         <div class="subtab" data-insumos-tab="receitas" onclick="Lab.switchInsumosTab('receitas')">Insumos</div>
+        <div class="subtab" data-insumos-tab="compras" onclick="Lab.switchInsumosTab('compras')">Compras</div>
       </div>
 
       <div id="insumos-tab-estoque">
-        <div class="h-actions" style="justify-content:flex-end;margin-bottom:14px;">
-          <button class="btn btn-soft" onclick="Lab.abrirEscolhaExport('excel')">Exportar Excel</button>
-          <button class="btn btn-soft" onclick="Lab.abrirEscolhaExport('pdf')">Exportar PDF</button>
-          <button class="btn btn-soft" onclick="Lab.openImportInsumosModal()">+ Importar em lote</button>
-          <button class="btn btn-soft" id="btn-contagem-fisica" onclick="Lab.abrirContagem()" data-tip="Conta o estoque de verdade e ajusta o do sistema">📋 Contagem física</button>
-          <button class="btn btn-primary" onclick="Lab.openInsumoModal()">+ Adicionar insumo</button>
+        <div class="est-acoes">
+          <details class="est-menu">
+            <summary class="btn btn-soft btn-small" title="Baixar a lista do estoque">Exportar ▾</summary>
+            <div class="est-menu-pop">
+              <button type="button" onclick="this.closest('details').removeAttribute('open');Lab.abrirEscolhaExport('excel')">Excel</button>
+              <button type="button" onclick="this.closest('details').removeAttribute('open');Lab.abrirEscolhaExport('pdf')">PDF</button>
+            </div>
+          </details>
+          <button class="btn btn-soft btn-small" onclick="Lab.openImportInsumosModal()" title="Cadastrar vários insumos de uma vez">Importar em lote</button>
+          <button class="btn btn-soft btn-small" id="btn-contagem-fisica" onclick="Lab.abrirContagem()" title="Conta o estoque de verdade e ajusta o do sistema">Contagem física</button>
+          <button class="btn btn-primary btn-small" onclick="Lab.openInsumoModal()">+ Adicionar insumo</button>
         </div>
         <div class="stats-bar" id="insumosStats"></div>
         <div class="search">
@@ -13175,6 +13237,43 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
             <thead><tr><th>Produto</th><th>Produto (estoque)</th><th>Garrafa</th><th>Tampa</th><th>Rótulo</th><th>Rótulo 2</th><th>Ativo</th><th>Ações</th></tr></thead>
             <tbody id="receitasTable"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ===== INNER TAB: COMPRAS ===== -->
+      <div id="view-compras" class="hidden">
+        <div class="est-acoes">
+          <button class="btn btn-primary btn-small" onclick="Lab.abrirCompra()">+ Registrar compra</button>
+        </div>
+        <div class="form-help cmp-ajuda">Registre aqui o que foi comprado: os itens entram no estoque na hora e o valor fica guardado. Se preferir, mande o PDF da compra no chat que eu lanço pra você.</div>
+        <div class="stats-bar" id="comprasStats"></div>
+        <div class="search">
+          <input class="input" id="compras-busca" placeholder="Buscar por fornecedor, item ou nota..." oninput="Lab.renderCompras()">
+          <select class="input" id="compras-mes" onchange="Lab.renderCompras()"></select>
+        </div>
+        <div id="comprasLista"></div>
+      </div>
+    </div>
+
+    <!-- ===== MODAL: REGISTRAR COMPRA ===== -->
+    <div class="modal-bg" id="modal-compra" onclick="if(event.target===this)Lab.closeModal('modal-compra')">
+      <div class="modal modal-wide" style="max-width:780px">
+        <div class="modal-title">Registrar compra</div>
+        <div class="form-help" style="margin:-4px 0 12px">Cada item entra no estoque assim que você registrar.</div>
+        <div class="cmp-cab">
+          <div><label class="form-label">Data da compra</label><input class="form-input" type="date" id="compra-data"></div>
+          <div><label class="form-label">Fornecedor</label><input class="form-input" id="compra-fornecedor" list="compra-fornecedores" placeholder="Quem vendeu"><datalist id="compra-fornecedores"></datalist></div>
+          <div><label class="form-label">Nota / pedido (opcional)</label><input class="form-input" id="compra-nf" placeholder="Nº da nota"></div>
+        </div>
+        <div class="cmp-itens-cab"><span>Item comprado</span><span>Quantidade</span><span>Valor total (R$)</span><span></span></div>
+        <div id="compra-itens"></div>
+        <button type="button" class="btn btn-small" onclick="Lab.compraAddLinha()">+ Adicionar item</button>
+        <div class="cmp-total"><span>Total da compra</span><b id="compra-total">R$ 0,00</b></div>
+        <div><label class="form-label">Observação (opcional)</label><input class="form-input" id="compra-obs" placeholder="ex.: frete incluso, pago no boleto..."></div>
+        <div id="compra-erro" class="cmp-erro"></div>
+        <div class="form-actions">
+          <button class="btn" onclick="Lab.closeModal('modal-compra')">Cancelar</button>
+          <button class="btn btn-primary" id="compra-salvar" onclick="Lab.salvarCompra()">Registrar e dar entrada no estoque</button>
         </div>
       </div>
     </div>
@@ -19600,24 +19699,32 @@ function finRenderKpis() {
   const ant = FIN.store.meses[finMesDelta(FIN.mes, -1)];
   const ca = ant ? finCalc(ant) : null;
   const neg = c.lucroLiquido < 0;
-  // Resumo em forma de conta: Receita − Custos − Despesas = Lucro líquido (cada parte explica o que contém).
-  const eqI = (rot, valor, sub, cls) => `<div class="fx-eq-i${cls ? ' ' + cls : ''}"><span>${rot}</span><strong>${valor}</strong><small>${sub || '&nbsp;'}</small></div>`;
-  const op = t => `<div class="fx-eq-op" aria-hidden="true">${t}</div>`;
+  let f = null;
+  try { f = finVendasAjustadas(FIN.mes); } catch (e) {}
+  const temSis = !!f && (f.fat > 0 || f.custosTotal > 0);
+  const num = (v, cls) => `<span class="fx-res-n${cls ? ' ' + cls : ''}">${fmtBR(v)}</span>`;
+  const sisLucro = temSis ? round2(f.fat - f.custosTotal - c.desp) : null;
   let aviso = '';
-  if (!finFechado()) {
-    try {
-      const f = finVendasDoMes(FIN.mes);
-      if (f.fat > 0 && Math.abs(c.receita - f.fat) > 0.5) {
-        aviso = `<div class="fx-eq-aviso"><span>${c.receita === 0 ? 'A receita deste mês ainda não foi preenchida, por isso o lucro aparece negativo.' : 'A receita preenchida difere das vendas recebidas calculadas pelo sistema.'} O sistema calculou <b>${fmtBR(f.fat)}</b> de vendas recebidas em ${finMesLabel(FIN.mes)}.</span><button type="button" class="btn btn-small btn-soft" onclick="finRenderVendasAuto();finUsarVendasAuto()">Usar valores do sistema</button></div>`;
-      }
-    } catch (e) {}
+  if (temSis && !finFechado()) {
+    const difs = [];
+    if (Math.abs(c.receita - f.fat) > 0.5) difs.push(`receita: preenchida <b>${fmtBR(c.receita)}</b> × sistema <b>${fmtBR(f.fat)}</b>`);
+    if (Math.abs(c.custos - f.custosTotal) > 0.5) difs.push(`custos: preenchidos <b>${fmtBR(c.custos)}</b> × sistema <b>${fmtBR(f.custosTotal)}</b>`);
+    aviso = difs.length
+      ? `<div class="fx-eq-aviso"><span>O demonstrativo ainda não bate com as vendas — ${difs.join(' · ')}. ${c.custos < f.custosTotal - 0.5 ? 'Como os custos estão menores no demonstrativo, o lucro líquido aparece maior do que o real. ' : ''}Com os valores do sistema o lucro líquido seria <b>${fmtBR(sisLucro)}</b>.</span><button type="button" class="btn btn-small btn-soft" onclick="finUsarVendasAuto()">Usar valores do sistema no demonstrativo</button></div>`
+      : `<div class="fx-eq-aviso ok"><span>✔ O demonstrativo está batendo com o cálculo do sistema.</span></div>`;
   }
-  el.innerHTML = aviso + `<div class="fx-eq">` +
-    eqI('Receita', fmtBR(c.receita), 'vendas + outras receitas' + (ca && ca.temDados && finVariacaoTexto(c.receita, ca.receita, 'vs mês anterior') ? ' · ' + finVariacaoTexto(c.receita, ca.receita, 'vs mês anterior') : '')) + op('−') +
-    eqI('Custos', fmtBR(c.custos), 'produtos, impostos, taxas e fretes') + op('−') +
-    eqI('Despesas', fmtBR(c.desp), 'categorias lançadas abaixo') + op('=') +
-    eqI('Lucro líquido', fmtBR(c.lucroLiquido), (c.margem != null ? 'margem ' + finPct(c.margem) + ' · ' : '') + (c.llManual ? 'ajustado por você' : 'calculado') + (ca && ca.temDados ? ' · ' + finVariacaoTexto(c.lucroLiquido, ca.lucroLiquido, 'vs anterior') : ''), 'fx-eq-res ' + (neg ? 'fx-neg' : 'fx-pos')) +
-    `</div>`;
+  const linhaSis = temSis ? `
+      <div class="fx-res-l sis"><span class="fx-res-rot">Sistema calculou<small>pelas vendas do mês</small></span>${num(f.fat)}${num(f.custosTotal)}${num(c.desp)}${num(sisLucro, sisLucro < 0 ? 'neg' : 'pos')}</div>` : '';
+  el.innerHTML = `<div class="fx-res">
+    <div class="fx-res-tit"><b>Resultado de ${finMesLabel(FIN.mes)}</b><span>Receita − Custos − Despesas = Lucro líquido. A primeira linha é o que está preenchido no demonstrativo (é ela que vale); a segunda é a conta feita pelo sistema com as vendas, para você conferir.</span></div>
+    ${aviso}
+    <div class="fx-res-grade">
+      <div class="fx-res-l cab"><span class="fx-res-rot"></span><span>Receita</span><span>− Custos</span><span>− Despesas</span><span>= Lucro líquido</span></div>
+      <div class="fx-res-l eu"><span class="fx-res-rot">Você preencheu<small>demonstrativo abaixo</small></span>${num(c.receita)}${num(c.custos)}${num(c.desp)}${num(c.lucroLiquido, 'res ' + (neg ? 'neg' : 'pos'))}</div>
+      ${linhaSis}
+    </div>
+    <div class="fx-res-rod">${c.margem != null ? 'Margem líquida ' + finPct(c.margem) + ' · ' : ''}${c.llManual ? 'lucro ajustado por você' : 'lucro calculado'}${ca && ca.temDados && finVariacaoTexto(c.lucroLiquido, ca.lucroLiquido, 'vs mês anterior') ? ' · ' + finVariacaoTexto(c.lucroLiquido, ca.lucroLiquido, 'vs mês anterior') : ''}</div>
+  </div>`;
   finRenderIndicadores();
   const info = document.getElementById('fin-mes-info');
   if (info) info.textContent = m && m.em ? 'Última alteração: ' + new Date(m.em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + (m.por ? ' por ' + m.por : '') : '';
@@ -20119,24 +20226,30 @@ function finVendasDoMes(mes) {
 }
 function finVendasAutoColapsado() { try { return localStorage.getItem('gso_fin_vendas_auto_colapsado') === '1'; } catch (e) { return false; } }
 function finVendasAutoAlternar() { try { localStorage.setItem('gso_fin_vendas_auto_colapsado', finVendasAutoColapsado() ? '0' : '1'); } catch (e) {} finRenderVendasAuto(); }
+// Vendas do mês já com os ajustes manuais deste mês aplicados (os mesmos números do bloco "Vendas do mês").
+function finVendasAjustadas(mes) {
+  const r = finVendasDoMes(mes);
+  const mAj = finMes(mes) || {};
+  r.auto = { fat: r.fat, custo: r.custo, fiscal: r.fiscal, taxas: round2(r.taxasML + r.fretesML) };
+  const man = k => mAj[k] != null;
+  if (man('va_fat_manual')) r.fat = Number(mAj.va_fat_manual);
+  if (man('va_custo_manual')) r.custo = Number(mAj.va_custo_manual);
+  if (man('va_fiscal_manual')) r.fiscal = Number(mAj.va_fiscal_manual);
+  if (man('va_taxas_manual')) { r.taxasML = Number(mAj.va_taxas_manual); r.fretesML = 0; }
+  r.taxasTotal = round2(r.taxasML + r.fretesML);
+  r.custosTotal = round2(r.custo + r.fiscal + r.taxasTotal);
+  r.autoLucro = round2(r.fat - r.custo - r.fiscal - r.taxasTotal);
+  r.lucroBruto = man('va_lucro_manual') ? Number(mAj.va_lucro_manual) : r.autoLucro;
+  r.margem = r.fat > 0 ? round2(r.lucroBruto / r.fat * 100) : null;
+  return r;
+}
 function finRenderVendasAuto() {
   const el = document.getElementById('fin-vendas-auto'); if (!el) return;
   let r;
-  try { r = finVendasDoMes(FIN.mes); } catch (err) { el.innerHTML = '<div class="card-title">Vendas do mês</div><div class="card-sub">Não consegui calcular: ' + escapeHtml(String(err && err.message || err)) + '</div>'; return; }
-  // Custo e impostos podem ser ajustados à mão (valem só para este mês); o lucro bruto acompanha.
+  try { r = finVendasAjustadas(FIN.mes); } catch (err) { el.innerHTML = '<div class="card-title">Vendas do mês</div><div class="card-sub">Não consegui calcular: ' + escapeHtml(String(err && err.message || err)) + '</div>'; return; }
   const mAj = finMes(FIN.mes) || {};
-  // Todos os blocos podem ser ajustados à mão (valem só para este mês); o lucro bruto acompanha, a menos que ele mesmo seja ajustado.
-  r.auto = { fat: r.fat, custo: r.custo, fiscal: r.fiscal, taxas: round2(r.taxasML + r.fretesML) };
   const man = k => mAj[k] != null;
   const cMan = man('va_custo_manual'), fMan = man('va_fiscal_manual'), rMan = man('va_fat_manual'), tMan = man('va_taxas_manual'), lMan = man('va_lucro_manual');
-  if (rMan) r.fat = Number(mAj.va_fat_manual);
-  if (cMan) r.custo = Number(mAj.va_custo_manual);
-  if (fMan) r.fiscal = Number(mAj.va_fiscal_manual);
-  if (tMan) { r.taxasML = Number(mAj.va_taxas_manual); r.fretesML = 0; }
-  r.taxasTotal = round2(r.taxasML + r.fretesML);
-  r.autoLucro = round2(r.fat - r.custo - r.fiscal - r.taxasTotal);
-  r.lucroBruto = lMan ? Number(mAj.va_lucro_manual) : r.autoLucro;
-  r.margem = r.fat > 0 ? round2(r.lucroBruto / r.fat * 100) : null;
   FIN.vendasAuto = r;
   const colapsado = finVendasAutoColapsado();
   const chip = (rot, valor, cls, sub) => `<div class="fx-kpi ${cls || ''}"><span>${rot}</span><strong>${valor}</strong><small>${sub || '&nbsp;'}</small></div>`;
@@ -20155,8 +20268,8 @@ function finRenderVendasAuto() {
   el.innerHTML = `
     <div class="fx-va-topo" onclick="finVendasAutoAlternar()">
       <button type="button" class="saude-min" aria-label="Minimizar">${colapsado ? '▸' : '▾'}</button>
-      <div><div class="card-title">Vendas do mês <span class="fx-badge auto">automático</span></div>
-      <div class="card-sub">O que foi recebido em ${finMesLabel(FIN.mes)} (clientes e lojistas — boleto e fiado só contam quando pagos — mais as entradas do Mercado Livre lançadas abaixo) e o lucro bruto disso. As vendas do Mercado Livre só entram aqui com o custo da mercadoria.</div></div>
+      <div><div class="card-title">Como o sistema calculou as vendas <span class="fx-badge auto">automático</span></div>
+      <div class="card-sub">É daqui que vem a linha “Sistema calculou” do resumo acima. Receita = vendas recebidas (boleto e fiado só quando pagos) + entradas do Mercado Livre. Custos = produtos + impostos + taxas. Use o lápis para ajustar um valor.</div></div>
     </div>
     <div class="fx-va-corpo${colapsado ? ' hidden' : ''}">
       <div class="fx-kpis fx-va-kpis">
@@ -20268,7 +20381,7 @@ function finVaSalvar(chave, txt, auto) {
   finTocar(m); finAgendarSalvar(FIN.mes); finRenderVendasAuto();
 }
 function finUsarVendasAuto() {
-  const r = FIN.vendasAuto; if (!r) return;
+  let r; try { r = finVendasAjustadas(FIN.mes); } catch (e) { return; }
   const m = finMes(FIN.mes, true);
   const todosCampos = [['receita_vendas', r.fat, 'Faturamento de vendas'], ['cmv', r.custo, 'Custo dos produtos vendidos'], ['impostos', r.fiscal, 'Impostos sobre vendas'], ['taxas', r.taxasML, 'Taxas de cartão e marketplace'], ['fretes', r.fretesML, 'Fretes das vendas']];
   const campos = todosCampos.filter(([k]) => finTemLinha(k));
@@ -35287,8 +35400,10 @@ function switchInsumosTab(tab) {
   document.querySelectorAll('#view-insumos .subtabs .subtab').forEach(el => el.classList.toggle('active', el.dataset.insumosTab === tab));
   document.getElementById('insumos-tab-estoque').classList.toggle('hidden', tab !== 'estoque');
   document.getElementById('view-receitas').classList.toggle('hidden', tab !== 'receitas');
+  document.getElementById('view-compras').classList.toggle('hidden', tab !== 'compras');
   if (tab === 'estoque') renderInsumos();
   if (tab === 'receitas') renderReceitas();
+  if (tab === 'compras') { renderCompras(); loadCompras().then(renderCompras); }
 }
 
 // ============ DATA LOADING ============
@@ -37207,6 +37322,199 @@ async function contagemRevisar() {
   alert('✅ ' + ok + ' ajuste(s) aplicado(s).' + (erros.length ? '\n\nNão consegui ajustar:\n' + erros.join('\n') : ''));
 }
 
+// ============ COMPRAS (sub-aba de Estoque) ============
+// Cada compra registrada dá ENTRADA no estoque dos itens (mesma RPC das entradas manuais) e fica guardada, com
+// os valores, na linha "compras_lab_v1" da tabela gso_calc_store — vale em qualquer computador.
+const COMPRAS_STORE_ID = 'compras_lab_v1';
+async function comprasLerRemoto() {
+  const client = getSupabaseClient();
+  const { data, error } = await client.from('gso_calc_store').select('data').eq('id', COMPRAS_STORE_ID).maybeSingle();
+  if (error) throw error;
+  return (data && data.data && Array.isArray(data.data.compras)) ? data.data.compras : [];
+}
+async function loadCompras() {
+  try { state.compras = await comprasLerRemoto(); } catch (e) { console.warn('Compras: não consegui ler', e.message || e); state.compras = state.compras || []; }
+}
+// Lê o que está gravado, aplica a mudança e grava de volta (duas pessoas lançando compras não se atropelam).
+async function comprasGravar(mutador) {
+  const client = getSupabaseClient();
+  const lista = await comprasLerRemoto();
+  mutador(lista);
+  const { error } = await client.from('gso_calc_store').upsert({ id: COMPRAS_STORE_ID, data: { versao: 1, compras: lista }, updated_at: new Date().toISOString() });
+  if (error) throw error;
+  state.compras = lista;
+}
+function compraDataBR(d) { const p = String(d || '').slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : '—'; }
+function compraTotalItens(itens) { return Math.round((itens || []).reduce((t, i) => t + (Number(i.valor) || 0), 0) * 100) / 100; }
+
+function renderCompras() {
+  const lista = (state.compras || []).slice().sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')) || String(b.criadoEm || '').localeCompare(String(a.criadoEm || '')));
+  const selMes = document.getElementById('compras-mes');
+  if (selMes) {
+    const atual = selMes.value;
+    const meses = [...new Set(lista.map(c => String(c.data || '').slice(0, 7)).filter(Boolean))];
+    selMes.innerHTML = '<option value="">Todos os meses</option>' + meses.map(m => `<option value="${m}"${m === atual ? ' selected' : ''}>${m.slice(5)}/${m.slice(0, 4)}</option>`).join('');
+  }
+  const mes = selMes ? selMes.value : '';
+  const busca = (document.getElementById('compras-busca')?.value || '').toLowerCase();
+  const visiveis = lista.filter(c => (!mes || String(c.data || '').startsWith(mes)) &&
+    (!busca || [c.fornecedor, c.nf, c.obs].concat((c.itens || []).map(i => i.titulo)).some(v => String(v || '').toLowerCase().includes(busca))));
+  const hoje = new Date().toISOString().slice(0, 7);
+  const doMes = lista.filter(c => String(c.data || '').startsWith(hoje));
+  const stats = document.getElementById('comprasStats');
+  if (stats) stats.innerHTML = `
+    <div class="stat-card"><div class="stat-label">Compras no mês</div><div class="stat-value">${doMes.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Gasto no mês</div><div class="stat-value">R$ ${fmtBR(doMes.reduce((t, c) => t + (Number(c.total) || 0), 0))}</div></div>
+    <div class="stat-card"><div class="stat-label">Total listado</div><div class="stat-value">R$ ${fmtBR(visiveis.reduce((t, c) => t + (Number(c.total) || 0), 0))}</div></div>`;
+  const cont = document.getElementById('comprasLista');
+  if (!cont) return;
+  if (!visiveis.length) { cont.innerHTML = `<div class="card table-empty">${lista.length ? 'Nenhuma compra encontrada.' : 'Nenhuma compra registrada ainda. Use "+ Registrar compra".'}</div>`; return; }
+  cont.innerHTML = visiveis.map(c => {
+    const itens = c.itens || [];
+    const resumo = itens.slice(0, 3).map(i => `${fmtNum(i.qtd)}× ${escapeHtml(i.titulo)}`).join(', ') + (itens.length > 3 ? ` e mais ${itens.length - 3}` : '');
+    const semEntrada = itens.some(i => i.entrou === false);
+    return `<details class="cmp-card">
+      <summary>
+        <span class="cmp-data">${compraDataBR(c.data)}</span>
+        <span class="cmp-forn"><b>${escapeHtml(c.fornecedor || 'Sem fornecedor')}</b>${c.nf ? ` <small>· nota ${escapeHtml(c.nf)}</small>` : ''}<small class="cmp-resumo">${resumo}</small></span>
+        <span class="cmp-val">R$ ${fmtBR(c.total)}</span>
+      </summary>
+      <div class="cmp-det">
+        <table class="cmp-tab"><thead><tr><th>Item</th><th class="num">Qtd</th><th class="num">Valor unit.</th><th class="num">Valor total</th></tr></thead><tbody>
+        ${itens.map(i => `<tr><td>${escapeHtml(i.titulo)}${i.tampaQtd ? `<small> + ${fmtNum(i.tampaQtd)} tampas</small>` : ''}${i.entrou === false ? ' <span class="pill pill-red">sem entrada no estoque</span>' : ''}</td><td class="num">${fmtNum(i.qtd)} ${escapeHtml(i.unidade || '')}</td><td class="num">R$ ${fmtBR(Number(i.qtd) > 0 ? (Number(i.valor) || 0) / Number(i.qtd) : 0)}</td><td class="num">R$ ${fmtBR(i.valor)}</td></tr>`).join('')}
+        </tbody></table>
+        ${c.obs ? `<div class="form-help">${escapeHtml(c.obs)}</div>` : ''}
+        <div class="cmp-rodape"><small>Lançada por ${escapeHtml(c.criadoPor || '—')}${c.criadoEm ? ' em ' + new Date(c.criadoEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}${semEntrada ? ' · há itens que não entraram no estoque' : ''}</small>
+        <button class="btn btn-small btn-danger" onclick="Lab.excluirCompra('${c.id}')">Excluir compra</button></div>
+      </div>
+    </details>`;
+  }).join('');
+}
+
+function compraOpcoesInsumos() {
+  const ativos = state.insumos.filter(i => i.ativo !== false);
+  const porTipo = {};
+  ativos.forEach(i => { (porTipo[tipoLabel(i.tipo)] = porTipo[tipoLabel(i.tipo)] || []).push(i); });
+  return '<option value="">Escolha o item…</option>' + Object.keys(porTipo).sort().map(t =>
+    `<optgroup label="${escapeHtml(t)}">${porTipo[t].sort((a, b) => String(a.titulo).localeCompare(String(b.titulo), 'pt-BR')).map(i => `<option value="${escapeHtml(i.id)}">${escapeHtml(i.titulo)}</option>`).join('')}</optgroup>`).join('');
+}
+function compraLinhaHtml() {
+  return `<div class="cmp-lin">
+    <div class="cmp-lin-item"><select class="form-input cmp-insumo" onchange="Lab.compraLinhaMudou(this)">${compraOpcoesInsumos()}</select>
+      <label class="cmp-tampa hidden"><input type="checkbox" class="cmp-tampa-chk" checked> entrar as tampas junto</label></div>
+    <input class="form-input cmp-qtd" type="text" inputmode="decimal" placeholder="0" oninput="Lab.compraRecalc()">
+    <input class="form-input cmp-valor" type="text" inputmode="decimal" placeholder="0,00" oninput="Lab.compraRecalc()">
+    <button type="button" class="btn btn-small" title="Remover item" onclick="Lab.compraRemoverLinha(this)">✕</button>
+  </div>`;
+}
+function compraAddLinha() { document.getElementById('compra-itens').insertAdjacentHTML('beforeend', compraLinhaHtml()); }
+function compraRemoverLinha(btn) {
+  const wrap = document.getElementById('compra-itens');
+  if (wrap.querySelectorAll('.cmp-lin').length > 1) btn.closest('.cmp-lin').remove();
+  compraRecalc();
+}
+function compraLinhaMudou(sel) {
+  const lin = sel.closest('.cmp-lin');
+  const item = state.insumos.find(i => i.id === sel.value);
+  lin.querySelector('.cmp-tampa').classList.toggle('hidden', !(ehGarrafaComTampa(item) && insumoTampaDasGarrafas()));
+}
+function compraRecalc() {
+  const total = [...document.querySelectorAll('#compra-itens .cmp-valor')].reduce((t, i) => t + (finParse(i.value) || 0), 0);
+  document.getElementById('compra-total').textContent = 'R$ ' + fmtBR(Math.round(total * 100) / 100);
+}
+function abrirCompra() {
+  if (!state.insumos.length) { alert('Cadastre os insumos antes de registrar uma compra.'); return; }
+  document.getElementById('compra-data').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('compra-fornecedor').value = '';
+  document.getElementById('compra-nf').value = '';
+  document.getElementById('compra-obs').value = '';
+  document.getElementById('compra-erro').textContent = '';
+  document.getElementById('compra-fornecedores').innerHTML = [...new Set(state.insumos.map(i => i.fornecedor).concat((state.compras || []).map(c => c.fornecedor)).filter(Boolean))].sort().map(f => `<option value="${escapeHtml(f)}">`).join('');
+  document.getElementById('compra-itens').innerHTML = '';
+  compraAddLinha(); compraRecalc();
+  const modal = document.getElementById('modal-compra');
+  if (modal && modal.parentNode !== document.body) document.body.appendChild(modal);
+  openModal('modal-compra');
+}
+// dados: { data, fornecedor, nf, obs, itens: [{ insumoId, qtd, valor, tampaJunto }] } — usado pelo formulário e também
+// para lançar uma compra a partir de um PDF (sem digitar nada).
+async function registrarCompra(dados) {
+  const client = getSupabaseClient();
+  const itens = (dados.itens || []).filter(i => i.insumoId && Number(i.qtd) > 0);
+  if (!itens.length) throw new Error('Inclua pelo menos um item com quantidade.');
+  const data = dados.data || new Date().toISOString().slice(0, 10);
+  const fornecedor = (dados.fornecedor || '').trim(), nf = (dados.nf || '').trim();
+  const origem = 'Compra' + (fornecedor ? ' — ' + fornecedor : '') + (nf ? ' (nota ' + nf + ')' : '') + ' · ' + compraDataBR(data);
+  const tampa = insumoTampaDasGarrafas();
+  const falhas = [];
+  const gravados = [];
+  for (const it of itens) {
+    const ins = state.insumos.find(i => i.id === it.insumoId);
+    if (!ins) { falhas.push('Item não encontrado no estoque'); continue; }
+    const qtd = Number(it.qtd);
+    const reg = { insumoId: ins.id, titulo: ins.titulo, unidade: ins.unidade || 'un', qtd, valor: Math.round((Number(it.valor) || 0) * 100) / 100, entrou: true };
+    const r = await client.rpc('gso_ajustar_insumo', { p_insumo_id: ins.id, p_tipo: 'entrada', p_quantidade: qtd, p_origem: origem });
+    if (r.error) { reg.entrou = false; falhas.push(ins.titulo + ': ' + r.error.message); }
+    else if (it.tampaJunto && ehGarrafaComTampa(ins) && tampa) {
+      const r2 = await client.rpc('gso_ajustar_insumo', { p_insumo_id: tampa.id, p_tipo: 'entrada', p_quantidade: qtd, p_origem: origem + ' — junto com ' + ins.titulo });
+      if (r2.error) falhas.push('Tampas de ' + ins.titulo + ': ' + r2.error.message); else { reg.tampaId = tampa.id; reg.tampaQtd = qtd; }
+    }
+    gravados.push(reg);
+  }
+  const compra = { id: 'cp_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), data, fornecedor, nf, obs: (dados.obs || '').trim(), itens: gravados, total: compraTotalItens(gravados), criadoPor: currentUserName(), criadoEm: new Date().toISOString() };
+  try { await comprasGravar(lista => lista.push(compra)); }
+  catch (e) { await loadInsumos(); renderInsumos(); throw new Error('O estoque já recebeu os itens, mas não consegui guardar a compra: ' + (e.message || e)); }
+  try { await loadInsumos(); renderInsumos(); } catch (e) { console.warn(e); }
+  renderCompras();
+  return { compra, falhas };
+}
+async function salvarCompra() {
+  const erro = document.getElementById('compra-erro'); erro.textContent = '';
+  const itens = [];
+  for (const lin of document.querySelectorAll('#compra-itens .cmp-lin')) {
+    const insumoId = lin.querySelector('.cmp-insumo').value;
+    const qtd = finParse(lin.querySelector('.cmp-qtd').value) || 0;
+    const valor = finParse(lin.querySelector('.cmp-valor').value) || 0;
+    if (!insumoId && !qtd && !valor) continue;
+    if (!insumoId) { erro.textContent = 'Escolha o item em todas as linhas (ou remova a linha vazia).'; return; }
+    if (qtd <= 0) { erro.textContent = 'Informe a quantidade de cada item.'; return; }
+    itens.push({ insumoId, qtd, valor, tampaJunto: !!lin.querySelector('.cmp-tampa-chk')?.checked });
+  }
+  if (!itens.length) { erro.textContent = 'Inclua pelo menos um item.'; return; }
+  const btn = document.getElementById('compra-salvar'); btn.disabled = true;
+  try {
+    const r = await registrarCompra({ data: document.getElementById('compra-data').value, fornecedor: document.getElementById('compra-fornecedor').value, nf: document.getElementById('compra-nf').value, obs: document.getElementById('compra-obs').value, itens });
+    closeModal('modal-compra');
+    if (r.falhas.length) alert('Compra registrada, mas alguns itens não entraram no estoque:\n\n' + r.falhas.join('\n'));
+  } catch (e) { erro.textContent = e.message || String(e); }
+  btn.disabled = false;
+}
+async function excluirCompra(id) {
+  const c = (state.compras || []).find(x => x.id === id); if (!c) return;
+  const entrados = (c.itens || []).filter(i => i.entrou !== false);
+  if (!confirm('Excluir esta compra de ' + (c.fornecedor || 'sem fornecedor') + ' (R$ ' + fmtBR(c.total) + ')?' + (entrados.length ? '\n\nO que entrou no estoque por ela será retirado de volta.' : ''))) return;
+  const client = getSupabaseClient();
+  const falhas = [];
+  const origem = 'Compra excluída' + (c.fornecedor ? ' — ' + c.fornecedor : '') + ' · ' + compraDataBR(c.data);
+  for (const it of entrados) {
+    const r = await client.rpc('gso_ajustar_insumo', { p_insumo_id: it.insumoId, p_tipo: 'saida', p_quantidade: it.qtd, p_origem: origem });
+    if (r.error) { falhas.push(it.titulo + ': ' + r.error.message); continue; }
+    it.entrou = false;
+    if (it.tampaId && it.tampaQtd) {
+      const r2 = await client.rpc('gso_ajustar_insumo', { p_insumo_id: it.tampaId, p_tipo: 'saida', p_quantidade: it.tampaQtd, p_origem: origem + ' — tampas' });
+      if (r2.error) falhas.push('Tampas de ' + it.titulo + ': ' + r2.error.message); else { delete it.tampaId; delete it.tampaQtd; }
+    }
+  }
+  try {
+    await comprasGravar(lista => {
+      const i = lista.findIndex(x => x.id === id); if (i < 0) return;
+      if (falhas.length) lista[i] = c; else lista.splice(i, 1);
+    });
+  } catch (e) { alert('Não consegui atualizar a lista de compras: ' + (e.message || e)); }
+  await loadInsumos(); renderInsumos(); renderCompras();
+  if (falhas.length) alert('Nem tudo foi retirado do estoque, então a compra continua na lista:\n\n' + falhas.join('\n'));
+}
+
   window.Lab = {
     state: state,
     abrir: abrir,
@@ -37251,6 +37559,8 @@ async function contagemRevisar() {
     abrirCategoriaModal: abrirCategoriaModal,
     navTo: navTo,
     switchInsumosTab: switchInsumosTab,
+    renderCompras: renderCompras, abrirCompra: abrirCompra, salvarCompra: salvarCompra, excluirCompra: excluirCompra, registrarCompra: registrarCompra, loadCompras: loadCompras,
+    compraAddLinha: compraAddLinha, compraRemoverLinha: compraRemoverLinha, compraLinhaMudou: compraLinhaMudou, compraRecalc: compraRecalc,
     openAjusteModal: openAjusteModal,
     recarregarEstoque: async function () { try { await loadInsumos(); var v = document.getElementById('view-insumos'); if (v && !v.classList.contains('hidden')) renderInsumos(); } catch (e) {} },
     abrirContagem: abrirContagem, fecharContagem: fecharContagem, contagemInput: contagemInput, contagemFiltrar: contagemFiltrar, contagemLimpar: contagemLimpar, contagemRevisar: contagemRevisar,
