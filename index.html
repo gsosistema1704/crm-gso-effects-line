@@ -14686,7 +14686,6 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="modal-title">Copiar do mês anterior</div>
         <div class="card-sub" id="fin-copiar-sub" style="margin-top:-6px;margin-bottom:12px"></div>
         <label class="fx-check"><input type="checkbox" id="fin-cp-desp" checked> Despesas por categoria (valores e lançamentos)</label>
-        <label class="fx-check"><input type="checkbox" id="fin-cp-custos"> Custos e deduções das vendas</label>
         <label class="fx-check"><input type="checkbox" id="fin-cp-receitas"> Receitas</label>
         <label class="fx-check"><input type="checkbox" id="fin-cp-subst"> Substituir valores que já estão preenchidos</label>
         <div class="form-help">Por padrão só preenche o que está em branco. O lucro nunca é copiado — ele é recalculado.</div>
@@ -19211,7 +19210,8 @@ function finSlug(s) { return nameKey(s).replace(/[^a-z0-9]+/g, '_').replace(/^_|
 function finId() { return 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function finLinhasPadrao() { return { receita: FIN_LINHAS_PADRAO.receita.map(l => ({ ...l })), custo: FIN_LINHAS_PADRAO.custo.map(l => ({ ...l })) }; }
 function finStoreVazio() { return { versao: 2, categorias: FIN_CATEGORIAS_PADRAO.map(n => ({ id: finSlug(n), nome: n })), linhas: finLinhasPadrao(), meses: {} }; }
-function finLinhas(tipo) { const l = FIN.store && FIN.store.linhas && FIN.store.linhas[tipo]; return Array.isArray(l) ? l : FIN_LINHAS_PADRAO[tipo]; }
+// O bloco "Custos e deduções das vendas" não é mais usado (o custo já está nas despesas): sem linhas de custo, nada disso entra na conta.
+function finLinhas(tipo) { if (tipo === 'custo') return []; const l = FIN.store && FIN.store.linhas && FIN.store.linhas[tipo]; return Array.isArray(l) ? l : FIN_LINHAS_PADRAO[tipo]; }
 function finTemLinha(chave) { return finLinhas('receita').concat(finLinhas('custo')).some(l => l.chave === chave); }
 function finGarantirLinhas() {
   if (!FIN.store) return;
@@ -19692,10 +19692,6 @@ function finRenderDemonstrativo(m) {
   const rec = finBlocoHtml('rec', 'fd-rec', 'Receitas', 'fin-h-receita', fmtBR(c.receita), btnAdd('＋ Adicionar linha', "finMostrarNovaLinha('receita')"),
     colCab + finLinhas('receita').map(l => finLinhaEdHtml('receita', l, m, mp)).join('') + finNovaLinhaHtml('receita') +
     sub('Receita total', 'fin-t-receita', c.receita, cp.receita));
-  const custo = finBlocoHtml('custo', 'fd-custo', '(−) Custos e deduções das vendas', 'fin-h-custos', fmtBR(c.custos), btnAdd('＋ Adicionar linha', "finMostrarNovaLinha('custo')"),
-    colCab + finLinhas('custo').map(l => finLinhaEdHtml('custo', l, m, mp)).join('') + finNovaLinhaHtml('custo') +
-    sub('Total de custos', 'fin-t-custos', c.custos, cp.custos) +
-    lucroLinha('lucro_bruto', 'Lucro bruto', c.lucroBruto, c.lbManual, c.lucroBrutoAuto, cp.temDados ? cp.lucroBruto : 0));
   const res = `<section class="fd-bloco fd-res">
     <div class="fd-cab fd-cab-fixo"><span class="fd-tit">Resultado do mês</span></div>
     <div class="fd-corpo">
@@ -19703,7 +19699,7 @@ function finRenderDemonstrativo(m) {
       <div class="fx-linha fx-margem"><span class="fx-rot">Margem líquida</span><span class="fx-ant"></span><b id="fin-t-margem">${finPct(c.margem)}</b></div>
     </div>
   </section>`;
-  return desp + rec + custo + res;
+  return desp + rec + res;
 }
 function finKpiHtml(rotulo, valor, sub, cls) {
   return `<div class="fx-kpi${cls ? ' ' + cls : ''}"><span>${escapeHtml(rotulo)}</span><strong>${valor}</strong><small>${sub || '&nbsp;'}</small></div>`;
@@ -19768,8 +19764,6 @@ function finRenderIndicadores() {
   const maxV = cats.length ? cats[0].valor : 1;
   const ranking = cats.length ? '<div class="fx-sug-titulo">Onde o dinheiro foi (despesas)</div>' + cats.map(x => `<div class="fx-rank"><div class="fx-rank-top"><span>${escapeHtml(x.nome)}</span><b>${fmtBR(x.valor)} <small>${finPct(c.receita > 0 ? x.valor / c.receita * 100 : null)} da receita</small></b></div><div class="fx-rank-barra"><i style="width:${(x.valor / maxV * 100).toFixed(0)}%"></i></div></div>`).join('') : '';
   el.innerHTML = '<div class="card-title">Indicadores do mês</div><div class="card-sub" style="margin-bottom:6px">Calculados com o que você preencheu</div>' +
-    linha('Margem bruta', finPct(c.margemBruta), 'lucro bruto ÷ receita') +
-    linha('Custos sobre a receita', finPct(c.receita > 0 ? c.custos / c.receita * 100 : null), '') +
     linha('Despesas sobre a receita', finPct(c.receita > 0 ? c.desp / c.receita * 100 : null), '') +
     linha('Ponto de equilíbrio', equilibrio, eqSub) +
     (ca && ca.temDados ? linha('Receita vs mesmo mês de ' + (Number(FIN.mes.slice(0, 4)) - 1), finVariacaoTexto(c.receita, ca.receita, '') || '—', fmtBR(ca.receita) + ' no ano passado') + linha('Lucro vs mesmo mês de ' + (Number(FIN.mes.slice(0, 4)) - 1), finVariacaoTexto(c.lucroLiquido, ca.lucroLiquido, '') || '—', fmtBR(ca.lucroLiquido) + ' no ano passado') : '') +
@@ -20079,7 +20073,6 @@ function finConfirmarCopiar() {
   const dest = finMes(FIN.mes, true);
   const copiarCampo = k => { if (origem[k] != null && (subst || dest[k] == null)) dest[k] = origem[k]; };
   if (document.getElementById('fin-cp-receitas').checked) finLinhas('receita').forEach(l => copiarCampo(l.chave));
-  if (document.getElementById('fin-cp-custos').checked) finLinhas('custo').forEach(l => copiarCampo(l.chave));
   if (document.getElementById('fin-cp-desp').checked) {
     Object.keys(origem.desp || {}).forEach(catId => {
       if (!FIN.store.categorias.some(c => c.id === catId)) return;
