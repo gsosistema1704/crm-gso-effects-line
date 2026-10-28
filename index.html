@@ -16344,6 +16344,35 @@ async function upsertChunks(table, rows) {
   }
 }
 
+// Salva vendas sem nunca sobrescrever o nº de uma venda que já existe no banco: uma aba ou
+// computador com dados antigos na memória regravava a numeração velha por cima da correta.
+// Vendas já existentes mantêm o nº do banco (e a memória local passa a usar esse nº);
+// só vendas novas gravam o nº que receberam.
+async function upsertVendasPreservandoNumero(table, vendas) {
+  const client = getSupabaseClient();
+  if (!client || !vendas.length) return;
+  const remoto = {};
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await client.from(table).select('id,numero_venda').range(from, from + 999);
+    if (error) throw error;
+    (data || []).forEach(r => { remoto[r.id] = r.numero_venda; });
+    if (!data || data.length < 1000) break;
+  }
+  const existentes = [], novas = [];
+  vendas.forEach(v => {
+    const row = saleToRow(v);
+    if (Object.prototype.hasOwnProperty.call(remoto, v.id)) {
+      if (remoto[v.id]) v.numeroVenda = remoto[v.id];
+      delete row.numero_venda;
+      existentes.push(row);
+    } else {
+      novas.push(row);
+    }
+  });
+  await upsertChunks(table, existentes);
+  await upsertChunks(table, novas);
+}
+
 async function syncCollectionToSupabase(key, data) {
   if (remoteHydrating) {
     // Uma hidratação remota está em andamento nesse instante — não é seguro escrever
@@ -16355,8 +16384,8 @@ async function syncCollectionToSupabase(key, data) {
   const session = await getSupabaseSession();
   if (!session) return;
   ensureLocalIds();
-  if (key === 'vendas') await upsertChunks('crm_vendas', data.map(saleToRow));
-  if (key === 'vendasLojista') await upsertChunks('crm_vendas_lojista', data.map(saleToRow));
+  if (key === 'vendas') await upsertVendasPreservandoNumero('crm_vendas', data);
+  if (key === 'vendasLojista') await upsertVendasPreservandoNumero('crm_vendas_lojista', data);
   if (key === 'lojistas') await upsertChunks('crm_lojistas', data.map(lojistaToRow));
   if (key === 'clientes') await upsertChunks('crm_clientes', data.map(clienteToRow));
   if (key === 'fiscais') await upsertChunks('crm_fiscais', data.map(fiscalToRow));
@@ -16403,8 +16432,8 @@ async function syncAllToSupabase(showAlert = false) {
     await upsertChunks('crm_produtos', state.produtos.map(produtoToRow));
     await upsertChunks('crm_clientes', state.clientes.map(clienteToRow));
     await upsertChunks('crm_fiscais', state.fiscais.map(fiscalToRow));
-    await upsertChunks('crm_vendas', state.vendas.map(saleToRow));
-    if (isAdminUser()) await upsertChunks('crm_vendas_lojista', state.vendasLojista.map(saleToRow));
+    await upsertVendasPreservandoNumero('crm_vendas', state.vendas);
+    if (isAdminUser()) await upsertVendasPreservandoNumero('crm_vendas_lojista', state.vendasLojista);
     if (isAdminUser()) await upsertChunks('crm_lojistas', state.lojistas.map(lojistaToRow));
     STORE.saveAll(state);
     setSyncStatus('online', 'Sincronizado');
