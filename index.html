@@ -12172,7 +12172,7 @@ body.theme-dark .saude-x{ color:#F08A8A !important; }
 .fx-res-l.eu { background: var(--card, #fff); border-radius: 10px; padding: 13px 14px; margin: 0 -14px; border-top: 0; box-shadow: 0 0 0 1px var(--border, #E2E2E2); }
 .fx-res-l.sis { margin-top: 8px; }
 .fx-vendas-auto.fx-tema { margin-bottom: 24px; }
-.fx-par { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 22px; margin-bottom: 28px; align-items: start; }
+.fx-par { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 22px; margin-bottom: 28px; align-items: stretch; }
 .fx-par > .fx-card { margin-bottom: 0 !important; }
 .fx-par .fx-rapido-form, .fx-par .fx-ml-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; }
 .fx-par .fx-rapido-form > input.input, .fx-par .fx-ml-form > input[type=text] { grid-column: 1 / -1; order: 3; }
@@ -14504,9 +14504,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <!-- ===== FECHAMENTO DO MÊS ===== -->
       <div id="fin-aba-fechamento">
         <div class="fx-mes-bar">
-          <button type="button" class="fx-mes-btn" onclick="finMesAnterior()" title="Mês anterior">‹</button>
           <select class="input fx-mes-select" id="fin-mes-select" onchange="finEscolherMes(this.value)"></select>
-          <button type="button" class="fx-mes-btn" onclick="finMesProximo()" title="Próximo mês">›</button>
           <span class="fx-mes-status" id="fin-mes-status"></span>
           <span class="fx-mes-info" id="fin-mes-info"></span>
           <button type="button" class="btn btn-small fx-fechar" id="fin-btn-fechar" onclick="finAlternarFechamento()"></button>
@@ -14516,8 +14514,6 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="fx-card fx-vendas-auto fx-tema fx-t-sis" id="fin-vendas-auto"></div>
 
         <div class="fx-par">
-        <div class="fx-card fx-ml fx-tema fx-t-rec" id="fin-ml"></div>
-
         <div class="fx-card fx-rapido fx-tema fx-t-desp" id="fin-rapido">
           <div class="fx-rapido-tit"><b>Lançar despesa</b><span>Escolha a categoria, descreva e digite o valor — ela entra no mês e soma na categoria. Enter adiciona.</span></div>
           <div class="fx-rapido-form">
@@ -14528,6 +14524,8 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           </div>
           <div class="fx-rapido-ok" id="fin-qa-ok"></div>
         </div>
+
+        <div class="fx-card fx-ml fx-tema fx-t-rec" id="fin-ml"></div>
         </div>
 
         <div class="fx-grid">
