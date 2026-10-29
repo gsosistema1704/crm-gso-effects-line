@@ -20125,14 +20125,7 @@ function finSugestoesDoMes(mes) {
   const fat = (computeMensal().find(x => x.mes === mes) || {}).fat;
   const lb = computeLucroBrutoMensal().map[mes];
   const custoSistema = (fat != null && lb != null) ? round2(fat - lb) : null;
-  const porCat = {};
-  state.despesas.forEach(d => despesaExpenseEntries(d).forEach(entry => {
-    const dt = dashboardDateObj(entry.data);
-    if (!dt || finMesKey(dt) !== mes) return;
-    const nome = despesaCategoriaLabel(d) || 'Outras despesas';
-    porCat[nome] = round2((porCat[nome] || 0) + entry.valor);
-  }));
-  return { fat: fat != null ? round2(fat) : null, custoSistema, despesas: Object.entries(porCat).map(([nome, valor]) => ({ nome, valor })).sort((a, b) => b.valor - a.valor) };
+  return { fat: fat != null ? round2(fat) : null, custoSistema };
 }
 function finRenderSugestoes() {
   const el = document.getElementById('fin-sugestoes');
@@ -20143,12 +20136,7 @@ function finRenderSugestoes() {
   let html = '<div class="card-title">Sugestões do sistema</div><div class="card-sub" style="margin-bottom:10px">Só para consulta — nada é preenchido sozinho. Clique em "Usar" para copiar o valor para o campo.</div>';
   if (s.fat != null && finTemLinha('receita_vendas')) html += linha('Faturamento de vendas', s.fat, `finUsarSugestao('receita_vendas', ${s.fat})`);
   if (s.custoSistema != null && finTemLinha('cmv')) html += linha('Custo + impostos das vendas', s.custoSistema, `finUsarSugestao('cmv', ${s.custoSistema})`);
-  if (s.despesas.length) {
-    html += '<div class="fx-sug-titulo">Despesas lançadas neste mês</div>';
-    html += s.despesas.map((d, i) => linha(d.nome, d.valor, `finUsarDespesa(${i})`)).join('');
-    html += `<div style="margin-top:8px"><button type="button" class="btn btn-small btn-soft"${dis} onclick="finUsarTodasDespesas()">Usar todas as despesas lançadas</button></div>`;
-  }
-  if (s.fat == null && s.custoSistema == null && !s.despesas.length) html += '<div class="table-empty" style="padding:14px 0">O sistema não tem vendas nem despesas lançadas neste mês.</div>';
+  if (s.fat == null && s.custoSistema == null) html += '<div class="table-empty" style="padding:14px 0">O sistema não tem vendas lançadas neste mês.</div>';
   el.innerHTML = html;
   FIN.sugestoes = s;
 }
@@ -20163,42 +20151,6 @@ function finUsarSugestao(campo, valor) {
   finAgendarSalvar(FIN.mes);
   finRenderFechamento();
 }
-function finGarantirCategoria(nome) {
-  let cat = FIN.store.categorias.find(c => nameKey(c.nome) === nameKey(nome));
-  if (cat) return cat;
-  let id = finSlug(nome); while (FIN.store.categorias.some(c => c.id === id)) id += '_';
-  cat = { id, nome };
-  FIN.store.categorias.push(cat);
-  FIN.catsAlteradas = true;
-  return cat;
-}
-function finAplicarDespesaSistema(m, nome, valor) {
-  const cat = finGarantirCategoria(nome);
-  const lista = finGarantirItensDaCategoria(m, cat.id);
-  const existente = lista.find(x => x.desc === 'Despesas lançadas no sistema');
-  if (existente) existente.valor = valor; else lista.push({ id: finId(), desc: 'Despesas lançadas no sistema', valor, data: FIN.mes + '-01' });
-  finSincCat(m, cat.id);
-  return cat;
-}
-function finUsarDespesa(i) {
-  const d = FIN.sugestoes && FIN.sugestoes.despesas[i];
-  if (!d) return;
-  const m = finMes(FIN.mes, true);
-  finAplicarDespesaSistema(m, d.nome, d.valor);
-  finTocar(m);
-  finAgendarSalvar(FIN.mes, true);
-  finRenderFechamento();
-}
-function finUsarTodasDespesas() {
-  const s = FIN.sugestoes;
-  if (!s || !s.despesas.length) return;
-  const m = finMes(FIN.mes, true);
-  s.despesas.forEach(d => finAplicarDespesaSistema(m, d.nome, d.valor));
-  finTocar(m);
-  finAgendarSalvar(FIN.mes, true);
-  finRenderFechamento();
-}
-
 function finRenderFechamento() {
   const m = finMes(FIN.mes);
   const demo = document.getElementById('fin-demonstrativo');
