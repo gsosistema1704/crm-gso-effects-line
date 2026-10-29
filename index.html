@@ -33892,8 +33892,20 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     });
     return round2(total);
   }
+  // Anúncio ligado a peça com custo (e sem kit do catálogo): o custo vem só da aba Peças.
+  // O "custo manual" só vale quando não há peça com custo nem produto do kit.
   function anuncioCustoProduto(a) {
-    return round2(anuncioCustoProdutoBase(a) + anuncioCustoPecas(a));
+    var pecas = anuncioCustoPecas(a);
+    if (pecas > 0 && !anuncioItens(a).length) return pecas;
+    return round2(anuncioCustoProdutoBase(a) + pecas);
+  }
+  // Peça da aba Peças com o mesmo nome do bloco em que o anúncio está (ex.: bloco "Bloco enroladinho" → peça "Bloco enroladinho").
+  function pecaSugeridaDoBloco(a) {
+    var bloco = blocoPor(anuncioGrupo(a));
+    if (!bloco) return null;
+    var alvo = normNome(bloco.nome);
+    var peca = (store.pecas || []).filter(function (p) { return normNome(p.nome) === alvo; })[0];
+    return peca ? { peca: peca, bloco: bloco } : null;
   }
   function anuncioCustoProdutoBase(a) {
     var itens = anuncioItens(a);
@@ -34677,7 +34689,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     }
 
     function itensKitHtml() {
-      if (!draft.itensCatalogo.length) return '<span class="gc-hint" style="padding:0">Nenhum produto do catálogo vinculado ainda — usando o custo manual abaixo.</span>';
+      if (!draft.itensCatalogo.length) return '<span class="gc-hint" style="padding:0">Nenhum produto do catálogo neste anúncio.</span>';
       return draft.itensCatalogo.map(function (it, idx) {
         var ci = custoInfo(keyOf(it.produto, it.tamanho));
         return '<div class="gc-mat-chip gc-ml-kit-chip"><span class="gc-mat-chip-l">' + esc(it.produto) + ' ' + esc(it.tamanho) + '</span>' +
@@ -34688,7 +34700,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       }).join('');
     }
     function pecasChipsHtml() {
-      if (!draft.pecasUsadas.length) return '<span class="gc-hint" style="padding:0">Nenhuma peça vinculada — este anúncio não desconta peças.</span>';
+      if (!draft.pecasUsadas.length) return '<span class="gc-hint" style="padding:0">Nenhuma peça ligada — este anúncio não desconta peças.</span>';
       return draft.pecasUsadas.map(function (u, idx) {
         var pc = pecasLista().filter(function (x) { return x.id === u.pecaId; })[0];
         return '<div class="gc-mat-chip gc-ml-kit-chip"><span class="gc-mat-chip-l">' + esc(pc ? pc.nome : '(peça apagada)') + '</span>' +
@@ -34708,11 +34720,50 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       }).join('');
     }
 
+    var avancadoAberto = false;
+    var secao = function (titulo, dica, corpo, cls) {
+      return '<div class="gc-ml-sec' + (cls || '') + '"><div class="gc-ml-sec-t">' + titulo + '</div>' + (dica ? '<div class="gc-ml-sec-d">' + dica + '</div>' : '') + corpo + '</div>';
+    };
+    function sugestaoPecaHtml() {
+      if (draft.pecasUsadas.length) return '';
+      var sug = pecaSugeridaDoBloco(draft);
+      if (!sug) return '';
+      return '<div class="gc-ml-sug"><span>Este anúncio está no bloco <b>' + esc(sug.bloco.nome) + '</b>. Ligar à peça de mesmo nome?</span>' +
+        '<button type="button" class="gc-btn dark" data-peca-sug="' + esc(sug.peca.id) + '">Ligar à peça “' + esc(sug.peca.nome) + '”</button></div>';
+    }
+    function custoManualSecHtml() {
+      var custoPecas = anuncioCustoPecas(draft);
+      var usaPeca = custoPecas > 0 && !draft.itensCatalogo.length;
+      return secao('Custo manual',
+        usaPeca ? 'Não está sendo usado: o custo deste anúncio vem das peças (' + fmt(custoPecas) + ').' : 'Só vale quando o anúncio não tem produto do kit nem peça com custo.',
+        campoMoeda('Custo do produto (R$)', 'gc-ml-customanual', draft.custoManual), usaPeca ? ' gc-ml-sec-off' : '');
+    }
+    function avancadoHtml() {
+      var aberto = avancadoAberto || !!draft.caixaEscolhida || !!draft.produtoEnvasadoId;
+      return '<details class="gc-ml-avanc" id="gc-ml-avancado"' + (aberto ? ' open' : '') + '><summary>Opções avançadas <span>embalagem e baixa no Laboratório</span></summary>' +
+        '<div class="gc-ml-sec-t">Embalagem (caixa)</div>' +
+        '<div class="gc-ml-sec-d">Automático escolhe pelo tamanho do produto. Caixa G/P divide o custo entre as unidades do lote; Caixa Unitária é uma caixa só para esta venda.</div>' +
+        '<select id="gc-ml-caixa" class="gc-ml-sel">' +
+          '<option value="">Automático (padrão pelo tamanho do produto)</option>' +
+          ['cx5', 'cx1', 'caixaUnit5', 'caixaUnit1'].map(function (key) {
+            var valor = materiais()[key] || 0;
+            return '<option value="' + key + '"' + (draft.caixaEscolhida === key ? ' selected' : '') + '>' + esc(matLabel(key)) + ' — ' + fmt(valor) + '</option>';
+          }).join('') +
+        '</select>' +
+        '<div class="gc-ml-sec-t" style="margin-top:12px">Baixa no estoque do Laboratório</div>' +
+        '<div class="gc-ml-sec-d">Automático usa o nome do produto. Escolha “Nenhum” se este anúncio não deve tirar nada do Laboratório (ex.: peças).</div>' +
+        '<select id="gc-ml-estoque-produto" class="gc-ml-sel">' +
+          '<option value="">Automático (pelo nome do produto)</option>' +
+          '<option value="__nenhum__"' + (draft.produtoEnvasadoId === '__nenhum__' ? ' selected' : '') + '>Nenhum — não tirar nada do estoque</option>' +
+          produtosEnvasadosParaEstoque.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === draft.produtoEnvasadoId ? ' selected' : '') + '>' + esc(p.nome) + '</option>'; }).join('') +
+        '</select>' +
+      '</details>';
+    }
     var primeiraRenderizacao = true;
     var custoAberto = false;
     function custoBreakdownHtml() {
       var pecasTxt = anuncioCustoPecas(draft) > 0 ? '<br>Peças · ' + fmt(anuncioCustoPecas(draft)) + ' (' + draft.pecasUsadas.map(function (u) { var pc = pecasLista().filter(function (x) { return x.id === u.pecaId; })[0]; return pc ? esc(pc.nome) + ' ' + u.qtd + '× ' + fmt(num(pc.custo) || 0) : ''; }).filter(Boolean).join(' + ') + ')' : '';
-      if (!draft.itensCatalogo.length) return 'Custo manual · ' + fmt(draft.custoManual) + pecasTxt;
+      if (!draft.itensCatalogo.length) return anuncioCustoPecas(draft) > 0 ? pecasTxt.replace(/^<br>/, '') : 'Custo manual · ' + fmt(draft.custoManual);
       return draft.itensCatalogo.map(function (it) {
         var ci = custoInfo(keyOf(it.produto, it.tamanho));
         return esc(it.produto) + ' ' + esc(it.tamanho) + ' · ' + it.qtd + '× ' + fmt(ci.total || 0) + ' = ' + fmt((ci.total || 0) * it.qtd);
@@ -34770,39 +34821,24 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           segOpt('incluir-fiscal', 'sim', 'Sim', draft.incluirFiscal) +
           segOpt('incluir-fiscal', 'nao', 'Não', !draft.incluirFiscal)
         ) +
-        '<div class="gc-ml-kitbox">' +
-          '<div class="gc-ml-edit-label">Produtos do kit</div>' +
+        '<div class="gc-ml-secs-t">Custo e estoque deste anúncio</div>' +
+        secao('Produtos do kit', 'Produtos do catálogo vendidos neste anúncio (líquidos, sprays…). O custo vem da Formulação e o estoque do Laboratório é descontado.',
           '<div class="gc-receita-chips" style="margin-bottom:8px">' + itensKitHtml() + '</div>' +
           '<div class="gc-ml-kit-add">' +
             '<select id="gc-ml-item-add">' + anuncioProdutoOpcoes('') + '</select>' +
             '<input id="gc-ml-item-qtd" type="text" inputmode="numeric" value="1">' +
             '<button type="button" class="gc-btn dark" id="gc-ml-item-add-btn">+ adicionar</button>' +
-          '</div>' +
-        '</div>' +
-        '<div class="gc-ml-edit-label" style="margin-top:10px">Produto do estoque a descontar <span style="font-weight:400;text-transform:none;letter-spacing:0">— use quando esse anúncio usa uma embalagem/variante específica</span></div>' +
-        '<select id="gc-ml-estoque-produto" style="width:100%;border:1px solid var(--gcln2);border-radius:7px;padding:6px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);margin-bottom:10px">' +
-          '<option value="">Automático (pelo nome do produto)</option>' +
-          '<option value="__nenhum__"' + (draft.produtoEnvasadoId === '__nenhum__' ? ' selected' : '') + '>Nenhum — não tirar nada do estoque (deixar em branco)</option>' +
-          produtosEnvasadosParaEstoque.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === draft.produtoEnvasadoId ? ' selected' : '') + '>' + esc(p.nome) + '</option>'; }).join('') +
-        '</select>' +
-        '<div class="gc-ml-edit-label">Embalagem (caixa) usada <span style="font-weight:400;text-transform:none;letter-spacing:0">— "Caixa G/P" dividem o custo entre as unidades do lote, "Caixa Unitária" é uma caixa só pra esta venda (comum em envio do Mercado Livre)</span></div>' +
-        '<select id="gc-ml-caixa" style="width:100%;border:1px solid var(--gcln2);border-radius:7px;padding:6px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);margin-bottom:10px">' +
-          '<option value="">Automático (padrão pelo tamanho do produto)</option>' +
-          ['cx5', 'cx1', 'caixaUnit5', 'caixaUnit1'].map(function (key) {
-            var valor = materiais()[key] || 0;
-            return '<option value="' + key + '"' + (draft.caixaEscolhida === key ? ' selected' : '') + '>' + esc(matLabel(key)) + ' — ' + fmt(valor) + '</option>';
-          }).join('') +
-        '</select>' +
-        '<div class="gc-ml-kitbox">' +
-          '<div class="gc-ml-edit-label">Peças que saem do estoque <span style="font-weight:400;text-transform:none;letter-spacing:0">— da aba Peças; descontadas a cada venda registrada por este anúncio e o custo delas entra no custo do anúncio</span></div>' +
+          '</div>') +
+        secao('Peças do estoque', 'Peças da aba Peças. Saem do estoque a cada venda e o custo delas vira o custo do anúncio.',
+          sugestaoPecaHtml() +
           '<div class="gc-receita-chips" style="margin-bottom:8px">' + pecasChipsHtml() + '</div>' +
           '<div class="gc-ml-kit-add">' +
             '<select id="gc-ml-peca-add"><option value="">Escolha a peça…</option>' + pecasLista().map(function (pc) { return '<option value="' + esc(pc.id) + '">' + esc(pc.nome) + (pc.qtd == null ? '' : ' (' + pc.qtd + ' em estoque)') + '</option>'; }).join('') + '</select>' +
             '<input id="gc-ml-peca-qtd" type="text" inputmode="numeric" value="1">' +
             '<button type="button" class="gc-btn dark" id="gc-ml-peca-add-btn">+ adicionar</button>' +
-          '</div>' +
-        '</div>' +
-        campoMoeda('Custo do produto manual (R$) — só se não usar o kit acima', 'gc-ml-customanual', draft.custoManual) +
+          '</div>') +
+        custoManualSecHtml() +
+        avancadoHtml() +
         campoTxtFull('Observações', 'gc-ml-obs', draft.obs) +
         '<div class="gc-kv" style="margin-top:10px;border-top:1px solid var(--gcln);padding-top:10px"><span class="l">Preço</span><b>' + fmt(draft.preco) + '</b></div>' +
         '<div class="gc-kv"><span class="l">Tarifa de venda</span><b>−' + fmt(c.tarifaVenda) + '</b></div>' +
@@ -34880,6 +34916,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           render();
         });
       });
+      var pecaSug = $('[data-peca-sug]', $('#gc-dr-b'));
+      if (pecaSug) pecaSug.addEventListener('click', function () {
+        draft.pecasUsadas.push({ pecaId: pecaSug.dataset.pecaSug, qtd: 1 });
+        render();
+      });
+      var avancado = $('#gc-ml-avancado');
+      if (avancado) avancado.addEventListener('toggle', function () { avancadoAberto = avancado.open; });
       var pecaAdd = $('#gc-ml-peca-add-btn');
       if (pecaAdd) pecaAdd.addEventListener('click', function () {
         var sel = $('#gc-ml-peca-add'); var id = sel ? sel.value : ''; if (!id) return;
@@ -39796,6 +39839,19 @@ body.theme-dark #gso-calc .gc-ml-collapse:hover, body.theme-dark #gso-calc .gc-m
 #gso-calc .gc-ml-edit{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; padding:10px; border:1px dashed var(--gcln2); border-radius:9px; }
 #gso-calc .gc-ml-edit-label{ font:700 10px inherit; letter-spacing:.1em; text-transform:uppercase; color:var(--gcfnt); margin-top:4px; }
 #gso-calc .gc-ml-edit-label:first-child{ margin-top:0; }
+#gso-calc-dr .gc-ml-secs-t{ font-weight:800; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--gcfnt); margin:20px 0 8px; }
+#gso-calc-dr .gc-ml-sec{ margin:0 0 10px; padding:12px 14px; border:1px solid var(--gcln2); border-radius:12px; background:var(--gcsf); }
+#gso-calc-dr .gc-ml-sec-off{ opacity:.6; }
+#gso-calc-dr .gc-ml-sec-t{ font-weight:800; font-size:13.5px; color:var(--gcink); }
+#gso-calc-dr .gc-ml-sec-d{ font-weight:400; font-size:11.5px; line-height:1.45; color:var(--gcfnt); margin:2px 0 10px; }
+#gso-calc-dr .gc-ml-sec .gc-kv{ margin:0; }
+#gso-calc-dr .gc-ml-sug{ display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; padding:10px 12px; margin-bottom:10px; border-radius:10px; background:color-mix(in srgb, var(--gcink) 6%, transparent); font-size:12px; line-height:1.4; }
+#gso-calc-dr .gc-ml-sug button{ flex:0 0 auto; padding:6px 12px !important; font-size:11.5px !important; min-height:0 !important; }
+#gso-calc-dr .gc-ml-avanc{ margin:0 0 10px; padding:10px 14px; border:1px dashed var(--gcln2); border-radius:12px; }
+#gso-calc-dr .gc-ml-avanc > summary{ cursor:pointer; font-weight:800; font-size:12.5px; color:var(--gcink); }
+#gso-calc-dr .gc-ml-avanc > summary span{ font-weight:400; font-size:11.5px; color:var(--gcfnt); margin-left:6px; }
+#gso-calc-dr .gc-ml-avanc[open] > summary{ margin-bottom:10px; }
+#gso-calc-dr .gc-ml-sel{ width:100%; border:1px solid var(--gcln2); border-radius:7px; padding:6px 8px; font-weight:600; font-size:12px; font-family:inherit; background:var(--gcsf); color:var(--gcink); }
 #gso-calc-dr .gc-ml-kitbox{ margin:10px 0 4px; padding:12px; border:1px dashed var(--gcln2); border-radius:9px; }
 #gso-calc-dr .gc-ml-kit-chip{ background:var(--gcsf); border:1px solid var(--gcln2); border-radius:8px; padding:5px 8px !important; }
 #gso-calc-dr .gc-ml-kit-chip-sep{ color:var(--gcfnt); }
