@@ -34029,6 +34029,22 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     'Snow': 'tiffany'
   };
   var ML_PALETA_CORES = ['azul', 'verde', 'vermelho', 'cinza', 'roxo', 'amarelo', 'vermelho-escuro', 'azul-claro', 'rosa', 'tiffany', 'branco', 'laranja', 'marrom', 'lima', 'marinho', 'preto', 'dourado', 'ciano', 'magenta', 'coral', 'menta', 'grafite', ''];
+  // Cores extras (guardadas como #hex) + qualquer cor escolhida no seletor.
+  var ML_CORES_EXTRA = [
+    ['#7F1D3A', 'Vinho'], ['#D6264F', 'Carmim'], ['#F59E8B', 'Salmão'], ['#F9B98A', 'Pêssego'], ['#C99A12', 'Mostarda'], ['#7A8B2E', 'Oliva'],
+    ['#1F6B45', 'Verde floresta'], ['#12A672', 'Esmeralda'], ['#14B8C4', 'Turquesa'], ['#0E5E6F', 'Petróleo'], ['#5BB5F0', 'Céu'], ['#2F5BEA', 'Azul royal'],
+    ['#4B3FB5', 'Índigo'], ['#A992E8', 'Lavanda'], ['#C084D8', 'Lilás'], ['#5B2A6E', 'Berinjela'], ['#D81B8C', 'Fúcsia'], ['#F49AC2', 'Rosa chiclete'],
+    ['#D9C3A0', 'Bege'], ['#B5733B', 'Caramelo'], ['#5A3A29', 'Chocolate'], ['#A7ADB5', 'Prata'], ['#475569', 'Ardósia'], ['#E9DFC9', 'Areia']
+  ];
+  var ML_HEX = /^#[0-9a-f]{6}$/i;
+  function mlCorNome(c) {
+    if (!c) return 'Sem cor';
+    if (ML_NOME_COR[c]) return ML_NOME_COR[c];
+    var x = ML_CORES_EXTRA.filter(function (e) { return e[0].toLowerCase() === String(c).toLowerCase(); })[0];
+    return x ? x[1] : 'Personalizada';
+  }
+  function mlCorClasse(c) { return !c ? '' : (ML_HEX.test(c) ? ' cor-custom' : ' cor-' + c); }
+  function mlCorStyle(c) { return ML_HEX.test(c || '') ? ' style="--cc:' + c + '"' : ''; }
   var ML_NOME_COR = {
     'azul': 'Azul', 'verde': 'Verde', 'vermelho': 'Vermelho', 'cinza': 'Cinza', 'roxo': 'Roxo', 'amarelo': 'Amarelo',
     'vermelho-escuro': 'Vermelho escuro', 'azul-claro': 'Azul clarinho', 'rosa': 'Rosa', 'tiffany': 'Tiffany', 'branco': 'Branco',
@@ -34103,6 +34119,30 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     UI.mlEditando = chave;
     renderML();
     mlDestacar('[data-ml-group="' + chave + '"]', '.gc-ml-edit-nome');
+  }
+  // Cria um bloco novo logo depois do original, com cópia de todos os anúncios dele (sem o código do ML).
+  function blocoDuplicar(chave) {
+    var blocos = blocosAtuais();
+    var idx = blocos.findIndex(function (b) { return b.chave === chave; });
+    if (idx === -1) return;
+    var orig = blocos[idx];
+    var membros = (store.anuncios || []).filter(function (a) { return anuncioGrupo(a) === chave; });
+    if (!confirm('Duplicar o bloco "' + orig.nome + '" com os ' + membros.length + ' anúncio(s) dele?')) return;
+    var novaChave = 'blk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    blocos.splice(idx + 1, 0, { chave: novaChave, nome: orig.nome + ' (cópia)', cor: orig.cor || '', produto: orig.produto || null, tamanho: orig.tamanho || null, colapsado: false, lembretes: [] });
+    var base = Date.now();
+    var copias = membros.map(function (a, i) {
+      var c = JSON.parse(JSON.stringify(a));
+      c.id = 'ml_' + (base + i) + '_' + Math.random().toString(36).slice(2, 7);
+      c.codigo = '';
+      c.blocoChave = novaChave;
+      return c;
+    });
+    store.anuncios = (store.anuncios || []).concat(copias);
+    save();
+    UI.mlEditando = novaChave;
+    renderML();
+    mlDestacar('[data-ml-group="' + novaChave + '"]', '.gc-ml-edit-nome');
   }
   // Rola até o item recém-criado e dá um destaque rápido, pra achar na hora onde ele foi parar.
   function mlDestacar(seletor, focar) {
@@ -34566,16 +34606,31 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     }
     function painelEdicao(b) {
       if (UI.mlEditando !== b.chave) return '';
-      var swatches = ML_PALETA_CORES.map(function (c) {
-        var nome = ML_NOME_COR[c] || 'Sem cor';
-        return '<button type="button" class="gc-ml-swatch' + (c ? ' cor-' + c : ' cor-nenhuma') + (c === (b.cor || '') ? ' on' : '') + '" data-bloco-cor="' + esc(b.chave) + '|' + c + '" title="' + nome + '"></button>';
-      }).join('');
+      var atual = String(b.cor || '').toLowerCase();
+      var sw = function (c, nome) {
+        var hex = ML_HEX.test(c);
+        return '<button type="button" class="gc-ml-swatch' + (c ? (hex ? ' cor-custom' : ' cor-' + c) : ' cor-nenhuma') + (c.toLowerCase() === atual ? ' on' : '') + '"' + (hex ? ' style="--cc:' + c + '"' : '') +
+          ' data-bloco-cor="' + esc(b.chave) + '|' + c + '" title="' + esc(nome) + '" aria-label="' + esc(nome) + '"></button>';
+      };
+      var basicas = ML_PALETA_CORES.map(function (c) { return sw(c, ML_NOME_COR[c] || 'Sem cor'); }).join('');
+      var extras = ML_CORES_EXTRA.map(function (e) { return sw(e[0], e[1]); }).join('');
       return '<div class="gc-ml-edit">' +
-        '<div class="gc-ml-edit-label">Nome do bloco</div>' +
-        '<input type="text" class="gc-ml-edit-nome" data-bloco-nome="' + esc(b.chave) + '" value="' + esc(b.nome) + '" placeholder="Nome do bloco">' +
-        '<div class="gc-ml-edit-label">Cor do bloco</div>' +
-        '<div class="gc-ml-swatches">' + swatches + '</div>' +
-        (b.fixo ? '' : '<button type="button" class="gc-btn" style="color:#B0322F;border-color:#E3B3B1;margin-top:2px" data-bloco-del="' + esc(b.chave) + '">Apagar bloco</button>') +
+        '<div class="gc-ml-edit-sec">' +
+          '<div class="gc-ml-edit-label">Nome do bloco</div>' +
+          '<input type="text" class="gc-ml-edit-nome" data-bloco-nome="' + esc(b.chave) + '" value="' + esc(b.nome) + '" placeholder="Nome do bloco">' +
+        '</div>' +
+        '<div class="gc-ml-edit-sec">' +
+          '<div class="gc-ml-edit-label">Cor<b class="gc-ml-cor-atual">' + esc(mlCorNome(b.cor)) + '</b></div>' +
+          '<div class="gc-ml-cor-grupo">Básicas</div><div class="gc-ml-swatches">' + basicas + '</div>' +
+          '<div class="gc-ml-cor-grupo">Mais cores</div><div class="gc-ml-swatches">' + extras + '</div>' +
+          '<label class="gc-ml-cor-pick"><input type="color" data-bloco-cor-custom="' + esc(b.chave) + '" value="' + (ML_HEX.test(b.cor || '') ? b.cor : '#6B7280') + '"><span>Escolher qualquer outra cor</span></label>' +
+        '</div>' +
+        '<div class="gc-ml-edit-acoes">' +
+          '<button type="button" class="gc-btn dark" data-bloco-editar="' + esc(b.chave) + '">Concluir</button>' +
+          '<button type="button" class="gc-btn" data-bloco-novo-anuncio="' + esc(b.chave) + '">+ Novo anúncio</button>' +
+          '<button type="button" class="gc-btn" data-bloco-dup="' + esc(b.chave) + '" title="Cria um bloco novo com cópia de todos os anúncios deste">Duplicar bloco</button>' +
+          (b.fixo ? '' : '<button type="button" class="gc-btn danger" data-bloco-del="' + esc(b.chave) + '">Apagar bloco</button>') +
+        '</div>' +
       '</div>';
     }
     function painelLembretes(b) {
@@ -34594,12 +34649,13 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     function bloco(b) {
       var lista = porChave[b.chave] || [];
       var colapsado = !!b.colapsado;
-      return '<div class="gc-ml-group' + (b.cor ? ' cor-' + b.cor : '') + (colapsado ? ' colapsado' : '') + '" data-ml-group="' + esc(b.chave) + '">' +
+      return '<div class="gc-ml-group' + mlCorClasse(b.cor) + (colapsado ? ' colapsado' : '') + '" data-ml-group="' + esc(b.chave) + '"' + mlCorStyle(b.cor) + '>' +
         '<div class="gc-ml-group-head">' +
           '<span class="gc-ml-drag-handle" draggable="true" data-drag-bloco="' + esc(b.chave) + '" title="Arrastar pra reordenar">⠿</span>' +
           '<button type="button" class="gc-ml-collapse" data-bloco-colapsar="' + esc(b.chave) + '" title="' + (colapsado ? 'Expandir' : 'Minimizar') + '">' + (colapsado ? '▸' : '▾') + '</button>' +
           '<b>' + esc(b.nome) + '</b>' +
           '<span class="gc-pill gray">' + lista.length + '</span>' +
+          '<button type="button" class="gc-ml-gear gc-ml-add" data-bloco-novo-anuncio="' + esc(b.chave) + '" title="Novo anúncio neste bloco">+</button>' +
           '<button type="button" class="gc-ml-gear" data-bloco-editar="' + esc(b.chave) + '" title="Editar nome/cor">✎</button>' +
         '</div>' +
         painelEdicao(b) +
@@ -34615,14 +34671,16 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         (blocos.length ? '<div class="gc-ml-board">' + blocosHtml + '</div>' : '<div class="gc-hint">Nenhum anúncio cadastrado ainda. Clique em "+ Novo anúncio", ou me mande os prints dos seus anúncios que eu cadastro pra você.</div>') +
       '</div>';
   }
-  function abrirAnuncio(id) {
+  function abrirAnuncio(id, blocoChave, modelo) {
     document.body.classList.add('gc-dr-flutuante');
     var existente = id ? (store.anuncios || []).filter(function (x) { return x.id === id; })[0] : null;
-    var base = existente || { id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), codigo: '', nome: '', itensCatalogo: [], tipoAnuncio: 'Clássico', statusAnuncio: 'Ativo', incluirFiscal: true, preco: 0, tarifaVenda: 0, custoEnvio: 0, peso: 0, desconto: 0, custoManual: 0, tamanhoAnuncio: null, obs: '' };
+    var base = existente || (modelo ? Object.assign(JSON.parse(JSON.stringify(modelo)), { id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), codigo: '', nome: (modelo.nome || '') + ' (cópia)' }) : null) || { id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), codigo: '', nome: '', itensCatalogo: [], tipoAnuncio: 'Clássico', statusAnuncio: 'Ativo', incluirFiscal: true, preco: 0, tarifaVenda: 0, custoEnvio: 0, peso: 0, desconto: 0, custoManual: 0, tamanhoAnuncio: null, obs: '' };
     var isNovo = !existente;
     // rascunho mutável — só grava em store.anuncios quando clicar em Salvar.
     var draft = JSON.parse(JSON.stringify(base));
     draft.itensCatalogo = anuncioItens(base).map(function (it) { return { produto: it.produto, tamanho: it.tamanho, qtd: it.qtd }; });
+    // "+" no cabeçalho de um bloco: o anúncio novo já nasce dentro dele.
+    if (isNovo && !modelo && blocoChave != null) anuncioMoverParaGrupo(draft, blocoChave);
     // Tarifa de venda e Envios: valores fixos em R$ copiados direto do Mercado Livre
     // (simulador de custos ou pagamento aprovado), sem tentar recalcular por conta própria.
     draft.tarifaVenda = anuncioTarifaVenda(base);
@@ -34859,6 +34917,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         '<div class="gc-kv"><span class="l">Margem</span><b><span class="gc-pill ' + st.cls + '">' + (c.margem != null ? c.margem + '% · ' : '') + st.label + '</span></b></div>' +
         '<div class="gc-row" style="margin-top:10px">' +
           '<button class="gc-btn dark" id="gc-ml-save">' + (isNovo ? 'Criar anúncio' : 'Salvar alterações') + '</button>' +
+          (isNovo ? '' : '<button class="gc-btn" id="gc-ml-dup">Duplicar anúncio</button>') +
           (isNovo ? '' : '<button class="gc-btn" id="gc-ml-del" style="color:#B0322F">Apagar anúncio</button>') +
         '</div>' +
         (isNovo ? '' :
@@ -34867,7 +34926,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
           '</div>' +
           '<div class="gc-hint" style="margin-top:4px">Abre "Nova venda" já com produto, preço, tarifa e frete deste anúncio preenchidos — só falta informar cliente, data e NF.</div>'
         );
-      drOpen(isNovo ? 'Novo anúncio' : (draft.nome || 'Anúncio'), html);
+      var blocoDoNovo = isNovo && !modelo && blocoChave != null ? blocoPor(blocoChave) : null;
+      drOpen(isNovo ? (modelo ? 'Duplicar anúncio' : 'Novo anúncio' + (blocoDoNovo ? ' em ' + blocoDoNovo.nome : '')) : (draft.nome || 'Anúncio'), html);
       wire();
     }
 
@@ -34964,6 +35024,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         drClose();
         renderML();
         if (idx < 0) mlDestacar('[data-open-anuncio="' + paraSalvar.id + '"]');
+      });
+      var dupBtn = $('#gc-ml-dup');
+      if (dupBtn) dupBtn.addEventListener('click', function () {
+        lerCamposSimples();
+        abrirAnuncio(null, null, JSON.parse(JSON.stringify(draft)));
       });
       var delBtn = $('#gc-ml-del');
       if (delBtn) delBtn.addEventListener('click', function () {
@@ -35147,6 +35212,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (t.id === 'gc-ml-novo') { abrirAnuncio(null); return; }
       var mlv = t.closest('[data-ml-view]'); if (mlv) { UI.mlView = mlv.dataset.mlView; renderML(); return; }
       if (t.id === 'gc-ml-bloco-novo') { blocoNovo(); return; }
+      var bna = t.closest('[data-bloco-novo-anuncio]'); if (bna) { abrirAnuncio(null, bna.dataset.blocoNovoAnuncio); return; }
+      var bdup = t.closest('[data-bloco-dup]'); if (bdup) { blocoDuplicar(bdup.dataset.blocoDup); return; }
       var bc2 = t.closest('[data-bloco-colapsar]'); if (bc2) { var bb1 = blocoPor(bc2.dataset.blocoColapsar); if (bb1) { bb1.colapsado = !bb1.colapsado; save(); renderML(); } return; }
       var be = t.closest('[data-bloco-editar]'); if (be) { UI.mlEditando = (UI.mlEditando === be.dataset.blocoEditar) ? null : be.dataset.blocoEditar; renderML(); return; }
       var bd = t.closest('[data-bloco-del]'); if (bd) { blocoApagar(bd.dataset.blocoDel); return; }
@@ -35231,6 +35298,14 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         renderML();
       }
     });
+    // Prévia ao vivo enquanto arrasta no seletor de cor (grava só ao soltar, no "change").
+    root.addEventListener('input', function (e) {
+      var t = e.target;
+      if (!(t.hasAttribute && t.hasAttribute('data-bloco-cor-custom')) || !ML_HEX.test(t.value)) return;
+      var g = t.closest('.gc-ml-group'); if (!g) return;
+      Array.prototype.slice.call(g.classList).forEach(function (k) { if (k.indexOf('cor-') === 0) g.classList.remove(k); });
+      g.classList.add('cor-custom'); g.style.setProperty('--cc', t.value);
+    });
     root.addEventListener('change', function (e) {
       var t = e.target;
       if (t.dataset && t.dataset.flt) { UI.filtros[t.dataset.flt] = t.value; aplicaFiltro(t.dataset.flt.split(':')[0]); return; }
@@ -35239,6 +35314,11 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (t.hasAttribute && t.hasAttribute('data-ord')) { UI.ordenar = t.value; renderEstrategia(); return; }
       if (t.hasAttribute && t.hasAttribute('data-rec-mat-add')) { adicionarMaterialAoProduto(t.dataset.recMatAdd, t.value); return; }
       if (t.hasAttribute && t.hasAttribute('data-receita-produto-add')) { adicionarProdutoFormulacao(t.value); return; }
+      if (t.hasAttribute && t.hasAttribute('data-bloco-cor-custom')) {
+        var bcu = blocoPor(t.dataset.blocoCorCustom);
+        if (bcu && ML_HEX.test(t.value)) { bcu.cor = t.value; save(); renderML(); }
+        return;
+      }
       if (t.hasAttribute && t.hasAttribute('data-bloco-nome')) {
         var bn = blocoPor(t.dataset.blocoNome);
         if (bn) { bn.nome = t.value.trim() || bn.nome; save(); renderML(); }
@@ -39832,6 +39912,7 @@ body.theme-dark #gso-calc .gc-ml-drag-handle:hover{ background:rgba(255,255,255,
 #gso-calc .gc-ml-drag-handle:active{ cursor:grabbing; }
 #gso-calc .gc-ml-group-head b{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #gso-calc .gc-ml-collapse, #gso-calc .gc-ml-gear{ border:0 !important; background:none !important; box-shadow:none !important; min-height:0 !important; padding:0 !important; width:20px; height:20px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; border-radius:6px !important; color:var(--gcmut) !important; cursor:pointer; font-size:12px; }
+#gso-calc .gc-ml-add{ font-size:17px !important; font-weight:700 !important; line-height:1; }
 #gso-calc .gc-ml-collapse:hover, #gso-calc .gc-ml-gear:hover{ background:rgba(0,0,0,.06) !important; }
 body.theme-dark #gso-calc .gc-ml-collapse:hover, body.theme-dark #gso-calc .gc-ml-gear:hover{ background:rgba(255,255,255,.09) !important; }
 #gso-calc .gc-ml-group.colapsado{ min-height:0; }
@@ -39892,6 +39973,23 @@ body.theme-dark #gso-calc .gc-ml-collapse:hover, body.theme-dark #gso-calc .gc-m
 #gso-calc .gc-ml-swatch.cor-coral{ background:var(--gcmlcoral) !important; }
 #gso-calc .gc-ml-swatch.cor-menta{ background:var(--gcmlmenta) !important; }
 #gso-calc .gc-ml-swatch.cor-grafite{ background:var(--gcmlgrafite) !important; }
+#gso-calc .gc-ml-group.cor-custom{ border:2px solid var(--cc); background:color-mix(in srgb, var(--cc) 13%, var(--gcsf)); }
+#gso-calc .gc-ml-swatch.cor-custom{ background:var(--cc) !important; }
+#gso-calc .gc-ml-edit{ gap:16px; padding:14px; border:1px solid var(--gcln2); border-radius:12px; background:var(--gcsf); box-shadow:0 1px 4px rgba(0,0,0,.07); margin-bottom:12px; }
+#gso-calc .gc-ml-edit-sec{ display:flex; flex-direction:column; gap:7px; }
+#gso-calc .gc-ml-edit-label{ margin-top:0; font-weight:800; font-size:10.5px; }
+#gso-calc .gc-ml-cor-atual{ text-transform:none; letter-spacing:0; font-weight:700; font-size:12px; color:var(--gcink); margin-left:8px; }
+#gso-calc .gc-ml-cor-grupo{ font-size:10.5px; color:var(--gcfnt); margin-top:2px; }
+#gso-calc .gc-ml-edit-nome{ font-size:13.5px; padding:8px 10px; }
+#gso-calc .gc-ml-swatches{ gap:9px; }
+#gso-calc .gc-ml-swatch{ width:26px !important; height:26px !important; box-shadow:inset 0 0 0 1px rgba(0,0,0,.14) !important; transition:transform .1s; }
+#gso-calc .gc-ml-swatch:hover{ transform:scale(1.14); }
+#gso-calc .gc-ml-swatch.on{ border-color:var(--gcsf) !important; box-shadow:0 0 0 2px var(--gcink) !important; }
+#gso-calc .gc-ml-cor-pick{ display:flex; align-items:center; gap:10px; cursor:pointer; font-size:12px; font-weight:600; margin-top:2px; }
+#gso-calc .gc-ml-cor-pick input{ width:38px; height:30px; padding:0; border:1px solid var(--gcln2); border-radius:7px; background:none; cursor:pointer; }
+#gso-calc .gc-ml-edit-acoes{ display:flex; flex-wrap:wrap; gap:8px; padding-top:12px; border-top:1px solid var(--gcln); }
+#gso-calc .gc-ml-edit-acoes .gc-btn{ padding:6px 12px !important; font-size:12px !important; min-height:0 !important; }
+#gso-calc .gc-ml-edit-acoes .gc-btn.danger{ background:transparent !important; color:#B0322F !important; border:1px solid #E3B3B1 !important; margin-left:auto; }
 #gso-calc .gc-ml-lembretes{ display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
 #gso-calc .gc-ml-lembrete{ display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11.5px; padding:2px 4px; border-radius:5px; }
 #gso-calc .gc-ml-lembrete label{ display:flex; align-items:center; gap:5px; cursor:pointer; flex:1; min-width:0; }
