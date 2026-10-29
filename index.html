@@ -34399,7 +34399,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var ranking = mlVendasRankingAnuncios(vendas);
     var porProduto = mlVendasPorProduto(vendas);
 
-    var painelAtencao = '<div class="gc-blk">' +
+    var painelAtencao = !atencao.length ? '<div class="gc-vok">✓ Nenhuma reclamação ou mediação em aberto nas vendas importadas.</div>' : '<div class="gc-blk gc-vatenc">' +
       '<h2>Precisa de atenção' + (atencao.length ? '<span>' + atencao.length + (atencao.length === 1 ? ' venda com reclamação/mediação em aberto' : ' vendas com reclamação/mediação em aberto') + '</span>' : '') + '</h2>' +
       (atencao.length ? atencao.map(function (v) {
         var d = v.pagamentoDetalhes || {};
@@ -34417,33 +34417,36 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         : d.mlReclamacaoAberta ? '<span class="gc-pill warn">Reclamação</span>'
         : d.mlReclamacaoEncerrada ? '<span class="gc-pill gray">Reclamação encerrada</span>'
         : '<span class="gc-pill ok">OK</span>';
-      return '<tr>' +
+      return '<tr data-vq="' + esc(((v.cliente || '') + ' ' + (v.produto || '') + ' ' + (v.tamanho || '')).toLowerCase()) + '">' +
         '<td class="stack-title">' + esc(fmtDate(v.data)) + '</td>' +
         '<td data-label="Cliente">' + esc(v.cliente || '') + '</td>' +
         '<td data-label="Produto">' + esc(v.produto || '') + (v.tamanho ? ' ' + esc(v.tamanho) : '') + (!v.catalogProduto ? ' <span class="gc-pill gray" title="Produto não identificado automaticamente no catálogo">?</span>' : '') + '</td>' +
         '<td class="num" data-label="Qtd">' + (v.qtd || 1) + '</td>' +
         '<td class="num" data-label="Valor">' + fmt(v.valor) + '</td>' +
         '<td class="num" data-label="Recebido líq.">' + (c.recebido != null ? fmt(c.recebido) : '—') + '</td>' +
-        '<td class="num" data-label="Lucro">' + (c.lucro != null ? '<span' + (c.semCusto ? ' title="Sem custo cadastrado: lucro igual ao valor líquido recebido"' : '') + '>' + fmt(c.lucro) + (c.margem != null ? ' (' + c.margem + '%)' : '') + '</span>' : '<span title="Sem valor líquido registrado nessa venda">—</span>') + '</td>' +
+        '<td class="num gc-vlucro" data-label="Lucro">' + (c.lucro != null ? '<span' + (c.semCusto ? ' title="Sem custo cadastrado: lucro igual ao valor líquido recebido"' : '') + '>' + fmt(c.lucro) + (c.margem != null ? ' (' + c.margem + '%)' : '') + '</span>' : '<span title="Sem valor líquido registrado nessa venda">—</span>') + '</td>' +
         '<td data-label="Status">' + badge + '</td>' +
       '</tr>';
     }).join('');
 
     return '<div class="gc-blk">' +
       '<h2>Vendas Mercado Livre <span>importadas do relatório oficial do ML — já contam no faturamento do CRM</span></h2>' +
-      '<div class="gc-ml-venda-stats">' +
-        '<div class="gc-ml-venda-stat"><span class="l">Vendas importadas</span><b>' + vendas.length + '</b></div>' +
-        '<div class="gc-ml-venda-stat"><span class="l">Total vendido</span><b>' + fmt(totalValor) + '</b></div>' +
-        '<div class="gc-ml-venda-stat"><span class="l">Recebido líquido</span><b>' + fmt(totalRecebido) + '</b></div>' +
-        '<div class="gc-ml-venda-stat"><span class="l">Lucro estimado</span><b>' + fmt(totalLucro) + '</b></div>' +
-        '<div class="gc-ml-venda-stat"><span class="l">Ticket médio</span><b>' + fmt(ticketMedio) + '</b></div>' +
-        '<div class="gc-ml-venda-stat"><span class="l">Período</span><b style="font-size:13px">' + esc(periodo) + '</b></div>' +
+      '<div class="gc-vk">' +
+        '<div class="gc-vk-t t-cinza"><span class="l">Vendas importadas</span><b>' + vendas.length + '</b></div>' +
+        '<div class="gc-vk-t t-azul"><span class="l">Total vendido</span><b>' + fmt(totalValor) + '</b></div>' +
+        '<div class="gc-vk-t t-teal"><span class="l">Recebido líquido</span><b>' + fmt(totalRecebido) + '</b></div>' +
+        '<div class="gc-vk-t t-verde"><span class="l">Lucro estimado</span><b>' + fmt(totalLucro) + '</b></div>' +
+        '<div class="gc-vk-t t-cinza"><span class="l">Ticket médio</span><b>' + fmt(ticketMedio) + '</b></div>' +
+        '<div class="gc-vk-t t-cinza sm"><span class="l">Período</span><b>' + esc(periodo) + '</b></div>' +
       '</div>' +
-      (semCusto ? '<div class="gc-hint" style="margin-top:10px">' + semCusto + (semCusto === 1 ? ' venda sem custo cadastrado' : ' vendas sem custo cadastrado') + ' (produto que já estava em estoque): o lucro dela é exatamente o valor líquido recebido.</div>' : '') +
-      ((vendas.length - comLucro) ? '<div class="gc-hint" style="margin-top:4px">' + (vendas.length - comLucro) + ' venda(s) sem valor líquido registrado ficam fora do lucro estimado.</div>' : '') +
-      (semCatalogo ? '<div class="gc-hint" style="margin-top:4px">' + semCatalogo + ' venda(s) com produto não identificado automaticamente no catálogo — aparecem com <span class="gc-pill gray">?</span> na tabela abaixo.</div>' : '') +
+      ((semCusto || (vendas.length - comLucro) || semCatalogo) ? '<div class="gc-vk-notas">' +
+        (semCusto ? '<span title="Produto que já estava em estoque: o lucro é exatamente o valor líquido recebido">' + semCusto + (semCusto === 1 ? ' venda sem custo cadastrado' : ' vendas sem custo cadastrado') + '</span>' : '') +
+        ((vendas.length - comLucro) ? '<span>' + (vendas.length - comLucro) + ' sem valor líquido (fora do lucro estimado)</span>' : '') +
+        (semCatalogo ? '<span title="Aparecem com ? na tabela">' + semCatalogo + ' com produto não identificado no catálogo</span>' : '') +
+      '</div>' : '') +
     '</div>' +
     painelAtencao +
+    '<div class="gc-vgrid">' +
     (vendas.length ? (
       '<div class="gc-blk">' +
         '<h2>Vendas por semana<span>semana atual vs. semana passada</span></h2>' +
@@ -34456,6 +34459,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         mlVendasEvolucaoSvg(evolucaoDias) +
       '</div>'
     ) : '') +
+    '</div>' +
+    '<div class="gc-vgrid">' +
     (porProduto.length ? (
       '<div class="gc-blk">' +
         '<h2>Vendas por produto<span>quantidade, recebido e lucro por produto do catálogo</span></h2>' +
@@ -34468,8 +34473,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         mlVendasRankingHtml(ranking) +
       '</div>'
     ) : '') +
+    '</div>' +
     '<div class="gc-blk">' +
-      '<h2>Todas as vendas<span>' + vendas.length + (vendas.length === 1 ? ' venda' : ' vendas') + '</span></h2>' +
+      '<div class="gc-vtopo"><h2>Todas as vendas<span>' + vendas.length + (vendas.length === 1 ? ' venda' : ' vendas') + '</span></h2>' +
+      (vendas.length ? '<input type="search" id="gc-ml-vq" class="gc-busca" placeholder="Buscar cliente ou produto…">' : '') + '</div>' +
       (vendas.length ? (
         '<div class="gc-table-wrap gc-ml-venda-table-wrap"><table class="gct">' +
         '<thead><tr><th>Data</th><th>Cliente</th><th>Produto</th><th class="num">Qtd</th><th class="num">Valor</th><th class="num">Recebido líq.</th><th class="num">Lucro</th><th>Status</th></tr></thead>' +
@@ -34516,23 +34523,41 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var lista = pecasLista();
     var total = lista.reduce(function (s, p) { return s + (Number(p.qtd) || 0); }, 0);
     var valorEstoque = lista.reduce(function (s, p) { return s + (num(p.custo) || 0) * (Number(p.qtd) || 0); }, 0);
+    var emFalta = lista.filter(function (p) { return p.qtd === 0; }).length;
     var linhas = lista.map(function (p) {
       var sem = p.qtd === 0;
-      return '<tr data-peca="' + esc(p.id) + '">' +
+      return '<tr data-peca="' + esc(p.id) + '" data-pq="' + esc(String(p.nome || '').toLowerCase()) + '" data-pst="' + (sem ? 'zero' : 'ok') + '"' + (sem ? ' class="gc-peca-zero"' : '') + '>' +
         '<td><input type="text" class="gc-peca-nome" data-peca-nome="' + esc(p.id) + '" value="' + esc(p.nome) + '" title="Clique para renomear"></td>' +
         '<td class="num"><span class="gc-peca-custo"><i>R$</i><input type="text" inputmode="decimal" data-peca-custo="' + esc(p.id) + '" value="' + (p.custo ? String(p.custo).replace('.', ',') : '') + '" placeholder="0,00" title="Custo de uma peça"></span></td>' +
         '<td class="num"><span class="gc-peca-qtd"><button type="button" class="gc-peca-mm" data-peca-delta="' + esc(p.id) + '|-1" title="Tirar 1">−</button><input type="text" inputmode="numeric" class="gc-peca-in" data-peca-qtd="' + esc(p.id) + '" value="' + (p.qtd == null ? '' : p.qtd) + '" placeholder="—"><button type="button" class="gc-peca-mm" data-peca-delta="' + esc(p.id) + '|1" title="Colocar 1">+</button></span></td>' +
         '<td class="num gc-peca-valor">' + (p.custo && p.qtd ? fmt(p.custo * p.qtd) : '—') + '</td>' +
         '<td>' + (p.qtd == null ? '<span class="gc-pill gray">Sem quantidade</span>' : (sem ? '<span class="gc-pill bad">Acabou</span>' : '<span class="gc-pill ok">Em estoque</span>')) + '</td>' +
-        '<td class="num"><button type="button" class="gc-peca-x" data-peca-del="' + esc(p.id) + '" title="Excluir esta peça">✕ Excluir</button></td></tr>';
+        '<td class="num"><button type="button" class="gc-peca-x" data-peca-del="' + esc(p.id) + '" title="Excluir esta peça" aria-label="Excluir esta peça">✕</button></td></tr>';
     }).join('');
-    return '<div class="gc-blk"><h2>Peças <span>quantas de cada peça eu tenho · clique no nome para renomear · − e + ajustam a quantidade</span></h2>' +
-      '<div class="gc-peca-add"><input type="text" id="gc-peca-novo-nome" placeholder="+ Nova peça (nome)"><input type="text" inputmode="numeric" id="gc-peca-novo-qtd" placeholder="Qtd"><input type="text" inputmode="decimal" id="gc-peca-novo-custo" placeholder="Custo R$"><button type="button" class="gc-btn dark" data-peca-add="1">Adicionar</button></div>' +
+    return '<div class="gc-blk"><div class="gc-vk">' +
+        '<div class="gc-vk-t t-cinza"><span class="l">Peças cadastradas</span><b>' + lista.length + '</b></div>' +
+        '<div class="gc-vk-t t-azul"><span class="l">Unidades em estoque</span><b>' + total + '</b></div>' +
+        '<div class="gc-vk-t t-verde"><span class="l">Valor em estoque (custo)</span><b>' + fmt(valorEstoque) + '</b></div>' +
+        '<div class="gc-vk-t ' + (emFalta ? 't-vermelho' : 't-cinza') + '"><span class="l">Acabaram</span><b>' + emFalta + '</b></div>' +
+      '</div></div>' +
+      '<div class="gc-blk"><h2>Nova peça <span>cadastre o nome, a quantidade que tem e o custo de uma unidade</span></h2>' +
+      '<div class="gc-peca-add"><input type="text" id="gc-peca-novo-nome" placeholder="Nome da peça"><input type="text" inputmode="numeric" id="gc-peca-novo-qtd" placeholder="Qtd"><input type="text" inputmode="decimal" id="gc-peca-novo-custo" placeholder="Custo R$"><button type="button" class="gc-btn dark" data-peca-add="1">+ Adicionar</button></div></div>' +
+      '<div class="gc-blk"><div class="gc-vtopo"><h2>Estoque de peças <span>clique no nome para renomear · − e + ajustam a quantidade</span></h2>' +
+      (lista.length ? '<div class="gc-vtopo-dir"><input type="search" id="gc-peca-q" class="gc-busca" placeholder="Buscar peça…"><button type="button" class="gc-chip-f" id="gc-peca-falta" aria-pressed="false">Só as que acabaram</button></div>' : '') + '</div>' +
       (lista.length
-        ? '<div class="gc-table-wrap"><table class="gct"><thead><tr><th>PEÇA</th><th class="num">CUSTO (UN.)</th><th class="num">QUANTIDADE</th><th class="num">VALOR EM ESTOQUE</th><th>SITUAÇÃO</th><th class="num">AÇÕES</th></tr></thead><tbody>' + linhas + '</tbody></table></div>' +
-          '<div class="gc-hint" style="padding:10px 0 0">Total de peças: <b>' + total + '</b> · Valor em estoque (custo): <b>' + fmt(valorEstoque) + '</b></div>'
+        ? '<div class="gc-table-wrap gc-peca-wrap"><table class="gct gc-peca-tab"><colgroup><col style="width:34%"><col style="width:15%"><col style="width:20%"><col style="width:13%"><col style="width:12%"><col style="width:6%"></colgroup><thead><tr><th>Peça</th><th class="num">Custo (un.)</th><th class="num">Quantidade</th><th class="num">Valor em estoque</th><th>Situação</th><th class="num"></th></tr></thead><tbody>' + linhas + '</tbody></table></div>'
         : '<div class="gc-hint">Nenhuma peça cadastrada ainda.</div>') +
       '</div>';
+  }
+  // Filtro da lista de peças (só esconde linhas; não refaz a tela).
+  function pecasFiltrar() {
+    var q = (($('#gc-peca-q') || {}).value || '').trim().toLowerCase();
+    var btn = $('#gc-peca-falta');
+    var soFalta = !!btn && btn.getAttribute('aria-pressed') === 'true';
+    $all('tr[data-pq]').forEach(function (tr) {
+      var ok = (!q || tr.dataset.pq.indexOf(q) !== -1) && (!soFalta || tr.dataset.pst === 'zero');
+      tr.style.display = ok ? '' : 'none';
+    });
   }
   function pecasBind(el) {
     function achar(id) { return pecasLista().filter(function (p) { return p.id === id; })[0]; }
@@ -35210,6 +35235,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var metaRst = t.closest('[data-meta-reset]'); if (metaRst) { if (store.metas) delete store.metas[metaRst.dataset.metaReset]; save(); renderEstrategia(); refreshResultado(); return; }
       var oa = t.closest('[data-open-anuncio]'); if (oa) { abrirAnuncio(oa.dataset.openAnuncio); return; }
       if (t.id === 'gc-ml-novo') { abrirAnuncio(null); return; }
+      if (t.id === 'gc-peca-falta') { t.setAttribute('aria-pressed', t.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); pecasFiltrar(); return; }
       var mlv = t.closest('[data-ml-view]'); if (mlv) { UI.mlView = mlv.dataset.mlView; renderML(); return; }
       if (t.id === 'gc-ml-bloco-novo') { blocoNovo(); return; }
       var bna = t.closest('[data-bloco-novo-anuncio]'); if (bna) { abrirAnuncio(null, bna.dataset.blocoNovoAnuncio); return; }
@@ -35301,6 +35327,12 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     // Prévia ao vivo enquanto arrasta no seletor de cor (grava só ao soltar, no "change").
     root.addEventListener('input', function (e) {
       var t = e.target;
+      if (t.id === 'gc-ml-vq') {
+        var qv = t.value.trim().toLowerCase();
+        $all('tr[data-vq]', root).forEach(function (tr) { tr.style.display = !qv || tr.dataset.vq.indexOf(qv) !== -1 ? '' : 'none'; });
+        return;
+      }
+      if (t.id === 'gc-peca-q') { pecasFiltrar(); return; }
       if (!(t.hasAttribute && t.hasAttribute('data-bloco-cor-custom')) || !ML_HEX.test(t.value)) return;
       var g = t.closest('.gc-ml-group'); if (!g) return;
       Array.prototype.slice.call(g.classList).forEach(function (k) { if (k.indexOf('cor-') === 0) g.classList.remove(k); });
@@ -39847,6 +39879,36 @@ body.theme-dark #gso-calc .gc-tabs button.on, body.theme-dark #gso-calc .gc-ml-s
 #gso-calc .gc-ml-venda-stat{ border:1px solid var(--gcln); border-radius:12px; padding:10px 14px; background:var(--gcbg); }
 #gso-calc .gc-ml-venda-stat .l{ display:block; font-size:11px; font-weight:700; color:var(--gcmut); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
 #gso-calc .gc-ml-venda-stat b{ font-size:18px; font-weight:800; color:var(--gcink); }
+#gso-calc .gc-vk{ display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:12px; }
+#gso-calc .gc-vk-t{ --k:#6B7280; border:1px solid color-mix(in srgb, var(--k) 26%, var(--gcln)); border-left:5px solid var(--k); border-radius:14px; padding:14px 16px; background:color-mix(in srgb, var(--k) 8%, var(--gcsf)); min-width:0; }
+#gso-calc .gc-vk-t .l{ display:block; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gcfnt); }
+#gso-calc .gc-vk-t b{ display:block; margin-top:4px; font-size:23px; font-weight:800; color:var(--gcink); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+#gso-calc .gc-vk-t.sm b{ font-size:15px; line-height:1.9; }
+#gso-calc .gc-vk-t.t-azul{ --k:#3B82C4; } #gso-calc .gc-vk-t.t-verde{ --k:#2E8B57; } #gso-calc .gc-vk-t.t-teal{ --k:#14909C; } #gso-calc .gc-vk-t.t-vermelho{ --k:#C2413D; }
+#gso-calc .gc-vk-notas{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+#gso-calc .gc-vk-notas span{ font-size:11.5px; color:var(--gcfnt); padding:4px 10px; border-radius:999px; background:var(--gcbg); border:1px solid var(--gcln); }
+#gso-calc .gc-vok{ margin-top:14px; padding:10px 16px; border-radius:12px; font-size:12.5px; font-weight:600; color:#1E6B3A; background:color-mix(in srgb, #2E8B57 10%, var(--gcsf)); border:1px solid color-mix(in srgb, #2E8B57 30%, var(--gcln)); }
+#gso-calc .gc-vatenc{ border-left:5px solid #C2413D; background:color-mix(in srgb, #C2413D 6%, var(--gcsf)); }
+#gso-calc .gc-vgrid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(440px, 1fr)); gap:14px; margin-top:14px; align-items:start; }
+#gso-calc .gc-vgrid > .gc-blk, #gso-calc .gc-vgrid > .gc-blk + .gc-blk{ margin-top:0; }
+#gso-calc .gc-vtopo{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
+#gso-calc .gc-vtopo h2{ margin:0; }
+#gso-calc .gc-vtopo-dir{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+#gso-calc .gc-busca{ min-width:230px; border:1px solid var(--gcln2); border-radius:10px; padding:8px 12px; font-size:13px; background:var(--gcsf); color:var(--gcink); }
+#gso-calc .gc-chip-f{ border:1px solid var(--gcln2) !important; background:var(--gcsf) !important; color:var(--gcink) !important; border-radius:999px !important; padding:6px 13px !important; font-size:12px !important; font-weight:600; min-height:0 !important; cursor:pointer; }
+#gso-calc .gc-chip-f[aria-pressed="true"]{ background:#C2413D !important; border-color:#C2413D !important; color:#fff !important; }
+#gso-calc .gc-ml-venda-table-wrap table.gct td, #gso-calc .gc-ml-venda-table-wrap table.gct th{ text-align:left !important; }
+#gso-calc .gc-ml-venda-table-wrap table.gct td.num, #gso-calc .gc-ml-venda-table-wrap table.gct th.num{ text-align:right !important; }
+#gso-calc .gc-ml-venda-table-wrap td.gc-vlucro{ font-weight:700; color:#1E6B3A !important; }
+#gso-calc .gc-peca-wrap{ max-height:none; }
+#gso-calc .gc-peca-tab td{ vertical-align:middle; padding:10px 10px; }
+#gso-calc .gc-peca-tab th, #gso-calc .gc-peca-tab td{ text-align:left !important; }
+#gso-calc .gc-peca-tab th.num, #gso-calc .gc-peca-tab td.num{ text-align:right !important; }
+#gso-calc .gc-peca-tab td.num .gc-peca-qtd{ justify-content:flex-end; }
+#gso-calc tr.gc-peca-zero td{ background:color-mix(in srgb, #C2413D 7%, var(--gcsf)) !important; }
+#gso-calc .gc-peca-x{ width:30px; height:30px; padding:0 !important; border-radius:50% !important; font-size:13px !important; line-height:1; display:inline-flex; align-items:center; justify-content:center; opacity:.55; }
+#gso-calc tr:hover .gc-peca-x{ opacity:1; }
+#gso-calc .gc-peca-add{ margin-bottom:0; }
 @media(max-width:680px){
   #gso-calc .gc-ml-venda-table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
   #gso-calc .gc-ml-venda-table-wrap table.gct{ table-layout:auto; min-width:600px; }
