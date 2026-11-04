@@ -16579,7 +16579,18 @@ async function logAccess(action = 'login') {
   });
 }
 
-async function upsertChunks(table, rows) {
+// Guarda, por tabela, como cada linha estava no servidor (id -> JSON). Assim o sistema só envia
+// o que realmente mudou: lançar uma venda manda 1 linha, não as 1.700 de novo (antes, cada
+// salvamento reenviava tudo e a venda nova ia por último, o que atrasava tudo e ainda
+// disparava um aviso em tempo real por linha em todos os outros computadores).
+const gsoUltimoEnviado = { crm_vendas: new Map(), crm_vendas_lojista: new Map(), crm_clientes: new Map(), crm_fiscais: new Map(), crm_lojistas: new Map(), crm_produtos: new Map() };
+function gsoRegistrarServidor(table, rows) {
+  const m = gsoUltimoEnviado[table];
+  if (!m) return;
+  m.clear();
+  (rows || []).forEach(r => { if (r && r.id != null) m.set(r.id, JSON.stringify(r)); });
+}
+async function upsertChunksRaw(table, rows) {
   const client = getSupabaseClient();
   if (!client || rows.length === 0) return;
   for (let i = 0; i < rows.length; i += 400) {
@@ -16587,6 +16598,16 @@ async function upsertChunks(table, rows) {
     const { error } = await client.from(table).upsert(chunk, { onConflict: 'id' });
     if (error) throw error;
   }
+}
+async function upsertChunks(table, rows) {
+  const snap = gsoUltimoEnviado[table];
+  if (!snap || snap.size === 0 || rows.some(r => !r || r.id == null)) return upsertChunksRaw(table, rows);
+  const jsons = rows.map(r => JSON.stringify(r));
+  const enviar = [], enviarJson = [];
+  rows.forEach((r, i) => { if (snap.get(r.id) !== jsons[i]) { enviar.push(r); enviarJson.push(jsons[i]); } });
+  if (!enviar.length) return;
+  await upsertChunksRaw(table, enviar);
+  enviar.forEach((r, i) => snap.set(r.id, enviarJson[i]));
 }
 
 // Salva vendas sem nunca sobrescrever o nº de uma venda que já existe no banco: uma aba ou
@@ -16607,7 +16628,58 @@ function gsoPendentesLocais(table, locais, linhasServidor) {
   const noServidor = new Set((linhasServidor || []).map(r => r.id));
   return (locais || []).filter(v => pend.has(v.id) && !noServidor.has(v.id));
 }
+const GSO_CHAVE_DA_TABELA = { crm_vendas: 'vendas', crm_vendas_lojista: 'vendasLojista' };
+// Duas telas lançando vendas ao mesmo tempo podem pegar o mesmo número. Depois de gravar, confere:
+// quem tem o menor id fica com o número, o outro passa para o próximo livre.
+async function gsoResolverNumerosDuplicados(table, novas) {
+  const client = getSupabaseClient();
+  let mudou = false;
+  for (const x of novas) {
+    const n = x.row.numero_venda;
+    if (!n) continue;
+    const r = await client.from(table).select('id').eq('numero_venda', n);
+    if (r.error || !r.data || r.data.length < 2) continue;
+    const ids = r.data.map(d => d.id).sort();
+    if (x.v.id === ids[0]) continue;
+    const mx = await client.from(table).select('numero_venda').order('numero_venda', { ascending: false }).limit(1);
+    const novoN = ((mx.data && mx.data[0] && mx.data[0].numero_venda) || n) + 1;
+    const up = await client.from(table).update({ numero_venda: novoN }).eq('id', x.v.id);
+    if (!up.error) { x.v.numeroVenda = novoN; mudou = true; }
+  }
+  if (mudou) { try { localStorage.setItem('gso_' + GSO_CHAVE_DA_TABELA[table], JSON.stringify(state[GSO_CHAVE_DA_TABELA[table]])); } catch (e) {} }
+}
 async function upsertVendasPreservandoNumero(table, vendas) {
+  const client = getSupabaseClient();
+  if (!client || !vendas.length) return;
+  const snap = gsoUltimoEnviado[table];
+  if (snap && snap.size) {
+    const existentes = [], novas = [];
+    vendas.forEach(v => {
+      const row = saleToRow(v);
+      const json = JSON.stringify(row);
+      if (snap.has(v.id)) {
+        if (snap.get(v.id) !== json) { const r2 = { ...row }; delete r2.numero_venda; existentes.push({ v, row: r2, json }); }
+      } else {
+        novas.push({ v, row, json });
+      }
+    });
+    if (novas.length) {
+      const pend = gsoPendentesDe(table); novas.forEach(x => pend.add(x.v.id)); gsoGravarPendentes(table, pend);
+      await upsertChunksRaw(table, novas.map(x => x.row));
+      await gsoResolverNumerosDuplicados(table, novas);
+      novas.forEach(x => snap.set(x.v.id, JSON.stringify(saleToRow(x.v))));
+      const pend2 = gsoPendentesDe(table); novas.forEach(x => pend2.delete(x.v.id)); gsoGravarPendentes(table, pend2);
+    }
+    if (existentes.length) {
+      await upsertChunksRaw(table, existentes.map(x => x.row));
+      existentes.forEach(x => snap.set(x.v.id, x.json));
+    }
+    return;
+  }
+  return upsertVendasCompleto(table, vendas);
+}
+// Caminho completo (primeiro salvamento, antes de a tela conhecer o que está no servidor).
+async function upsertVendasCompleto(table, vendas) {
   const client = getSupabaseClient();
   if (!client || !vendas.length) return;
   const remoto = {};
@@ -16629,8 +16701,9 @@ async function upsertVendasPreservandoNumero(table, vendas) {
     }
   });
   if (novas.length) { const pend = gsoPendentesDe(table); novas.forEach(r => pend.add(r.id)); gsoGravarPendentes(table, pend); }
-  await upsertChunks(table, existentes);
-  await upsertChunks(table, novas);
+  await upsertChunksRaw(table, novas);
+  await upsertChunksRaw(table, existentes);
+  gsoRegistrarServidor(table, vendas.map(saleToRow));
   if (novas.length) { const pend = gsoPendentesDe(table); novas.forEach(r => pend.delete(r.id)); gsoGravarPendentes(table, pend); }
 }
 
@@ -16677,7 +16750,7 @@ function queueRemoteSave(key, data) {
         gsoMostrarFalhaSalvar(key);
       })
       .finally(() => { activeSaveKeys.delete(key); });
-  }, 450);
+  }, 120);
 }
 
 async function syncAllToSupabase(showAlert = false) {
@@ -16770,6 +16843,12 @@ async function loadRemoteState() {
     if (fiscaisRes.data.length) state.fiscais = fiscaisRes.data.map(rowToFiscal);
     if (produtosRes.data.length) state.produtos = produtosRes.data.map(rowToProduto);
     if (aliasesRes.data.length) state.clienteAliases = aliasesRes.data;
+    if (vendasRes.data.length) gsoRegistrarServidor('crm_vendas', vendasRes.data.map(r => saleToRow(rowToSale(r))));
+    if (vendasLojistaRes.data.length) gsoRegistrarServidor('crm_vendas_lojista', vendasLojistaRes.data.map(r => saleToRow(rowToSale(r))));
+    if (lojistasRes.data.length) gsoRegistrarServidor('crm_lojistas', state.lojistas.map(lojistaToRow));
+    if (clientesRes.data.length) gsoRegistrarServidor('crm_clientes', state.clientes.map(clienteToRow));
+    if (fiscaisRes.data.length) gsoRegistrarServidor('crm_fiscais', state.fiscais.map(fiscalToRow));
+    if (produtosRes.data.length) gsoRegistrarServidor('crm_produtos', state.produtos.map(produtoToRow));
     const catalogChanged = applyCatalogCorrections(false);
     STORE.saveAll(state);
     remoteHydrating = false;
@@ -16799,6 +16878,46 @@ async function loadRemoteState() {
   }
 }
 
+// Venda lançada, editada ou apagada em outro computador: aplica só aquela linha na hora (em vez
+// de baixar tudo de novo) e redesenha a tela. Se algo vier estranho, cai no recarregamento completo.
+let gsoRenderTimer = null, gsoIdsAntesVendas = null;
+function gsoAplicarMudancaVenda(chave, tabela, payload) {
+  try {
+    if (remoteHydrating || !payload || payload.errors) { scheduleRemoteRefresh(); return; }
+    const lista = state[chave] || [];
+    const idsAntes = chave === 'vendas' ? new Set(lista.map(v => v.id)) : null;
+    const snap = gsoUltimoEnviado[tabela];
+    if (payload.eventType === 'DELETE') {
+      const id = payload.old && payload.old.id;
+      if (!id) { scheduleRemoteRefresh(); return; }
+      if (!lista.some(v => v.id === id)) return;
+      state[chave] = lista.filter(v => v.id !== id);
+      snap.delete(id);
+    } else if (payload.new && payload.new.id) {
+      const nova = rowToSale(payload.new);
+      const json = JSON.stringify(saleToRow(nova));
+      if (snap.get(nova.id) === json) return;
+      const i = lista.findIndex(v => v.id === nova.id);
+      if (i >= 0) lista[i] = nova; else lista.push(nova);
+      snap.set(nova.id, json);
+    } else { scheduleRemoteRefresh(); return; }
+    try { localStorage.setItem('gso_' + chave, JSON.stringify(state[chave])); } catch (e) {}
+    if (idsAntes && !gsoIdsAntesVendas) gsoIdsAntesVendas = idsAntes;
+    clearTimeout(gsoRenderTimer);
+    gsoRenderTimer = setTimeout(() => {
+      const antes = gsoIdsAntesVendas; gsoIdsAntesVendas = null;
+      if (antes && vendasJaHidratado) notifyNewVendasIfNeeded(antes);
+      renderAll();
+      const activeView = VIEWS.find(v => !document.getElementById('view-' + v)?.classList.contains('hidden'));
+      if (activeView === 'vendas') renderVendas();
+      else if (activeView === 'lojista') renderVendasLojista();
+    }, 120);
+  } catch (e) {
+    console.warn('Mudança em tempo real não aplicada, recarregando tudo:', e);
+    scheduleRemoteRefresh();
+  }
+}
+
 function scheduleRemoteRefresh() {
   clearTimeout(remoteRefreshTimer);
   remoteRefreshTimer = setTimeout(() => {
@@ -16812,8 +16931,8 @@ function setupRealtime() {
   if (!client || supabaseRealtimeChannel) return;
   supabaseRealtimeChannel = client
     .channel('gso-crm-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_vendas' }, scheduleRemoteRefresh)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_vendas_lojista' }, scheduleRemoteRefresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_vendas' }, p => gsoAplicarMudancaVenda('vendas', 'crm_vendas', p))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_vendas_lojista' }, p => gsoAplicarMudancaVenda('vendasLojista', 'crm_vendas_lojista', p))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_lojistas' }, scheduleRemoteRefresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_clientes' }, scheduleRemoteRefresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_produtos' }, scheduleRemoteRefresh)
