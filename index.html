@@ -11,6 +11,20 @@
 <meta name="application-name" content="GSO CRM">
 <meta name="format-detection" content="telephone=no">
 <title>GSO Effects Line — CRM</title>
+<style id="gso-alertas-css">
+#gso-alerta-recado{ position:fixed; top:0; left:0; right:0; z-index:2147483000; display:flex; flex-wrap:wrap; align-items:center; gap:14px; padding:16px 22px; color:#fff; background:#C1121F; box-shadow:0 6px 28px rgba(0,0,0,.45); animation:gar-pulso .9s infinite; }
+#gso-alerta-recado .gar-ico{ font-size:34px; line-height:1; }
+#gso-alerta-recado .gar-txt{ flex:1 1 260px; min-width:0; display:flex; flex-direction:column; gap:3px; }
+#gso-alerta-recado .gar-txt b{ font-size:20px; font-weight:800; letter-spacing:.02em; }
+#gso-alerta-recado .gar-txt span{ font-size:15px; overflow-wrap:anywhere; }
+#gso-alerta-recado button{ border:0; cursor:pointer; border-radius:10px; font-weight:800; font-size:15px; padding:11px 20px; }
+#gso-alerta-recado .gar-ver{ background:#fff; color:#C1121F; }
+#gso-alerta-recado .gar-x{ background:rgba(0,0,0,.28); color:#fff; padding:11px 14px; }
+@keyframes gar-pulso{ 0%,100%{ background:#C1121F; } 50%{ background:#F77F00; } }
+#gso-aviso-perm{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:2147482000; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px; max-width:calc(100vw - 32px); padding:12px 18px; border-radius:14px; background:#1F2937; color:#fff; box-shadow:0 8px 30px rgba(0,0,0,.35); font-size:14px; }
+#gso-aviso-perm button{ border:0; cursor:pointer; border-radius:9px; background:#F77F00; color:#fff; font-weight:800; padding:8px 16px; }
+#gso-falha-salvar{ position:fixed; top:0; left:0; right:0; z-index:2147482500; padding:12px 20px; background:#7A0010; color:#fff; font-weight:700; font-size:15px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,.4); }
+</style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -14706,6 +14720,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <div class="h-sub">Deixe um recado pra equipe</div>
         </div>
         <div class="h-actions">
+          <button class="btn" onclick="gsoTestarAlertaRecado()" title="Toca o alarme e mostra a faixa, para conferir o som neste computador">🔔 Testar alerta</button>
           <button class="btn btn-primary" onclick="openRecadoModal()">+ Novo recado</button>
         </div>
       </div>
@@ -15880,6 +15895,234 @@ function playAttentionSound(force = false) {
   ], force);
 }
 
+// ============ ALERTA FORTE DE RECADO ============
+// Som alto e repetido + faixa piscando + título da aba piscando + bolinha vermelha no ícone da aba
+// + notificação do sistema. Tudo continua até alguém abrir o recado (ou clicar em Silenciar).
+let gsoAlarmeTimer = null, gsoAlarmeRepeticoes = 0, gsoTituloTimer = null, gsoTituloOriginal = null, gsoFaviconOriginal = null;
+let gsoAudioDestravado = false, gsoAlarmeItens = [];
+const gsoRecadosCriadosAqui = new Set();
+let gsoRecadosConhecidos = null;
+
+// Os navegadores só deixam tocar som depois que a pessoa clica em algo na página.
+function gsoDestravarAudio() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    gsoAudioContext = gsoAudioContext || new AC();
+    if (gsoAudioContext.state === 'suspended') gsoAudioContext.resume();
+    if (!gsoAudioDestravado) {
+      const b = gsoAudioContext.createBuffer(1, 1, 22050);
+      const src = gsoAudioContext.createBufferSource();
+      src.buffer = b; src.connect(gsoAudioContext.destination); src.start(0);
+      gsoAudioDestravado = true;
+    }
+  } catch (e) {}
+}
+['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, gsoDestravarAudio, { passive: true }));
+
+function gsoTocarAlarmeRecado() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  try {
+    gsoAudioContext = gsoAudioContext || new AC();
+    const ctx = gsoAudioContext;
+    const tocar = () => {
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -6; comp.knee.value = 0; comp.ratio.value = 20; comp.attack.value = 0.001; comp.release.value = 0.12;
+      const master = ctx.createGain();
+      master.gain.value = 1;
+      master.connect(comp); comp.connect(ctx.destination);
+      const t0 = ctx.currentTime + 0.03;
+      // três "ding-dong" agudos e um final longo, em onda quadrada + serra (som cortante, bem alto)
+      const notas = [[988, 0, 0.2], [1319, 0.24, 0.2], [988, 0.55, 0.2], [1319, 0.79, 0.2], [988, 1.1, 0.2], [1319, 1.34, 0.2], [1760, 1.65, 0.55]];
+      notas.forEach(([freq, off, dur]) => {
+        ['square', 'sawtooth'].forEach(tipo => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = tipo;
+          osc.frequency.setValueAtTime(freq, t0 + off);
+          g.gain.setValueAtTime(0.0001, t0 + off);
+          g.gain.exponentialRampToValueAtTime(0.5, t0 + off + 0.01);
+          g.gain.setValueAtTime(0.5, t0 + off + dur - 0.04);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + off + dur);
+          osc.connect(g); g.connect(master);
+          osc.start(t0 + off); osc.stop(t0 + off + dur + 0.02);
+        });
+      });
+    };
+    if (ctx.state === 'suspended') ctx.resume().then(tocar); else tocar();
+  } catch (err) {
+    console.warn('Não consegui tocar o alarme de recado:', err);
+  }
+}
+
+function gsoDefinirFavicon(contagem) {
+  try {
+    let link = document.querySelector('link[rel~="icon"]');
+    if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+    if (contagem) {
+      if (gsoFaviconOriginal === null) gsoFaviconOriginal = link.getAttribute('href') || '';
+      const c = document.createElement('canvas'); c.width = c.height = 64;
+      const x = c.getContext('2d');
+      x.fillStyle = '#D62828'; x.beginPath(); x.arc(32, 32, 30, 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#fff'; x.font = 'bold 38px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillText(contagem > 9 ? '9+' : String(contagem), 32, 35);
+      link.type = 'image/png'; link.href = c.toDataURL('image/png');
+    } else if (gsoFaviconOriginal !== null) {
+      if (gsoFaviconOriginal) link.href = gsoFaviconOriginal; else link.remove();
+      gsoFaviconOriginal = null;
+    }
+  } catch (e) {}
+}
+
+function gsoPararAlarme() {
+  clearInterval(gsoAlarmeTimer); gsoAlarmeTimer = null;
+  clearInterval(gsoTituloTimer); gsoTituloTimer = null;
+  if (gsoTituloOriginal !== null) { document.title = gsoTituloOriginal; gsoTituloOriginal = null; }
+  gsoDefinirFavicon(0);
+  document.getElementById('gso-alerta-recado')?.remove();
+  gsoAlarmeItens = [];
+}
+function gsoVerRecados() {
+  gsoPararAlarme();
+  try { window.focus(); } catch (e) {}
+  if (typeof navTo === 'function') navTo('recados');
+}
+
+function gsoAlertarRecados(novos) {
+  if (!Array.isArray(novos) || !novos.length) return;
+  const meuEmail = (state.session?.email || '').toLowerCase();
+  novos.forEach(r => gsoAlarmeItens.push(r));
+  const mencionada = gsoAlarmeItens.some(r => decodeRecadoTexto(r.texto).mencao.some(e => String(e).toLowerCase() === meuEmail));
+  const ultimo = novos[novos.length - 1];
+  const dec = decodeRecadoTexto(ultimo.texto);
+  const resumo = String(dec.texto || '').replace(/\s+/g, ' ').slice(0, 140);
+  const autor = ultimo.autor_nome || 'Alguém';
+
+  let el = document.getElementById('gso-alerta-recado');
+  if (!el) { el = document.createElement('div'); el.id = 'gso-alerta-recado'; el.setAttribute('role', 'alert'); document.body.appendChild(el); }
+  const extra = gsoAlarmeItens.length > 1 ? ' (' + gsoAlarmeItens.length + ' novos)' : '';
+  el.innerHTML = '<div class="gar-ico">📌</div>' +
+    '<div class="gar-txt"><b>' + (mencionada ? 'VOCÊ FOI MENCIONADA NUM RECADO!' : 'NOVO RECADO!') + extra + '</b><span>' + escapeHtml(autor) + ': ' + escapeHtml(resumo) + '</span></div>' +
+    '<button type="button" class="gar-ver" onclick="gsoVerRecados()">Ver recado</button>' +
+    '<button type="button" class="gar-x" onclick="gsoPararAlarme()" aria-label="Silenciar" title="Silenciar">✕</button>';
+
+  gsoTocarAlarmeRecado();
+  clearInterval(gsoAlarmeTimer); gsoAlarmeRepeticoes = 0;
+  gsoAlarmeTimer = setInterval(() => {
+    gsoAlarmeRepeticoes++;
+    if (gsoAlarmeRepeticoes > 12) { gsoPararAlarme(); return; }
+    gsoTocarAlarmeRecado();
+  }, 20000);
+
+  if (gsoTituloOriginal === null) gsoTituloOriginal = document.title;
+  clearInterval(gsoTituloTimer);
+  let alterna = false;
+  gsoTituloTimer = setInterval(() => {
+    alterna = !alterna;
+    document.title = alterna ? '🔔 NOVO RECADO!' : gsoTituloOriginal;
+  }, 800);
+  gsoDefinirFavicon(gsoAlarmeItens.length);
+
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      const n = new Notification(mencionada ? '📌 Você foi mencionada num recado' : '📌 Novo recado GSO', {
+        body: autor + ': ' + resumo, requireInteraction: true, tag: 'gso-recado', renotify: true
+      });
+      n.onclick = () => { try { window.focus(); } catch (e) {} gsoVerRecados(); n.close(); };
+    } catch (e) {}
+  }
+}
+
+// Compara os recados do servidor com os que esta tela já conhecia; o que for novo (e não foi
+// criado nesta tela) dispara o alarme. Vale também para quem usa o mesmo login em outro computador.
+function gsoChecarRecadosNovos() {
+  if (!state.recadosCarregadoEm) return;
+  const lista = state.recados || [];
+  if (!gsoRecadosConhecidos) { gsoRecadosConhecidos = new Set(lista.map(r => r.id)); return; }
+  const novos = lista.filter(r => !gsoRecadosConhecidos.has(r.id));
+  lista.forEach(r => gsoRecadosConhecidos.add(r.id));
+  const alertar = novos.filter(r => !gsoRecadosCriadosAqui.has(r.id));
+  if (alertar.length) gsoAlertarRecados(alertar.sort((a, b) => String(a.criado_em).localeCompare(String(b.criado_em))));
+}
+function gsoTestarAlertaRecado() {
+  gsoDestravarAudio();
+  gsoAlertarRecados([{ id: 'teste-' + Date.now(), texto: 'Este é só um teste do alerta de recado.', autor_nome: 'Teste' }]);
+}
+
+// Pede permissão das notificações do sistema (só funciona depois de um clique).
+function gsoAtualizarAvisoPermissoes() {
+  let el = document.getElementById('gso-aviso-perm');
+  const precisa = !!state.session && 'Notification' in window && Notification.permission === 'default';
+  if (!precisa) { el?.remove(); return; }
+  if (el) return;
+  el = document.createElement('div');
+  el.id = 'gso-aviso-perm';
+  el.innerHTML = '<span>🔔 Ative as notificações para ser avisada de novos recados mesmo com outra aba aberta.</span>' +
+    '<button type="button" id="gso-aviso-perm-btn">Ativar agora</button>';
+  document.body.appendChild(el);
+  document.getElementById('gso-aviso-perm-btn').onclick = () => {
+    gsoDestravarAudio();
+    Notification.requestPermission().then(() => gsoAtualizarAvisoPermissoes());
+  };
+}
+
+// Falha ao salvar no servidor: aviso vermelho que só some quando o envio der certo, com nova
+// tentativa automática a cada 10 segundos. Assim nada fica só neste computador sem a gente saber.
+const gsoFalhasSalvar = new Set();
+const gsoRetryTimers = {};
+function gsoMostrarFalhaSalvar(key) {
+  const primeira = gsoFalhasSalvar.size === 0;
+  gsoFalhasSalvar.add(key);
+  let el = document.getElementById('gso-falha-salvar');
+  if (!el) { el = document.createElement('div'); el.id = 'gso-falha-salvar'; el.setAttribute('role', 'alert'); document.body.appendChild(el); }
+  el.textContent = '⚠ NÃO consegui salvar no servidor (' + Array.from(gsoFalhasSalvar).join(', ') + '). Não feche nem atualize esta página — estou tentando de novo.';
+  if (primeira) playAttentionSound(true);
+  clearTimeout(gsoRetryTimers[key]);
+  gsoRetryTimers[key] = setTimeout(() => { if (state[key]) queueRemoteSave(key, state[key]); }, 10000);
+}
+function gsoSalvouOk(key) {
+  if (!gsoFalhasSalvar.has(key)) return;
+  gsoFalhasSalvar.delete(key);
+  clearTimeout(gsoRetryTimers[key]);
+  if (!gsoFalhasSalvar.size) document.getElementById('gso-falha-salvar')?.remove();
+}
+
+// Rede de segurança: além do tempo real, confere o servidor a cada 15 segundos (recados novos e
+// vendas que outro computador lançou), caso o aviso em tempo real tenha se perdido.
+let gsoAlertasIniciados = false, gsoPollEmAndamento = false, gsoUltimaContagemVendas = null;
+async function gsoPollingGeral() {
+  if (gsoPollEmAndamento || !state.session || state.session.mode !== 'supabase') return;
+  gsoPollEmAndamento = true;
+  try {
+    const client = getSupabaseClient();
+    if (!client) return;
+    const antes = (state.recados || []).length;
+    await updateRecadosBadge();
+    gsoChecarRecadosNovos();
+    const viewAtiva = VIEWS.find(v => !document.getElementById('view-' + v)?.classList.contains('hidden'));
+    if (viewAtiva === 'recados' && (state.recados || []).length !== antes) { await loadRecadosRespostas(); await renderRecados(); }
+    const r = await client.from('crm_vendas').select('id', { count: 'exact', head: true });
+    if (!r.error && r.count != null) {
+      if (gsoUltimaContagemVendas != null && r.count !== gsoUltimaContagemVendas && activeSaveKeys.size === 0) scheduleRemoteRefresh();
+      gsoUltimaContagemVendas = r.count;
+    }
+  } catch (e) {
+    console.warn('Verificação periódica falhou:', e);
+  } finally {
+    gsoPollEmAndamento = false;
+  }
+}
+function gsoIniciarAlertas() {
+  if (gsoAlertasIniciados) return;
+  gsoAlertasIniciados = true;
+  setTimeout(gsoAtualizarAvisoPermissoes, 2500);
+  setTimeout(async () => { await updateRecadosBadge(); gsoChecarRecadosNovos(); }, 1500);
+  setInterval(gsoPollingGeral, 15000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) gsoPollingGeral(); });
+  window.addEventListener('online', gsoPollingGeral);
+}
+
 function notifyBusinessEvent(type, values = {}, title = 'GSO Effects Line') {
   const body = notificationMessage(type, values);
   if (!body) return;
@@ -16336,7 +16579,18 @@ async function logAccess(action = 'login') {
   });
 }
 
-async function upsertChunks(table, rows) {
+// Guarda, por tabela, como cada linha estava no servidor (id -> JSON). Assim o sistema só envia
+// o que realmente mudou: lançar uma venda manda 1 linha, não as 1.700 de novo (antes, cada
+// salvamento reenviava tudo e a venda nova ia por último, o que atrasava tudo e ainda
+// disparava um aviso em tempo real por linha em todos os outros computadores).
+const gsoUltimoEnviado = { crm_vendas: new Map(), crm_vendas_lojista: new Map(), crm_clientes: new Map(), crm_fiscais: new Map(), crm_lojistas: new Map(), crm_produtos: new Map() };
+function gsoRegistrarServidor(table, rows) {
+  const m = gsoUltimoEnviado[table];
+  if (!m) return;
+  m.clear();
+  (rows || []).forEach(r => { if (r && r.id != null) m.set(r.id, JSON.stringify(r)); });
+}
+async function upsertChunksRaw(table, rows) {
   const client = getSupabaseClient();
   if (!client || rows.length === 0) return;
   for (let i = 0; i < rows.length; i += 400) {
@@ -16345,12 +16599,87 @@ async function upsertChunks(table, rows) {
     if (error) throw error;
   }
 }
+async function upsertChunks(table, rows) {
+  const snap = gsoUltimoEnviado[table];
+  if (!snap || snap.size === 0 || rows.some(r => !r || r.id == null)) return upsertChunksRaw(table, rows);
+  const jsons = rows.map(r => JSON.stringify(r));
+  const enviar = [], enviarJson = [];
+  rows.forEach((r, i) => { if (snap.get(r.id) !== jsons[i]) { enviar.push(r); enviarJson.push(jsons[i]); } });
+  if (!enviar.length) return;
+  await upsertChunksRaw(table, enviar);
+  enviar.forEach((r, i) => snap.set(r.id, enviarJson[i]));
+}
 
 // Salva vendas sem nunca sobrescrever o nº de uma venda que já existe no banco: uma aba ou
 // computador com dados antigos na memória regravava a numeração velha por cima da correta.
 // Vendas já existentes mantêm o nº do banco (e a memória local passa a usar esse nº);
 // só vendas novas gravam o nº que receberam.
+// Vendas novas ficam anotadas como "pendentes de envio" até o servidor confirmar. Se a página
+// recarregar antes disso, elas são reenviadas em vez de serem trocadas pela lista do servidor.
+function gsoPendentesDe(table) {
+  try { return new Set(JSON.parse(localStorage.getItem('gso_pend_' + table) || '[]')); } catch (e) { return new Set(); }
+}
+function gsoGravarPendentes(table, set) {
+  try { localStorage.setItem('gso_pend_' + table, JSON.stringify(Array.from(set))); } catch (e) {}
+}
+function gsoPendentesLocais(table, locais, linhasServidor) {
+  const pend = gsoPendentesDe(table);
+  if (!pend.size) return [];
+  const noServidor = new Set((linhasServidor || []).map(r => r.id));
+  return (locais || []).filter(v => pend.has(v.id) && !noServidor.has(v.id));
+}
+const GSO_CHAVE_DA_TABELA = { crm_vendas: 'vendas', crm_vendas_lojista: 'vendasLojista' };
+// Duas telas lançando vendas ao mesmo tempo podem pegar o mesmo número. Depois de gravar, confere:
+// quem tem o menor id fica com o número, o outro passa para o próximo livre.
+async function gsoResolverNumerosDuplicados(table, novas) {
+  const client = getSupabaseClient();
+  let mudou = false;
+  for (const x of novas) {
+    const n = x.row.numero_venda;
+    if (!n) continue;
+    const r = await client.from(table).select('id').eq('numero_venda', n);
+    if (r.error || !r.data || r.data.length < 2) continue;
+    const ids = r.data.map(d => d.id).sort();
+    if (x.v.id === ids[0]) continue;
+    const mx = await client.from(table).select('numero_venda').order('numero_venda', { ascending: false }).limit(1);
+    const novoN = ((mx.data && mx.data[0] && mx.data[0].numero_venda) || n) + 1;
+    const up = await client.from(table).update({ numero_venda: novoN }).eq('id', x.v.id);
+    if (!up.error) { x.v.numeroVenda = novoN; mudou = true; }
+  }
+  if (mudou) { try { localStorage.setItem('gso_' + GSO_CHAVE_DA_TABELA[table], JSON.stringify(state[GSO_CHAVE_DA_TABELA[table]])); } catch (e) {} }
+}
 async function upsertVendasPreservandoNumero(table, vendas) {
+  const client = getSupabaseClient();
+  if (!client || !vendas.length) return;
+  const snap = gsoUltimoEnviado[table];
+  if (snap && snap.size) {
+    const existentes = [], novas = [];
+    vendas.forEach(v => {
+      const row = saleToRow(v);
+      const json = JSON.stringify(row);
+      if (snap.has(v.id)) {
+        if (snap.get(v.id) !== json) { const r2 = { ...row }; delete r2.numero_venda; existentes.push({ v, row: r2, json }); }
+      } else {
+        novas.push({ v, row, json });
+      }
+    });
+    if (novas.length) {
+      const pend = gsoPendentesDe(table); novas.forEach(x => pend.add(x.v.id)); gsoGravarPendentes(table, pend);
+      await upsertChunksRaw(table, novas.map(x => x.row));
+      await gsoResolverNumerosDuplicados(table, novas);
+      novas.forEach(x => snap.set(x.v.id, JSON.stringify(saleToRow(x.v))));
+      const pend2 = gsoPendentesDe(table); novas.forEach(x => pend2.delete(x.v.id)); gsoGravarPendentes(table, pend2);
+    }
+    if (existentes.length) {
+      await upsertChunksRaw(table, existentes.map(x => x.row));
+      existentes.forEach(x => snap.set(x.v.id, x.json));
+    }
+    return;
+  }
+  return upsertVendasCompleto(table, vendas);
+}
+// Caminho completo (primeiro salvamento, antes de a tela conhecer o que está no servidor).
+async function upsertVendasCompleto(table, vendas) {
   const client = getSupabaseClient();
   if (!client || !vendas.length) return;
   const remoto = {};
@@ -16371,8 +16700,11 @@ async function upsertVendasPreservandoNumero(table, vendas) {
       novas.push(row);
     }
   });
-  await upsertChunks(table, existentes);
-  await upsertChunks(table, novas);
+  if (novas.length) { const pend = gsoPendentesDe(table); novas.forEach(r => pend.add(r.id)); gsoGravarPendentes(table, pend); }
+  await upsertChunksRaw(table, novas);
+  await upsertChunksRaw(table, existentes);
+  gsoRegistrarServidor(table, vendas.map(saleToRow));
+  if (novas.length) { const pend = gsoPendentesDe(table); novas.forEach(r => pend.delete(r.id)); gsoGravarPendentes(table, pend); }
 }
 
 async function syncCollectionToSupabase(key, data) {
@@ -16411,12 +16743,14 @@ function queueRemoteSave(key, data) {
     delete remoteSaveTimers[key];
     setSyncStatus('syncing', 'Sincronizando...');
     syncCollectionToSupabase(key, payload)
+      .then(() => gsoSalvouOk(key))
       .catch(err => {
         console.warn('Supabase sync error:', err);
         setSyncStatus('offline', 'Pendente de sincronização');
+        gsoMostrarFalhaSalvar(key);
       })
       .finally(() => { activeSaveKeys.delete(key); });
-  }, 450);
+  }, 120);
 }
 
 async function syncAllToSupabase(showAlert = false) {
@@ -16498,16 +16832,28 @@ async function loadRemoteState() {
       }, { onConflict: 'id' });
     }
     const vendasAtualizadas = vendasRes.data.length > 0;
+    const vendasPendentes = gsoPendentesLocais('crm_vendas', state.vendas, vendasRes.data);
+    const lojistaPendentes = gsoPendentesLocais('crm_vendas_lojista', state.vendasLojista, vendasLojistaRes.data);
     if (vendasRes.data.length) state.vendas = vendasRes.data.map(rowToSale);
     if (vendasLojistaRes.data.length) state.vendasLojista = vendasLojistaRes.data.map(rowToSale);
+    if (vendasRes.data.length && vendasPendentes.length) state.vendas.push(...vendasPendentes);
+    if (vendasLojistaRes.data.length && lojistaPendentes.length) state.vendasLojista.push(...lojistaPendentes);
     if (lojistasRes.data.length) state.lojistas = lojistasRes.data.map(rowToLojista);
     if (clientesRes.data.length) state.clientes = clientesRes.data.map(rowToCliente);
     if (fiscaisRes.data.length) state.fiscais = fiscaisRes.data.map(rowToFiscal);
     if (produtosRes.data.length) state.produtos = produtosRes.data.map(rowToProduto);
     if (aliasesRes.data.length) state.clienteAliases = aliasesRes.data;
+    if (vendasRes.data.length) gsoRegistrarServidor('crm_vendas', vendasRes.data.map(r => saleToRow(rowToSale(r))));
+    if (vendasLojistaRes.data.length) gsoRegistrarServidor('crm_vendas_lojista', vendasLojistaRes.data.map(r => saleToRow(rowToSale(r))));
+    if (lojistasRes.data.length) gsoRegistrarServidor('crm_lojistas', state.lojistas.map(lojistaToRow));
+    if (clientesRes.data.length) gsoRegistrarServidor('crm_clientes', state.clientes.map(clienteToRow));
+    if (fiscaisRes.data.length) gsoRegistrarServidor('crm_fiscais', state.fiscais.map(fiscalToRow));
+    if (produtosRes.data.length) gsoRegistrarServidor('crm_produtos', state.produtos.map(produtoToRow));
     const catalogChanged = applyCatalogCorrections(false);
     STORE.saveAll(state);
     remoteHydrating = false;
+    if (vendasRes.data.length && vendasPendentes.length) STORE.save('vendas', state.vendas);
+    if (vendasLojistaRes.data.length && lojistaPendentes.length) STORE.save('vendasLojista', state.vendasLojista);
     if (catalogChanged) await cleanupCatalogProductsInSupabase();
 
     if (!vendasRes.data.length && (state.vendas.length || state.vendasLojista.length || state.lojistas.length || state.clientes.length || state.fiscais.length || state.produtos.length)) {
@@ -16532,6 +16878,46 @@ async function loadRemoteState() {
   }
 }
 
+// Venda lançada, editada ou apagada em outro computador: aplica só aquela linha na hora (em vez
+// de baixar tudo de novo) e redesenha a tela. Se algo vier estranho, cai no recarregamento completo.
+let gsoRenderTimer = null, gsoIdsAntesVendas = null;
+function gsoAplicarMudancaVenda(chave, tabela, payload) {
+  try {
+    if (remoteHydrating || !payload || payload.errors) { scheduleRemoteRefresh(); return; }
+    const lista = state[chave] || [];
+    const idsAntes = chave === 'vendas' ? new Set(lista.map(v => v.id)) : null;
+    const snap = gsoUltimoEnviado[tabela];
+    if (payload.eventType === 'DELETE') {
+      const id = payload.old && payload.old.id;
+      if (!id) { scheduleRemoteRefresh(); return; }
+      if (!lista.some(v => v.id === id)) return;
+      state[chave] = lista.filter(v => v.id !== id);
+      snap.delete(id);
+    } else if (payload.new && payload.new.id) {
+      const nova = rowToSale(payload.new);
+      const json = JSON.stringify(saleToRow(nova));
+      if (snap.get(nova.id) === json) return;
+      const i = lista.findIndex(v => v.id === nova.id);
+      if (i >= 0) lista[i] = nova; else lista.push(nova);
+      snap.set(nova.id, json);
+    } else { scheduleRemoteRefresh(); return; }
+    try { localStorage.setItem('gso_' + chave, JSON.stringify(state[chave])); } catch (e) {}
+    if (idsAntes && !gsoIdsAntesVendas) gsoIdsAntesVendas = idsAntes;
+    clearTimeout(gsoRenderTimer);
+    gsoRenderTimer = setTimeout(() => {
+      const antes = gsoIdsAntesVendas; gsoIdsAntesVendas = null;
+      if (antes && vendasJaHidratado) notifyNewVendasIfNeeded(antes);
+      renderAll();
+      const activeView = VIEWS.find(v => !document.getElementById('view-' + v)?.classList.contains('hidden'));
+      if (activeView === 'vendas') renderVendas();
+      else if (activeView === 'lojista') renderVendasLojista();
+    }, 120);
+  } catch (e) {
+    console.warn('Mudança em tempo real não aplicada, recarregando tudo:', e);
+    scheduleRemoteRefresh();
+  }
+}
+
 function scheduleRemoteRefresh() {
   clearTimeout(remoteRefreshTimer);
   remoteRefreshTimer = setTimeout(() => {
@@ -16545,8 +16931,8 @@ function setupRealtime() {
   if (!client || supabaseRealtimeChannel) return;
   supabaseRealtimeChannel = client
     .channel('gso-crm-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_vendas' }, scheduleRemoteRefresh)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_vendas_lojista' }, scheduleRemoteRefresh)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_vendas' }, p => gsoAplicarMudancaVenda('vendas', 'crm_vendas', p))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_vendas_lojista' }, p => gsoAplicarMudancaVenda('vendasLojista', 'crm_vendas_lojista', p))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_lojistas' }, scheduleRemoteRefresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_clientes' }, scheduleRemoteRefresh)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_produtos' }, scheduleRemoteRefresh)
@@ -16585,43 +16971,14 @@ function scheduleGsoRefresh() {
 }
 
 let recadosRefreshTimer = null;
-// IDs de recados já avisados nesta aba — evita tocar o som de novo a cada mudança
-// (ex.: alguém reagindo com check) pro mesmo recado que já apareceu antes.
-const recadosNotificadosIds = new Set();
-// Avisa (som + notificação) quando chega um recado genuinamente novo de outra pessoa —
-// com som mais forte se a usuária atual foi mencionada nele.
-function notifyNewRecadosIfNeeded(novos) {
-  if (!Array.isArray(novos) || !novos.length) return;
-  const meuEmail = (state.session?.email || '').toLowerCase();
-  const meuId = currentUserId();
-  let souMencionada = false;
-  let temGenuinamenteNovo = false;
-  novos.forEach(r => {
-    if (recadosNotificadosIds.has(r.id)) return;
-    recadosNotificadosIds.add(r.id);
-    if (meuId && r.autor_id === meuId) return;
-    temGenuinamenteNovo = true;
-    const decoded = decodeRecadoTexto(r.texto);
-    if (decoded.mencao.some(email => String(email).toLowerCase() === meuEmail)) souMencionada = true;
-  });
-  if (!temGenuinamenteNovo) return;
-  const canNotify = 'Notification' in window && Notification.permission === 'granted';
-  if (souMencionada) {
-    if (canNotify) new Notification('Você foi mencionada num recado', { body: notificationMessage('recado_mention') });
-    playAttentionSound();
-  } else {
-    if (canNotify) new Notification('Novo recado GSO', { body: notificationMessage('recado_new') });
-    playNotificationSound();
-  }
-}
 function scheduleRecadosRefresh() {
   clearTimeout(recadosRefreshTimer);
   recadosRefreshTimer = setTimeout(async () => {
-    const novos = await updateRecadosBadge();
-    notifyNewRecadosIfNeeded(novos);
+    await updateRecadosBadge();
+    gsoChecarRecadosNovos();
     const activeView = VIEWS.find(v => !document.getElementById('view-' + v)?.classList.contains('hidden'));
     if (activeView === 'recados') { await loadRecadosRespostas(); await renderRecados(); }
-  }, 350);
+  }, 150);
 }
 
 function setupGsoRealtime() {
@@ -17796,6 +18153,7 @@ async function finishSupabaseLogin(session) {
   showApp();
   setupRealtime();
   setupGsoRealtime();
+  gsoIniciarAlertas();
   updateUnreadBadge();
   updateBoletosBadge();
   logAccess('login');
@@ -21001,6 +21359,7 @@ async function loadRecados() {
   const { data, error } = await client.from('crm_recados').select('*').order('criado_em', { ascending: false });
   if (error) { console.error(error); state.recados = []; return state.recados; }
   state.recados = data || [];
+  state.recadosCarregadoEm = Date.now();
   return state.recados;
 }
 
@@ -21019,6 +21378,7 @@ function getRecadosUltimoVisto() {
   return localStorage.getItem(RECADOS_ULTIMO_VISTO_KEY) || null;
 }
 function marcarRecadosComoVistos() {
+  try { gsoPararAlarme(); } catch (e) {}
   localStorage.setItem(RECADOS_ULTIMO_VISTO_KEY, new Date().toISOString());
   const badge = document.getElementById('recadosAlertBadge');
   if (badge) badge.classList.add('hidden');
@@ -21230,7 +21590,9 @@ async function salvarRecado() {
     const { error } = await client.from('crm_recados').update(row).eq('id', id);
     if (error) { alert('Não consegui salvar o recado: ' + error.message); return; }
   } else {
+    const novoId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : null;
     const row = { texto, visibilidade, autor_nome: currentUserName() };
+    if (novoId) { row.id = novoId; gsoRecadosCriadosAqui.add(novoId); }
     const { error } = await client.from('crm_recados').insert(row);
     if (error) { alert('Não consegui salvar o recado: ' + error.message); return; }
   }
