@@ -14505,7 +14505,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="h-actions">
           <button class="btn btn-soft" onclick="finAbrirCopiar()" title="Copia os valores fixos (aluguel, pró-labore...) do mês anterior">Copiar do mês anterior</button>
           <button class="btn btn-soft" onclick="finImprimirMes()">PDF do mês</button>
-          <button class="btn btn-soft" onclick="finExportarExcel()">Exportar Excel</button>
+          <button class="btn btn-soft" onclick="finExportarExcel()" title="Resumo do ano inteiro, mês a mês (receita, custos, despesas e lucro)">Excel do ano</button>
           <button class="btn btn-soft" onclick="finExportarCalculoMes()" title="Planilha com tudo que foi somado no mês, na ordem de entrada">Excel do cálculo do mês</button>
           <button class="btn btn-primary" onclick="openDespesaModal()">+ Nova despesa</button>
         </div>
@@ -14606,7 +14606,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <span class="alex-conf" id="alex-conf"></span>
         </div>
         <div class="fx-grid">
-          <div class="fx-card"><div class="card-title">Extrato</div><div class="card-sub">Do mais recente para o mais antigo, com o saldo que ele devia depois de cada lançamento. Entregas somam, pagamentos descontam.</div><div id="alex-extrato" style="margin-top:12px"></div></div>
+          <div class="fx-card"><div class="card-title">Extrato</div><div class="card-sub">Do mais recente para o mais antigo, com o saldo que ele devia depois de cada lançamento. Entregas somam, pagamentos descontam. Cada pagamento também entra como dinheiro recebido no Fechamento do mês (Recebido no mês) e no Excel do cálculo.</div><div id="alex-extrato" style="margin-top:12px"></div></div>
           <div class="fx-lateral">
             <div class="fx-card" id="alex-produtos"></div>
             <div class="fx-card" id="alex-refs"></div>
@@ -19538,6 +19538,7 @@ function computeLucroBrutoMensal() {
   });
   // Mercado Livre: as entradas lançadas no Financeiro são receita; o custo da mercadoria das vendas ML continua descontado.
   mlEntradasTodas().forEach(e => { map[e.mes] = (map[e.mes] || 0) + e.valor; });
+  alexPagamentosTodos().forEach(e => { map[e.mes] = (map[e.mes] || 0) + e.valor; });
   vendasConsolidadas().filter(saleIsML).forEach(venda => {
     const d = dashboardDateObj(venda.data); if (!d) return;
     const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
@@ -19588,6 +19589,20 @@ function mlEntradasTodas() {
     Object.keys(FIN.store.meses || {}).forEach(mes => ((FIN.store.meses[mes] || {}).ml_entradas || []).forEach(e => {
       const v = Number(e && e.valor) || 0; if (v) out.push({ mes, id: e.id, data: e.data, valor: v });
     }));
+    return out;
+  } catch (err) { return []; }
+}
+// Pagamentos lançados na ficha do Alexandre (Financeiro > Alexandre): contam como dinheiro recebido, no mês da data do pagamento.
+// As entregas dele NÃO entram (são mercadoria consignada); só o que ele pagou.
+function alexPagamentosTodos() {
+  try {
+    if (!isAdminUser() || typeof alexDados !== 'function') return [];
+    const d = alexDados(); if (!d) return [];
+    const out = [];
+    d.pagamentos.forEach(p => {
+      const v = Number(p && p.valor) || 0, dt = dashboardDateObj(p && p.data); if (!v || !dt) return;
+      out.push({ mes: finMesKey(dt), id: p.id, data: p.data, valor: v, ref: p.ref || '' });
+    });
     return out;
   } catch (err) { return []; }
 }
@@ -20535,7 +20550,7 @@ function finRenderFechamento() {
 // reconhecimento do faturamento (boleto só quando pago, anotado quando recebido). Lucro bruto =
 // faturamento − custo dos produtos − impostos (fiscal) − taxas e fretes do Mercado Livre.
 function finVendasDoMes(mes) {
-  const r = { fat: 0, custo: 0, fiscal: 0, taxasML: 0, fretesML: 0, vendas: 0, semCusto: 0, vendido: 0, mlVendas: 0, mlEntradas: 0, produtos: {}, canais: { clientes: 0, lojistas: 0, ml: 0 }, linhas: [], naoSomadas: [] };
+  const r = { fat: 0, custo: 0, fiscal: 0, taxasML: 0, fretesML: 0, vendas: 0, semCusto: 0, vendido: 0, mlVendas: 0, mlEntradas: 0, produtos: {}, canais: { clientes: 0, lojistas: 0, ml: 0, alexandre: 0 }, linhas: [], naoSomadas: [] };
   const todas = [...state.vendas.map(v => ({ v, canal: 'clientes' })), ...state.vendasLojista.map(v => ({ v, canal: 'lojistas' }))];
   todas.forEach(({ v, canal }) => {
     const total = Number(v.valor) || 0; if (total <= 0) return;
@@ -20576,12 +20591,18 @@ function finVendasDoMes(mes) {
   r.mlEntradas = round2(((mlMes && mlMes.ml_entradas) || []).reduce((s, e) => s + (Number(e.valor) || 0), 0));
   ((mlMes && mlMes.ml_entradas) || []).forEach(e => { if (Number(e.valor)) r.linhas.push({ canal: 'Mercado Livre', numero: '', cliente: e.desc || 'Entrada Mercado Livre', pag: 'Mercado Livre', total: Number(e.valor), data: e.data, valor: Number(e.valor), custo: null, obs: 'Entrada lançada no Financeiro (já líquida de tarifa e frete)' }); });
   r.fat += r.mlEntradas; r.canais.ml = r.mlEntradas;
+  // Pagamentos do Alexandre (ficha): entram como recebido, sem custo calculado (a mercadoria dele é consignada).
+  const axMes = alexPagamentosTodos().filter(p => p.mes === mes);
+  r.alexEntradas = round2(axMes.reduce((s, p) => s + p.valor, 0));
+  axMes.forEach(p => r.linhas.push({ canal: 'Alexandre', numero: '', cliente: 'Alexandre — pagamento' + (p.ref ? ' (' + p.ref + ')' : ''), pag: 'Pagamento da ficha do Alexandre', total: p.valor, valor: p.valor, custo: null, data: p.data, obs: 'Lançado em Financeiro > Alexandre · o custo da mercadoria entregue a ele não é calculado' }));
+  r.fat += r.alexEntradas; r.canais.alexandre = r.alexEntradas;
   ['fat', 'custo', 'fiscal', 'taxasML', 'fretesML', 'vendido'].forEach(k => { r[k] = round2(r[k]); });
   r.lucroBruto = round2(r.fat - r.custo - r.fiscal - r.taxasML - r.fretesML);
   r.margem = r.fat > 0 ? round2(r.lucroBruto / r.fat * 100) : null;
   r.lista = Object.values(r.produtos).map(o => ({ nome: o.nome, qtd: Math.round(o.qtd), fat: round2(o.fat) })).sort((a, b) => b.fat - a.fat);
   // peças e itens que não estão no catálogo de produtos entram aqui, pra a soma da tabela fechar com o valor vendido
   if (r.mlEntradas > 0) r.lista.push({ nome: 'Entradas Mercado Livre', qtd: r.mlVendas ? r.mlVendas + ' venda' + (r.mlVendas === 1 ? '' : 's') : '—', fat: r.mlEntradas });
+  if (r.alexEntradas > 0) r.lista.push({ nome: 'Pagamentos do Alexandre (ficha)', qtd: axMes.length + ' pagamento' + (axMes.length === 1 ? '' : 's'), fat: r.alexEntradas });
   const resto = round2(r.fat - r.lista.reduce((s, p) => s + p.fat, 0));
   if (resto > 0.5) r.lista.push({ nome: 'Outros (peças e itens fora do catálogo)', qtd: '—', fat: resto });
   return r;
@@ -20631,7 +20652,7 @@ function finRenderVendasAuto() {
     <div class="fx-va-topo" onclick="finVendasAutoAlternar()">
       <button type="button" class="saude-min" aria-label="Minimizar">${colapsado ? '▸' : '▾'}</button>
       <div><div class="card-title">Como o sistema calculou as vendas <span class="fx-badge auto">automático</span></div>
-      <div class="card-sub">É daqui que vem a linha “Sistema calculou” do resumo acima. Receita = vendas recebidas (boleto e fiado só quando pagos) + entradas do Mercado Livre. Venda no cartão ou com nota fiscal entra pelo valor total, sem desconto de porcentagem. Custos = custo dos produtos. Use o lápis para ajustar um valor.</div></div>
+      <div class="card-sub">É daqui que vem a linha “Sistema calculou” do resumo acima. Receita = vendas recebidas (boleto e fiado só quando pagos) + entradas do Mercado Livre + pagamentos da ficha do Alexandre. Venda no cartão ou com nota fiscal entra pelo valor total, sem desconto de porcentagem. Custos = custo dos produtos. Use o lápis para ajustar um valor.</div></div>
     </div>
     <div class="fx-va-corpo${colapsado ? ' hidden' : ''}">
       <div class="fx-kpis fx-va-kpis">
@@ -20643,7 +20664,7 @@ function finRenderVendasAuto() {
       ${r.lista.length ? `<div class="fx-va-tab"><div class="fx-va-cab"><span>Produto</span><span>Qtd</span><span>Valor vendido</span><span>% do total</span></div>
         ${r.lista.map(p => `<div class="fx-va-lin"><span>${escapeHtml(p.nome)}</span><span>${p.qtd}</span><b>${fmtBR(p.fat)}</b><span>${pctProd(p.fat)}</span></div>`).join('')}</div>` : '<div class="table-empty" style="padding:12px 0">Nenhuma venda recebida neste mês.</div>'}
       <div class="fx-va-rodape">
-        <span>Por canal: clientes <b>${fmtBR(round2(r.canais.clientes))}</b> · lojistas <b>${fmtBR(round2(r.canais.lojistas))}</b> · entradas Mercado Livre <b>${fmtBR(round2(r.canais.ml))}</b></span>
+        <span>Por canal: clientes <b>${fmtBR(round2(r.canais.clientes))}</b> · lojistas <b>${fmtBR(round2(r.canais.lojistas))}</b> · entradas Mercado Livre <b>${fmtBR(round2(r.canais.ml))}</b> · pagamentos do Alexandre <b>${fmtBR(round2(r.canais.alexandre))}</b></span>
         <button type="button" class="btn btn-small btn-soft" onclick="finExportarCalculoMes()" data-tip="Baixa uma planilha com cada valor somado, na ordem de entrada">Baixar Excel do cálculo</button>
         <button type="button" class="btn btn-small btn-soft"${dis} onclick="finUsarVendasAuto()" data-tip="Copia faturamento, custo, impostos e taxas para os campos do demonstrativo">Usar estes valores nos campos do mês</button>
       </div>
@@ -20947,7 +20968,7 @@ async function finExportarCalculoMes() {
   let acum = 0;
   const linhas = ordenadas.map((l, i) => {
     acum = round2(acum + l.valor);
-    return { ordem: i + 1, data: gsoDataExcel(l.data), canal: l.canal, numero: l.numero, cliente: l.cliente, pag: l.pag, total: round2(l.total), valor: round2(l.valor), custo: l.custo == null ? 0 : l.custo, acum, obs: [l.obs, l.custo == null && l.canal !== 'Mercado Livre' ? 'sem custo calculado' : ''].filter(Boolean).join(' · ') };
+    return { ordem: i + 1, data: gsoDataExcel(l.data), canal: l.canal, numero: l.numero, cliente: l.cliente, pag: l.pag, total: round2(l.total), valor: round2(l.valor), custo: l.custo == null ? 0 : l.custo, lucro: round2(l.valor - (l.custo == null ? 0 : l.custo)), acum, obs: [l.obs, l.custo == null && l.canal !== 'Mercado Livre' && l.canal !== 'Alexandre' ? 'sem custo calculado' : ''].filter(Boolean).join(' · ') };
   });
   const naoSomadas = r.naoSomadas.map(l => ({ data: gsoDataExcel(l.data), canal: l.canal, numero: l.numero, cliente: l.cliente, pag: l.pag, total: round2(l.total), valor: round2(l.valor), motivo: l.motivo }));
   const soma = linhas.reduce((s, l) => s + l.valor, 0);
@@ -20957,11 +20978,10 @@ async function finExportarCalculoMes() {
   if (r.fiscal !== r.auto.fiscal) ajustes.push('Impostos ajustados à mão: ' + fmtBR(r.fiscal) + ' (calculado ' + fmtBR(r.auto.fiscal) + ')');
   if (r.lucroBruto !== r.autoLucro) ajustes.push('Lucro ajustado à mão: ' + fmtBR(r.lucroBruto) + ' (calculado ' + fmtBR(r.autoLucro) + ')');
   const resumo = [
-    { campo: 'Total das entradas somadas', valor: round2(soma), obs: 'Soma da aba "Entradas somadas" (é o "Recebido no mês" calculado pelo sistema)' },
-    { campo: 'Recebido no mês (calculado)', valor: r.auto.fat, obs: 'Cartão/nota fiscal entram pelo valor total, sem desconto de porcentagem' },
-    { campo: 'Custo dos produtos (calculado)', valor: r.auto.custo, obs: 'Custo das vendas do mês, proporcional ao que foi recebido' },
-    { campo: 'Impostos (calculado)', valor: r.auto.fiscal, obs: 'Sem desconto automático de porcentagem' },
-    { campo: 'Lucro bruto (calculado)', valor: r.autoLucro, obs: 'Recebido − custo dos produtos' },
+    { campo: 'Total recebido (valor bruto)', valor: round2(soma), obs: 'Soma da coluna "Valor recebido (bruto)": o valor cheio de cada entrada, sem tirar custo. É o "Recebido no mês" do sistema' },
+    { campo: 'Custo dos produtos', valor: r.auto.custo, obs: 'Custo das vendas do mês, proporcional ao que foi recebido (não inclui a mercadoria entregue ao Alexandre)' },
+    { campo: 'Impostos', valor: r.auto.fiscal, obs: 'Cartão e nota fiscal entram pelo valor total, sem desconto de porcentagem' },
+    { campo: 'Lucro bruto (recebido − custo)', valor: r.autoLucro, obs: 'Total recebido menos o custo dos produtos' },
     ...ajustes.map(t => ({ campo: 'Ajuste manual', valor: null, obs: t }))
   ];
   const colunas = [
@@ -20972,9 +20992,10 @@ async function finExportarCalculoMes() {
     { cab: 'Cliente / descrição', chave: 'cliente', max: 38 },
     { cab: 'Forma de pagamento', chave: 'pag', max: 34 },
     { cab: 'Valor total da venda', chave: 'total', tipo: 'dinheiro', larg: 18 },
-    { cab: 'Valor somado', chave: 'valor', tipo: 'dinheiro', total: true, larg: 16 },
+    { cab: 'Valor recebido (bruto)', chave: 'valor', tipo: 'dinheiro', total: true, larg: 19 },
     { cab: 'Custo do produto', chave: 'custo', tipo: 'dinheiro', total: true, larg: 17 },
-    { cab: 'Acumulado', chave: 'acum', tipo: 'dinheiro', larg: 16 },
+    { cab: 'Lucro bruto (recebido − custo)', chave: 'lucro', tipo: 'dinheiro', total: true, larg: 22 },
+    { cab: 'Recebido acumulado', chave: 'acum', tipo: 'dinheiro', larg: 18 },
     { cab: 'Observação', chave: 'obs', max: 54 }
   ];
   const extras = [];
@@ -20987,10 +21008,10 @@ async function finExportarCalculoMes() {
       titulo: 'GSO Effects Line  —  Tudo que foi somado em ' + finMesLabel(FIN.mes),
       subtitulo: `Gerado em ${gsoAgoraBR()} por ${currentUserName()}   •   na ordem em que cada valor entrou`,
       resumo: [
-        { rotulo: 'Recebido no mês', valor: fmtBR(round2(soma)) },
-        { rotulo: 'Entradas somadas', valor: String(linhas.length) },
+        { rotulo: 'Total recebido (bruto)', valor: fmtBR(round2(soma)) },
         { rotulo: 'Custo dos produtos', valor: fmtBR(r.auto.custo) },
-        { rotulo: 'Lucro bruto', valor: fmtBR(r.autoLucro) }
+        { rotulo: 'Lucro bruto', valor: fmtBR(r.autoLucro) },
+        { rotulo: 'Entradas somadas', valor: String(linhas.length) }
       ],
       colunas, linhas, abasExtras: extras
     });
@@ -21702,6 +21723,7 @@ function computeMensal() {
     });
   });
   mlEntradasTodas().forEach(e => { map[e.mes] = (map[e.mes] || 0) + e.valor; });
+  alexPagamentosTodos().forEach(e => { map[e.mes] = (map[e.mes] || 0) + e.valor; });
   return Object.keys(map).sort().map(k => ({ mes: k, fat: map[k] }));
 }
 
