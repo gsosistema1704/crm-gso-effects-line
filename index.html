@@ -16037,9 +16037,17 @@ let gsoAlertasConhecidos = null;
 async function gsoEnviarAlertaRecado(recadoId, geral) {
   const client = requireSupabaseSession();
   if (!client) return;
-  const alvo = recadoId || ((state.recados || [])[0] || {}).id;
+  const lista = state.recados || [];
+  // O alerta "geral" fica guardado no recado mais novo que todos conseguem ver (os só-administradores ficam de fora).
+  const alvo = recadoId || (lista.find(r => r.visibilidade !== 'admins') || lista[0] || {}).id;
   if (!alvo) { alert('Ainda não há recados para alertar.'); return; }
-  if (!confirm(geral ? 'Tocar o alarme em todos os computadores pedindo para ler os recados?' : 'Tocar o alarme em todos os computadores para este recado?')) return;
+  // Recado com menção: o alerta vai só para quem foi mencionada. Sem menção: para todos.
+  const rec = lista.find(r => r.id === alvo) || {};
+  const mencionados = geral ? [] : decodeRecadoTexto(rec.texto).mencao;
+  const nomes = mencionados.map(email => nomeAmigavelRecadoUsuario((state.recadosUsuarios || []).find(u => String(u.email || '').toLowerCase() === String(email).toLowerCase()) || { email }));
+  const pergunta = geral ? 'Tocar o alarme em TODOS os computadores pedindo para ler os recados?'
+    : (nomes.length ? 'Tocar o alarme só para ' + nomes.join(', ') + ' (quem você mencionou neste recado)?' : 'Este recado não menciona ninguém. Tocar o alarme em todos os computadores?');
+  if (!confirm(pergunta)) return;
   gsoDestravarAudio();
   const { data, error } = await client.from('crm_recados_respostas').insert({ recado_id: alvo, autor_nome: currentUserName(), tipo: 'texto', texto: GSO_ALERTA_MARCA + (geral ? 'geral' : '') }).select('id').single();
   if (error) { alert('Não consegui enviar o alerta: ' + error.message); return; }
@@ -16055,10 +16063,17 @@ async function gsoChecarAlertasRecados() {
   const novos = data.filter(a => !gsoAlertasConhecidos.has(a.id)).reverse();
   novos.forEach(a => gsoAlertasConhecidos.add(a.id));
   if (!novos.length) return;
-  gsoAlertarRecados(novos.map(a => {
+  const meuEmail = (state.session?.email || '').toLowerCase();
+  const paraMim = novos.map(a => {
     const rec = (state.recados || []).find(r => r.id === a.recado_id) || {};
-    return { id: a.id, texto: rec.texto || '', autor_nome: a.autor_nome, alerta: true, geral: String(a.texto).includes('geral') };
-  }));
+    return { id: a.id, texto: rec.texto || '', autor_nome: a.autor_nome, alerta: true, geral: String(a.texto).includes('geral'), conhecido: !!rec.id };
+  }).filter(a => {
+    if (a.geral) return true; // "Alerta: ler os recados" vale para todos
+    const mencao = decodeRecadoTexto(a.texto).mencao.map(e => String(e).toLowerCase());
+    if (mencao.length) return mencao.includes(meuEmail); // recado com menção: só quem foi mencionada
+    return a.conhecido; // sem menção: todos que enxergam o recado
+  });
+  if (paraMim.length) gsoAlertarRecados(paraMim);
 }
 
 // Pede permissão das notificações do sistema (só funciona depois de um clique).
@@ -21470,7 +21485,7 @@ function recadoRespostaHtml(resp, meuId) {
   const conteudo = resp.tipo === 'check'
     ? `<span class="postit-resposta-check-ic" data-tip="Reagiu com check">${checkIconSvg()}</span>`
     : ehAlerta
-      ? `<span class="postit-resposta-texto postit-resposta-alerta">🔔 ${String(resp.texto).includes('geral') ? 'Alerta: ler os recados' : 'Alerta enviado para todos'}</span>`
+      ? `<span class="postit-resposta-texto postit-resposta-alerta">🔔 ${String(resp.texto).includes('geral') ? 'Alerta: ler os recados (todos)' : (decodeRecadoTexto(((state.recados || []).find(r => r.id === resp.recado_id) || {}).texto).mencao.length ? 'Alerta enviado só para quem foi mencionada' : 'Alerta enviado para todos')}</span>`
       : `<span class="postit-resposta-texto">${escapeHtml(resp.texto || '')}</span>`;
   // Balão de conversa (estilo WhatsApp): nome em cima, texto com a largura toda, hora no canto.
   // Respostas minhas ficam à direita, as dos outros à esquerda.
