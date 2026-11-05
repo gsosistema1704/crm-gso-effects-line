@@ -19770,6 +19770,45 @@ function alexDados() {
   ['saldoInicial', 'entregas', 'pagamentos'].forEach(k => { if (!Array.isArray(st.alexandre[k])) st.alexandre[k] = []; });
   return st.alexandre;
 }
+// Custo da mercadoria ENTREGUE ao Alexandre: cada linha da ficha ("12 Palco 5L N (Q50)") vira um produto|tamanho do catálogo
+// e usa o mesmo custo da Calculadora (matéria-prima + embalagem). Conta no mês da entrega (brinde também tem custo).
+function alexChaveCusto(linha) {
+  const m = String(linha).match(/^\s*(\d+)\s+(.*)$/); if (!m) return null;
+  const qtd = parseInt(m[1], 10), t = m[2].toLowerCase();
+  const tam = /(\d+)\s*l\b/.exec(t);
+  const com = (prod, padrao) => ({ qtd, prod, tamanho: tam ? tam[1] + 'L' : padrao });
+  if (/haze\s*oil/.test(t)) return com('Haze Oil', '5L');
+  if (/palco/.test(t)) return com('Palco', '5L');
+  if (/\bdj/.test(t)) return com('DJs and Clubs', '5L');
+  if (/low\s*fog/.test(t)) return com('Low Fog', '5L');
+  if (/snow|neve/.test(t)) return com('Snow', '5L');
+  if (/bubble|bolha/.test(t)) return com('Bubble', '1L');
+  if (/haze/.test(t)) return com('Haze', '5L');
+  if (/co2|co₂/.test(t)) return com('CO₂ Simulator', '5L');
+  if (/clean/.test(t)) return com('Clean', '1L');
+  if (/isoprop/.test(t)) return com('Álcool Isopropílico', '1L');
+  if (/lente|tela|lens/.test(t)) return { qtd, prod: 'Top Up - Lentes e Telas Cristalinas', tamanho: '120mL' };
+  if (/top\s*up/.test(t)) return { qtd, prod: 'Top Up - Limpeza a Seco', tamanho: '150g' };
+  return null;
+}
+function alexCustoEntregas(mes) {
+  const out = { total: 0, semCusto: 0, linhas: [] };
+  try {
+    if (typeof isAdminUser === 'function' && !isAdminUser()) return out;
+    const d = alexDados(); if (!d || !window.gsoCalc || typeof window.gsoCalc._custoInfo !== 'function') return out;
+    d.entregas.forEach(en => {
+      const dt = dashboardDateObj(en.data); if (!dt || finMesKey(dt) !== mes) return;
+      (en.itens || []).forEach(linha => {
+        const c = alexChaveCusto(linha); let custo = null;
+        if (c) { const info = window.gsoCalc._custoInfo(c.prod + '|' + c.tamanho); if (info && info.total != null) custo = round2(info.total * c.qtd); }
+        if (custo == null) out.semCusto++; else out.total += custo;
+        out.linhas.push({ data: en.data, ref: en.ref || '', linha: String(linha), produto: c ? c.prod + ' ' + c.tamanho : '', qtd: c ? c.qtd : '', custo });
+      });
+    });
+  } catch (err) {}
+  out.total = round2(out.total);
+  return out;
+}
 function alexPersistir() { if (window.gsoCalc && window.gsoCalc._save) window.gsoCalc._save(); }
 function alexTotais(d) {
   const soma = l => round2(l.reduce((s, x) => s + (Number(x.valor) || 0), 0));
@@ -20591,13 +20630,16 @@ function finVendasDoMes(mes) {
   r.mlEntradas = round2(((mlMes && mlMes.ml_entradas) || []).reduce((s, e) => s + (Number(e.valor) || 0), 0));
   ((mlMes && mlMes.ml_entradas) || []).forEach(e => { if (Number(e.valor)) r.linhas.push({ canal: 'Mercado Livre', numero: '', cliente: e.desc || 'Entrada Mercado Livre', pag: 'Mercado Livre', total: Number(e.valor), data: e.data, valor: Number(e.valor), custo: null, obs: 'Entrada lançada no Financeiro (já líquida de tarifa e frete)' }); });
   r.fat += r.mlEntradas; r.canais.ml = r.mlEntradas;
-  // Pagamentos do Alexandre (ficha): entram como recebido, sem custo calculado (a mercadoria dele é consignada).
+  // Custo da mercadoria entregue ao Alexandre neste mês (aparece no custo dos produtos, nunca dentro do lucro bruto).
+  const axC = alexCustoEntregas(mes);
+  r.custoAlex = axC.total; r.alexEntregas = axC.linhas; r.custo += axC.total; r.semCusto += axC.semCusto;
+  // Pagamentos do Alexandre (ficha): entram como recebido (valor cheio).
   const axMes = alexPagamentosTodos().filter(p => p.mes === mes);
   r.alexEntradas = round2(axMes.reduce((s, p) => s + p.valor, 0));
-  axMes.forEach(p => r.linhas.push({ canal: 'Alexandre', numero: '', cliente: 'Alexandre — pagamento' + (p.ref ? ' (' + p.ref + ')' : ''), pag: 'Pagamento da ficha do Alexandre', total: p.valor, valor: p.valor, custo: null, data: p.data, obs: 'Lançado em Financeiro > Alexandre · o custo da mercadoria entregue a ele não é calculado' }));
+  axMes.forEach(p => r.linhas.push({ canal: 'Alexandre', numero: '', cliente: 'Alexandre — pagamento' + (p.ref ? ' (' + p.ref + ')' : ''), pag: 'Pagamento da ficha do Alexandre', total: p.valor, valor: p.valor, custo: null, data: p.data, obs: 'Lançado em Financeiro > Alexandre · o custo da mercadoria entregue a ele está na aba "Custo entregas Alexandre"' }));
   r.fat += r.alexEntradas; r.canais.alexandre = r.alexEntradas;
   ['fat', 'custo', 'fiscal', 'taxasML', 'fretesML', 'vendido'].forEach(k => { r[k] = round2(r[k]); });
-  r.lucroBruto = round2(r.fat - r.custo - r.fiscal - r.taxasML - r.fretesML);
+  r.lucroBruto = round2(r.fat - r.fiscal - r.taxasML - r.fretesML); // lucro bruto = valor recebido; o custo aparece à parte, sem ser descontado aqui
   r.margem = r.fat > 0 ? round2(r.lucroBruto / r.fat * 100) : null;
   r.lista = Object.values(r.produtos).map(o => ({ nome: o.nome, qtd: Math.round(o.qtd), fat: round2(o.fat) })).sort((a, b) => b.fat - a.fat);
   // peças e itens que não estão no catálogo de produtos entram aqui, pra a soma da tabela fechar com o valor vendido
@@ -20621,7 +20663,7 @@ function finVendasAjustadas(mes) {
   if (man('va_fiscal_manual')) r.fiscal = Number(mAj.va_fiscal_manual);
   r.taxasTotal = round2(r.taxasML + r.fretesML);
   r.custosTotal = round2(r.custo + r.fiscal + r.taxasTotal);
-  r.autoLucro = round2(r.fat - r.custo - r.fiscal - r.taxasTotal);
+  r.autoLucro = round2(r.fat - r.fiscal - r.taxasTotal); // sem tirar o custo dos produtos
   r.lucroBruto = man('va_lucro_manual') ? Number(mAj.va_lucro_manual) : r.autoLucro;
   r.margem = r.fat > 0 ? round2(r.lucroBruto / r.fat * 100) : null;
   return r;
@@ -20652,14 +20694,14 @@ function finRenderVendasAuto() {
     <div class="fx-va-topo" onclick="finVendasAutoAlternar()">
       <button type="button" class="saude-min" aria-label="Minimizar">${colapsado ? '▸' : '▾'}</button>
       <div><div class="card-title">Como o sistema calculou as vendas <span class="fx-badge auto">automático</span></div>
-      <div class="card-sub">É daqui que vem a linha “Sistema calculou” do resumo acima. Receita = vendas recebidas (boleto e fiado só quando pagos) + entradas do Mercado Livre + pagamentos da ficha do Alexandre. Venda no cartão ou com nota fiscal entra pelo valor total, sem desconto de porcentagem. Custos = custo dos produtos. Use o lápis para ajustar um valor.</div></div>
+      <div class="card-sub">É daqui que vem a linha “Sistema calculou” do resumo acima. Receita = vendas recebidas (boleto e fiado só quando pagos) + entradas do Mercado Livre + pagamentos da ficha do Alexandre. Venda no cartão ou com nota fiscal entra pelo valor total, sem desconto de porcentagem. O lucro bruto é o valor recebido, sem descontar o custo; o custo dos produtos (inclusive os entregues ao Alexandre) aparece à parte. Use o lápis para ajustar um valor.</div></div>
     </div>
     <div class="fx-va-corpo${colapsado ? ' hidden' : ''}">
       <div class="fx-kpis fx-va-kpis">
         ${chipEd('Recebido no mês', 'va_fat_manual', r.fat, r.auto.fat, rMan, 'vendido no mês: ' + fmtBR(r.vendido))}
         ${chipEd('Custo dos produtos', 'va_custo_manual', r.custo, r.auto.custo, cMan, r.semCusto ? r.semCusto + ' venda(s) sem custo calculado' : '&nbsp;')}
         ${chipEd('Impostos (fiscal)', 'va_fiscal_manual', r.fiscal, r.auto.fiscal, fMan, '')}
-        ${chipEd('Lucro bruto', 'va_lucro_manual', r.lucroBruto, r.autoLucro, lMan, r.margem != null ? r.margem.toString().replace('.', ',') + '% de margem' : '', r.lucroBruto < 0 ? 'fx-neg' : 'fx-pos')}
+        ${chipEd('Lucro bruto', 'va_lucro_manual', r.lucroBruto, r.autoLucro, lMan, 'valor recebido, sem tirar o custo', r.lucroBruto < 0 ? 'fx-neg' : 'fx-pos')}
       </div>
       ${r.lista.length ? `<div class="fx-va-tab"><div class="fx-va-cab"><span>Produto</span><span>Qtd</span><span>Valor vendido</span><span>% do total</span></div>
         ${r.lista.map(p => `<div class="fx-va-lin"><span>${escapeHtml(p.nome)}</span><span>${p.qtd}</span><b>${fmtBR(p.fat)}</b><span>${pctProd(p.fat)}</span></div>`).join('')}</div>` : '<div class="table-empty" style="padding:12px 0">Nenhuma venda recebida neste mês.</div>'}
@@ -20968,7 +21010,7 @@ async function finExportarCalculoMes() {
   let acum = 0;
   const linhas = ordenadas.map((l, i) => {
     acum = round2(acum + l.valor);
-    return { ordem: i + 1, data: gsoDataExcel(l.data), canal: l.canal, numero: l.numero, cliente: l.cliente, pag: l.pag, total: round2(l.total), valor: round2(l.valor), custo: l.custo == null ? 0 : l.custo, lucro: round2(l.valor - (l.custo == null ? 0 : l.custo)), acum, obs: [l.obs, l.custo == null && l.canal !== 'Mercado Livre' && l.canal !== 'Alexandre' ? 'sem custo calculado' : ''].filter(Boolean).join(' · ') };
+    return { ordem: i + 1, data: gsoDataExcel(l.data), canal: l.canal, numero: l.numero, cliente: l.cliente, pag: l.pag, total: round2(l.total), valor: round2(l.valor), custo: l.custo == null ? 0 : l.custo, acum, obs: [l.obs, l.custo == null && l.canal !== 'Mercado Livre' && l.canal !== 'Alexandre' ? 'sem custo calculado' : ''].filter(Boolean).join(' · ') };
   });
   const naoSomadas = r.naoSomadas.map(l => ({ data: gsoDataExcel(l.data), canal: l.canal, numero: l.numero, cliente: l.cliente, pag: l.pag, total: round2(l.total), valor: round2(l.valor), motivo: l.motivo }));
   const soma = linhas.reduce((s, l) => s + l.valor, 0);
@@ -20978,10 +21020,10 @@ async function finExportarCalculoMes() {
   if (r.fiscal !== r.auto.fiscal) ajustes.push('Impostos ajustados à mão: ' + fmtBR(r.fiscal) + ' (calculado ' + fmtBR(r.auto.fiscal) + ')');
   if (r.lucroBruto !== r.autoLucro) ajustes.push('Lucro ajustado à mão: ' + fmtBR(r.lucroBruto) + ' (calculado ' + fmtBR(r.autoLucro) + ')');
   const resumo = [
-    { campo: 'Total recebido (valor bruto)', valor: round2(soma), obs: 'Soma da coluna "Valor recebido (bruto)": o valor cheio de cada entrada, sem tirar custo. É o "Recebido no mês" do sistema' },
-    { campo: 'Custo dos produtos', valor: r.auto.custo, obs: 'Custo das vendas do mês, proporcional ao que foi recebido (não inclui a mercadoria entregue ao Alexandre)' },
+    { campo: 'Lucro bruto (total recebido)', valor: r.autoLucro, obs: 'Valor cheio de cada entrada, sem tirar o custo. Vendeu 200, aparece 200. É o "Recebido no mês" do sistema' },
+    { campo: 'Custo dos produtos (total)', valor: r.auto.custo, obs: 'Só informativo, NÃO é descontado do lucro bruto. Soma o custo das vendas do mês (proporcional ao recebido) + o custo do que foi entregue ao Alexandre' },
+    { campo: '   dos quais: entregues ao Alexandre', valor: r.custoAlex || 0, obs: 'Detalhe na aba "Custo entregas Alexandre"' },
     { campo: 'Impostos', valor: r.auto.fiscal, obs: 'Cartão e nota fiscal entram pelo valor total, sem desconto de porcentagem' },
-    { campo: 'Lucro bruto (recebido − custo)', valor: r.autoLucro, obs: 'Total recebido menos o custo dos produtos' },
     ...ajustes.map(t => ({ campo: 'Ajuste manual', valor: null, obs: t }))
   ];
   const colunas = [
@@ -20992,14 +21034,15 @@ async function finExportarCalculoMes() {
     { cab: 'Cliente / descrição', chave: 'cliente', max: 38 },
     { cab: 'Forma de pagamento', chave: 'pag', max: 34 },
     { cab: 'Valor total da venda', chave: 'total', tipo: 'dinheiro', larg: 18 },
-    { cab: 'Valor recebido (bruto)', chave: 'valor', tipo: 'dinheiro', total: true, larg: 19 },
-    { cab: 'Custo do produto', chave: 'custo', tipo: 'dinheiro', total: true, larg: 17 },
-    { cab: 'Lucro bruto (recebido − custo)', chave: 'lucro', tipo: 'dinheiro', total: true, larg: 22 },
+    { cab: 'Lucro bruto (valor recebido)', chave: 'valor', tipo: 'dinheiro', total: true, larg: 23 },
+    { cab: 'Custo do produto (só informativo)', chave: 'custo', tipo: 'dinheiro', total: true, larg: 25 },
     { cab: 'Recebido acumulado', chave: 'acum', tipo: 'dinheiro', larg: 18 },
     { cab: 'Observação', chave: 'obs', max: 54 }
   ];
   const extras = [];
   extras.push({ aba: 'Resumo do cálculo', titulo: 'GSO Effects Line  —  Resumo do cálculo ' + finMesLabel(FIN.mes), colunas: [{ cab: 'Item', chave: 'campo', max: 36 }, { cab: 'Valor', chave: 'valor', tipo: 'dinheiro', larg: 18 }, { cab: 'Como foi calculado', chave: 'obs', max: 90 }], linhas: resumo });
+  const entregasAlex = (r.alexEntregas || []).map(l => ({ data: gsoDataExcel(l.data), ref: l.ref, linha: l.linha, produto: l.produto || 'não reconhecido', qtd: l.qtd, custo: l.custo == null ? 0 : l.custo, obs: l.custo == null ? 'sem custo calculado para este item' : '' }));
+  if (entregasAlex.length) extras.push({ aba: 'Custo entregas Alexandre', titulo: 'GSO Effects Line  —  Custo da mercadoria entregue ao Alexandre (' + finMesLabel(FIN.mes) + ')', colunas: [{ cab: 'Data da entrega', chave: 'data', tipo: 'data', larg: 16 }, { cab: 'Referência', chave: 'ref', max: 22 }, { cab: 'Linha da ficha', chave: 'linha', max: 40 }, { cab: 'Produto no catálogo', chave: 'produto', max: 34 }, { cab: 'Qtd', chave: 'qtd', tipo: 'inteiro', larg: 8 }, { cab: 'Custo', chave: 'custo', tipo: 'dinheiro', total: true, larg: 16 }, { cab: 'Observação', chave: 'obs', max: 40 }], linhas: entregasAlex });
   if (naoSomadas.length) extras.push({ aba: 'Não somadas', titulo: 'GSO Effects Line  —  Vendas do mês que NÃO entraram na soma (' + finMesLabel(FIN.mes) + ')', colunas: [{ cab: 'Data da venda', chave: 'data', tipo: 'data', larg: 15 }, { cab: 'Origem', chave: 'canal', larg: 14 }, { cab: 'Nº venda', chave: 'numero', tipo: 'inteiro', larg: 10 }, { cab: 'Cliente', chave: 'cliente', max: 38 }, { cab: 'Forma de pagamento', chave: 'pag', max: 34 }, { cab: 'Valor total da venda', chave: 'total', tipo: 'dinheiro', larg: 18 }, { cab: 'Valor não somado', chave: 'valor', tipo: 'dinheiro', total: true, larg: 17 }, { cab: 'Por quê', chave: 'motivo', max: 80 }], linhas: naoSomadas });
   try {
     await gsoExportarExcelEstilizado({
@@ -21008,9 +21051,8 @@ async function finExportarCalculoMes() {
       titulo: 'GSO Effects Line  —  Tudo que foi somado em ' + finMesLabel(FIN.mes),
       subtitulo: `Gerado em ${gsoAgoraBR()} por ${currentUserName()}   •   na ordem em que cada valor entrou`,
       resumo: [
-        { rotulo: 'Total recebido (bruto)', valor: fmtBR(round2(soma)) },
-        { rotulo: 'Custo dos produtos', valor: fmtBR(r.auto.custo) },
-        { rotulo: 'Lucro bruto', valor: fmtBR(r.autoLucro) },
+        { rotulo: 'Lucro bruto (total recebido)', valor: fmtBR(round2(soma)) },
+        { rotulo: 'Custo dos produtos (informativo)', valor: fmtBR(r.auto.custo) },
         { rotulo: 'Entradas somadas', valor: String(linhas.length) }
       ],
       colunas, linhas, abasExtras: extras
