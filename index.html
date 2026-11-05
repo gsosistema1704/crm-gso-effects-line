@@ -14704,7 +14704,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           <div class="h-sub">Deixe um recado pra equipe</div>
         </div>
         <div class="h-actions">
-          <button class="btn" onclick="gsoTestarAlertaRecado()" title="Toca o alarme e mostra a faixa, para conferir o som neste computador">🔔 Testar alerta</button>
+          <button class="btn" onclick="gsoEnviarAlertaRecado(null, true)" title="Toca o alarme em todos os computadores pedindo para ler os recados">🔔 Alerta: ler os recados</button>
           <button class="btn btn-primary" onclick="openRecadoModal()">+ Novo recado</button>
         </div>
       </div>
@@ -15978,16 +15978,17 @@ function gsoAlertarRecados(novos) {
   const meuEmail = (state.session?.email || '').toLowerCase();
   novos.forEach(r => gsoAlarmeItens.push(r));
   const mencionada = gsoAlarmeItens.some(r => decodeRecadoTexto(r.texto).mencao.some(e => String(e).toLowerCase() === meuEmail));
+  const ehAlerta = gsoAlarmeItens.some(r => r.alerta);
   const ultimo = novos[novos.length - 1];
   const dec = decodeRecadoTexto(ultimo.texto);
-  const resumo = String(dec.texto || '').replace(/\s+/g, ' ').slice(0, 140);
+  const resumo = ultimo.geral ? 'pede para você ler os recados agora.' : String(dec.texto || '').replace(/\s+/g, ' ').slice(0, 140);
   const autor = ultimo.autor_nome || 'Alguém';
 
   let el = document.getElementById('gso-alerta-recado');
   if (!el) { el = document.createElement('div'); el.id = 'gso-alerta-recado'; el.setAttribute('role', 'alert'); document.body.appendChild(el); }
   const extra = gsoAlarmeItens.length > 1 ? ' (' + gsoAlarmeItens.length + ' novos)' : '';
   el.innerHTML = '<div class="gar-ico">📌</div>' +
-    '<div class="gar-txt"><b>' + (mencionada ? 'VOCÊ FOI MENCIONADA NUM RECADO!' : 'NOVO RECADO!') + extra + '</b><span>' + escapeHtml(autor) + ': ' + escapeHtml(resumo) + '</span></div>' +
+    '<div class="gar-txt"><b>' + (ehAlerta ? 'ALERTA! LEIA OS RECADOS!' : (mencionada ? 'VOCÊ FOI MENCIONADA NUM RECADO!' : 'NOVO RECADO!')) + extra + '</b><span>' + escapeHtml(autor) + ': ' + escapeHtml(resumo) + '</span></div>' +
     '<button type="button" class="gar-ver" onclick="gsoVerRecados()">Ver recado</button>' +
     '<button type="button" class="gar-x" onclick="gsoPararAlarme()" aria-label="Silenciar" title="Silenciar">✕</button>';
 
@@ -16004,13 +16005,13 @@ function gsoAlertarRecados(novos) {
   let alterna = false;
   gsoTituloTimer = setInterval(() => {
     alterna = !alterna;
-    document.title = alterna ? '🔔 NOVO RECADO!' : gsoTituloOriginal;
+    document.title = alterna ? (ehAlerta ? '🔔 ALERTA DE RECADO!' : '🔔 NOVO RECADO!') : gsoTituloOriginal;
   }, 800);
   gsoDefinirFavicon(gsoAlarmeItens.length);
 
   if ('Notification' in window && Notification.permission === 'granted') {
     try {
-      const n = new Notification(mencionada ? '📌 Você foi mencionada num recado' : '📌 Novo recado GSO', {
+      const n = new Notification(ehAlerta ? '🔔 Alerta: leia os recados' : (mencionada ? '📌 Você foi mencionada num recado' : '📌 Novo recado GSO'), {
         body: autor + ': ' + resumo, requireInteraction: true, tag: 'gso-recado', renotify: true
       });
       n.onclick = () => { try { window.focus(); } catch (e) {} gsoVerRecados(); n.close(); };
@@ -16029,9 +16030,35 @@ function gsoChecarRecadosNovos() {
   const alertar = novos.filter(r => !gsoRecadosCriadosAqui.has(r.id));
   if (alertar.length) gsoAlertarRecados(alertar.sort((a, b) => String(a.criado_em).localeCompare(String(b.criado_em))));
 }
-function gsoTestarAlertaRecado() {
+// Alerta de recado: o sininho de cada recado (ou o botão "Alerta: ler os recados") grava uma resposta marcada no recado;
+// todos os computadores enxergam essa resposta e tocam o alarme. Não precisa de coluna nova no banco.
+const GSO_ALERTA_MARCA = '§§ALERTA§§';
+let gsoAlertasConhecidos = null;
+async function gsoEnviarAlertaRecado(recadoId, geral) {
+  const client = requireSupabaseSession();
+  if (!client) return;
+  const alvo = recadoId || ((state.recados || [])[0] || {}).id;
+  if (!alvo) { alert('Ainda não há recados para alertar.'); return; }
+  if (!confirm(geral ? 'Tocar o alarme em todos os computadores pedindo para ler os recados?' : 'Tocar o alarme em todos os computadores para este recado?')) return;
   gsoDestravarAudio();
-  gsoAlertarRecados([{ id: 'teste-' + Date.now(), texto: 'Este é só um teste do alerta de recado.', autor_nome: 'Teste' }]);
+  const { data, error } = await client.from('crm_recados_respostas').insert({ recado_id: alvo, autor_nome: currentUserName(), tipo: 'texto', texto: GSO_ALERTA_MARCA + (geral ? 'geral' : '') }).select('id').single();
+  if (error) { alert('Não consegui enviar o alerta: ' + error.message); return; }
+  if (data && data.id && gsoAlertasConhecidos) gsoAlertasConhecidos.add(data.id);
+  renderRecados();
+}
+async function gsoChecarAlertasRecados() {
+  const client = getSupabaseClient();
+  if (!client || !state.session || state.session.mode !== 'supabase') return;
+  const { data, error } = await client.from('crm_recados_respostas').select('id,recado_id,autor_nome,texto,criado_em').like('texto', GSO_ALERTA_MARCA + '%').order('criado_em', { ascending: false }).limit(20);
+  if (error || !Array.isArray(data)) return;
+  if (!gsoAlertasConhecidos) { gsoAlertasConhecidos = new Set(data.map(a => a.id)); return; } // primeira leitura: só registra, não toca
+  const novos = data.filter(a => !gsoAlertasConhecidos.has(a.id)).reverse();
+  novos.forEach(a => gsoAlertasConhecidos.add(a.id));
+  if (!novos.length) return;
+  gsoAlertarRecados(novos.map(a => {
+    const rec = (state.recados || []).find(r => r.id === a.recado_id) || {};
+    return { id: a.id, texto: rec.texto || '', autor_nome: a.autor_nome, alerta: true, geral: String(a.texto).includes('geral') };
+  }));
 }
 
 // Pede permissão das notificações do sistema (só funciona depois de um clique).
@@ -16084,6 +16111,7 @@ async function gsoPollingGeral() {
     const antes = (state.recados || []).length;
     await updateRecadosBadge();
     gsoChecarRecadosNovos();
+    gsoChecarAlertasRecados();
     const viewAtiva = VIEWS.find(v => !document.getElementById('view-' + v)?.classList.contains('hidden'));
     if (viewAtiva === 'recados' && (state.recados || []).length !== antes) { await loadRecadosRespostas(); await renderRecados(); }
     const r = await client.from('crm_vendas').select('id', { count: 'exact', head: true });
@@ -16101,7 +16129,7 @@ function gsoIniciarAlertas() {
   if (gsoAlertasIniciados) return;
   gsoAlertasIniciados = true;
   setTimeout(gsoAtualizarAvisoPermissoes, 2500);
-  setTimeout(async () => { await updateRecadosBadge(); gsoChecarRecadosNovos(); }, 1500);
+  setTimeout(async () => { await updateRecadosBadge(); gsoChecarRecadosNovos(); gsoChecarAlertasRecados(); }, 1500);
   setInterval(gsoPollingGeral, 15000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) gsoPollingGeral(); });
   window.addEventListener('online', gsoPollingGeral);
@@ -16955,6 +16983,7 @@ function scheduleRecadosRefresh() {
   recadosRefreshTimer = setTimeout(async () => {
     await updateRecadosBadge();
     gsoChecarRecadosNovos();
+    gsoChecarAlertasRecados();
     const activeView = VIEWS.find(v => !document.getElementById('view-' + v)?.classList.contains('hidden'));
     if (activeView === 'recados') { await loadRecadosRespostas(); await renderRecados(); }
   }, 150);
@@ -21437,9 +21466,12 @@ async function updateRecadosBadge() {
 
 function recadoRespostaHtml(resp, meuId) {
   const podeExcluir = meuId && resp.autor_id === meuId;
+  const ehAlerta = String(resp.texto || '').startsWith(GSO_ALERTA_MARCA);
   const conteudo = resp.tipo === 'check'
     ? `<span class="postit-resposta-check-ic" data-tip="Reagiu com check">${checkIconSvg()}</span>`
-    : `<span class="postit-resposta-texto">${escapeHtml(resp.texto || '')}</span>`;
+    : ehAlerta
+      ? `<span class="postit-resposta-texto postit-resposta-alerta">🔔 ${String(resp.texto).includes('geral') ? 'Alerta: ler os recados' : 'Alerta enviado para todos'}</span>`
+      : `<span class="postit-resposta-texto">${escapeHtml(resp.texto || '')}</span>`;
   // Balão de conversa (estilo WhatsApp): nome em cima, texto com a largura toda, hora no canto.
   // Respostas minhas ficam à direita, as dos outros à esquerda.
   return `<div class="postit-resposta${resp.tipo === 'check' ? ' postit-resposta-check' : ''}${podeExcluir ? ' postit-resposta-minha' : ''}">
@@ -21500,6 +21532,7 @@ async function renderRecados() {
       <div class="postit-responder">
         <textarea class="postit-responder-input" rows="1" placeholder="Responder..." maxlength="500" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,110)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarRespostaRecado('${r.id}', this);}"></textarea>
         <button type="button" class="postit-check-btn" onclick="reagirCheckRecado('${r.id}')" data-tip="Reagir com check" aria-label="Reagir com check">${checkIconSvg()}</button>
+        <button type="button" class="postit-alerta-btn" onclick="gsoEnviarAlertaRecado('${r.id}')" data-tip="Tocar alarme para todos neste recado" aria-label="Alertar todos sobre este recado">${bellIconSvg()}</button>
         <button type="button" class="postit-enviar-btn" onclick="enviarRespostaRecado('${r.id}', this.parentNode.querySelector('.postit-responder-input'))" data-tip="Enviar resposta (Enter)" aria-label="Enviar resposta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
       </div>
     </div>`;
@@ -22532,6 +22565,9 @@ function pencilIconSvg() {
 }
 function checkIconSvg() {
   return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+}
+function bellIconSvg() {
+  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
 }
 function closeIconSvg() {
   return '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M18 6 6 18"></path><path d="M6 6l12 12"></path></svg>';
@@ -39131,11 +39167,13 @@ body.theme-dark .fin-pendencia-btn:hover { background: rgba(224,163,62,.28) !imp
 .postit-responder-input { flex: 1; min-width: 0; font: inherit; font-size: 13px; line-height: 1.4; padding: 8px 12px; border-radius: 18px; border: 1px solid rgba(0,0,0,.12); background: rgba(255,255,255,.9); color: rgba(0,0,0,.85); resize: none; overflow-y: auto; min-height: 36px; max-height: 110px; box-sizing: border-box; }
 .postit-responder-input:focus { outline: 2px solid rgba(47,143,78,.45); outline-offset: 0; }
 .postit-responder-input::placeholder { color: rgba(0,0,0,.4); }
-.postit-check-btn, .postit-enviar-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,.7); cursor: pointer; color: rgba(0,0,0,.55); flex-shrink: 0; }
+.postit-check-btn, .postit-alerta-btn, .postit-enviar-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,.7); cursor: pointer; color: rgba(0,0,0,.55); flex-shrink: 0; }
 .postit-enviar-btn { background: #2f8f4e; color: #fff; }
 .postit-enviar-btn:hover { background: #267a41; }
 .postit-enviar-btn svg { width: 16px; height: 16px; }
-.postit-check-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.postit-check-btn svg, .postit-alerta-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.postit-alerta-btn:hover { background: rgba(255,255,255,.9); color: #c2410c; }
+.postit-resposta-alerta { font-weight: 700; color: #b45309; font-size: 12.5px; }
 .postit-check-btn:hover { background: rgba(255,255,255,.9); color: #2f8f4e; }
 
 /* ================= v20: tags de AROMA coloridas (suaves) na tabela de Vendas ================= */
