@@ -27,8 +27,6 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -6283,7 +6281,6 @@ body.theme-dark #view-mensagens .message-bubble {
 }
 
 
-
 /* ============ BUGFIX: CANVAS DOS GRÁFICOS NO MODO ESCURO ============ */
 body.theme-dark #chartDashPagamento,
 body.dark #chartDashPagamento,
@@ -7115,7 +7112,6 @@ body.dark-mode .scroll-top-button:hover,
     box-shadow: 0 5px 14px rgba(23, 23, 23, 0.06);
   }
 }
-
 
 
 /* ============ GSO PRICE BOOK LAYOUT ============ */
@@ -8088,7 +8084,6 @@ body.dark-mode .price-shared-note,
 }
 
 
-
 /* ============ GSO DASHBOARD DIRETO + LAYOUT SLIM FINAL ============ */
 :root {
   --gso-final-bg: #F5F7FA;
@@ -8307,7 +8302,6 @@ td {
 @media (max-width: 760px) {
   .main { padding: 14px !important; }
 }
-
 
 
 /* ============ GSO ESTOQUE + CATÁLOGO — REFINO PONTUAL ============ */
@@ -9239,7 +9233,6 @@ body.dark-mode #view-produtos .catalog-box-price,
 }
 
 
-
 /* ============ GSO ESTOQUE — BOTÕES REFEITOS (setas maiores, quadrados e cores vivas) ============ */
 #view-estoque .actions-cell {
   min-width: 188px !important;
@@ -10045,7 +10038,6 @@ body.theme-dark #view-estoque .stock-action-btn.delete:hover {
 }
 
 
-
 /* ============ RELATÓRIOS AVANÇADOS + CALCULADORA ============ */
 .report-kpi-grid {
   display: grid;
@@ -10433,14 +10425,12 @@ body.theme-dark .report-city-badge.external {
 }
 
 
-
 /* Ajuste pontual: mantém os botões flutuantes sem cobrir o botão Salvar da Calculadora */
 @media (min-width: 901px) {
   #view-calculadora .calc-result-card .form-actions {
     padding-right: 108px !important;
   }
 }
-
 
 
 /* ============ CALCULADORA DE PEDIDO / BATELADA ============ */
@@ -10585,7 +10575,6 @@ body.theme-dark .batch-summary-item { background: var(--crm-surface, #262626) !i
   .batch-main-kpis,
   .batch-summary-grid { grid-template-columns: 1fr; }
 }
-
 
 
 /* ============ CALCULADORA: SUBPÁGINA DE PRECIFICAÇÃO ============ */
@@ -10752,7 +10741,6 @@ body.theme-dark .calc-sim-card {
 }
 
 
-
 /* ============ CALCULADORA: HISTÓRICO, AROMAS E BATELADA INCOMPLETA ============ */
 .batch-order-table {
   width: 100% !important;
@@ -10851,7 +10839,6 @@ body.theme-dark .batch-complement-chip {
   .batch-order-table th:nth-child(2), .batch-order-table td:nth-child(2),
   .batch-order-table th:nth-child(3), .batch-order-table td:nth-child(3) { width: 16%; }
 }
-
 
 
 /* ============ CALCULADORA: ABAS MAIS CLARAS + HISTÓRICO COMPLETO ============ */
@@ -11030,7 +11017,6 @@ body.theme-dark #view-calculadora .hist-product-line {
 }
 
 
-
 /* Ajuste pontual: manter apenas o botão azul da subaba ativa */
 #view-calculadora .calc-subtab.active::after {
   display: none !important;
@@ -11039,7 +11025,6 @@ body.theme-dark #view-calculadora .hist-product-line {
 #view-calculadora .calc-active-context {
   display: none !important;
 }
-
 
 
 /* Ajuste pontual: resumo de cobrança e lucro da Precificação */
@@ -11559,7 +11544,6 @@ th,
 </style>
 
 
-
 <style id="gso-calculadora-direita-como-referencia">
   /* Ajuste pontual: painel direito da Calculadora com blocos mais alinhados, finos e institucionais */
   #view-calculadora .calc-result-card {
@@ -11734,7 +11718,6 @@ th,
     }
   }
 </style>
-
 
 
 <style id="gso-calculadora-unitaria-custos-css">
@@ -12533,7 +12516,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       </div>
 
       <div class="filter-panel">
-        <input type="text" class="input" id="searchVendas" placeholder="Buscar cliente, produto..." oninput="renderVendas()">
+        <input type="text" class="input" id="searchVendas" placeholder="Buscar cliente, produto..." oninput="gsoBuscaVendas()">
         <div class="filter-date-range" title="Filtrar vendas por período">
           <span>De</span>
           <input type="date" class="input" id="filterDataVenda" aria-label="Data inicial do período" onchange="renderVendas()">
@@ -12626,7 +12609,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div id="lojista-restrito-conteudo">
           <div id="sub-lojista-vendas">
             <div class="filter-panel lojista">
-              <input type="text" class="input" id="searchLojista" placeholder="Buscar lojista, produto..." oninput="renderVendasLojista()">
+              <input type="text" class="input" id="searchLojista" placeholder="Buscar lojista, produto..." oninput="gsoBuscaVendasLojista()">
               <div class="filter-date-range" title="Filtrar vendas por período">
                 <span>De</span>
                 <input type="date" class="input" id="filterDataLojista" aria-label="Data inicial do período" onchange="renderVendasLojista()">
@@ -12686,7 +12669,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               </div>
             </div>
             <div class="filter-panel lojista">
-              <input type="text" class="input" id="searchLojistasCadastro" placeholder="Buscar lojista, telefone, CPF/CNPJ..." oninput="renderLojistasCadastro()">
+              <input type="text" class="input" id="searchLojistasCadastro" placeholder="Buscar lojista, telefone, CPF/CNPJ..." oninput="gsoBuscaLojistas()">
               <button class="btn btn-soft" onclick="document.getElementById('searchLojistasCadastro').value='';renderLojistasCadastro();">Limpar</button>
             </div>
             <div class="card table-card">
@@ -12774,7 +12757,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       <div id="sub-crm">
 
         <div class="filter-panel clients">
-          <input type="text" class="input" id="searchClientes" placeholder="Buscar cliente..." oninput="renderClientes()">
+          <input type="text" class="input" id="searchClientes" placeholder="Buscar cliente..." oninput="gsoBuscaClientes()">
           <select class="input hidden" id="filterTipoPessoa" onchange="renderClientes()">
             <option value="">Todos os tipos</option>
             <option value="consumidor">Só Consumidor Final</option>
@@ -12878,11 +12861,11 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           </div>
 
           <div class="notes-toolbar">
-            <input class="industrial-input" id="nf-search" placeholder="Buscar cliente, CNPJ, venda ou NF..." oninput="renderNotasFiscais()">
-            <input class="industrial-input" id="nf-filter-cliente" placeholder="Cliente" oninput="renderNotasFiscais()">
+            <input class="industrial-input" id="nf-search" placeholder="Buscar cliente, CNPJ, venda ou NF..." oninput="gsoBuscaNotas()">
+            <input class="industrial-input" id="nf-filter-cliente" placeholder="Cliente" oninput="gsoBuscaNotas()">
             <input class="industrial-input" id="nf-filter-data" type="date" onchange="renderNotasFiscais()">
-            <input class="industrial-input" id="nf-filter-valor" type="number" step="0.01" placeholder="Valor mínimo" oninput="renderNotasFiscais()">
-            <input class="industrial-input" id="nf-filter-numero" placeholder="Venda/NF" oninput="renderNotasFiscais()">
+            <input class="industrial-input" id="nf-filter-valor" type="number" step="0.01" placeholder="Valor mínimo" oninput="gsoBuscaNotas()">
+            <input class="industrial-input" id="nf-filter-numero" placeholder="Venda/NF" oninput="gsoBuscaNotas()">
           </div>
 
           <div class="notes-list" id="notas-list">
@@ -12916,7 +12899,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         </div>
 
         <div class="estoque-toolbar">
-          <input type="text" class="input" id="estoque-search" placeholder="Pesquisar" oninput="renderEstoque()">
+          <input type="text" class="input" id="estoque-search" placeholder="Pesquisar" oninput="gsoBuscaEstoque()">
           <div></div>
           <button class="btn" onclick="toggleEstoqueFiltros()">Filtros</button>
         </div>
@@ -13145,7 +13128,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               </div>
               <span class="messages-count" id="msg-conversation-count">0</span>
             </div>
-            <input class="industrial-input messages-search" id="msg-search" placeholder="Pesquisar conversa ou usuário..." oninput="renderConversationList()">
+            <input class="industrial-input messages-search" id="msg-search" placeholder="Pesquisar conversa ou usuário..." oninput="gsoBuscaConversas()">
             <div class="conversation-list" id="msg-conversation-list">
               <div class="doc-sub">Carregando conversas...</div>
             </div>
@@ -13287,7 +13270,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="form-help cmp-ajuda">Registre aqui o que foi comprado: os itens entram no estoque na hora e o valor fica guardado. Se preferir, mande o PDF da compra no chat que eu lanço pra você.</div>
         <div class="stats-bar" id="comprasStats"></div>
         <div class="search">
-          <input class="input" id="compras-busca" placeholder="Buscar por fornecedor, item ou nota..." oninput="Lab.renderCompras()">
+          <input class="input" id="compras-busca" placeholder="Buscar por fornecedor, item ou nota..." oninput="gsoBuscaCompras()">
           <select class="input" id="compras-mes" onchange="Lab.renderCompras()"></select>
         </div>
         <div id="comprasLista"></div>
@@ -14632,7 +14615,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
             <div><div class="card-title">Despesas</div><div class="card-sub">Lançamentos com boleto, cartão ou anotado. Servem de consulta e de sugestão para o fechamento do mês.</div></div>
           </div>
           <div class="search" style="margin-top:12px;">
-            <input class="input" id="fin-desp-busca" placeholder="Buscar por categoria ou descrição..." oninput="renderDespesas()">
+            <input class="input" id="fin-desp-busca" placeholder="Buscar por categoria ou descrição..." oninput="gsoBuscaDespesas()">
             <select class="input" id="fin-desp-mes" onchange="renderDespesas()"><option value="">Todos os meses</option></select>
             <select class="input" id="fin-desp-categoria" onchange="renderDespesas()"><option value="">Todas as categorias</option></select>
           </div>
@@ -14749,7 +14732,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
     <div class="card-sub" style="margin-top:-8px;margin-bottom:14px;">São a mesma pessoa/empresa? Escolha o nome principal — os outros serão renomeados e as vendas somadas nele.</div>
     <div id="unificar-lista"></div>
     <div class="unificar-adicionar">
-      <input type="text" class="form-input" id="unificar-busca" placeholder="Buscar e adicionar outro cliente ao grupo..." oninput="buscarClienteParaUnificar(this.value)" autocomplete="off">
+      <input type="text" class="form-input" id="unificar-busca" placeholder="Buscar e adicionar outro cliente ao grupo..." oninput="gsoBuscaUnificar(this.value)" autocomplete="off">
       <div id="unificar-busca-resultados" class="unificar-busca-resultados hidden"></div>
     </div>
     <div id="unificar-preview" class="unificar-preview"></div>
@@ -16562,11 +16545,6 @@ async function ensureCurrentUsuario(session) {
   return data;
 }
 
-async function refreshCurrentUsuario() {
-  const session = await getSupabaseSession();
-  if (!session) return null;
-  return ensureCurrentUsuario(session);
-}
 
 async function logAccess(action = 'login') {
   const client = getSupabaseClient();
@@ -18551,9 +18529,6 @@ function fmtBR(v) {
 function fmtBRshort(v) {
   return 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR');
 }
-function cssVar(name, fallback = '') {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-}
 function isDarkThemeEnabled() {
   return document.body.classList.contains('theme-dark')
     || document.body.classList.contains('dark')
@@ -19434,14 +19409,6 @@ function despesaBoletoPago(d) {
   const p = despesaBoletoParcelas(d);
   return p.length > 0 && p.every(x => x.pago);
 }
-function despesaBoletoValorTotal(d) {
-  return round2(despesaBoletoParcelas(d).reduce((s, p) => s + (Number(p.valor) || 0), 0));
-}
-function despesaBoletoDataFinal(d) {
-  const pagas = despesaBoletoParcelas(d).filter(p => p.dataRecebimento);
-  if (!pagas.length) return d.data;
-  return pagas.reduce((a, b) => new Date(b.dataRecebimento) > new Date(a.dataRecebimento) ? b : a).dataRecebimento;
-}
 function despesaIsAnotado(d) { return canonicalPayment(d?.pagamento || '') === 'Anotado'; }
 function despesaAnotadoPagamentos(d) {
   const lista = d?.pagamento_detalhes?.anotadoPagamentos;
@@ -19456,65 +19423,10 @@ function despesaAnotadoSaldoDevedor(d) {
 function despesaAnotadoQuitado(d) {
   return despesaAnotadoSaldoDevedor(d) <= 0.009;
 }
-function despesaCountsInTotal(d) {
-  if (despesaIsBoleto(d)) return despesaBoletoPago(d);
-  if (despesaIsAnotado(d)) return false;
-  return true;
-}
-// Crédito parcelado divide o valor em N meses seguidos a partir do mês da compra (1ª
-// parcela no mês da data informada, as demais nos meses seguintes) — diferente de Vendas,
-// onde o parcelamento no crédito é só informativo. Aqui faz sentido dividir de verdade,
-// porque é dinheiro saindo da conta aos poucos, mês a mês.
-function despesaCreditoParcelasDatas(d) {
-  const n = Math.max(1, parseInt(d?.pagamento_detalhes?.parcelas, 10) || 1);
-  const total = Number(d?.valor) || 0;
-  const dataBase = dashboardDateObj(d?.data);
-  const base = Math.floor((total / n) * 100) / 100;
-  let acumulado = 0;
-  const parcelas = [];
-  for (let i = 0; i < n; i++) {
-    const valor = i === n - 1 ? round2(total - acumulado) : base;
-    acumulado = round2(acumulado + valor);
-    let data = null;
-    if (dataBase) {
-      const dt = new Date(dataBase.getFullYear(), dataBase.getMonth() + i, dataBase.getDate());
-      data = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
-    }
-    parcelas.push({ valor, data });
-  }
-  return parcelas;
-}
-function despesaExpenseEntries(d) {
-  if (despesaIsBoleto(d)) {
-    if (!despesaBoletoPago(d)) return [];
-    return [{ data: despesaBoletoDataFinal(d), valor: despesaBoletoValorTotal(d) }];
-  }
-  if (despesaIsAnotado(d)) {
-    return despesaAnotadoPagamentos(d)
-      .filter(p => p && p.data && (Number(p.valor) || 0) !== 0)
-      .map(p => ({ data: p.data, valor: Number(p.valor) || 0 }));
-  }
-  if (canonicalPayment(d?.pagamento || '') === 'Crédito' && (Number(d?.pagamento_detalhes?.parcelas) || 1) > 1) {
-    return despesaCreditoParcelasDatas(d).filter(p => p.data);
-  }
-  return [{ data: d?.data, valor: Number(d?.valor) || 0 }];
-}
 function despesaPaymentDisplay(d) {
   const payment = canonicalPayment(d?.pagamento || '') || 'Dinheiro';
   if (payment === 'Crédito' && d?.pagamento_detalhes?.parcelas) return `${payment} · ${d.pagamento_detalhes.parcelas}x`;
   return payment;
-}
-function computeDespesasMensal() {
-  const map = {};
-  state.despesas.forEach(d => {
-    despesaExpenseEntries(d).forEach(entry => {
-      const dt = dashboardDateObj(entry.data);
-      if (!dt) return;
-      const key = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
-      map[key] = (map[key] || 0) + entry.valor;
-    });
-  });
-  return map;
 }
 // Lucro bruto mensal = soma do lucro líquido de cada venda (valor - custo do produto - fiscal),
 // alocado no(s) mês(es) em que a receita daquela venda foi reconhecida (saleRevenueEntries — importante
@@ -19548,15 +19460,6 @@ function computeLucroBrutoMensal() {
   });
   Object.keys(map).forEach(k => { map[k] = round2(map[k]); });
   return { map, incompleto };
-}
-async function loadFinanceiroAjustes() {
-  const client = getSupabaseClient();
-  const session = await getSupabaseSession();
-  if (!client || !session) { state.financeiroAjustes = []; return state.financeiroAjustes; }
-  const { data, error } = await client.from('crm_financeiro_ajustes').select('*');
-  if (error) { console.error(error); state.financeiroAjustes = []; return state.financeiroAjustes; }
-  state.financeiroAjustes = data || [];
-  return state.financeiroAjustes;
 }
 /* ============ FINANCEIRO — fechamento mensal manual ============ */
 // Você preenche os valores de cada mês; só o lucro (bruto e líquido) é calculado — e pode ser
@@ -19748,8 +19651,6 @@ function finRenderMesSelect() {
   }).join('');
 }
 function finEscolherMes(m) { FIN.mes = m; FIN.ano = Number(m.slice(0, 4)); finRenderTudo(); }
-function finMesAnterior() { const l = finMesesDisponiveis(); const i = l.indexOf(FIN.mes); if (i > 0) finEscolherMes(l[i - 1]); }
-function finMesProximo() { const l = finMesesDisponiveis(); const i = l.indexOf(FIN.mes); if (i >= 0 && i < l.length - 1) finEscolherMes(l[i + 1]); }
 
 function finIrAba(aba) {
   FIN.aba = aba;
@@ -19769,6 +19670,45 @@ function alexDados() {
   if (!st.alexandre) st.alexandre = { saldoInicial: [], entregas: [], pagamentos: [] };
   ['saldoInicial', 'entregas', 'pagamentos'].forEach(k => { if (!Array.isArray(st.alexandre[k])) st.alexandre[k] = []; });
   return st.alexandre;
+}
+// Custo da mercadoria ENTREGUE ao Alexandre: cada linha da ficha ("12 Palco 5L N (Q50)") vira um produto|tamanho do catálogo
+// e usa o mesmo custo da Calculadora (matéria-prima + embalagem). Conta no mês da entrega (brinde também tem custo).
+function alexChaveCusto(linha) {
+  const m = String(linha).match(/^\s*(\d+)\s+(.*)$/); if (!m) return null;
+  const qtd = parseInt(m[1], 10), t = m[2].toLowerCase();
+  const tam = /(\d+)\s*l\b/.exec(t);
+  const com = (prod, padrao) => ({ qtd, prod, tamanho: tam ? tam[1] + 'L' : padrao });
+  if (/haze\s*oil/.test(t)) return com('Haze Oil', '5L');
+  if (/palco/.test(t)) return com('Palco', '5L');
+  if (/\bdj/.test(t)) return com('DJs and Clubs', '5L');
+  if (/low\s*fog/.test(t)) return com('Low Fog', '5L');
+  if (/snow|neve/.test(t)) return com('Snow', '5L');
+  if (/bubble|bolha/.test(t)) return com('Bubble', '1L');
+  if (/haze/.test(t)) return com('Haze', '5L');
+  if (/co2|co₂/.test(t)) return com('CO₂ Simulator', '5L');
+  if (/clean/.test(t)) return com('Clean', '1L');
+  if (/isoprop/.test(t)) return com('Álcool Isopropílico', '1L');
+  if (/lente|tela|lens/.test(t)) return { qtd, prod: 'Top Up - Lentes e Telas Cristalinas', tamanho: '120mL' };
+  if (/top\s*up/.test(t)) return { qtd, prod: 'Top Up - Limpeza a Seco', tamanho: '150g' };
+  return null;
+}
+function alexCustoEntregas(mes) {
+  const out = { total: 0, semCusto: 0, linhas: [] };
+  try {
+    if (typeof isAdminUser === 'function' && !isAdminUser()) return out;
+    const d = alexDados(); if (!d || !window.gsoCalc || typeof window.gsoCalc._custoInfo !== 'function') return out;
+    d.entregas.forEach(en => {
+      const dt = dashboardDateObj(en.data); if (!dt || finMesKey(dt) !== mes) return;
+      (en.itens || []).forEach(linha => {
+        const c = alexChaveCusto(linha); let custo = null;
+        if (c) { const info = window.gsoCalc._custoInfo(c.prod + '|' + c.tamanho); if (info && info.total != null) custo = round2(info.total * c.qtd); }
+        if (custo == null) out.semCusto++; else out.total += custo;
+        out.linhas.push({ data: en.data, ref: en.ref || '', linha: String(linha), produto: c ? c.prod + ' ' + c.tamanho : '', qtd: c ? c.qtd : '', custo });
+      });
+    });
+  } catch (err) {}
+  out.total = round2(out.total);
+  return out;
 }
 function alexPersistir() { if (window.gsoCalc && window.gsoCalc._save) window.gsoCalc._save(); }
 function alexTotais(d) {
@@ -19936,9 +19876,6 @@ function finTecla(ev, inp) {
   if (i >= 0 && todos[i + 1]) todos[i + 1].focus(); else inp.blur();
 }
 function finAntHtml(valor) { return `<span class="fx-ant" title="Mês anterior">${valor ? finNumFmt(valor) : '—'}</span>`; }
-function finLinhaHtml(rot, campo, valor, ant) {
-  return `<div class="fx-linha"><span class="fx-rot">${escapeHtml(rot)}</span>${finAntHtml(ant)}${finCampoHtml(campo, valor)}</div>`;
-}
 function finCatLinhaHtml(cat, m, ant, pos, tot) {
   const itens = finItens(m, cat.id);
   const total = finTotalCat(m, cat.id);
@@ -20342,18 +20279,6 @@ function finRemoverCategoria(id) {
   finRenderTudo();
 }
 
-function finAdicionarCategoriaInline() {
-  const inp = document.getElementById('fin-nova-cat');
-  const nome = (inp.value || '').trim();
-  if (!nome) { inp.focus(); return; }
-  if (FIN.store.categorias.some(c => nameKey(c.nome) === nameKey(nome))) { alert('Já existe uma categoria com esse nome.'); return; }
-  let id = finSlug(nome); while (FIN.store.categorias.some(c => c.id === id)) id += '_';
-  FIN.store.categorias.push({ id, nome });
-  finAgendarSalvar(null, true);
-  finRenderTudo();
-  document.getElementById('fin-nova-cat')?.focus();
-  finStatus('Categoria "' + nome + '" adicionada');
-}
 function finRenomearInline(id, btn) {
   const cat = FIN.store.categorias.find(c => c.id === id);
   if (!cat || btn.dataset.editando) return;
@@ -20591,13 +20516,16 @@ function finVendasDoMes(mes) {
   r.mlEntradas = round2(((mlMes && mlMes.ml_entradas) || []).reduce((s, e) => s + (Number(e.valor) || 0), 0));
   ((mlMes && mlMes.ml_entradas) || []).forEach(e => { if (Number(e.valor)) r.linhas.push({ canal: 'Mercado Livre', numero: '', cliente: e.desc || 'Entrada Mercado Livre', pag: 'Mercado Livre', total: Number(e.valor), data: e.data, valor: Number(e.valor), custo: null, obs: 'Entrada lançada no Financeiro (já líquida de tarifa e frete)' }); });
   r.fat += r.mlEntradas; r.canais.ml = r.mlEntradas;
-  // Pagamentos do Alexandre (ficha): entram como recebido, sem custo calculado (a mercadoria dele é consignada).
+  // Custo da mercadoria entregue ao Alexandre neste mês (aparece no custo dos produtos, nunca dentro do lucro bruto).
+  const axC = alexCustoEntregas(mes);
+  r.custoAlex = axC.total; r.alexEntregas = axC.linhas; r.custo += axC.total; r.semCusto += axC.semCusto;
+  // Pagamentos do Alexandre (ficha): entram como recebido (valor cheio).
   const axMes = alexPagamentosTodos().filter(p => p.mes === mes);
   r.alexEntradas = round2(axMes.reduce((s, p) => s + p.valor, 0));
-  axMes.forEach(p => r.linhas.push({ canal: 'Alexandre', numero: '', cliente: 'Alexandre — pagamento' + (p.ref ? ' (' + p.ref + ')' : ''), pag: 'Pagamento da ficha do Alexandre', total: p.valor, valor: p.valor, custo: null, data: p.data, obs: 'Lançado em Financeiro > Alexandre · o custo da mercadoria entregue a ele não é calculado' }));
+  axMes.forEach(p => r.linhas.push({ canal: 'Alexandre', numero: '', cliente: 'Alexandre — pagamento' + (p.ref ? ' (' + p.ref + ')' : ''), pag: 'Pagamento da ficha do Alexandre', total: p.valor, valor: p.valor, custo: null, data: p.data, obs: 'Lançado em Financeiro > Alexandre · o custo da mercadoria entregue a ele está na aba "Custo entregas Alexandre"' }));
   r.fat += r.alexEntradas; r.canais.alexandre = r.alexEntradas;
   ['fat', 'custo', 'fiscal', 'taxasML', 'fretesML', 'vendido'].forEach(k => { r[k] = round2(r[k]); });
-  r.lucroBruto = round2(r.fat - r.custo - r.fiscal - r.taxasML - r.fretesML);
+  r.lucroBruto = round2(r.fat - r.fiscal - r.taxasML - r.fretesML); // lucro bruto = valor recebido; o custo aparece à parte, sem ser descontado aqui
   r.margem = r.fat > 0 ? round2(r.lucroBruto / r.fat * 100) : null;
   r.lista = Object.values(r.produtos).map(o => ({ nome: o.nome, qtd: Math.round(o.qtd), fat: round2(o.fat) })).sort((a, b) => b.fat - a.fat);
   // peças e itens que não estão no catálogo de produtos entram aqui, pra a soma da tabela fechar com o valor vendido
@@ -20621,7 +20549,7 @@ function finVendasAjustadas(mes) {
   if (man('va_fiscal_manual')) r.fiscal = Number(mAj.va_fiscal_manual);
   r.taxasTotal = round2(r.taxasML + r.fretesML);
   r.custosTotal = round2(r.custo + r.fiscal + r.taxasTotal);
-  r.autoLucro = round2(r.fat - r.custo - r.fiscal - r.taxasTotal);
+  r.autoLucro = round2(r.fat - r.fiscal - r.taxasTotal); // sem tirar o custo dos produtos
   r.lucroBruto = man('va_lucro_manual') ? Number(mAj.va_lucro_manual) : r.autoLucro;
   r.margem = r.fat > 0 ? round2(r.lucroBruto / r.fat * 100) : null;
   return r;
@@ -20652,14 +20580,14 @@ function finRenderVendasAuto() {
     <div class="fx-va-topo" onclick="finVendasAutoAlternar()">
       <button type="button" class="saude-min" aria-label="Minimizar">${colapsado ? '▸' : '▾'}</button>
       <div><div class="card-title">Como o sistema calculou as vendas <span class="fx-badge auto">automático</span></div>
-      <div class="card-sub">É daqui que vem a linha “Sistema calculou” do resumo acima. Receita = vendas recebidas (boleto e fiado só quando pagos) + entradas do Mercado Livre + pagamentos da ficha do Alexandre. Venda no cartão ou com nota fiscal entra pelo valor total, sem desconto de porcentagem. Custos = custo dos produtos. Use o lápis para ajustar um valor.</div></div>
+      <div class="card-sub">É daqui que vem a linha “Sistema calculou” do resumo acima. Receita = vendas recebidas (boleto e fiado só quando pagos) + entradas do Mercado Livre + pagamentos da ficha do Alexandre. Venda no cartão ou com nota fiscal entra pelo valor total, sem desconto de porcentagem. O lucro bruto é o valor recebido, sem descontar o custo; o custo dos produtos (inclusive os entregues ao Alexandre) aparece à parte. Use o lápis para ajustar um valor.</div></div>
     </div>
     <div class="fx-va-corpo${colapsado ? ' hidden' : ''}">
       <div class="fx-kpis fx-va-kpis">
         ${chipEd('Recebido no mês', 'va_fat_manual', r.fat, r.auto.fat, rMan, 'vendido no mês: ' + fmtBR(r.vendido))}
         ${chipEd('Custo dos produtos', 'va_custo_manual', r.custo, r.auto.custo, cMan, r.semCusto ? r.semCusto + ' venda(s) sem custo calculado' : '&nbsp;')}
         ${chipEd('Impostos (fiscal)', 'va_fiscal_manual', r.fiscal, r.auto.fiscal, fMan, '')}
-        ${chipEd('Lucro bruto', 'va_lucro_manual', r.lucroBruto, r.autoLucro, lMan, r.margem != null ? r.margem.toString().replace('.', ',') + '% de margem' : '', r.lucroBruto < 0 ? 'fx-neg' : 'fx-pos')}
+        ${chipEd('Lucro bruto', 'va_lucro_manual', r.lucroBruto, r.autoLucro, lMan, 'valor recebido, sem tirar o custo', r.lucroBruto < 0 ? 'fx-neg' : 'fx-pos')}
       </div>
       ${r.lista.length ? `<div class="fx-va-tab"><div class="fx-va-cab"><span>Produto</span><span>Qtd</span><span>Valor vendido</span><span>% do total</span></div>
         ${r.lista.map(p => `<div class="fx-va-lin"><span>${escapeHtml(p.nome)}</span><span>${p.qtd}</span><b>${fmtBR(p.fat)}</b><span>${pctProd(p.fat)}</span></div>`).join('')}</div>` : '<div class="table-empty" style="padding:12px 0">Nenhuma venda recebida neste mês.</div>'}
@@ -20968,7 +20896,7 @@ async function finExportarCalculoMes() {
   let acum = 0;
   const linhas = ordenadas.map((l, i) => {
     acum = round2(acum + l.valor);
-    return { ordem: i + 1, data: gsoDataExcel(l.data), canal: l.canal, numero: l.numero, cliente: l.cliente, pag: l.pag, total: round2(l.total), valor: round2(l.valor), custo: l.custo == null ? 0 : l.custo, lucro: round2(l.valor - (l.custo == null ? 0 : l.custo)), acum, obs: [l.obs, l.custo == null && l.canal !== 'Mercado Livre' && l.canal !== 'Alexandre' ? 'sem custo calculado' : ''].filter(Boolean).join(' · ') };
+    return { ordem: i + 1, data: gsoDataExcel(l.data), canal: l.canal, numero: l.numero, cliente: l.cliente, pag: l.pag, total: round2(l.total), valor: round2(l.valor), custo: l.custo == null ? 0 : l.custo, acum, obs: [l.obs, l.custo == null && l.canal !== 'Mercado Livre' && l.canal !== 'Alexandre' ? 'sem custo calculado' : ''].filter(Boolean).join(' · ') };
   });
   const naoSomadas = r.naoSomadas.map(l => ({ data: gsoDataExcel(l.data), canal: l.canal, numero: l.numero, cliente: l.cliente, pag: l.pag, total: round2(l.total), valor: round2(l.valor), motivo: l.motivo }));
   const soma = linhas.reduce((s, l) => s + l.valor, 0);
@@ -20978,10 +20906,10 @@ async function finExportarCalculoMes() {
   if (r.fiscal !== r.auto.fiscal) ajustes.push('Impostos ajustados à mão: ' + fmtBR(r.fiscal) + ' (calculado ' + fmtBR(r.auto.fiscal) + ')');
   if (r.lucroBruto !== r.autoLucro) ajustes.push('Lucro ajustado à mão: ' + fmtBR(r.lucroBruto) + ' (calculado ' + fmtBR(r.autoLucro) + ')');
   const resumo = [
-    { campo: 'Total recebido (valor bruto)', valor: round2(soma), obs: 'Soma da coluna "Valor recebido (bruto)": o valor cheio de cada entrada, sem tirar custo. É o "Recebido no mês" do sistema' },
-    { campo: 'Custo dos produtos', valor: r.auto.custo, obs: 'Custo das vendas do mês, proporcional ao que foi recebido (não inclui a mercadoria entregue ao Alexandre)' },
+    { campo: 'Lucro bruto (total recebido)', valor: r.autoLucro, obs: 'Valor cheio de cada entrada, sem tirar o custo. Vendeu 200, aparece 200. É o "Recebido no mês" do sistema' },
+    { campo: 'Custo dos produtos (total)', valor: r.auto.custo, obs: 'Só informativo, NÃO é descontado do lucro bruto. Soma o custo das vendas do mês (proporcional ao recebido) + o custo do que foi entregue ao Alexandre' },
+    { campo: '   dos quais: entregues ao Alexandre', valor: r.custoAlex || 0, obs: 'Detalhe na aba "Custo entregas Alexandre"' },
     { campo: 'Impostos', valor: r.auto.fiscal, obs: 'Cartão e nota fiscal entram pelo valor total, sem desconto de porcentagem' },
-    { campo: 'Lucro bruto (recebido − custo)', valor: r.autoLucro, obs: 'Total recebido menos o custo dos produtos' },
     ...ajustes.map(t => ({ campo: 'Ajuste manual', valor: null, obs: t }))
   ];
   const colunas = [
@@ -20992,14 +20920,15 @@ async function finExportarCalculoMes() {
     { cab: 'Cliente / descrição', chave: 'cliente', max: 38 },
     { cab: 'Forma de pagamento', chave: 'pag', max: 34 },
     { cab: 'Valor total da venda', chave: 'total', tipo: 'dinheiro', larg: 18 },
-    { cab: 'Valor recebido (bruto)', chave: 'valor', tipo: 'dinheiro', total: true, larg: 19 },
-    { cab: 'Custo do produto', chave: 'custo', tipo: 'dinheiro', total: true, larg: 17 },
-    { cab: 'Lucro bruto (recebido − custo)', chave: 'lucro', tipo: 'dinheiro', total: true, larg: 22 },
+    { cab: 'Lucro bruto (valor recebido)', chave: 'valor', tipo: 'dinheiro', total: true, larg: 23 },
+    { cab: 'Custo do produto (só informativo)', chave: 'custo', tipo: 'dinheiro', total: true, larg: 25 },
     { cab: 'Recebido acumulado', chave: 'acum', tipo: 'dinheiro', larg: 18 },
     { cab: 'Observação', chave: 'obs', max: 54 }
   ];
   const extras = [];
   extras.push({ aba: 'Resumo do cálculo', titulo: 'GSO Effects Line  —  Resumo do cálculo ' + finMesLabel(FIN.mes), colunas: [{ cab: 'Item', chave: 'campo', max: 36 }, { cab: 'Valor', chave: 'valor', tipo: 'dinheiro', larg: 18 }, { cab: 'Como foi calculado', chave: 'obs', max: 90 }], linhas: resumo });
+  const entregasAlex = (r.alexEntregas || []).map(l => ({ data: gsoDataExcel(l.data), ref: l.ref, linha: l.linha, produto: l.produto || 'não reconhecido', qtd: l.qtd, custo: l.custo == null ? 0 : l.custo, obs: l.custo == null ? 'sem custo calculado para este item' : '' }));
+  if (entregasAlex.length) extras.push({ aba: 'Custo entregas Alexandre', titulo: 'GSO Effects Line  —  Custo da mercadoria entregue ao Alexandre (' + finMesLabel(FIN.mes) + ')', colunas: [{ cab: 'Data da entrega', chave: 'data', tipo: 'data', larg: 16 }, { cab: 'Referência', chave: 'ref', max: 22 }, { cab: 'Linha da ficha', chave: 'linha', max: 40 }, { cab: 'Produto no catálogo', chave: 'produto', max: 34 }, { cab: 'Qtd', chave: 'qtd', tipo: 'inteiro', larg: 8 }, { cab: 'Custo', chave: 'custo', tipo: 'dinheiro', total: true, larg: 16 }, { cab: 'Observação', chave: 'obs', max: 40 }], linhas: entregasAlex });
   if (naoSomadas.length) extras.push({ aba: 'Não somadas', titulo: 'GSO Effects Line  —  Vendas do mês que NÃO entraram na soma (' + finMesLabel(FIN.mes) + ')', colunas: [{ cab: 'Data da venda', chave: 'data', tipo: 'data', larg: 15 }, { cab: 'Origem', chave: 'canal', larg: 14 }, { cab: 'Nº venda', chave: 'numero', tipo: 'inteiro', larg: 10 }, { cab: 'Cliente', chave: 'cliente', max: 38 }, { cab: 'Forma de pagamento', chave: 'pag', max: 34 }, { cab: 'Valor total da venda', chave: 'total', tipo: 'dinheiro', larg: 18 }, { cab: 'Valor não somado', chave: 'valor', tipo: 'dinheiro', total: true, larg: 17 }, { cab: 'Por quê', chave: 'motivo', max: 80 }], linhas: naoSomadas });
   try {
     await gsoExportarExcelEstilizado({
@@ -21008,9 +20937,8 @@ async function finExportarCalculoMes() {
       titulo: 'GSO Effects Line  —  Tudo que foi somado em ' + finMesLabel(FIN.mes),
       subtitulo: `Gerado em ${gsoAgoraBR()} por ${currentUserName()}   •   na ordem em que cada valor entrou`,
       resumo: [
-        { rotulo: 'Total recebido (bruto)', valor: fmtBR(round2(soma)) },
-        { rotulo: 'Custo dos produtos', valor: fmtBR(r.auto.custo) },
-        { rotulo: 'Lucro bruto', valor: fmtBR(r.autoLucro) },
+        { rotulo: 'Lucro bruto (total recebido)', valor: fmtBR(round2(soma)) },
+        { rotulo: 'Custo dos produtos (informativo)', valor: fmtBR(r.auto.custo) },
         { rotulo: 'Entradas somadas', valor: String(linhas.length) }
       ],
       colunas, linhas, abasExtras: extras
@@ -21736,20 +21664,6 @@ function computeAnos() {
 // ============ RENDER DASHBOARD ============
 let chartDashPagamentoInst = null, chartRelSemanalInst = null, chartRelMensalInst = null, chartRelAnualInst = null, chartRelFiscalInst = null, chartRelCidadesInst = null, chartRelMetaInst = null;
 
-function dashBarRows(rows, maxValue, valueFormatter) {
-  if (rows.length === 0) return '<div class="table-empty">Sem dados ainda</div>';
-  const palette = chartPastelPalette();
-  return rows.map((row, index) => {
-    const color = palette[index % palette.length];
-    return `
-      <div class="dash-row">
-        <div><strong>${escapeHtml(row.nome)}</strong></div>
-        <div class="dash-bar"><div class="dash-bar-fill" style="width:${maxValue ? (row.valor / maxValue) * 100 : 0}%;background:${color} !important;"></div></div>
-        <div class="dash-muted">${valueFormatter(row.valor)}</div>
-      </div>
-    `;
-  }).join('');
-}
 
 function dashboardDateText(date = new Date()) {
   const data = date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -21914,10 +21828,6 @@ function saleBoletoVencimento(venda) {
   if (pendentes.length) return pendentes[0].vencimento;
   const comVencimento = parcelas.filter(p => p.vencimento).sort((a, b) => a.vencimento < b.vencimento ? -1 : 1);
   return comVencimento.length ? comVencimento[comVencimento.length - 1].vencimento : null;
-}
-function saleBoletoVencimentoStatus(venda) {
-  if (saleBoletoPago(venda)) return { phrase: 'Pago', cls: 'green' };
-  return boletoParcelaVencimentoStatus({ pago: false, vencimento: saleBoletoVencimento(venda) });
 }
 
 // Vendas cliente final (state.vendas / crm_vendas) e vendas lojista (state.vendasLojista /
@@ -22119,38 +22029,6 @@ function saleHasNf(venda) {
   return dashboardHasSaleFile(venda, 'nf') || Boolean(saleNfNumber(venda));
 }
 
-function dashboardNeedsNf(venda) {
-  return !saleSomenteDinheiro(venda);
-}
-
-function dashboardGetNotasFiscais() {
-  const source = Array.isArray(docsState.notas) && docsState.notas.length
-    ? docsState.notas
-    : mergeNotasFiscaisComVendas(state.notas_fiscais || []);
-  return Array.isArray(source) ? source : [];
-}
-
-function dashboardFindSaleForNote(nota) {
-  if (!nota) return null;
-  if (nota.origem_venda_id) {
-    const byOrigin = state.vendas.find(v => String(v.id) === String(nota.origem_venda_id));
-    if (byOrigin) return byOrigin;
-  }
-  const numero = String(nota.numero_venda || '').trim();
-  if (numero) {
-    const byNumber = state.vendas.find(v => String(v.numeroVenda || '').trim() === numero || String(v.id || '').trim() === numero);
-    if (byNumber) return byNumber;
-  }
-  const nome = nameKey(nota.nome_cliente || '');
-  const valor = Number(nota.valor || 0);
-  const data = dashboardDateKey(nota.data_emissao);
-  return state.vendas.find(v => {
-    const sameClient = nome && nameKey(v.cliente || '') === nome;
-    const sameValue = Math.abs(Number(v.valor || 0) - valor) < 0.01;
-    const sameDate = data && dashboardDateKey(v.data) === data;
-    return sameClient && sameValue && sameDate;
-  }) || null;
-}
 
 function dashboardFinanceStats() {
   const boletos = (docsState.boletos || []).map(b => ({ ...b, calc: boletoComputed(b) }));
@@ -22168,73 +22046,6 @@ function dashboardFinanceStats() {
   return { boletos, boletosAbertos, vencidos, venceHoje, proximos3, pagos, vendasBoleto, vendasSemBoleto, totalReceber, totalVencido };
 }
 
-function dashboardFiscalStats() {
-  const vendasComObrigacaoFiscal = state.vendas.filter(dashboardNeedsNf);
-  const vendasComNf = vendasComObrigacaoFiscal.filter(saleHasNf);
-  const vendasSemNf = vendasComObrigacaoFiscal.filter(v => !saleHasNf(v));
-  const notas = dashboardGetNotasFiscais();
-  const notasSemVinculo = notas.filter(n => !dashboardFindSaleForNote(n));
-  const divergencias = notas.filter(n => {
-    const venda = dashboardFindSaleForNote(n);
-    if (!venda) return false;
-    return Math.abs(Number(n.valor || 0) - Number(venda.valor || 0)) >= 0.01;
-  });
-  const valorNotas = notas.reduce((sum, n) => sum + Number(n.valor || 0), 0);
-  return { vendasComObrigacaoFiscal, vendasComNf, vendasSemNf, notas, notasSemVinculo, divergencias, valorNotas };
-}
-
-function dashboardEstoqueStats() {
-  const rows = estoqueRows();
-  const zerados = rows.filter(item => estoqueNumber(item.estoque) === 0);
-  const baixo = rows.filter(estoqueIsLow);
-  const semPreco = rows.filter(item => Number(item.preco || 0) <= 0);
-  const semMinimo = rows.filter(item => estoqueNumber(item.minimo) <= 0);
-  const criticos = [...baixo].sort((a, b) => estoqueNumber(a.estoque) - estoqueNumber(b.estoque) || String(a.titulo).localeCompare(String(b.titulo), 'pt-BR'));
-  return { rows, zerados, baixo, semPreco, semMinimo, criticos };
-}
-
-function dashboardSummaryRows(rows) {
-  return rows.map(row => `
-    <div class="summary-row">
-      <span>${escapeHtml(row.label)}${row.hint ? `<small>${escapeHtml(row.hint)}</small>` : ''}</span>
-      <strong>${escapeHtml(row.value)}</strong>
-    </div>
-  `).join('');
-}
-
-function dashboardPendingRows(rows) {
-  const activeRows = rows.filter(row => row.count > 0);
-  if (!activeRows.length) return '<div class="table-empty">Sem pendências críticas no momento</div>';
-  return activeRows.map(row => `
-    <div class="ops-item ${row.severity === 'warning' ? 'is-warning' : ''} has-alert" onclick="dashboardDrill('${row.drill}')">
-      <div class="ops-main">
-        <span class="ops-token">${escapeHtml(row.token)}</span>
-        <div class="ops-text">
-          <strong>${escapeHtml(row.label)}</strong>
-          <span>${escapeHtml(row.hint)}</span>
-        </div>
-      </div>
-      <div class="ops-count">${Number(row.count).toLocaleString('pt-BR')}</div>
-      <span class="ops-action">Ver</span>
-    </div>
-  `).join('');
-}
-
-function dashboardBoletosAttentionRows(finance) {
-  const rows = [...finance.vencidos, ...finance.venceHoje, ...finance.proximos3]
-    .sort((a, b) => boletoSortValue(a) - boletoSortValue(b))
-    .slice(0, 6);
-  if (!rows.length) return '<div class="table-empty">Nenhum boleto crítico</div>';
-  return rows.map(b => `
-    <div class="attention-item" onclick="dashboardDrill('boletos_criticos')" style="cursor:pointer;">
-      <div class="attention-main">
-        <strong>${escapeHtml(b.titulo || 'Boleto')}</strong>
-        <span>${escapeHtml(b.nome_fornecedor_cliente || '—')} · ${escapeHtml(b.calc.phrase || '')}</span>
-      </div>
-      <div class="attention-value">${fmtBR(Number(b.valor || 0))}</div>
-    </div>
-  `).join('');
-}
 
 function dashboardSetText(id, value) {
   const el = document.getElementById(id);
@@ -22946,19 +22757,28 @@ function clienteInfoParaExport(nomeCliente) {
   };
 }
 /* ---------- Excel estilizado (ExcelJS carregado só quando alguém exporta) ---------- */
-let exceljsPromise = null;
-function carregarExcelJS() {
-  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
-  if (!exceljsPromise) {
-    exceljsPromise = new Promise((resolve, reject) => {
+// Bibliotecas pesadas (Excel, PDF) só são baixadas na hora em que alguém usa — o sistema abre mais rápido.
+const gsoBibliotecas = {};
+function gsoCarregarBiblioteca(url, global, msgErro) {
+  if (window[global]) return Promise.resolve(window[global]);
+  if (!gsoBibliotecas[url]) {
+    gsoBibliotecas[url] = new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
-      s.onload = () => resolve(window.ExcelJS);
-      s.onerror = () => { exceljsPromise = null; reject(new Error('Não consegui carregar o gerador de planilhas. Verifique a internet e tente de novo.')); };
+      s.src = url;
+      s.onload = () => resolve(window[global]);
+      s.onerror = () => { delete gsoBibliotecas[url]; reject(new Error(msgErro + ' Verifique a internet e tente de novo.')); };
       document.head.appendChild(s);
     });
   }
-  return exceljsPromise;
+  return gsoBibliotecas[url];
+}
+function carregarExcelJS() { return gsoCarregarBiblioteca('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js', 'ExcelJS', 'Não consegui carregar o gerador de planilhas.'); }
+function carregarXLSX() { return gsoCarregarBiblioteca('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', 'XLSX', 'Não consegui carregar o leitor de Excel.'); }
+function carregarPdfJs() {
+  return gsoCarregarBiblioteca('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js', 'pdfjsLib', 'Não consegui carregar o leitor de PDF.').then(lib => {
+    lib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    return lib;
+  });
 }
 // Data "pura" (sem hora/fuso) pro Excel — evita a data cair um dia antes.
 function gsoDataExcel(valor) {
@@ -24346,10 +24166,6 @@ function ignorarRevisaoCliente(id) {
   if (!document.getElementById('view-vendas')?.classList.contains('hidden')) renderVendas();
 }
 
-function valuesDiffer(oldValue, newValue, numeric = false) {
-  if (numeric) return Number(oldValue || 0) !== Number(newValue || 0);
-  return String(oldValue || '').trim() !== String(newValue || '').trim();
-}
 
 // ============ RENDER CLIENTES ============
 function switchClienteTab(tab) {
@@ -25598,12 +25414,6 @@ function renderFiscal() {
 }
 
 
-function openFiscalModal(id = '') {
-  const fiscal = id ? state.fiscais.find(f => String(f.id || '') === String(id)) : null;
-  openClienteModal(fiscal?.nome || '');
-}
-
-
 function salvarFiscal() {
   const id = document.getElementById('mf-id')?.value || '';
   const nome = document.getElementById('mf-nome').value.trim();
@@ -25642,19 +25452,6 @@ async function excluirFiscal(id) {
   renderFiscal();
   renderDash();}
 
-function removerFiscal(i) {
-  const fiscal = state.fiscais[i];
-  if (fiscal?.id) return excluirFiscal(fiscal.id);
-  if (!confirm('Remover este registro fiscal?')) return;
-  state.fiscais.splice(i, 1);
-  STORE.save('fiscais', state.fiscais);
-  renderFiscal();}
-
-
-
-function exportarRelatorioPDF() {
-  window.print();
-}
 
 // ============ RENDER PRODUTOS ============
 function renderProdutos() {
@@ -26558,31 +26355,6 @@ function verResumoEstoque() {
   alert(`Resumo do estoque\n\nProdutos: ${rows.length}\nQuantidade total: ${totalItens.toLocaleString('pt-BR')} itens\nBaixo estoque: ${baixo}\nValor estimado: ${fmtBR(valor)}`);
 }
 
-function gerarPedidoFornecedor() {
-  const baixos = estoqueRows().filter(estoqueIsLow).sort((a, b) => String(a.titulo).localeCompare(String(b.titulo), 'pt-BR'));
-  if (!baixos.length) {
-    alert('Nenhum produto está abaixo do estoque mínimo.');
-    return;
-  }
-  const texto = baixos.map(item => {
-    const sugerido = Math.max(estoqueNumber(item.minimo) * 2 - estoqueNumber(item.estoque), 1);
-    return `${item.titulo} ${item.tamanho} — estoque ${estoqueNumber(item.estoque)}, mínimo ${estoqueNumber(item.minimo)}, sugestão ${sugerido}`;
-  }).join('\n');
-  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(texto).catch(() => {});
-  alert('Pedido ao fornecedor gerado:\n\n' + texto);
-}
-
-function edicaoMassaEstoque() {
-  const raw = prompt('Definir estoque mínimo para todos os itens visíveis:', '1');
-  if (raw === null) return;
-  const minimo = Math.max(0, estoqueNumber(raw));
-  estoqueRows().forEach(item => {
-    item.minimo = minimo;
-    item.atualizadoEm = new Date().toISOString();
-  });
-  STORE.save('estoque', state.estoque);
-  renderEstoque();
-}
 
 function csvCell(value) {
   return '"' + String(value ?? '').replace(/"/g, '""') + '"';
@@ -26845,12 +26617,6 @@ function reportWeekLabel(key) {
   return d ? 'Sem. ' + d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : key;
 }
 
-function reportPreviousMonthKey() {
-  const d = new Date();
-  d.setDate(1);
-  d.setMonth(d.getMonth() - 1);
-  return reportMonthKey(d);
-}
 
 function reportCurrentMonthKey() {
   return reportMonthKey(new Date());
@@ -27304,19 +27070,6 @@ function atualizarComposicaoSelecionada() {
   const caixas = embalagem === '1L' ? '1 caixa pequena comporta 6 garrafas de 1L.' : '1 caixa comporta 4 galões de 5L.';
   info.innerHTML = `<strong>${calcComposicaoTexto(produto)}</strong><br>${caixas} O limite por batelada é de 200L.`;
 }
-function adicionarItemCalculadoraPedido() {
-  const produto = document.getElementById('calc-pedido-produto')?.value || 'Palco';
-  const embalagem = document.getElementById('calc-pedido-embalagem')?.value || '5L';
-  const aroma = document.getElementById('calc-pedido-aroma')?.value || 'Neutro';
-  const qtd = Math.max(1, parseInt(document.getElementById('calc-pedido-qtd')?.value || '1', 10) || 1);
-  if (!CALCULADORA_COMPOSICOES[produto]) {
-    alert('A composição deste produto ainda não foi cadastrada na calculadora.');
-    return;
-  }
-  calculadoraPedidoItens.push({ id: Date.now() + '_' + Math.random().toString(16).slice(2), produto, embalagem, aroma, qtd });
-  salvarCalculadoraPedido();
-  renderCalculadora();
-}
 
 function removerItemCalculadoraPedido(id) {
   calculadoraPedidoItens = calculadoraPedidoItens.filter(item => item.id !== id);
@@ -27332,12 +27085,6 @@ function carregarCalculadoraPedido() {
   } catch (err) {
     calculadoraPedidoItens = [];
   }
-}
-function limparCalculadoraCustos() {
-  if (!confirm('Limpar todos os itens do pedido da calculadora?')) return;
-  calculadoraPedidoItens = [];
-  salvarCalculadoraPedido();
-  renderCalculadora();
 }
 function calcEmptyMateria() {
   return { G1: 0, P1: 0, M1: 0, A1: 0, A2: 0 };
@@ -27626,36 +27373,6 @@ function limparPrecificacaoCustos() {
   if (ft) ft.value = '%';
   renderPrecificacao();
 }
-function copiarResumoCalculadora() {
-  if (calculadoraSubpage === 'precificacao') return copiarResumoPrecificacao();
-  if (calculadoraSubpage === 'unitaria') return copiarResumoPrecificacaoUnitaria();
-  const { grupos, totals } = calcularPedidoBatelada();
-  const linhas = [
-    'Resumo de produção — CRM GSO',
-    `Volume total: ${formatLitros(totals.litros)}`,
-    `Capacidade planejada: ${formatLitros(totals.capacidade)}`,
-    `Sobra de capacidade: ${formatLitros(totals.sobra)}`,
-    `Bateladas necessárias: ${totals.bateladas}`,
-    `Bateladas incompletas: ${totals.bateladasIncompletas}`,
-    `Galões 5L + tampas: ${totals.galoes5}`,
-    `Garrafas 1L + tampas: ${totals.garrafas1}`,
-    `Caixas 5L: ${totals.caixas5}`,
-    `Caixas 1L: ${totals.caixas1}`,
-    `Rótulos 5L: ${totals.rotulos5}`,
-    `Rótulos 1L: ${totals.rotulos1}`,
-    ...Object.entries(totals.materia).filter(([_, v]) => v > 0).map(([mp, v]) => `${mp}: ${formatLitros(v)}`),
-    '',
-    'Detalhamento por produto:',
-    ...grupos.map(g => {
-      const materias = ['G1', 'P1', 'M1', 'A1', 'A2']
-        .filter(mp => Number(g.materia[mp] || 0) > 0)
-        .map(mp => `${mp} ${formatLitros(g.materia[mp] || 0)}`)
-        .join(' | ');
-      return `${g.produto}: ${formatLitros(g.litros)} | ${g.bateladas} batelada(s) | sobra ${formatLitros(g.sobra)}${materias ? ' | ' + materias : ''}`;
-    })
-  ];
-  navigator.clipboard.writeText(linhas.join('\n')).then(() => alert('Resumo copiado.'));
-}
 function renderCalculadora() {
   carregarCalculadoraPedido();
   atualizarOpcoesEmbalagemPedido();
@@ -27696,9 +27413,6 @@ function switchCalculadoraSubpage(page) {
 function readPrecificacaoStore() {
   try { return JSON.parse(localStorage.getItem('gso_precificacao_produtos') || '{}') || {}; }
   catch (err) { return {}; }
-}
-function writePrecificacaoStore(data) {
-  localStorage.setItem('gso_precificacao_produtos', JSON.stringify(data || {}));
 }
 function precProduto() { return document.getElementById('prec-produto')?.value || 'Palco'; }
 function precNum(id) { return parseMoneyValue(document.getElementById(id)?.value || '0'); }
@@ -27756,20 +27470,6 @@ function loadPrecificacaoDefaults() {
   });
   if (data['margem-tipo']) document.getElementById('prec-margem-tipo').value = data['margem-tipo'];
   if (data['fiscal-tipo']) document.getElementById('prec-fiscal-tipo').value = data['fiscal-tipo'];
-}
-function salvarPrecificacaoCustos(showAlert = false) {
-  const store = readPrecificacaoStore();
-  const produto = precProduto();
-  const data = {};
-  ['g1','p1','m1','a1','a2','garrafa-5','caixa-5','rotulo-5','garrafa-1','caixa-1','rotulo-1','multiplicador','fiscal','margem','valor-cobrado'].forEach(key => {
-    const el = document.getElementById('prec-' + key);
-    if (el) data[key] = el.value;
-  });
-  data['margem-tipo'] = document.getElementById('prec-margem-tipo')?.value || '%';
-  data['fiscal-tipo'] = document.getElementById('prec-fiscal-tipo')?.value || '%';
-  store[produto] = data;
-  writePrecificacaoStore(store);
-  if (showAlert) alert('Valores de precificação salvos para ' + produto + '.');
 }
 function renderPrecificacao() {
   const produto = precProduto();
@@ -27853,19 +27553,6 @@ function renderPrecificacao() {
     }
   }
 }
-function copiarResumoPrecificacao() {
-  renderPrecificacao();
-  const linhas = [
-    'Resumo de precificação — CRM GSO',
-    `Produto: ${precProduto()}`,
-    `Custo unitário 5L: ${document.getElementById('prec-unit-5')?.textContent || 'R$ 0,00'}`,
-    `Custo unitário 1L: ${document.getElementById('prec-unit-1')?.textContent || 'R$ 0,00'}`,
-    `Qtd 5L: ${document.getElementById('prec-qtd-5')?.value || 0}`,
-    `Qtd 1L: ${document.getElementById('prec-qtd-1')?.value || 0}`,
-    `Valor que vou cobrar: ${document.getElementById('prec-valor-cobrado')?.value || 'não informado'}`
-  ];
-  navigator.clipboard.writeText(linhas.join('\n')).then(() => alert('Resumo de precificação copiado.'));
-}
 
 
 const UNIT_COST_KEYS = ['g1','p1','m1','a1','a2','garrafa-5','caixa-5','rotulo-5','garrafa-1','caixa-1','rotulo-1'];
@@ -27889,23 +27576,6 @@ function copiarPrecificacaoParaUnitaria() {
 function atualizarComposicaoUnitaria(produto) {
   const info = document.getElementById('unit-cost-composicao-info');
   if (info) info.innerHTML = `<strong>${escapeHtml(calcComposicaoTexto(produto))}</strong><br>Para 5L: custo do líquido + garrafa/tampa 5L + rótulo 5L + 1/4 da caixa 5L. Para 1L: custo do líquido + garrafa/tampa 1L + rótulo 1L + 1/6 da caixa 1L.`;
-}
-function sincronizarProdutoPrecificacaoUnitaria(produto) {
-  const unitProduto = document.getElementById('unit-produto');
-  const unitCostProduto = document.getElementById('unit-cost-produto');
-  const precProdutoEl = document.getElementById('prec-produto');
-  const next = produto || unitProduto?.value || unitCostProduto?.value || 'Palco';
-  if (unitProduto && unitProduto.value !== next) unitProduto.value = next;
-  if (unitCostProduto && unitCostProduto.value !== next) unitCostProduto.value = next;
-  if (precProdutoEl && precProdutoEl.value !== next) {
-    precProdutoEl.value = next;
-    loadPrecificacaoDefaults();
-  }
-  copiarPrecificacaoParaUnitaria();
-  unitCostFieldsInitialized = true;
-  syncPrecificacaoUnitariaOptions();
-  atualizarComposicaoUnitaria(next);
-  renderPrecificacaoUnitaria();
 }
 function inicializarCamposPrecificacaoUnitaria() {
   const produto = document.getElementById('unit-produto')?.value || document.getElementById('unit-cost-produto')?.value || document.getElementById('prec-produto')?.value || 'Palco';
@@ -27979,14 +27649,6 @@ function renderPrecificacaoUnitaria() {
     <div class="calc-unit-line highlight"><span>Lucro final unitário</span><strong>${fmtBR(produto02)}</strong></div>
     <div class="calc-unit-line"><span>Preço sugerido com margem desejada</span><strong>${fmtBR(precoSugerido)}</strong></div>
   `;
-}
-function copiarResumoPrecificacaoUnitaria() {
-  renderPrecificacaoUnitaria();
-  const linhas = [
-    'Resumo de precificação unitária — CRM GSO',
-    ...Array.from(document.querySelectorAll('#unit-resultado .calc-unit-line')).map(row => row.innerText.replace(/\n/g, ': '))
-  ];
-  navigator.clipboard.writeText(linhas.join('\n')).then(() => alert('Resumo unitário copiado.'));
 }
 
 // ============ RENDER CONFIG ============
@@ -28560,9 +28222,9 @@ function importRows(rows, fileName) {
 }
 
 async function extractPdfText(file) {
-  if (!window.pdfjsLib) throw new Error('Leitor de PDF ainda não carregou. Tente novamente em alguns segundos.');
+  const pdfjs = await carregarPdfJs();
   const data = new Uint8Array(await file.arrayBuffer());
-  const pdf = await pdfjsLib.getDocument({ data }).promise;
+  const pdf = await pdfjs.getDocument({ data }).promise;
   const chunks = [];
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
@@ -28614,7 +28276,7 @@ async function importarArquivos(ev) {
         const text = await extractPdfText(file);
         rows = pdfTextToRows(text);
       } else {
-        if (!window.XLSX) throw new Error('Leitor de Excel ainda não carregou.');
+        await carregarXLSX();
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         workbook.SheetNames.forEach(sheetName => {
@@ -29995,18 +29657,6 @@ window.addEventListener('beforeinstallprompt', (event) => {
   document.body.classList.add('gso-can-install');
 });
 
-function installGsoApp() {
-  if (!deferredGsoInstallPrompt) {
-    alert('Para instalar como app, abra este CRM pelo navegador em um endereço http/https e use “Adicionar à Tela de Início”.');
-    return;
-  }
-  deferredGsoInstallPrompt.prompt();
-  deferredGsoInstallPrompt.userChoice.finally(() => {
-    deferredGsoInstallPrompt = null;
-    document.body.classList.remove('gso-can-install');
-  });
-}
-
 
 // ============ MICROINTERAÇÕES / TOOLTIPS ============
 function enhanceButtonTooltips() {
@@ -30027,6 +29677,21 @@ function enhanceButtonTooltips() {
 }
 
 // ============ RENDER ALL ============
+// Espera a pessoa parar de digitar um instante antes de refazer a lista (em vez de refazer a cada letra).
+function gsoDebounce(fn, ms) {
+  let t = null;
+  return function () { const a = arguments, self = this; clearTimeout(t); t = setTimeout(() => fn.apply(self, a), ms); };
+}
+const gsoBuscaVendas = gsoDebounce(() => renderVendas(), 180);
+const gsoBuscaVendasLojista = gsoDebounce(() => renderVendasLojista(), 180);
+const gsoBuscaLojistas = gsoDebounce(() => renderLojistasCadastro(), 180);
+const gsoBuscaClientes = gsoDebounce(() => renderClientes(), 180);
+const gsoBuscaNotas = gsoDebounce(() => renderNotasFiscais(), 180);
+const gsoBuscaEstoque = gsoDebounce(() => renderEstoque(), 180);
+const gsoBuscaConversas = gsoDebounce(() => renderConversationList(), 180);
+const gsoBuscaCompras = gsoDebounce(() => Lab.renderCompras(), 180);
+const gsoBuscaDespesas = gsoDebounce(() => renderDespesas(), 180);
+const gsoBuscaUnificar = gsoDebounce(v => buscarClienteParaUnificar(v), 180);
 function renderAll() {
   normalizeSellerNames();
   syncEstoqueFromProdutos(true);
@@ -30046,9 +29711,6 @@ function renderAll() {
 async function init() {
   setupAppManifest();
   applyThemePreference();
-  if (window.pdfjsLib) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-  }
   const lastEmail = localStorage.getItem('gso_last_email');
   if (lastEmail) document.getElementById('login-email').value = lastEmail;
 
@@ -30345,7 +30007,6 @@ init();
 </script>
 
 
-
 <style id="gso-final-ajustes-clientes-calc-css">
   #view-clientes #sub-crm .table-card table { min-width: 920px !important; table-layout: fixed; }
   #view-clientes #sub-crm .table-card th:nth-child(1),
@@ -30394,7 +30055,6 @@ init();
     const n = parseFloat(norm);
     return Number.isFinite(n) ? n : 0;
   };
-  function safeCall(fn, fallback) { try { return typeof fn === 'function' ? fn() : fallback; } catch (err) { return fallback; } }
 
   function clienteDocResumoCompleto(nome) {
     const fiscal = typeof fiscalRecordForCliente === 'function' ? (fiscalRecordForCliente(nome) || {}) : {};
@@ -30431,8 +30091,11 @@ init();
     // usuário comum só vê Consumidor Final, tanto cadastro quanto vendas.
     const tipoPessoa = isAdminUser() ? (document.getElementById('filterTipoPessoa')?.value || '') : 'consumidor';
     const nomesLojistas = new Set(state.lojistas.map(l => nameKey(l.nome)));
+    // índice nome -> cadastro (uma passada só; antes cada cliente procurava na lista inteira a cada letra digitada)
+    const cadastroPorNome = new Map();
+    state.clientes.forEach(sc => { const k = nameKey(sc.nome); if (!cadastroPorNome.has(k)) cadastroPorNome.set(k, sc); });
     let todos = (typeof computeClientes === 'function' ? computeClientes().filter(c => !nomesLojistas.has(nameKey(c.nome))).map(c => {
-      const cadastro = state.clientes.find(sc => nameKey(sc.nome) === nameKey(c.nome));
+      const cadastro = cadastroPorNome.get(nameKey(c.nome));
       return { ...c, tipoPessoa: 'cliente', tipoCliente: cadastro?.tipoCliente || '', origem: cadastro?.metadata?.origem || '' };
     }) : []);
     if (tipoPessoa === 'consumidor') todos = todos.filter(c => c.tipoCliente !== 'Direto Lab');
@@ -30447,10 +30110,7 @@ init();
     const valorMin = parseFloat(document.getElementById('filterClienteValor')?.value || 0) || 0;
     let rows = todos;
     if (term) {
-      rows = rows.filter(r => {
-        const doc = clienteDocResumoCompleto(r.nome).toLowerCase();
-        return String(r.nome || '').toLowerCase().includes(term) || String(r.telefone || '').toLowerCase().includes(term) || doc.includes(term);
-      });
+      rows = rows.filter(r => String(r.nome || '').toLowerCase().includes(term) || String(r.telefone || '').toLowerCase().includes(term) || clienteDocResumoCompleto(r.nome).toLowerCase().includes(term));
     }
     if (status) rows = rows.filter(r => r.status === status);
     if (compra === 'com') rows = rows.filter(r => r.pedidos > 0);
@@ -31053,20 +30713,6 @@ function intelYears() {
   state.vendas.forEach(function (v) { var d = dashboardDateObj(v.data); if (d) s[d.getFullYear()] = 1; });
   return Object.keys(s).sort(function (a, b) { return b - a; });
 }
-function intelAggProdutos() {
-  var agg = {};
-  intelVendas().forEach(function (v) {
-    try {
-      saleCatalogItems(v).forEach(function (it) {
-        var key = it.produto + '|' + (it.tamanho || '');
-        if (!agg[key]) agg[key] = { produto: it.produto, tamanho: it.tamanho, qtd: 0, fat: 0, pedidos: 0, ultima: null };
-        agg[key].qtd += it.qtd || 0; agg[key].fat += it.fat || 0; agg[key].pedidos += 1;
-        var d = dashboardDateObj(it.data || v.data); if (d && (!agg[key].ultima || d > agg[key].ultima)) agg[key].ultima = d;
-      });
-    } catch (e) {}
-  });
-  return agg;
-}
 function intelSetPeriod(v) { intelPeriod = v; intelCache = { ts: 0, data: null }; renderInteligencia(); }
 function intelChartBgPlugin() {
   return { id: 'gsoBg', beforeDraw: function (c) {
@@ -31074,14 +30720,6 @@ function intelChartBgPlugin() {
     x.fillStyle = document.body.classList.contains('theme-dark') ? '#1b1b1b' : '#FFFFFF';
     x.fillRect(0, 0, c.width, c.height); x.restore();
   } };
-}
-function intelGrayGradient(ctx, height) {
-  var g = ctx.createLinearGradient(0, 0, 0, height || 260);
-  g.addColorStop(0, '#9a9a9a'); g.addColorStop(0.55, '#6c6c6c'); g.addColorStop(1, '#444444');
-  return g;
-}
-function intelDarkDoughnut() {
-  return ['#9F9F9F', '#5BBF7B', '#999999', '#FB923C', '#F472B6', '#E0A33E', '#D86C6C', '#CACACA', '#7e7e7e', '#B6E0C2'];
 }
 function intelCanonPgto(value) {
   var k = (typeof nameKey === 'function') ? nameKey(value) : String(value || '').trim().toLowerCase();
@@ -31293,49 +30931,7 @@ function intelPaymentMix() {
 }
 
 /* ---------- Busca / ordenação / filtros de tabela ---------- */
-function intelToolbar(searchId, placeholder, extra) {
-  return `<div class="intel-toolbar">
-    <input id="${searchId}" class="intel-search" type="text" placeholder="${placeholder}" oninput="intelFilterTable(this.dataset.tbl, this.value)" data-tbl="">
-    ${extra || ''}
-  </div>`;
-}
 
-function intelFilterTable(tableId, q) {
-  const table = document.getElementById(tableId); if (!table || !table.tBodies[0]) return;
-  const s = String(q || '').trim().toLowerCase();
-  Array.from(table.tBodies[0].rows).forEach(r => {
-    r.style.display = (!s || r.textContent.toLowerCase().includes(s)) ? '' : 'none';
-  });
-}
-
-function intelFilterColumn(tableId, attr, value) {
-  const table = document.getElementById(tableId); if (!table || !table.tBodies[0]) return;
-  Array.from(table.tBodies[0].rows).forEach(r => {
-    const v = r.getAttribute('data-' + attr) || '';
-    r.style.display = (!value || v === value) ? '' : 'none';
-  });
-}
-
-function intelSortTable(tableId, col, type, th) {
-  const table = document.getElementById(tableId); if (!table || !table.tBodies[0]) return;
-  const tbody = table.tBodies[0];
-  const rows = Array.from(tbody.rows);
-  const dir = th.getAttribute('data-dir') === 'asc' ? 'desc' : 'asc';
-  Array.from(th.parentNode.children).forEach(h => { h.removeAttribute('data-dir'); const ic = h.querySelector('.intel-sort-ic'); if (ic) ic.textContent = ''; });
-  th.setAttribute('data-dir', dir);
-  const ic = th.querySelector('.intel-sort-ic'); if (ic) ic.textContent = dir === 'asc' ? ' ▲' : ' ▼';
-  const cellVal = (r) => {
-    const cell = r.cells[col]; if (!cell) return type === 'text' ? '' : 0;
-    const ds = cell.getAttribute('data-sort');
-    if (type === 'num') return parseFloat(ds != null ? ds : cell.textContent.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.')) || 0;
-    if (type === 'date') return parseFloat(ds || '0') || 0;
-    return String(ds != null ? ds : cell.textContent).toLowerCase();
-  };
-  rows.sort((a, b) => { const va = cellVal(a), vb = cellVal(b); if (va < vb) return dir === 'asc' ? -1 : 1; if (va > vb) return dir === 'asc' ? 1 : -1; return 0; });
-  rows.forEach(r => tbody.appendChild(r));
-}
-
-function intelTs(d) { return d ? new Date(d).getTime() : 0; }
 
 /* ---------- Persistência "contatado hoje" ---------- */
 function intelTodayKey() { return new Date().toLocaleDateString('sv-SE'); }
@@ -31613,97 +31209,6 @@ function intelRenderCall() {
   intelUpdateContatoCounter();
 }
 
-function intelRenderClientes() {
-  const pane = document.getElementById('intel-pane');
-  const d = intelCompute();
-  const lista = d.clientes.filter(c => c.pedidos > 0);
-  if (!lista.length) { pane.innerHTML = '<div class="card"><div class="intel-empty">Sem clientes ainda.</div></div>'; return; }
-
-  pane.innerHTML = `
-    <div class="card">
-      <div class="card-title">Raio-X dos clientes</div>
-      <div class="card-sub">${lista.length} clientes com compras · <span class="intel-pill intel-abc-A">A</span> 80% do faturamento, <span class="intel-pill intel-abc-B">B</span> próximos 15%, <span class="intel-pill intel-abc-C">C</span> cauda. Ciclo "~" = estimado.</div>
-      ${intelToolbar('intel-q-cli', 'Buscar cliente...')}
-      <div style="overflow-x:auto;">
-      <table id="intel-tbl-clientes" class="intel-table stack-table">
-        <thead><tr>
-          <th class="intel-sortable" onclick="intelSortTable('intel-tbl-clientes',0,'text',this)">Cliente<span class="intel-sort-ic"></span></th>
-          <th>ABC</th>
-          <th class="num intel-sortable" onclick="intelSortTable('intel-tbl-clientes',2,'num',this)">Total<span class="intel-sort-ic"></span></th>
-          <th class="num intel-sortable" onclick="intelSortTable('intel-tbl-clientes',3,'num',this)">Pedidos<span class="intel-sort-ic"></span></th>
-          <th class="num intel-sortable" onclick="intelSortTable('intel-tbl-clientes',4,'num',this)">Ticket<span class="intel-sort-ic"></span></th>
-          <th class="num">Ciclo</th>
-          <th class="intel-sortable" onclick="intelSortTable('intel-tbl-clientes',6,'date',this)">Última<span class="intel-sort-ic"></span></th>
-          <th>Status</th><th>Próxima compra</th><th>Favorito</th>
-        </tr></thead>
-        <tbody>
-          ${lista.map(c => `
-            <tr>
-              <td class="strong stack-title">${escapeHtml(c.nome)}</td>
-              <td data-label="ABC"><span class="intel-pill intel-abc-${c.abc}">${c.abc}</span></td>
-              <td class="num" data-label="Total" data-sort="${c.total}">${fmtBR(c.total)}</td>
-              <td class="num" data-label="Pedidos">${c.pedidos}</td>
-              <td class="num" data-label="Ticket" data-sort="${c.ticket}">${fmtBR(c.ticket)}</td>
-              <td class="num" data-label="Ciclo">${c.intervalo ? c.intervalo + 'd' : '~' + c.cicloUsado + 'd'}</td>
-              <td class="intel-muted" data-label="Última" data-sort="${intelTs(c.ultima)}">${fmtDate(c.ultima)}</td>
-              <td data-label="Status">${intelStatusPill(c.status)}</td>
-              <td class="intel-muted" data-label="Próxima compra">${c.proxima ? (c.cicloEstimado ? '~' : '') + fmtDate(c.proxima) : '—'}</td>
-              <td class="intel-muted" data-label="Favorito">${c.favProdValido ? escapeHtml(c.favProd) : '—'}</td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
-      </div>
-    </div>
-  `;
-  document.getElementById('intel-q-cli').dataset.tbl = 'intel-tbl-clientes';
-}
-
-function intelRenderProdutos() {
-  const pane = document.getElementById('intel-pane');
-  const agg = Object.values(intelAggProdutos())
-    .map(p => ({ nome: p.produto + (p.tamanho ? ' ' + p.tamanho : ''), fat: p.fat, qtd: p.qtd, pedidos: p.pedidos, ultima: p.ultima }))
-    .sort((a, b) => b.fat - a.fat);
-  if (!agg.length) { pane.innerHTML = '<div class="card"><div class="intel-empty">Sem itens de catálogo identificados nas vendas.</div></div>'; return; }
-  const totalFat = agg.reduce((s, p) => s + p.fat, 0) || 1;
-  let acc = 0;
-  agg.forEach(p => { acc += p.fat; const pct = acc / totalFat; p.abc = pct <= 0.80 ? 'A' : (pct <= 0.95 ? 'B' : 'C'); p.share = p.fat / totalFat; });
-
-  pane.innerHTML = `
-    <div class="card">
-      <div class="card-title">Desempenho por produto</div>
-      <div class="card-sub">${agg.length} itens · curva ABC por faturamento</div>
-      ${intelToolbar('intel-q-prod', 'Buscar produto...')}
-      <div style="overflow-x:auto;">
-      <table id="intel-tbl-produtos" class="intel-table stack-table">
-        <thead><tr>
-          <th class="intel-sortable" onclick="intelSortTable('intel-tbl-produtos',0,'text',this)">Produto<span class="intel-sort-ic"></span></th>
-          <th>ABC</th>
-          <th class="num intel-sortable" onclick="intelSortTable('intel-tbl-produtos',2,'num',this)">Faturamento<span class="intel-sort-ic"></span></th>
-          <th class="num">% do total</th>
-          <th class="num intel-sortable" onclick="intelSortTable('intel-tbl-produtos',4,'num',this)">Qtd (un)<span class="intel-sort-ic"></span></th>
-          <th class="num intel-sortable" onclick="intelSortTable('intel-tbl-produtos',5,'num',this)">Pedidos<span class="intel-sort-ic"></span></th>
-          <th class="num">Ticket/ped.</th>
-          <th class="intel-sortable" onclick="intelSortTable('intel-tbl-produtos',7,'date',this)">Última venda<span class="intel-sort-ic"></span></th>
-        </tr></thead>
-        <tbody>
-          ${agg.map(p => `
-            <tr>
-              <td class="strong stack-title">${escapeHtml(p.nome)}</td>
-              <td data-label="ABC"><span class="intel-pill intel-abc-${p.abc}">${p.abc}</span></td>
-              <td class="num" data-label="Faturamento" data-sort="${p.fat}">${fmtBR(p.fat)}</td>
-              <td class="num" data-label="% do total">${(p.share * 100).toFixed(1)}%</td>
-              <td class="num" data-label="Qtd (un)">${p.qtd}</td>
-              <td class="num" data-label="Pedidos">${p.pedidos}</td>
-              <td class="num" data-label="Ticket/ped.">${fmtBR(p.pedidos ? p.fat / p.pedidos : 0)}</td>
-              <td class="intel-muted" data-label="Última venda" data-sort="${intelTs(p.ultima)}">${fmtDate(p.ultima)}</td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
-      </div>
-    </div>
-  `;
-  document.getElementById('intel-q-prod').dataset.tbl = 'intel-tbl-produtos';
-}
 
 const INTEL_SEGDEF = [
   { nome: 'Campeão', cor: '#2E9E8F', desc: 'Compram muito e há pouco tempo. Seu núcleo — proteja.' },
@@ -31715,125 +31220,6 @@ const INTEL_SEGDEF = [
   { nome: 'Perdido', cor: '#D86C6C', desc: 'Mais de 8 meses sem comprar. Recuperar é difícil.' }
 ];
 
-function intelRenderSegmentos() {
-  const pane = document.getElementById('intel-pane');
-  const d = intelCompute();
-  const lista = d.clientes.filter(c => c.pedidos > 0);
-  if (!lista.length) { pane.innerHTML = '<div class="card"><div class="intel-empty">Sem clientes para segmentar.</div></div>'; return; }
-
-  const defs = INTEL_SEGDEF;
-  const bySeg = {}; defs.forEach(s => bySeg[s.nome] = []);
-  lista.forEach(c => { (bySeg[c.segmento] || (bySeg[c.segmento] = [])).push(c); });
-
-  const cards = defs.map(s => {
-    const arr = bySeg[s.nome] || [];
-    const fat = arr.reduce((sum, c) => sum + c.total, 0);
-    return `<div class="card intel-segcard" style="--c:${s.cor};" onclick="openSegDrawer('${s.nome.replace(/'/g, "\\'")}')">
-      <div class="intel-seg-head"><span class="intel-seg-name"><span class="intel-segcard-dot"></span>${s.nome}</span><span class="intel-seg-count" style="color:${s.cor};">${arr.length}</span></div>
-      <div class="intel-seg-desc">${s.desc}</div>
-      <div class="intel-seg-desc" style="margin-top:4px;">Faturamento: <strong style="color:var(--text);">${fmtBR(fat)}</strong></div>
-    </div>`;
-  }).join('');
-
-  // Curva ABC (Pareto): % acumulado de faturamento pelos clientes ordenados do maior para o menor
-  const sortedByTotal = lista.slice().sort((a, b) => b.total - a.total);
-  const totalGeralPareto = sortedByTotal.reduce((s, c) => s + c.total, 0) || 1;
-  let acumulado = 0;
-  const paretoPontos = sortedByTotal.map((c, i) => {
-    acumulado += c.total;
-    return { x: (i + 1) / sortedByTotal.length * 100, y: acumulado / totalGeralPareto * 100 };
-  });
-  const idx80 = paretoPontos.findIndex(p => p.y >= 80);
-  const pctCli80 = idx80 >= 0 ? (idx80 + 1) / sortedByTotal.length * 100 : 100;
-
-  const segOrder = defs.map(s => s.nome);
-  const rows = lista.slice().sort((a, b) => (segOrder.indexOf(a.segmento) - segOrder.indexOf(b.segmento)) || (b.total - a.total));
-  const selOptions = ['<option value="">Todos os segmentos</option>'].concat(defs.map(s => `<option value="${s.nome}">${s.nome}</option>`)).join('');
-
-  pane.innerHTML = `
-    <div class="intel-grid cols-auto" style="margin-bottom:16px;">${cards}</div>
-    <div class="intel-grid cols-2" style="margin-bottom:16px;">
-      <div class="card">
-        <div class="card-title">Curva ABC (Pareto) de clientes</div>
-        <div class="card-sub">~${pctCli80.toFixed(0)}% dos clientes geram 80% do faturamento</div>
-        <div class="intel-chart-wrap"><canvas id="intel-chart-pareto"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Faturamento por segmento</div>
-        <div class="card-sub">Onde está concentrado o valor</div>
-        <div class="intel-chart-wrap"><canvas id="intel-chart-segbar"></canvas></div>
-      </div>
-    </div>
-    <div class="intel-seg-note">Clique num segmento acima para ver a estratégia sugerida e contatar os clientes dele.</div>
-    <div class="card" style="margin-top:16px;">
-      <div class="card-title">Base segmentada</div>
-      <div class="card-sub">Use como lista de transmissão — clique para abrir o WhatsApp do cliente.</div>
-      ${intelToolbar('intel-q-seg', 'Buscar cliente...', `<select class="intel-select" onchange="intelFilterColumn('intel-tbl-segmentos','seg',this.value)">${selOptions}</select>`)}
-      <div style="overflow-x:auto;">
-      <table id="intel-tbl-segmentos" class="intel-table stack-table">
-        <thead><tr>
-          <th class="intel-sortable" onclick="intelSortTable('intel-tbl-segmentos',0,'text',this)">Cliente<span class="intel-sort-ic"></span></th>
-          <th>Segmento</th>
-          <th class="num intel-sortable" onclick="intelSortTable('intel-tbl-segmentos',2,'num',this)">Total<span class="intel-sort-ic"></span></th>
-          <th class="num intel-sortable" onclick="intelSortTable('intel-tbl-segmentos',3,'num',this)">Pedidos<span class="intel-sort-ic"></span></th>
-          <th class="intel-sortable" onclick="intelSortTable('intel-tbl-segmentos',4,'date',this)">Última<span class="intel-sort-ic"></span></th>
-          <th>Contato</th>
-        </tr></thead>
-        <tbody>
-          ${rows.map(c => {
-            const wa = intelWaDigits(c.telefone);
-            const waBtn = wa ? `<a class="intel-wa" target="_blank" rel="noopener" href="https://wa.me/${wa}">WhatsApp</a>` : `<span class="intel-wa is-disabled">Sem telefone</span>`;
-            return `<tr data-seg="${escapeHtml(c.segmento)}">
-              <td class="strong stack-title">${escapeHtml(c.nome)}</td>
-              <td data-label="Segmento"><span class="intel-tag">${escapeHtml(c.segmento)}</span></td>
-              <td class="num" data-label="Total" data-sort="${c.total}">${fmtBR(c.total)}</td>
-              <td class="num" data-label="Pedidos">${c.pedidos}</td>
-              <td class="intel-muted" data-label="Última" data-sort="${intelTs(c.ultima)}">${fmtDate(c.ultima)}</td>
-              <td data-label="Contato">${waBtn}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-      </div>
-    </div>
-  `;
-  document.getElementById('intel-q-seg').dataset.tbl = 'intel-tbl-segmentos';
-
-  const _dark = document.body.classList.contains('theme-dark');
-  const _grid = _dark ? 'rgba(255,255,255,0.07)' : 'rgba(36, 36, 36,0.07)';
-  const _tick = _dark ? '#9a9a9a' : '#717171';
-  try {
-    const ctxP = document.getElementById('intel-chart-pareto').getContext('2d');
-    intelCharts.pareto = new Chart(ctxP, {
-      type: 'line',
-      data: { datasets: [{ data: paretoPontos, borderColor: '#2E9E8F', backgroundColor: 'rgba(46,158,143,.12)', fill: true, pointRadius: 0, tension: .2, borderWidth: 2 }] },
-      options: {
-        maintainAspectRatio: false, parsing: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { title: i => `${Math.round(i[0].parsed.x)}% dos clientes`, label: c => ' ' + c.parsed.y.toFixed(0) + '% do faturamento' } } },
-        scales: {
-          x: { type: 'linear', min: 0, max: 100, grid: { display: false }, title: { display: true, text: '% dos clientes (maiores → menores)', color: _tick, font: { size: 11 } }, ticks: { stepSize: 20, color: _tick, callback: v => v + '%' } },
-          y: { min: 0, max: 100, grid: { color: _grid }, ticks: { color: _tick, callback: v => v + '%' } }
-        }
-      }
-    });
-  } catch (e) {}
-  try {
-    const segTotais = defs.map(s => (bySeg[s.nome] || []).reduce((sum, c) => sum + c.total, 0));
-    const ctxS = document.getElementById('intel-chart-segbar').getContext('2d');
-    intelCharts.segbar = new Chart(ctxS, {
-      type: 'bar',
-      data: { labels: defs.map(s => s.nome), datasets: [{ data: segTotais, backgroundColor: defs.map(s => s.cor), borderRadius: 7, maxBarThickness: 30 }] },
-      options: {
-        indexAxis: 'y', maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtBR(c.parsed.x) } } },
-        scales: {
-          x: { grid: { color: _grid }, ticks: { color: _tick, callback: v => fmtBRshort(v) } },
-          y: { grid: { display: false }, ticks: { color: _tick } }
-        }
-      }
-    });
-  } catch (e) {}
-}
 
 function openSegDrawer(segNome) {
   const d = intelCompute();
@@ -31948,50 +31334,6 @@ function openClienteDrawer(nome) {
 }
 
 /* ============================ CONTROLE ============================ */
-function intelRenderVendedores() {
-  const pane = document.getElementById('intel-pane');
-  const vendas = intelVendas();
-  const map = {};
-  let totalGeral = 0;
-  vendas.forEach(function (v) {
-    const nome = String(v.vendedor || '').trim() || '— sem vendedor —';
-    const val = parseFloat(v.valor) || 0;
-    if (!map[nome]) map[nome] = { nome: nome, fat: 0, qtd: 0 };
-    map[nome].fat += val; map[nome].qtd += 1; totalGeral += val;
-  });
-  const lista = Object.values(map).sort((a, b) => b.fat - a.fat);
-  if (!lista.length) { pane.innerHTML = '<div class="card"><div class="intel-empty">Sem vendas no período.</div></div>'; return; }
-  const tg = totalGeral || 1;
-  pane.innerHTML = `
-    <div class="card">
-      <div class="card-title">Vendas por vendedor</div>
-      <div class="card-sub">Faturamento, número de vendas, ticket médio e participação${intelPeriod === 'all' ? '' : ' — ' + intelPeriod}</div>
-      ${intelToolbar('intel-q-vend', 'Buscar vendedor...')}
-      <div style="overflow-x:auto;">
-      <table id="intel-tbl-vendedores" class="intel-table stack-table">
-        <thead><tr>
-          <th class="intel-sortable" onclick="intelSortTable('intel-tbl-vendedores',0,'text',this)">Vendedor<span class="intel-sort-ic"></span></th>
-          <th class="num intel-sortable" onclick="intelSortTable('intel-tbl-vendedores',1,'num',this)">Faturamento<span class="intel-sort-ic"></span></th>
-          <th class="num intel-sortable" onclick="intelSortTable('intel-tbl-vendedores',2,'num',this)">Vendas<span class="intel-sort-ic"></span></th>
-          <th class="num">Ticket médio</th>
-          <th class="num">Participação</th>
-        </tr></thead>
-        <tbody>
-          ${lista.map(function (s) { const part = (s.fat / tg) * 100; return `
-            <tr>
-              <td class="strong stack-title">${escapeHtml(s.nome)}</td>
-              <td class="num" data-label="Faturamento" data-sort="${s.fat}">${fmtBR(s.fat)}</td>
-              <td class="num" data-label="Vendas">${s.qtd}</td>
-              <td class="num" data-label="Ticket médio">${fmtBR(s.qtd ? s.fat / s.qtd : 0)}</td>
-              <td class="num" data-label="Participação">${part.toFixed(1)}%<div class="intel-score-bar" style="margin-top:4px;"><div class="intel-score-fill" style="width:${part}%;"></div></div></td>
-            </tr>`; }).join('')}
-        </tbody>
-      </table>
-      </div>
-    </div>
-  `;
-  const q = document.getElementById('intel-q-vend'); if (q) q.dataset.tbl = 'intel-tbl-vendedores';
-}
 
 function switchInteligenciaTab(tab) {
   intelActiveTab = tab;
@@ -33000,7 +32342,6 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
 
   function prodRows() { return catalogo(); }
   function nomesUnicos() { var s = {}; prodRows().forEach(function (r) { s[r.produto] = 1; }); return Object.keys(s); }
-  function tamanhosUnicos() { var s = {}; prodRows().forEach(function (r) { s[r.tamanho] = 1; }); return Object.keys(s); }
   function rowDe(nome, tam) { var rs = prodRows(); for (var i = 0; i < rs.length; i++) if (rs[i].produto === nome && rs[i].tamanho === tam) return rs[i]; return null; }
 
   function embOpcoes(nome) {
@@ -34003,10 +33344,6 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '</div>';
   }
 
-  function tdEd(campo, k, valor) {
-    var edited = store.tabelas[k] && store.tabelas[k][campo] != null;
-    return '<td class="num' + (edited ? ' gc-edited' : '') + '" data-ed="tab" data-campo="' + campo + '" data-k="' + esc(k) + '">' + fmt(valor) + '</td>';
-  }
 
   /* ---------- ABA ESTRATÉGIA ---------- */
   function estrLinhaDe(r, aromaDisplay, rotuloDisplay) {
@@ -36275,7 +35612,7 @@ function confirmarExportFormato(modo) {
   pendingExportTipo = null;
 }
 
-function exportInsumosExcel(modo = 'completo') {
+async function exportInsumosExcel(modo = 'completo') {
   const rows = state.insumos.filter(i => i.ativo !== false);
   if (!rows.length) { alert('Não há insumos para exportar.'); return; }
   if (modo === 'simples') { exportInsumosExcelSimples(rows); return; }
@@ -36297,6 +35634,7 @@ function exportInsumosExcel(modo = 'completo') {
       'Caixas possíveis': caixaLabel(i)
     }));
   });
+  try { await carregarXLSX(); } catch (err) { alert(err.message); return; }
   const ws = XLSX.utils.json_to_sheet(sheetRows);
   ws['!cols'] = [{ wch: 16 }, { wch: 34 }, { wch: 14 }, { wch: 28 }, { wch: 16 }, { wch: 18 }, { wch: 11 }, { wch: 10 }, { wch: 14 }, { wch: 9 }, { wch: 13 }, { wch: 22 }];
   const wb = XLSX.utils.book_new();
