@@ -20589,7 +20589,7 @@ function finVendasDoMes(mes) {
     if (custoV == null) r.semCusto++;
     r.fat += total * prop; r.vendas += prop >= 0.999 ? 1 : prop;
     r.custo += (custoV || 0) * prop; r.fiscal += saleFiscalDescontado(v) * prop;
-    entradas.forEach(e => r.linhas.push({ ...base, data: e.data, valor: e.valor, custo: custoV == null ? null : round2(custoV * e.valor / total), obs: saleIsBoleto(v) ? ('Boleto: parcela ' + (e.parcela || '?') + ' de ' + (e.de || '?') + ' paga' + (e.vencimento && e.vencimento !== e.data ? ' (venc. ' + fmtDate(e.vencimento) + ')' : '')) : saleIsAnotado(v) ? 'Pagamento de venda anotada' : (entradas.length > 1 ? 'Parte da venda' : (v.data !== e.data ? 'Recebimento' : '')), pagNota: v.pagamentoDetalhes && v.pagamentoDetalhes.observacao || '' }));
+    entradas.forEach(e => r.linhas.push({ ...base, data: e.data, valor: e.valor, custo: custoV == null ? null : round2(custoV * e.valor / total), obs: e.manual ? ('Recebido em ' + fmtDate(e.data) + ' (venda de ' + fmtDate(v.data) + ')') : saleIsBoleto(v) ? ('Boleto: parcela ' + (e.parcela || '?') + ' de ' + (e.de || '?') + ' paga' + (e.vencimento && e.vencimento !== e.data ? ' (venc. ' + fmtDate(e.vencimento) + ')' : '')) : saleIsAnotado(v) ? 'Pagamento de venda anotada' : (entradas.length > 1 ? 'Parte da venda' : (v.data !== e.data ? 'Recebimento' : '')), pagNota: v.pagamentoDetalhes && v.pagamentoDetalhes.observacao || '' }));
     r.canais[canal] += total * prop;
     saleCatalogItems(v).forEach(it => {
       const k = it.produto + ' ' + it.tamanho; const o = r.produtos[k] = r.produtos[k] || { nome: k, qtd: 0, fat: 0 };
@@ -21885,6 +21885,12 @@ function saleCountsInRevenue(venda) {
 // meses diferentes.
 function saleRevenueEntries(venda) {
   if (saleIsML(venda) || saleIsAlexandre(venda)) return [];
+  // Recebimentos informados à mão (pagamentoDetalhes.recebimentos = [{ data, valor }]): o dinheiro entrou em data diferente
+  // da data da venda (ex.: venda de 30/09 paga em outubro). Valem no lugar da regra automática.
+  const manuais = venda?.pagamentoDetalhes?.recebimentos;
+  if (Array.isArray(manuais) && manuais.length) {
+    return manuais.filter(e => e && e.data && (Number(e.valor) || 0) !== 0).map(e => ({ data: e.data, valor: Number(e.valor) || 0, manual: true }));
+  }
   if (saleIsBoleto(venda)) {
     // Boleto parcelado: cada parcela entra no dia em que foi paga (com multa/juros), sem esperar as outras.
     const todas = saleBoletoParcelas(venda);
