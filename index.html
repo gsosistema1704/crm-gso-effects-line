@@ -20207,6 +20207,11 @@ function finSalvarCampo(inp) {
   if (finFechado()) return;
   const campo = inp.dataset.campo;
   const valor = finParse(inp.value);
+  if (campo === 'receita_vendas') {
+    alert('O faturamento de vendas é somado pelo sistema (vendas, parcelas de boleto pagas, lojistas, Mercado Livre e pagamentos do Alexandre).\n\nPara corrigir um valor, use o lápis em "Recebido no mês", em "Como o sistema calculou as vendas".');
+    finRenderFechamento();
+    return;
+  }
   const m = finMes(FIN.mes, true);
   if (campo === 'lucro_bruto' || campo === 'lucro_liquido') {
     const chave = campo + '_manual';
@@ -20512,7 +20517,27 @@ function finUsarSugestao(campo, valor) {
   finAgendarSalvar(FIN.mes);
   finRenderFechamento();
 }
+// "Faturamento de vendas" do Fechamento = o que o sistema somou no mês (vendas recebidas, parcelas de boleto pagas, lojistas,
+// Mercado Livre e pagamentos do Alexandre), sempre pelo valor cheio. Mês fechado não muda. Ajuste manual: lápis em "Recebido no mês".
+function finSincReceitaVendas(mes) {
+  try {
+    if (!FIN.store || !finTemLinha('receita_vendas')) return;
+    const atual = FIN.store.meses[mes];
+    if (atual && atual.fechado) return;
+    const val = round2(finVendasAjustadas(mes).fat);
+    const antes = round2(Number(atual && atual.receita_vendas) || 0);
+    if (antes === val || (!atual && !(val > 0))) return;
+    if (!atual && !val) return;
+    const m = finMes(mes, true);
+    m.receita_vendas = val; finTocar(m); finAgendarSalvar(mes);
+  } catch (err) { console.warn('Financeiro: não consegui sincronizar o faturamento de', mes, err); }
+}
+function finSincReceitaVendasAno() {
+  const ano = String(FIN.mes).slice(0, 4);
+  for (let i = 1; i <= 12; i++) finSincReceitaVendas(ano + '-' + String(i).padStart(2, '0'));
+}
 function finRenderFechamento() {
+  finSincReceitaVendasAno();
   const m = finMes(FIN.mes);
   const demo = document.getElementById('fin-demonstrativo');
   if (demo) demo.innerHTML = finRenderDemonstrativo(m);
@@ -20564,7 +20589,7 @@ function finVendasDoMes(mes) {
     if (custoV == null) r.semCusto++;
     r.fat += total * prop; r.vendas += prop >= 0.999 ? 1 : prop;
     r.custo += (custoV || 0) * prop; r.fiscal += saleFiscalDescontado(v) * prop;
-    entradas.forEach(e => r.linhas.push({ ...base, data: e.data, valor: e.valor, custo: custoV == null ? null : round2(custoV * e.valor / total), obs: saleIsBoleto(v) ? (entradas.length > 1 ? 'Parcelas de boleto pagas' : 'Parcela de boleto paga') : saleIsAnotado(v) ? 'Pagamento de venda anotada' : (entradas.length > 1 ? 'Parte da venda' : (v.data !== e.data ? 'Recebimento' : '')), pagNota: v.pagamentoDetalhes && v.pagamentoDetalhes.observacao || '' }));
+    entradas.forEach(e => r.linhas.push({ ...base, data: e.data, valor: e.valor, custo: custoV == null ? null : round2(custoV * e.valor / total), obs: saleIsBoleto(v) ? ('Boleto: parcela ' + (e.parcela || '?') + ' de ' + (e.de || '?') + ' paga' + (e.vencimento && e.vencimento !== e.data ? ' (venc. ' + fmtDate(e.vencimento) + ')' : '')) : saleIsAnotado(v) ? 'Pagamento de venda anotada' : (entradas.length > 1 ? 'Parte da venda' : (v.data !== e.data ? 'Recebimento' : '')), pagNota: v.pagamentoDetalhes && v.pagamentoDetalhes.observacao || '' }));
     r.canais[canal] += total * prop;
     saleCatalogItems(v).forEach(it => {
       const k = it.produto + ' ' + it.tamanho; const o = r.produtos[k] = r.produtos[k] || { nome: k, qtd: 0, fat: 0 };
@@ -21862,9 +21887,10 @@ function saleRevenueEntries(venda) {
   if (saleIsML(venda) || saleIsAlexandre(venda)) return [];
   if (saleIsBoleto(venda)) {
     // Boleto parcelado: cada parcela entra no dia em que foi paga (com multa/juros), sem esperar as outras.
-    return saleBoletoParcelas(venda)
+    const todas = saleBoletoParcelas(venda);
+    return todas
       .filter(p => p && p.pago && (p.dataRecebimento || p.vencimento))
-      .map(p => ({ data: p.dataRecebimento || p.vencimento, valor: boletoParcelaValorTotal(p) }))
+      .map(p => ({ data: p.dataRecebimento || p.vencimento, valor: boletoParcelaValorTotal(p), parcela: p.numero, de: todas.length, vencimento: p.vencimento || null }))
       .filter(e => e.valor);
   }
   if (saleIsAnotado(venda)) {
