@@ -22107,14 +22107,34 @@ function anRenderPagamentos(venda, origem) {
     </div>
   `).join('');
 }
+// Pergunta uma data (dd/mm/aaaa) e devolve 'aaaa-mm-dd'; null se cancelou ou digitou inválido.
+function perguntarDataRecebimento(mensagem, padraoIso) {
+  const p = String(padraoIso || '').slice(0, 10).split('-');
+  const sugestao = p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : '';
+  const resp = prompt(mensagem, sugestao);
+  if (resp === null) return null;
+  const m = String(resp).trim().match(/^(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2}|\d{4}))?$/);
+  if (!m) { alert('Data inválida. Use dd/mm/aaaa (exemplo: 05/10/2026).'); return null; }
+  let ano = m[3] ? Number(m[3]) : new Date().getFullYear();
+  if (ano < 100) ano += 2000;
+  const mes = Number(m[2]), dia = Number(m[1]);
+  const d = new Date(ano, mes - 1, dia);
+  if (d.getFullYear() !== ano || d.getMonth() !== mes - 1 || d.getDate() !== dia) { alert('Essa data não existe. Use dd/mm/aaaa.'); return null; }
+  return ano + '-' + String(mes).padStart(2, '0') + '-' + String(dia).padStart(2, '0');
+}
 async function adicionarPagamentoAnotado() {
   const id = document.getElementById('an-id').value;
   const origem = document.getElementById('an-origem')?.value || 'vendas';
   const venda = saleArrayByOrigem(origem).find(v => String(v.id) === String(id));
   if (!venda) return;
   const valor = parseFloat((document.getElementById('an-novo-valor').value || '0').replace(',', '.')) || 0;
-  const data = document.getElementById('an-novo-data').value || isoToday();
   if (valor <= 0) { alert('Informe um valor de pagamento maior que zero.'); return; }
+  // Sempre pergunta o dia em que o dinheiro entrou: o pagamento conta no faturamento do MÊS dessa data
+  // (uma venda de setembro paga em outubro entra em outubro).
+  const dataPadrao = document.getElementById('an-novo-data').value || isoToday();
+  const data = perguntarDataRecebimento('Em que dia este pagamento de ' + fmtBR(valor) + ' foi recebido?\n\nEle entra no faturamento do mês dessa data.\nUse dd/mm/aaaa.', dataPadrao);
+  if (!data) return;
+  document.getElementById('an-novo-data').value = data;
   const pagamentos = [...saleAnotadoPagamentos(venda), { valor: round2(valor), data }];
   const ok = await salvarPagamentosAnotado(venda, pagamentos, origem);
   if (!ok) return;
