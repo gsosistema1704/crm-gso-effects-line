@@ -14678,6 +14678,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
         <div class="fx-mod-sec" id="alex-sec-desc" style="display:none"><div class="fx-mod-tit">Descrição</div><input class="form-input" id="alex-desc" placeholder="ex.: Em aberto 2025"></div>
         <div class="fx-mod-sec" id="alex-sec-itens"><div class="fx-mod-tit">Produtos <span>— um por linha, como na ficha</span></div><textarea class="form-input" id="alex-itens" rows="5" placeholder="12 Palco 5L N (Q50)&#10;04 DJ 5L Tutti Frutti (Tabu)"></textarea></div>
         <div class="fx-mod-sec"><div class="fx-mod-tit">Valor (R$)</div><input class="form-input" id="alex-valor" inputmode="decimal" placeholder="0,00"></div>
+        <div class="fx-mod-sec" id="alex-sec-direto" style="display:none"><label class="fx-check"><input type="checkbox" id="alex-direto"> O cliente dele pagou direto à GSO — abate o que o Alexandre deve, mas <b>não soma no faturamento</b> (a venda já está em Vendas)</label></div>
         <div class="fx-mod-sec" id="alex-sec-ref"><div class="fx-mod-tit">Referência <span>— opcional (cliente final, evento, observação)</span></div><input class="form-input" id="alex-ref" placeholder="ex.: Q50, Tabu, Ocidente"></div>
         <div class="form-actions">
           <button class="btn" onclick="document.getElementById('modal-fin-alex').classList.remove('show')">Cancelar</button>
@@ -19559,6 +19560,7 @@ function alexPagamentosTodos() {
     const d = alexDados(); if (!d) return [];
     const out = [];
     d.pagamentos.forEach(p => {
+      if (p && p.semFinanceiro) return; // cliente dele pagou direto à GSO: abate a dívida da ficha, mas a venda já soma em Vendas
       const v = Number(p && p.valor) || 0, dt = dashboardDateObj(p && p.data); if (!v || !dt) return;
       out.push({ mes: finMesKey(dt), id: p.id, data: p.data, valor: v, ref: p.ref || '' });
     });
@@ -19828,7 +19830,7 @@ function alexRender() {
     if (!fechado) html += g.map(e => {
       const x = e.x, v = fmtBR(x.valor);
       const desc = e.tipo === 'saldo' ? `<b>${escapeHtml(x.desc || 'Saldo anterior')}</b>` :
-        e.tipo === 'pagamento' ? `<b>Pagamento</b>${x.ref ? ` <span class="alex-ref">${escapeHtml(x.ref)}</span>` : ''}` :
+        e.tipo === 'pagamento' ? `<b>Pagamento</b>${x.semFinanceiro ? ' <span class="alex-ref" title="Abate a dívida dele, mas não soma no faturamento">pago direto à GSO</span>' : ''}${x.ref ? ` <span class="alex-ref">${escapeHtml(x.ref)}</span>` : ''}` :
         `<div class="alex-itens">${(x.itens || []).map(i => `<span>${escapeHtml(i)}</span>`).join('')}</div>${x.ref ? `<span class="alex-ref">${escapeHtml(x.ref)}</span>` : ''}`;
       return `<div class="alex-linha ${e.tipo}">
         <span class="alex-data">${e.tipo === 'saldo' ? '—' : fmtDate(x.data)}</span>
@@ -19872,6 +19874,8 @@ function alexAbrir(tipo, id) {
   document.getElementById('alex-sec-desc').style.display = tipo === 'saldo' ? '' : 'none';
   document.getElementById('alex-sec-data').style.display = tipo === 'saldo' ? 'none' : '';
   document.getElementById('alex-sec-ref').style.display = tipo === 'saldo' ? 'none' : '';
+  document.getElementById('alex-sec-direto').style.display = tipo === 'pagamento' ? '' : 'none';
+  document.getElementById('alex-direto').checked = Boolean(x && x.semFinanceiro);
   finModalNoBody('modal-fin-alex').classList.add('show');
 }
 function alexSalvar() {
@@ -19889,6 +19893,7 @@ function alexSalvar() {
   else {
     x.data = data; x.ref = document.getElementById('alex-ref').value.trim();
     if (tipo === 'entrega') x.itens = document.getElementById('alex-itens').value.split('\n').map(l => l.trim()).filter(Boolean);
+    if (tipo === 'pagamento') { if (document.getElementById('alex-direto').checked) x.semFinanceiro = true; else delete x.semFinanceiro; }
   }
   alexPersistir();
   document.getElementById('modal-fin-alex').classList.remove('show');
