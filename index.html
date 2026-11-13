@@ -12084,8 +12084,9 @@ body.theme-dark .fx-item-del { color: #F08A8A !important; }
 .fx-legenda b { flex: 0 0 auto; color: var(--text); font-size: 12px; }
 .fx-legenda .fx-leg-ed b { color: #8A5A00; } .fx-legenda .fx-leg-x b { color: #B0322F; }
 body.theme-dark .fx-legenda .fx-leg-ed b { color: #FFD68A; } body.theme-dark .fx-legenda .fx-leg-x b { color: #F08A8A; }
-.brinde-check{ display:flex; align-items:center; gap:8px; margin:2px 0 10px; font-size:13px; color:var(--text-2); cursor:pointer; }
-.brinde-check input{ width:auto; margin:0; }
+.brinde-check{ display:flex !important; flex-direction:row !important; align-items:center !important; gap:6px !important; width:auto !important; margin:0 0 8px !important; padding:0 !important; font-size:12px !important; font-weight:500 !important; color:var(--text-2); cursor:pointer; white-space:nowrap; overflow:hidden; }
+.brinde-check input[type=checkbox]{ width:14px !important; height:14px !important; min-height:0 !important; padding:0 !important; margin:0 !important; flex:none !important; }
+.brinde-check span{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
 .brinde-check b{ color:#8A5A00; } body.theme-dark .brinde-check b{ color:#FFD68A; }
 .mc-lojista-bloco{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin:14px 0 4px; padding:12px 14px; border:1px solid var(--border,#E2E2E2); border-radius:12px; background:rgba(127,127,127,.05); }
 .mc-lojista-bloco b{ font-size:13.5px; }
@@ -14113,7 +14114,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
             </div>
           </div>
           <div id="f-caixa-preview"></div>
-          <label class="brinde-check" for="f-brinde"><input type="checkbox" id="f-brinde" onchange="updatePreview()"> 🎁 Este produto é <b>brinde</b> — sai do estoque normalmente, mas o valor dele não entra no pedido (nem como desconto)</label>
+          <label class="brinde-check" for="f-brinde" title="Sai do estoque normalmente, mas o valor dele não entra no pedido (nem como desconto)"><input type="checkbox" id="f-brinde" onchange="updatePreview()"><span>🎁 <b>Brinde</b> — sai do estoque, não entra no valor do pedido</span></label>
           <div class="estoque-auto" id="f-estoque-auto-wrap">
             <span class="estoque-auto-txt" id="f-estoque-auto"></span>
             <button type="button" class="estoque-auto-trocar" onclick="toggleEstoqueManual()" id="f-estoque-trocar">trocar</button>
