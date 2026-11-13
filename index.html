@@ -12332,6 +12332,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 .cot-filtros { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 18px; }
 .cot-fgrupo { flex: 1 1 240px; min-width: 0; max-width: 360px; position: relative; }
 .cot-fgrupo .form-input { width: 100%; }
+.cot-fgrupo.cot-fbtn { flex: 0 0 auto; min-width: 0; }
 .cot-dd { position: relative; }
 .cot-dd > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cot-dd > summary::-webkit-details-marker { display: none; }
@@ -13694,6 +13695,7 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
               <option value="pct">Variação % (tudo no mesmo gráfico)</option>
             </select>
           </div>
+          <div class="cot-fgrupo cot-fbtn"><button type="button" class="btn btn-primary" onclick="Cot.salvarPdfAnalise()">Salvar PDF</button></div>
         </div>
         <div class="indic-section-title">Evolução de preço por fornecedor</div>
         <div id="cotAnaliseCharts"></div>
@@ -38477,32 +38479,7 @@ async function excluirCompra(id) {
     }
 
     // ---- gráficos ----
-    if (f.modo === 'pct') {
-      const series = [];
-      const todosForn = fornecedoresFiltro();
-      prods.forEach(p => {
-        const porForn = {};
-        state.cotacoes.filter(c => c.produto === p && (!fornFiltro || fornFiltro.has(c.fornecedor)))
-          .forEach(c => { (porForn[c.fornecedor] = porForn[c.fornecedor] || []).push(c); });
-        Object.keys(porForn).forEach(forn => {
-          const lista = porForn[forn].slice().sort((a, b) => a.data.localeCompare(b.data));
-          const base = Number(lista[0].valor_unitario);
-          if (!base) return;
-          series.push({
-            nome: prods.length > 1 ? p + ' — ' + forn : forn,
-            pontos: lista.map(c => ({ data: c.data, v: (Number(c.valor_unitario) / base - 1) * 100 })),
-            _forn: forn
-          });
-        });
-      });
-      series.forEach((sr, i) => { sr.cor = COT_PALETTE[(prods.length > 1 ? i : Math.max(0, todosForn.indexOf(sr._forn))) % COT_PALETTE.length]; });
-      charts.innerHTML = `<div class="card chart-card">
-        <div class="cot-chart-titulo">Variação do preço desde a primeira cotação de cada fornecedor</div>
-        ${lineChartRender(series, fmtPctPontos)}</div>`;
-    } else {
-      charts.innerHTML = prods.map(p => `<div class="card chart-card" style="margin-bottom:14px">
-        <div class="cot-chart-titulo">${escapeHtml(p)}</div>${lineChartSvg(p, fornFiltro)}</div>`).join('');
-    }
+    charts.innerHTML = chartsHtml(prods, fornFiltro, f.modo, 'card chart-card');
 
     // ---- tabela de comparação atual ----
     const linhas = [];
@@ -38538,6 +38515,162 @@ async function excluirCompra(id) {
 
     if (prods.some(ehProdutoCaixa)) renderEstrategicos();
     else estr.innerHTML = '';
+  }
+
+  // Gráficos da Análise (usado na tela e no PDF). wrapClass = classe do cartão que envolve cada gráfico.
+  function chartsHtml(prods, fornFiltro, modo, wrapClass) {
+    if (modo === 'pct') {
+      const series = [];
+      const todosForn = fornecedoresFiltro();
+      prods.forEach(p => {
+        const porForn = {};
+        state.cotacoes.filter(c => c.produto === p && (!fornFiltro || fornFiltro.has(c.fornecedor)))
+          .forEach(c => { (porForn[c.fornecedor] = porForn[c.fornecedor] || []).push(c); });
+        Object.keys(porForn).forEach(forn => {
+          const lista = porForn[forn].slice().sort((a, b) => a.data.localeCompare(b.data));
+          const base = Number(lista[0].valor_unitario);
+          if (!base) return;
+          series.push({
+            nome: prods.length > 1 ? p + ' — ' + forn : forn,
+            pontos: lista.map(c => ({ data: c.data, v: (Number(c.valor_unitario) / base - 1) * 100 })),
+            _forn: forn
+          });
+        });
+      });
+      series.forEach((sr, i) => { sr.cor = COT_PALETTE[(prods.length > 1 ? i : Math.max(0, todosForn.indexOf(sr._forn))) % COT_PALETTE.length]; });
+      return `<div class="${wrapClass}">
+        <div class="cot-chart-titulo">Variação do preço desde a primeira cotação de cada fornecedor</div>
+        ${lineChartRender(series, fmtPctPontos)}</div>`;
+    }
+    return prods.map(p => `<div class="${wrapClass}" style="margin-bottom:14px">
+      <div class="cot-chart-titulo">${escapeHtml(p)}</div>${lineChartSvg(p, fornFiltro)}</div>`).join('');
+  }
+
+  // Leitura rápida: qual fornecedor está mais barato hoje, produto a produto.
+  function leituraRapida(p, fornFiltro) {
+    const comDados = comparativoPorProduto(p).filter(c => c.temDados && (!fornFiltro || fornFiltro.has(c.fornecedor)));
+    if (!comDados.length) return { produto: p, html: 'Sem cotações dos fornecedores escolhidos para este produto.', vazio: true };
+    const dias = d => Math.round((Date.now() - new Date(d + 'T00:00:00').getTime()) / 86400000);
+    const ord = comDados.slice().sort((a, b) => a.precoAtual - b.precoAtual);
+    const melhor = ord[0];
+    const unidade = (() => {
+      const l = state.cotacoes.filter(c => c.produto === p && c.fornecedor === melhor.fornecedor).sort((a, b) => a.data.localeCompare(b.data));
+      return l.length ? (l[l.length - 1].unidade_cotada || '') : '';
+    })();
+    const preco = fmtBR(melhor.precoAtual) + (unidade ? ' / ' + escapeHtml(unidade) : '');
+    let txt;
+    if (ord.length === 1) {
+      txt = `Só há cotação da <b>${escapeHtml(melhor.fornecedor)}</b>: ${preco} (cotação de ${fmtDate(melhor.dataAtual)}).`;
+    } else {
+      const seg = ord[1];
+      const dif = seg.precoAtual - melhor.precoAtual;
+      if (dif <= 0.0001) {
+        txt = `Empate entre <b>${escapeHtml(melhor.fornecedor)}</b> e <b>${escapeHtml(seg.fornecedor)}</b> em ${preco}. Vale decidir por prazo, frete ou condição de pagamento.`;
+      } else {
+        const pct = seg.precoAtual ? dif / seg.precoAtual : null;
+        txt = `Hoje, prefira comprar da <b>${escapeHtml(melhor.fornecedor)}</b>: ${preco} (cotação de ${fmtDate(melhor.dataAtual)}). É ${fmtBR(dif)} mais barato que a ${escapeHtml(seg.fornecedor)}${pct !== null ? ' (' + fmtPct(pct) + ' a menos)' : ''}.`;
+      }
+    }
+    const extras = [];
+    if (melhor.variacao !== null && Math.abs(melhor.variacao) >= 0.005 && melhor.dataInicial !== melhor.dataAtual)
+      extras.push(`O preço dele ${melhor.variacao > 0 ? 'subiu' : 'caiu'} ${fmtPct(Math.abs(melhor.variacao))} desde a primeira cotação (${fmtDate(melhor.dataInicial)}).`);
+    const idade = dias(melhor.dataAtual);
+    if (idade > 60) extras.push(`Atenção: essa cotação tem ${idade} dias, vale reconfirmar o preço antes de comprar.`);
+    return { produto: p, html: txt + (extras.length ? ' <span class="rp-extra">' + extras.join(' ') + '</span>' : ''), vazio: false };
+  }
+
+  function salvarPdfAnalise() {
+    const f = state.fAnalise;
+    const prods = produtosFiltro().filter(p => f.produtos.has(p));
+    if (!prods.length) { alert('Escolha pelo menos um produto no filtro antes de salvar o PDF.'); return; }
+    const fornFiltro = f.fornecedores.size ? f.fornecedores : null;
+    const agora = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const dataBR = pad(agora.getDate()) + '/' + pad(agora.getMonth() + 1) + '/' + agora.getFullYear();
+    const horaBR = pad(agora.getHours()) + ':' + pad(agora.getMinutes());
+    const nomeArq = 'Analise-cotacoes-' + agora.getFullYear() + '-' + pad(agora.getMonth() + 1) + '-' + pad(agora.getDate());
+
+    const leituras = prods.map(p => leituraRapida(p, fornFiltro));
+    const SEMCOR = s => s.replace(/var\(--text-2\)/g, '#5B6672');
+    const graficos = SEMCOR(chartsHtml(prods, fornFiltro, f.modo, 'rp-card'));
+
+    const linhas = [];
+    prods.forEach(p => {
+      const comDados = comparativoPorProduto(p).filter(c => c.temDados && (!fornFiltro || fornFiltro.has(c.fornecedor)));
+      const minVal = comDados.length ? Math.min(...comDados.map(c => c.precoAtual)) : null;
+      const maxVal = comDados.length ? Math.max(...comDados.map(c => c.precoAtual)) : null;
+      comDados.forEach(c => {
+        let pos = '—', cls = '';
+        if (comDados.length > 1) {
+          if (c.precoAtual === minVal) { pos = 'Mais barato'; cls = 'ok'; }
+          else if (c.precoAtual === maxVal) { pos = 'Mais caro'; cls = 'bad'; }
+          else pos = 'Intermediário';
+        }
+        linhas.push(`<tr><td><b>${escapeHtml(p)}</b></td><td>${escapeHtml(c.fornecedor)}</td><td>${fmtDate(c.dataAtual)}</td><td class="n">${fmtBR(c.precoAtual)}</td><td>${fmtDate(c.dataInicial || c.dataAtual)}</td><td class="n">${fmtBR(c.precoInicial)}</td><td class="n">${fmtPct(c.variacao)}</td><td><span class="tag ${cls}">${pos}</span></td></tr>`);
+      });
+    });
+
+    const historico = prods.map(p => `
+      ${prods.length > 1 ? `<div class="cot-chart-titulo" style="margin:12px 0 6px">${escapeHtml(p)}</div>` : ''}
+      <table class="t">${renderAnaliseMatrixTable(p, fornFiltro).replace(/ class="num"/g, ' class="n"').replace(/ class="stack-title"/g, '').replace(/ data-label="[^"]*"/g, '')}</table>`).join('');
+
+    const fornTxt = fornFiltro ? [...fornFiltro].join(', ') : 'Todos os fornecedores';
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${nomeArq}</title>
+<style>
+@page { size: A4; margin: 14mm; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; font-size: 11.5px; color: #1C1F23; line-height: 1.45; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.top { border-top: 5px solid #1C1F23; padding-top: 12px; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.marca { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: #5B6672; font-weight: 700; }
+h1 { font-size: 22px; margin: 2px 0 0; letter-spacing: -.3px; }
+.data { font-size: 10.5px; color: #5B6672; text-align: right; white-space: nowrap; }
+.filtros { margin: 12px 0 14px; padding: 9px 12px; background: #F2F4F6; border-radius: 8px; font-size: 11px; color: #3A424B; }
+.filtros b { color: #1C1F23; }
+h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: #5B6672; margin: 18px 0 8px; }
+.leitura { margin: 0 0 8px; padding: 10px 14px; background: #EEF7F1; border-left: 4px solid #2E8B57; border-radius: 6px; page-break-inside: avoid; }
+.leitura.vazio { background: #F6F6F6; border-left-color: #B5B5B5; }
+.leitura .p { font-size: 10px; text-transform: uppercase; letter-spacing: .6px; color: #2E6B47; font-weight: 700; margin-bottom: 2px; }
+.leitura.vazio .p { color: #6B6B6B; }
+.leitura .corpo { font-size: 12.5px; }
+.rp-extra { display: block; margin-top: 3px; font-size: 11px; color: #5B6672; }
+.rp-card { border: 1px solid #E3E6EA; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; page-break-inside: avoid; }
+.cot-chart-titulo { font-size: 12.5px; font-weight: 800; margin-bottom: 8px; }
+.rp-card svg { width: 100%; height: auto; max-height: 250px; display: block; }
+table.t { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-bottom: 4px; page-break-inside: auto; }
+.t th { text-align: left; font-size: 9.5px; text-transform: uppercase; letter-spacing: .4px; color: #5B6672; padding: 6px 7px; border-bottom: 1.5px solid #1C1F23; }
+.t td { padding: 6px 7px; border-bottom: 1px solid #E3E6EA; }
+.t tr { page-break-inside: avoid; }
+.t th.n, .t td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 9.5px; font-weight: 700; background: #E8EEF9; color: #2B4A8B; }
+.tag.ok { background: #E3F3E9; color: #1E6B40; }
+.tag.bad { background: #FBE6E4; color: #A32E29; }
+.rodape { margin-top: 18px; padding-top: 8px; border-top: 1px solid #E3E6EA; font-size: 9.5px; color: #8E8E8E; display: flex; justify-content: space-between; }
+</style></head><body>
+<div class="top"><div><div class="marca">GSO Effects Line</div><h1>Análise de cotações</h1></div><div class="data">Gerado em ${dataBR} às ${horaBR}</div></div>
+<div class="filtros"><b>Produtos:</b> ${escapeHtml(prods.join(', '))}<br><b>Fornecedores:</b> ${escapeHtml(fornTxt)}</div>
+<h2>Leitura rápida</h2>
+${leituras.map(l => `<div class="leitura${l.vazio ? ' vazio' : ''}"><div class="p">${escapeHtml(l.produto)}</div><div class="corpo">${l.html}</div></div>`).join('')}
+<h2>Evolução de preço</h2>
+${graficos}
+<h2>Comparação atual por fornecedor</h2>
+<table class="t"><thead><tr><th>Produto</th><th>Fornecedor</th><th>Última cotação</th><th class="n">Preço atual</th><th>Primeira cotação</th><th class="n">Preço inicial</th><th class="n">Variação</th><th>Posição</th></tr></thead><tbody>${linhas.join('') || '<tr><td colspan="8">Sem cotações para os filtros escolhidos.</td></tr>'}</tbody></table>
+<h2>Histórico de cotações por data</h2>
+${SEMCOR(historico)}
+<div class="rodape"><span>CRM GSO Effects Line — preços por unidade conforme registrado em cada cotação</span><span>${dataBR}</span></div>
+</body></html>`;
+
+    const ifr = document.createElement('iframe');
+    ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+    document.body.appendChild(ifr);
+    const d = ifr.contentWindow.document;
+    d.open(); d.write(html); d.close();
+    const tituloAntes = document.title;
+    document.title = nomeArq; // vira o nome sugerido do arquivo ao salvar
+    const limpar = () => { document.title = tituloAntes; setTimeout(() => ifr.remove(), 500); };
+    ifr.contentWindow.onafterprint = limpar;
+    setTimeout(() => { try { ifr.contentWindow.focus(); ifr.contentWindow.print(); } catch (e) { limpar(); alert('Não consegui abrir a impressão: ' + e.message); } }, 400);
+    setTimeout(() => { document.title = tituloAntes; }, 120000);
   }
 
   function renderAnalise() {
@@ -38838,6 +38971,8 @@ async function excluirCompra(id) {
     fAnaliseNenhum: fAnaliseNenhum,
     fAnaliseBusca: fAnaliseBusca,
     fAnaliseModo: fAnaliseModo,
+    salvarPdfAnalise: salvarPdfAnalise,
+    _leitura: leituraRapida,
     renderPainel: renderPainel,
     renderAnalise: renderAnalise,
     renderRegistro: renderRegistro,
