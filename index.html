@@ -12328,6 +12328,26 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
 #view-cotacoes .indic-section-title { font-size: 13px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: .5px !important; color: var(--text-2) !important; margin: 26px 0 12px !important;}
 #view-cotacoes .indic-section-title:first-child { margin-top: 0 !important;}
 #view-cotacoes .chart-card { padding: 20px 22px !important; overflow: visible !important;}
+.cot-filtros { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 18px; }
+.cot-fgrupo { flex: 1 1 240px; min-width: 0; max-width: 360px; position: relative; }
+.cot-fgrupo .form-input { width: 100%; }
+.cot-dd { position: relative; }
+.cot-dd > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cot-dd > summary::-webkit-details-marker { display: none; }
+.cot-dd > summary::after { content: "▾"; font-size: 11px; color: var(--text-2); flex-shrink: 0; }
+.cot-dd[open] > summary::after { content: "▴"; }
+.cot-dd-resumo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.cot-dd-panel { position: absolute; z-index: 50; left: 0; top: calc(100% + 4px); width: 100%; min-width: 240px; max-width: calc(100vw - 40px); background: var(--card); border: 1px solid var(--glass-border, var(--border)); border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.18); padding: 10px; }
+.cot-dd-panel .cot-dd-busca { width: 100%; margin-bottom: 8px; }
+.cot-dd-acoes { display: flex; gap: 6px; margin-bottom: 6px; }
+.cot-dd-lista { max-height: 260px; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
+.cot-dd-item { display: flex; align-items: center; gap: 8px; padding: 6px 4px; font-size: 12.5px; color: var(--text); cursor: pointer; border-radius: 6px; }
+.cot-dd-item:hover { background: var(--glass-hairline, rgba(128,128,128,.12)); }
+.cot-dd-item input { flex-shrink: 0; margin: 0; }
+.cot-dd-item span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cot-dd-item em { margin-left: auto; font-size: 10.5px; color: var(--text-2); font-style: normal; flex-shrink: 0; }
+.cot-dd-item.sem span { color: var(--text-2); }
+.cot-chart-titulo { font-size: 13px; font-weight: 800; margin-bottom: 10px; }
 .cot-hbar-wrap { display: flex; flex-direction: column; gap: 8px; }
 .cot-hbar-row { display: flex; align-items: center; gap: 10px; }
 .cot-hbar-label { width: 34%; max-width: 220px; flex-shrink: 0; font-size: 12.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -13664,24 +13684,27 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
       </div>
 
       <div id="cot-view-analise" class="hidden">
-        <div class="form-row">
-          <div style="max-width:360px"><label class="form-label">Produto para analisar</label>
-            <select class="form-input" id="cot-analise-produto" onchange="Cot.onProdutoChange(this.value)"></select>
+        <div class="cot-filtros">
+          <div id="cotFiltroProdutos" class="cot-fgrupo"></div>
+          <div id="cotFiltroFornecedores" class="cot-fgrupo"></div>
+          <div class="cot-fgrupo"><div class="form-label">Gráfico</div>
+            <select class="form-input" id="cot-analise-modo" onchange="Cot.fAnaliseModo(this.value)">
+              <option value="valor">Preço em R$ (um gráfico por produto)</option>
+              <option value="pct">Variação % (tudo no mesmo gráfico)</option>
+            </select>
           </div>
         </div>
         <div class="indic-section-title">Evolução de preço por fornecedor</div>
-        <div class="card chart-card" id="cotAnaliseChart"></div>
+        <div id="cotAnaliseCharts"></div>
         <div class="indic-section-title">Comparação atual por fornecedor</div>
         <div class="card table-card">
           <table class="stack-table">
-            <thead><tr><th>Fornecedor</th><th>Data mais recente</th><th class="num">Preço atual</th><th>Primeira data</th><th class="num">Preço inicial</th><th class="num">Variação</th><th>Posição</th></tr></thead>
+            <thead><tr><th>Produto</th><th>Fornecedor</th><th>Data mais recente</th><th class="num">Preço atual</th><th>Primeira data</th><th class="num">Preço inicial</th><th class="num">Variação</th><th>Posição</th></tr></thead>
             <tbody id="cotAnaliseTable"></tbody>
           </table>
         </div>
         <div class="indic-section-title">Histórico de cotações por data</div>
-        <div class="card table-card">
-          <table class="stack-table" id="cotAnaliseMatrix"></table>
-        </div>
+        <div id="cotAnaliseMatrix"></div>
         <div id="cotEstrategicosBlock"></div>
       </div>
 
@@ -37786,7 +37809,9 @@ async function excluirCompra(id) {
     registroPage: 1,
     produtosPage: 1,
     produtosBusca: '',
-    fornecedoresBusca: ''
+    fornecedoresBusca: '',
+    // Filtros da aba "Análise por Produto": fornecedores vazio = todos
+    fAnalise: { init: false, produtos: new Set(), fornecedores: new Set(), modo: 'valor' }
   };
   const PAGE_SIZE = 15;
   const PAGE_SIZE_CADASTRO = 10;
@@ -37824,11 +37849,9 @@ async function excluirCompra(id) {
   // no arquivo original os dois vinham da mesma célula (Painel!B4).
   function onProdutoChange(value) {
     const painelSel = document.getElementById('cot-painel-produto');
-    const analiseSel = document.getElementById('cot-analise-produto');
     if (painelSel && painelSel.value !== value) painelSel.value = value;
-    // "Todos" só existe no Painel — a Análise por Produto é sempre de 1 produto por vez,
-    // então mantém o que já estava selecionado lá em vez de tentar sincronizar.
-    if (analiseSel && value !== '__todos__' && analiseSel.value !== value) analiseSel.value = value;
+    // "Todos" só existe no Painel — a Análise mantém a seleção que já tinha.
+    if (value !== '__todos__') { state.fAnalise.produtos = new Set([value]); state.fAnalise.init = true; }
     renderPainel();
     renderAnalise();
   }
@@ -37951,49 +37974,62 @@ async function excluirCompra(id) {
   // posição X pela ordem cronológica das datas em que HOUVE cotação (não calendário linear).
   // Eixo X proporcional ao tempo real (não por índice de data) — os intervalos entre
   // cotações ficam visualmente honestos, e cada ponto mostra o preço ao lado.
-  function lineChartSvg(produto) {
-    const cotProduto = state.cotacoes.filter(c => c.produto === produto);
-    if (!cotProduto.length) return `<div class="table-empty">Sem cotações registradas para este produto ainda.</div>`;
+  function lineChartSvg(produto, fornFiltro) {
+    const cotProduto = state.cotacoes.filter(c => c.produto === produto && (!fornFiltro || fornFiltro.has(c.fornecedor)));
+    if (!cotProduto.length) return `<div class="table-empty">Sem cotações registradas para este produto${fornFiltro ? ' e fornecedores selecionados' : ''} ainda.</div>`;
     const porFornecedor = {};
     cotProduto.forEach(c => { (porFornecedor[c.fornecedor] = porFornecedor[c.fornecedor] || []).push(c); });
-    const fornecedoresComDados = Object.keys(porFornecedor);
+    const todos = fornecedoresFiltro();
+    const series = Object.keys(porFornecedor).map(nome => ({
+      nome,
+      cor: COT_PALETTE[Math.max(0, todos.indexOf(nome)) % COT_PALETTE.length],
+      pontos: porFornecedor[nome].map(c => ({ data: c.data, v: Number(c.valor_unitario) }))
+    }));
+    return lineChartRender(series, fmtBR);
+  }
+
+  // Desenha qualquer conjunto de séries {nome, cor, pontos:[{data, v}]} numa linha do tempo.
+  function lineChartRender(series, fmtV) {
+    series = series.filter(s => s.pontos.length);
+    if (!series.length) return `<div class="table-empty">Sem cotações para os filtros escolhidos.</div>`;
     const parseDia = d => new Date(d + 'T00:00:00').getTime();
-    const allDatesMs = cotProduto.map(c => parseDia(c.data));
+    const todosPontos = series.flatMap(s => s.pontos);
+    const allDatesMs = todosPontos.map(c => parseDia(c.data));
     const minMs = Math.min(...allDatesMs), maxMs = Math.max(...allDatesMs);
     const spanMs = (maxMs - minMs) || 1;
 
     const w = 720, h = 300, padL = 64, padR = 20, padT = 20, padB = 40;
     const xOf = d => minMs === maxMs ? (padL + w - padR) / 2 : padL + ((parseDia(d) - minMs) / spanMs) * (w - padL - padR);
 
-    const valores = cotProduto.map(c => Number(c.valor_unitario));
+    const valores = todosPontos.map(c => c.v);
     const minV = Math.min(...valores), maxV = Math.max(...valores);
-    const rangeV = (maxV - minV) || Math.max(1, minV * 0.15);
+    const rangeV = (maxV - minV) || Math.max(1, Math.abs(minV) * 0.15);
     const folga = rangeV * 0.18;
     const yMin = minV - folga, yMax = maxV + folga;
     const yOf = v => h - padB - ((v - yMin) / (yMax - yMin)) * (h - padT - padB);
 
-    const palette = COT_PALETTE;
     const strokeSurface = chartSurfaceStroke();
+    const mostrarRotulos = todosPontos.length <= 30;
 
-    const linesAndDots = fornecedoresComDados.map((nome, idx) => {
-      const color = palette[idx % palette.length];
-      const pontos = porFornecedor[nome].slice().sort((a, b) => a.data.localeCompare(b.data));
-      const pts = pontos.map(c => `${xOf(c.data).toFixed(1)},${yOf(Number(c.valor_unitario)).toFixed(1)}`).join(' ');
+    const linesAndDots = series.map(sr => {
+      const color = sr.cor;
+      const pontos = sr.pontos.slice().sort((a, b) => a.data.localeCompare(b.data));
+      const pts = pontos.map(c => `${xOf(c.data).toFixed(1)},${yOf(c.v).toFixed(1)}`).join(' ');
       const linha = pontos.length > 1 ? `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"></polyline>` : '';
       const dots = pontos.map((c, i) => {
-        const x = xOf(c.data), y = yOf(Number(c.valor_unitario));
+        const x = xOf(c.data), y = yOf(c.v);
         const acimaAbaixo = i % 2 === 0 ? -10 : 16;
-        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="${color}" stroke="${strokeSurface}" stroke-width="1.5"></circle>
-          <text x="${x.toFixed(1)}" y="${(y + acimaAbaixo).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${CHART_TXT_STRONG}">${fmtBR(Number(c.valor_unitario))}</text>`;
+        const rotulo = mostrarRotulos ? `<text x="${x.toFixed(1)}" y="${(y + acimaAbaixo).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${CHART_TXT_STRONG}">${fmtV(c.v)}</text>` : '';
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="${color}" stroke="${strokeSurface}" stroke-width="1.5"><title>${escapeHtml(sr.nome)} — ${fmtDate(c.data)}: ${fmtV(c.v)}</title></circle>${rotulo}`;
       }).join('');
       return linha + dots;
     }).join('');
 
     const yTicks = [minV, (minV + maxV) / 2, maxV];
-    const yLabels = yTicks.map(v => `<text x="${padL - 8}" y="${yOf(v).toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="${CHART_TXT}">${fmtBR(v)}</text>`).join('');
+    const yLabels = yTicks.map(v => `<text x="${padL - 8}" y="${yOf(v).toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="${CHART_TXT}">${fmtV(v)}</text>`).join('');
     const yGrid = yTicks.map(v => `<line x1="${padL}" y1="${yOf(v).toFixed(1)}" x2="${w - padR}" y2="${yOf(v).toFixed(1)}" stroke="#E4E7EB" stroke-width="1"></line>`).join('');
 
-    const qtdMarcasX = Math.min(5, [...new Set(cotProduto.map(c => c.data))].length);
+    const qtdMarcasX = Math.min(5, [...new Set(todosPontos.map(c => c.data))].length);
     const xTicksMs = qtdMarcasX <= 1 ? [minMs] : Array.from({ length: qtdMarcasX }, (_, i) => minMs + spanMs * i / (qtdMarcasX - 1));
     const xGridAndLabels = xTicksMs.map((ms, i) => {
       const x = padL + ((ms - minMs) / spanMs) * (w - padL - padR);
@@ -38002,9 +38038,9 @@ async function excluirCompra(id) {
         <text x="${x.toFixed(1)}" y="${h - padB + 18}" text-anchor="${anchor}" font-size="10" fill="${CHART_TXT}">${fmtDate(new Date(ms).toISOString().slice(0, 10))}</text>`;
     }).join('');
 
-    const legend = fornecedoresComDados.map((nome, idx) => `
+    const legend = series.map(sr => `
       <span style="display:inline-flex;align-items:center;gap:6px;margin-right:14px;font-size:12px;color:var(--text-2)">
-        <span style="width:9px;height:9px;border-radius:50%;background:${palette[idx % palette.length]};display:inline-block"></span>${escapeHtml(nome)}
+        <span style="width:9px;height:9px;border-radius:50%;background:${sr.cor};display:inline-block;flex-shrink:0"></span>${escapeHtml(sr.nome)}
       </span>
     `).join('');
 
@@ -38286,8 +38322,8 @@ async function excluirCompra(id) {
   }
 
   // ============ ANÁLISE POR PRODUTO ============
-  function renderAnaliseMatrixTable(produto) {
-    const rows = state.cotacoes.filter(c => c.produto === produto);
+  function renderAnaliseMatrixTable(produto, fornFiltro) {
+    const rows = state.cotacoes.filter(c => c.produto === produto && (!fornFiltro || fornFiltro.has(c.fornecedor)));
     if (!rows.length) return `<thead><tr><th>Data</th></tr></thead><tbody><tr><td class="table-empty">Sem cotações registradas.</td></tr></tbody>`;
     const fornecedoresComDados = [...new Set(rows.map(r => r.fornecedor))];
     const datas = [...new Set(rows.map(r => r.data))].sort().reverse();
@@ -38297,49 +38333,215 @@ async function excluirCompra(id) {
     const tbody = `<tbody>${datas.map(d => `
       <tr><td class="stack-title">${fmtDate(d)}</td>${fornecedoresComDados.map(f => {
         const v = porChave[d + '|' + f];
-        return `<td class="num">${v !== undefined ? fmtBR(v) : '—'}</td>`;
+        return `<td class="num" data-label="${escapeHtml(f)}">${v !== undefined ? fmtBR(v) : '—'}</td>`;
       }).join('')}</tr>
     `).join('')}</tbody>`;
     return thead + tbody;
   }
 
-  function renderAnalise() {
-    const sel = document.getElementById('cot-analise-produto');
-    if (sel.options.length === 0 || sel.dataset.count != state.produtos.length) {
-      sel.innerHTML = produtoNomes().map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
-      sel.dataset.count = state.produtos.length;
-      const painelSel = document.getElementById('cot-painel-produto');
-      if (painelSel && painelSel.value) sel.value = painelSel.value;
+  // ---- Filtros da Análise (produtos e fornecedores, vários ao mesmo tempo) ----
+  function produtosFiltro() {
+    const nomes = produtoNomes();
+    state.cotacoes.forEach(c => { if (!nomes.includes(c.produto)) nomes.push(c.produto); });
+    return nomes;
+  }
+  function fornecedoresFiltro() {
+    const nomes = fornecedorNomes();
+    state.cotacoes.forEach(c => { if (!nomes.includes(c.fornecedor)) nomes.push(c.fornecedor); });
+    return nomes;
+  }
+  // Fornecedores efetivamente filtrados: conjunto vazio significa "todos".
+  function fornEfetivos() {
+    const f = state.fAnalise.fornecedores;
+    return f.size ? f : new Set(fornecedoresFiltro());
+  }
+  function resumoFiltro(tipo) {
+    if (tipo === 'p') {
+      const n = state.fAnalise.produtos.size;
+      if (!n) return 'Selecione os produtos';
+      if (n === 1) return [...state.fAnalise.produtos][0];
+      return n + ' produtos selecionados';
     }
-    const produto = sel.value;
-    if (!produto) return;
-    const comp = comparativoPorProduto(produto);
-    const comDados = comp.filter(c => c.temDados);
+    const f = state.fAnalise.fornecedores;
+    if (!f.size) return 'Todos os fornecedores';
+    if (f.size === 1) return [...f][0];
+    return f.size + ' fornecedores selecionados';
+  }
+  function atualizaResumos() {
+    ['p', 'f'].forEach(t => {
+      const el = document.querySelector('#cot-dd-' + t + ' .cot-dd-resumo');
+      if (el) el.textContent = resumoFiltro(t);
+    });
+  }
+  function ddHtml(tipo, titulo, itens, estaMarcado) {
+    const botoes = tipo === 'p'
+      ? `<button type="button" class="btn btn-small" onclick="Cot.fAnaliseTodos('p')">Todos</button><button type="button" class="btn btn-small" onclick="Cot.fAnaliseNenhum('p')">Nenhum</button>`
+      : `<button type="button" class="btn btn-small" onclick="Cot.fAnaliseTodos('f')">Todos</button>`;
+    return `<div class="form-label">${titulo}</div>
+      <details class="cot-dd" id="cot-dd-${tipo}">
+        <summary class="form-input"><span class="cot-dd-resumo">${escapeHtml(resumoFiltro(tipo))}</span></summary>
+        <div class="cot-dd-panel">
+          <input class="input cot-dd-busca" placeholder="Buscar..." oninput="Cot.fAnaliseBusca(this)">
+          <div class="cot-dd-acoes">${botoes}</div>
+          <div class="cot-dd-lista">${itens.map((it, i) => `
+            <label class="cot-dd-item${it.semDados ? ' sem' : ''}" data-nome="${escapeHtml(it.nome.toLowerCase())}">
+              <input type="checkbox" ${estaMarcado(it.nome) ? 'checked' : ''} onchange="Cot.fAnaliseToggle('${tipo}', ${i}, this.checked)">
+              <span title="${escapeHtml(it.nome)}">${escapeHtml(it.nome)}</span>${it.semDados ? '<em>sem cotação</em>' : ''}
+            </label>`).join('')}
+          </div>
+        </div>
+      </details>`;
+  }
+  function renderAnaliseFiltros() {
+    const f = state.fAnalise;
+    if (!f.init) {
+      const painelSel = document.getElementById('cot-painel-produto');
+      const doPainel = painelSel && painelSel.value && painelSel.value !== '__todos__' ? painelSel.value : '';
+      const comCot = produtosFiltro().find(p => state.cotacoes.some(c => c.produto === p));
+      const inicial = doPainel || comCot || '';
+      f.produtos = new Set(inicial ? [inicial] : []);
+      f.init = true;
+    }
+    const comDadosSet = new Set(state.cotacoes.map(c => c.produto));
+    document.getElementById('cotFiltroProdutos').innerHTML = ddHtml('p', 'Produtos',
+      produtosFiltro().map(n => ({ nome: n, semDados: !comDadosSet.has(n) })), n => f.produtos.has(n));
+    const ef = fornEfetivos();
+    document.getElementById('cotFiltroFornecedores').innerHTML = ddHtml('f', 'Fornecedores',
+      fornecedoresFiltro().map(n => ({ nome: n })), n => ef.has(n));
+    const modo = document.getElementById('cot-analise-modo');
+    if (modo) modo.value = f.modo;
+  }
+  function sincronizaChecks(tipo) {
+    const lista = tipo === 'p' ? produtosFiltro() : fornecedoresFiltro();
+    const marcado = tipo === 'p' ? state.fAnalise.produtos : fornEfetivos();
+    document.querySelectorAll('#cot-dd-' + tipo + ' .cot-dd-item input').forEach((cb, i) => { cb.checked = marcado.has(lista[i]); });
+  }
+  function fAnaliseToggle(tipo, i, marcado) {
+    const f = state.fAnalise;
+    if (tipo === 'p') {
+      const nome = produtosFiltro()[i];
+      if (marcado) f.produtos.add(nome); else f.produtos.delete(nome);
+    } else {
+      const todos = fornecedoresFiltro();
+      const set = new Set(fornEfetivos());
+      if (marcado) set.add(todos[i]); else set.delete(todos[i]);
+      f.fornecedores = (set.size === todos.length || set.size === 0) ? new Set() : set;
+      if (set.size === 0) sincronizaChecks('f');
+    }
+    atualizaResumos();
+    renderAnaliseResultados();
+  }
+  function fAnaliseTodos(tipo) {
+    if (tipo === 'p') state.fAnalise.produtos = new Set(produtosFiltro().filter(p => state.cotacoes.some(c => c.produto === p)));
+    else state.fAnalise.fornecedores = new Set();
+    sincronizaChecks(tipo); atualizaResumos(); renderAnaliseResultados();
+  }
+  function fAnaliseNenhum(tipo) {
+    if (tipo === 'p') state.fAnalise.produtos = new Set();
+    sincronizaChecks(tipo); atualizaResumos(); renderAnaliseResultados();
+  }
+  function fAnaliseBusca(input) {
+    const q = (input.value || '').toLowerCase().trim();
+    input.closest('.cot-dd-panel').querySelectorAll('.cot-dd-item').forEach(el => {
+      el.style.display = !q || el.dataset.nome.includes(q) ? '' : 'none';
+    });
+  }
+  function fAnaliseModo(v) { state.fAnalise.modo = v === 'pct' ? 'pct' : 'valor'; renderAnaliseResultados(); }
+  // Fecha o seletor aberto ao clicar fora dele
+  document.addEventListener('click', function (e) {
+    document.querySelectorAll('details.cot-dd[open]').forEach(d => { if (!d.contains(e.target)) d.removeAttribute('open'); });
+  });
 
-    document.getElementById('cotAnaliseChart').innerHTML = lineChartSvg(produto);
+  function fmtPctPontos(v) {
+    return (v > 0 ? '+' : '') + v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+  }
 
-    const minVal = comDados.length ? Math.min(...comDados.map(c => c.precoAtual)) : null;
-    const maxVal = comDados.length ? Math.max(...comDados.map(c => c.precoAtual)) : null;
-    document.getElementById('cotAnaliseTable').innerHTML = comDados.length ? comDados.map(c => {
-      let posicao = 'Intermediário', pill = 'pill-blue';
-      if (c.precoAtual === minVal) { posicao = 'MAIS BARATO'; pill = 'pill-green'; }
-      else if (c.precoAtual === maxVal) { posicao = 'MAIS CARO'; pill = 'pill-red'; }
-      return `
+  function renderAnaliseResultados() {
+    const f = state.fAnalise;
+    const prods = produtosFiltro().filter(p => f.produtos.has(p));
+    const filtra = f.fornecedores.size > 0;
+    const fornFiltro = filtra ? f.fornecedores : null;
+    const charts = document.getElementById('cotAnaliseCharts');
+    const tabela = document.getElementById('cotAnaliseTable');
+    const matriz = document.getElementById('cotAnaliseMatrix');
+    const estr = document.getElementById('cotEstrategicosBlock');
+
+    if (!prods.length) {
+      const vazio = '<div class="card"><div class="table-empty">Escolha pelo menos um produto no filtro acima.</div></div>';
+      charts.innerHTML = vazio;
+      tabela.innerHTML = '<tr><td colspan="8" class="table-empty">Escolha pelo menos um produto no filtro acima.</td></tr>';
+      matriz.innerHTML = '';
+      estr.innerHTML = '';
+      return;
+    }
+
+    // ---- gráficos ----
+    if (f.modo === 'pct') {
+      const series = [];
+      const todosForn = fornecedoresFiltro();
+      prods.forEach(p => {
+        const porForn = {};
+        state.cotacoes.filter(c => c.produto === p && (!fornFiltro || fornFiltro.has(c.fornecedor)))
+          .forEach(c => { (porForn[c.fornecedor] = porForn[c.fornecedor] || []).push(c); });
+        Object.keys(porForn).forEach(forn => {
+          const lista = porForn[forn].slice().sort((a, b) => a.data.localeCompare(b.data));
+          const base = Number(lista[0].valor_unitario);
+          if (!base) return;
+          series.push({
+            nome: prods.length > 1 ? p + ' — ' + forn : forn,
+            pontos: lista.map(c => ({ data: c.data, v: (Number(c.valor_unitario) / base - 1) * 100 })),
+            _forn: forn
+          });
+        });
+      });
+      series.forEach((sr, i) => { sr.cor = COT_PALETTE[(prods.length > 1 ? i : Math.max(0, todosForn.indexOf(sr._forn))) % COT_PALETTE.length]; });
+      charts.innerHTML = `<div class="card chart-card">
+        <div class="cot-chart-titulo">Variação do preço desde a primeira cotação de cada fornecedor</div>
+        ${lineChartRender(series, fmtPctPontos)}</div>`;
+    } else {
+      charts.innerHTML = prods.map(p => `<div class="card chart-card" style="margin-bottom:14px">
+        <div class="cot-chart-titulo">${escapeHtml(p)}</div>${lineChartSvg(p, fornFiltro)}</div>`).join('');
+    }
+
+    // ---- tabela de comparação atual ----
+    const linhas = [];
+    prods.forEach(p => {
+      const comDados = comparativoPorProduto(p).filter(c => c.temDados && (!fornFiltro || fornFiltro.has(c.fornecedor)));
+      const minVal = comDados.length ? Math.min(...comDados.map(c => c.precoAtual)) : null;
+      const maxVal = comDados.length ? Math.max(...comDados.map(c => c.precoAtual)) : null;
+      comDados.forEach(c => {
+        let posicao = 'Intermediário', pill = 'pill-blue';
+        if (comDados.length > 1) {
+          if (c.precoAtual === minVal) { posicao = 'MAIS BARATO'; pill = 'pill-green'; }
+          else if (c.precoAtual === maxVal) { posicao = 'MAIS CARO'; pill = 'pill-red'; }
+        } else { posicao = '—'; pill = 'pill-blue'; }
+        linhas.push(`
         <tr>
-          <td class="stack-title">${escapeHtml(c.fornecedor)}</td>
+          <td class="stack-title">${escapeHtml(p)}</td>
+          <td data-label="Fornecedor">${escapeHtml(c.fornecedor)}</td>
           <td data-label="Data mais recente">${fmtDate(c.dataAtual)}</td>
           <td class="num" data-label="Preço atual">${fmtBR(c.precoAtual)}</td>
           <td data-label="Primeira data">${fmtDate(c.dataInicial || c.dataAtual)}</td>
           <td class="num" data-label="Preço inicial">${fmtBR(c.precoInicial)}</td>
           <td class="num" data-label="Variação">${fmtPct(c.variacao)}</td>
           <td data-label="Posição"><span class="pill ${pill}">${posicao}</span></td>
-        </tr>
-      `;
-    }).join('') : `<tr><td colspan="7" class="table-empty">Nenhum fornecedor tem cotação registrada para este produto ainda.</td></tr>`;
+        </tr>`);
+      });
+    });
+    tabela.innerHTML = linhas.length ? linhas.join('') : `<tr><td colspan="8" class="table-empty">Nenhum dos fornecedores escolhidos tem cotação para esses produtos ainda.</td></tr>`;
 
-    document.getElementById('cotAnaliseMatrix').innerHTML = renderAnaliseMatrixTable(produto);
-    if (ehProdutoCaixa(produto)) renderEstrategicos();
-    else document.getElementById('cotEstrategicosBlock').innerHTML = '';
+    // ---- histórico por data (uma tabela por produto) ----
+    matriz.innerHTML = prods.map(p => `
+      ${prods.length > 1 ? `<div class="cot-chart-titulo" style="margin:14px 0 8px">${escapeHtml(p)}</div>` : ''}
+      <div class="card table-card"><table class="stack-table">${renderAnaliseMatrixTable(p, fornFiltro)}</table></div>`).join('');
+
+    if (prods.some(ehProdutoCaixa)) renderEstrategicos();
+    else estr.innerHTML = '';
+  }
+
+  function renderAnalise() {
+    renderAnaliseFiltros();
+    renderAnaliseResultados();
   }
 
   // Cartonagem Nunes só fornece caixa — o comparativo fixo com ela não faz sentido
@@ -38630,6 +38832,11 @@ async function excluirCompra(id) {
     abrir: abrir,
     navTo: navTo,
     onProdutoChange: onProdutoChange,
+    fAnaliseToggle: fAnaliseToggle,
+    fAnaliseTodos: fAnaliseTodos,
+    fAnaliseNenhum: fAnaliseNenhum,
+    fAnaliseBusca: fAnaliseBusca,
+    fAnaliseModo: fAnaliseModo,
     renderPainel: renderPainel,
     renderAnalise: renderAnalise,
     renderRegistro: renderRegistro,
