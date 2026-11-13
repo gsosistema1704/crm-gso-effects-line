@@ -21879,7 +21879,7 @@ function saleCobrancaWaBtn(venda, origem) {
   const cad = lista.find(c => nameKey(c.nome) === nameKey(venda.cliente));
   const tel = cad ? intelWaDigits(cad.telefone) : '';
   const quem = origem === 'lojista' ? 'lojista' : 'cliente';
-  if (!tel) return `<span class="nf-wa-btn nf-wa-cobranca is-disabled" onclick="event.stopPropagation()" data-tip="${quem === 'lojista' ? 'Lojista' : 'Cliente'} sem telefone cadastrado">Cobrar | Whatsapp</span>`;
+  if (!tel) return `<span class="nf-wa-btn nf-wa-cobranca is-disabled" onclick="event.stopPropagation()" data-tip="${quem === 'lojista' ? 'Lojista' : 'Cliente'} sem telefone cadastrado">Cobrar</span>`;
   const saldo = saleAnotadoSaldoDevedor(venda);
   const pago = saleAnotadoTotalPago(venda);
   const compra = `${venda.numeroVenda ? 'nº ' + venda.numeroVenda + ', ' : ''}feita no dia ${fmtDate(venda.data)}`;
@@ -21887,7 +21887,7 @@ function saleCobrancaWaBtn(venda, origem) {
     ? `Já recebemos ${fmtBR(pago)} e ainda falta ${fmtBR(saldo)}.`
     : `O valor é de ${fmtBR(saldo)}.`;
   const msg = `Olá ${venda.cliente}, tudo bem?\nPassando para lembrar do pagamento da compra ${compra}. ${valorTxt}\nQuando puder, me avise o melhor dia para o pagamento. Qualquer dúvida estou à disposição!\nAtt Equipe GSO Effects Line 💨`;
-  return `<a class="nf-wa-btn nf-wa-cobranca" target="_blank" rel="noopener" href="https://wa.me/${tel}?text=${encodeURIComponent(msg)}" onclick="event.stopPropagation()" data-tip="Cobrar o saldo de ${escapeHtml(fmtBR(saldo))} pelo WhatsApp do ${quem}">Cobrar | Whatsapp</a>`;
+  return `<a class="nf-wa-btn nf-wa-cobranca" target="_blank" rel="noopener" href="https://wa.me/${tel}?text=${encodeURIComponent(msg)}" onclick="event.stopPropagation()" data-tip="Cobrar o saldo de ${escapeHtml(fmtBR(saldo))} pelo WhatsApp do ${quem}">Cobrar</a>`;
 }
 // Venda do Mercado Livre: só mexe no estoque (e no custo da mercadoria). O dinheiro dela entra pelas
 // "Entradas Mercado Livre" lançadas na aba Financeiro > Fechamento do mês.
@@ -40466,7 +40466,7 @@ body.theme-dark #view-inteligencia .dash-inline-metrics > div, body.theme-dark #
 .nf-inline-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px; }
 .nf-wa-btn { display: block; box-sizing: border-box; width: 100%; margin-top: 5px; padding: 3px 4px; border-radius: 6px; font-size: 9.5px; line-height: 1.3; font-weight: 700; text-align: center; text-decoration: none; white-space: normal; overflow-wrap: break-word; background: #25D366 !important; color: #fff !important; border: 1px solid #1EBE5D; cursor: pointer; }
 .nf-wa-btn:hover { background: #1EBE5D !important; }
-.nf-wa-btn.nf-wa-cobranca { background: #E8590C !important; border-color: #CF4F08; }
+.nf-wa-btn.nf-wa-cobranca { display: inline-block; width: auto; margin-top: 4px; padding: 1px 9px; font-size: 9px; line-height: 1.4; background: #E8590C !important; border-color: #CF4F08; }
 .nf-wa-btn.nf-wa-cobranca:hover { background: #CF4F08 !important; }
 .nf-wa-btn.is-disabled { background: #C9CDD3 !important; border-color: #C9CDD3; color: #6F6F6F !important; cursor: not-allowed; }
 body.theme-dark .nf-wa-btn.is-disabled { background: #444 !important; border-color: #444; color: #AAA !important; }
