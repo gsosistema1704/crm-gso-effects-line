@@ -37977,7 +37977,7 @@ async function excluirCompra(id) {
   // posição X pela ordem cronológica das datas em que HOUVE cotação (não calendário linear).
   // Eixo X proporcional ao tempo real (não por índice de data) — os intervalos entre
   // cotações ficam visualmente honestos, e cada ponto mostra o preço ao lado.
-  function lineChartSvg(produto, fornFiltro) {
+  function lineChartSvg(produto, fornFiltro, opts) {
     const cotProduto = state.cotacoes.filter(c => c.produto === produto && (!fornFiltro || fornFiltro.has(c.fornecedor)));
     if (!cotProduto.length) return `<div class="table-empty">Sem cotações registradas para este produto${fornFiltro ? ' e fornecedores selecionados' : ''} ainda.</div>`;
     const porFornecedor = {};
@@ -37988,11 +37988,12 @@ async function excluirCompra(id) {
       cor: COT_PALETTE[Math.max(0, todos.indexOf(nome)) % COT_PALETTE.length],
       pontos: porFornecedor[nome].map(c => ({ data: c.data, v: Number(c.valor_unitario) }))
     }));
-    return lineChartRender(series, fmtBR);
+    return lineChartRender(series, fmtBR, opts);
   }
 
   // Desenha qualquer conjunto de séries {nome, cor, pontos:[{data, v}]} numa linha do tempo.
-  function lineChartRender(series, fmtV) {
+  function lineChartRender(series, fmtV, opts) {
+    opts = opts || {};
     series = series.filter(s => s.pontos.length);
     if (!series.length) return `<div class="table-empty">Sem cotações para os filtros escolhidos.</div>`;
     const parseDia = d => new Date(d + 'T00:00:00').getTime();
@@ -38001,7 +38002,7 @@ async function excluirCompra(id) {
     const minMs = Math.min(...allDatesMs), maxMs = Math.max(...allDatesMs);
     const spanMs = (maxMs - minMs) || 1;
 
-    const w = 720, h = 300, padL = 64, padR = 20, padT = 20, padB = 40;
+    const w = opts.w || 720, h = opts.h || 300, padL = 64, padR = 20, padT = 20, padB = 40;
     const xOf = d => minMs === maxMs ? (padL + w - padR) / 2 : padL + ((parseDia(d) - minMs) / spanMs) * (w - padL - padR);
 
     const valores = todosPontos.map(c => c.v);
@@ -38012,7 +38013,7 @@ async function excluirCompra(id) {
     const yOf = v => h - padB - ((v - yMin) / (yMax - yMin)) * (h - padT - padB);
 
     const strokeSurface = chartSurfaceStroke();
-    const mostrarRotulos = todosPontos.length <= 30;
+    const mostrarRotulos = todosPontos.length <= (opts.rotulosMax || 30);
 
     const linesAndDots = series.map(sr => {
       const color = sr.cor;
@@ -38048,7 +38049,7 @@ async function excluirCompra(id) {
     `).join('');
 
     return `
-      <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;max-height:320px;display:block;">
+      <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;max-height:${opts.h ? h + 40 : 320}px;display:block;">
         ${xGridAndLabels}${yGrid}${yLabels}${linesAndDots}
       </svg>
       <div style="margin-top:10px;">${legend}</div>
@@ -38518,7 +38519,7 @@ async function excluirCompra(id) {
   }
 
   // Gráficos da Análise (usado na tela e no PDF). wrapClass = classe do cartão que envolve cada gráfico.
-  function chartsHtml(prods, fornFiltro, modo, wrapClass) {
+  function chartsHtml(prods, fornFiltro, modo, wrapClass, opts) {
     if (modo === 'pct') {
       const series = [];
       const todosForn = fornecedoresFiltro();
@@ -38540,10 +38541,10 @@ async function excluirCompra(id) {
       series.forEach((sr, i) => { sr.cor = COT_PALETTE[(prods.length > 1 ? i : Math.max(0, todosForn.indexOf(sr._forn))) % COT_PALETTE.length]; });
       return `<div class="${wrapClass}">
         <div class="cot-chart-titulo">Variação do preço desde a primeira cotação de cada fornecedor</div>
-        ${lineChartRender(series, fmtPctPontos)}</div>`;
+        ${lineChartRender(series, fmtPctPontos, opts)}</div>`;
     }
     return prods.map(p => `<div class="${wrapClass}" style="margin-bottom:14px">
-      <div class="cot-chart-titulo">${escapeHtml(p)}</div>${lineChartSvg(p, fornFiltro)}</div>`).join('');
+      <div class="cot-chart-titulo">${escapeHtml(p)}</div>${lineChartSvg(p, fornFiltro, opts)}</div>`).join('');
   }
 
   // Leitura rápida: qual fornecedor está mais barato hoje, produto a produto.
@@ -38592,7 +38593,10 @@ async function excluirCompra(id) {
 
     const leituras = prods.map(p => leituraRapida(p, fornFiltro));
     const SEMCOR = s => s.replace(/var\(--text-2\)/g, '#5B6672');
-    const graficos = SEMCOR(chartsHtml(prods, fornFiltro, f.modo, 'rp-card'));
+    // Gráficos compactos: 1-2 produtos = largura toda e baixos; 3+ = duas colunas. Tudo junto na 1ª folha.
+    const duasCol = f.modo !== 'pct' && prods.length >= 3;
+    const graficos = SEMCOR('<div class="rp-grid' + (duasCol ? ' duas' : '') + '">' +
+      chartsHtml(prods, fornFiltro, f.modo, 'rp-card', duasCol ? { w: 430, h: 250, rotulosMax: 14 } : { w: 720, h: 200, rotulosMax: 30 }) + '</div>');
 
     const linhas = [];
     prods.forEach(p => {
@@ -38627,16 +38631,23 @@ h1 { font-size: 22px; margin: 2px 0 0; letter-spacing: -.3px; }
 .data { font-size: 10.5px; color: #5B6672; text-align: right; white-space: nowrap; }
 .filtros { margin: 12px 0 14px; padding: 9px 12px; background: #F2F4F6; border-radius: 8px; font-size: 11px; color: #3A424B; }
 .filtros b { color: #1C1F23; }
-h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: #5B6672; margin: 18px 0 8px; }
-.leitura { margin: 0 0 8px; padding: 10px 14px; background: #EEF7F1; border-left: 4px solid #2E8B57; border-radius: 6px; page-break-inside: avoid; }
+h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: #5B6672; margin: 14px 0 6px; }
+.leitura { margin: 0 0 5px; padding: 7px 12px; background: #EEF7F1; border-left: 4px solid #2E8B57; border-radius: 6px; page-break-inside: avoid; }
 .leitura.vazio { background: #F6F6F6; border-left-color: #B5B5B5; }
 .leitura .p { font-size: 10px; text-transform: uppercase; letter-spacing: .6px; color: #2E6B47; font-weight: 700; margin-bottom: 2px; }
 .leitura.vazio .p { color: #6B6B6B; }
-.leitura .corpo { font-size: 12.5px; }
+.leitura .corpo { font-size: 11.5px; }
 .rp-extra { display: block; margin-top: 3px; font-size: 11px; color: #5B6672; }
 .rp-card { border: 1px solid #E3E6EA; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; page-break-inside: avoid; }
 .cot-chart-titulo { font-size: 12.5px; font-weight: 800; margin-bottom: 8px; }
-.rp-card svg { width: 100%; height: auto; max-height: 250px; display: block; }
+.rp-grid { page-break-inside: avoid; break-inside: avoid; }
+.rp-grid.duas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rp-grid .rp-card { margin: 0 0 8px !important; padding: 8px 10px; }
+.rp-grid.duas .rp-card { margin: 0 !important; }
+.rp-card .cot-chart-titulo { font-size: 11.5px; margin-bottom: 2px; }
+.rp-card svg { width: 100%; height: auto; display: block; }
+.rp-card div[style*="margin-top:10px"] { margin-top: 2px !important; }
+.rp-card div[style*="margin-top:10px"] span { font-size: 9.5px !important; margin-right: 8px !important; }
 table.t { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-bottom: 4px; page-break-inside: auto; }
 .t th { text-align: left; font-size: 9.5px; text-transform: uppercase; letter-spacing: .4px; color: #5B6672; padding: 6px 7px; border-bottom: 1.5px solid #1C1F23; }
 .t td { padding: 6px 7px; border-bottom: 1px solid #E3E6EA; }
