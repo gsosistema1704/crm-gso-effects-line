@@ -21871,6 +21871,24 @@ function saleAnotadoSaldoDevedor(venda) {
 function saleAnotadoQuitado(venda) {
   return saleAnotadoSaldoDevedor(venda) <= 0.009;
 }
+// Botão "Cobrar | Whatsapp" das vendas anotadas com saldo a receber: abre o WhatsApp do cliente (ou lojista)
+// com a mensagem de cobrança já pronta. Mesmo esquema do "Enviar NF | Whatsapp".
+function saleCobrancaWaBtn(venda, origem) {
+  if (!venda || !saleIsAnotado(venda) || saleAnotadoQuitado(venda)) return '';
+  const lista = origem === 'lojista' ? (state.lojistas || []) : (state.clientes || []);
+  const cad = lista.find(c => nameKey(c.nome) === nameKey(venda.cliente));
+  const tel = cad ? intelWaDigits(cad.telefone) : '';
+  const quem = origem === 'lojista' ? 'lojista' : 'cliente';
+  if (!tel) return `<span class="nf-wa-btn nf-wa-cobranca is-disabled" onclick="event.stopPropagation()" data-tip="${quem === 'lojista' ? 'Lojista' : 'Cliente'} sem telefone cadastrado">Cobrar | Whatsapp</span>`;
+  const saldo = saleAnotadoSaldoDevedor(venda);
+  const pago = saleAnotadoTotalPago(venda);
+  const compra = `${venda.numeroVenda ? 'nº ' + venda.numeroVenda + ', ' : ''}feita no dia ${fmtDate(venda.data)}`;
+  const valorTxt = pago > 0.009
+    ? `Já recebemos ${fmtBR(pago)} e ainda falta ${fmtBR(saldo)}.`
+    : `O valor é de ${fmtBR(saldo)}.`;
+  const msg = `Olá ${venda.cliente}, tudo bem?\nPassando para lembrar do pagamento da compra ${compra}. ${valorTxt}\nQuando puder, me avise o melhor dia para o pagamento. Qualquer dúvida estou à disposição!\nAtt Equipe GSO Effects Line 💨`;
+  return `<a class="nf-wa-btn nf-wa-cobranca" target="_blank" rel="noopener" href="https://wa.me/${tel}?text=${encodeURIComponent(msg)}" onclick="event.stopPropagation()" data-tip="Cobrar o saldo de ${escapeHtml(fmtBR(saldo))} pelo WhatsApp do ${quem}">Cobrar | Whatsapp</a>`;
+}
 // Venda do Mercado Livre: só mexe no estoque (e no custo da mercadoria). O dinheiro dela entra pelas
 // "Entradas Mercado Livre" lançadas na aba Financeiro > Fechamento do mês.
 function saleIsML(venda) { return /mercado\s*livre/i.test((venda && venda.pagamento) || ''); }
@@ -22776,7 +22794,7 @@ function renderVendas() {
         <td data-label="Aroma"${saleCellClass(r, ['aroma'])}><span class="pill pill-aroma ${typeof gsoAromaClass==='function'?gsoAromaClass(r.aroma):''}">${r.aroma || 'Neutro'}</span></td>
         <td data-label="Qtd" class="num${saleCellClassName(r, ['qtd'])}">${r.qtd}</td>
         <td data-label="Valor" data-preview="1" class="num${saleCellClassName(r, ['valor'])}">${fmtBR(r.valor)}</td>
-        <td data-label="Pagamento"${saleCellClass(r, ['pagamento'])}>${paymentDisplay(r)}</td>
+        <td data-label="Pagamento"${saleCellClass(r, ['pagamento'])}>${paymentDisplay(r)}${saleCobrancaWaBtn(r, 'cliente')}</td>
         <td data-label="Vendedor"${saleCellClass(r, ['vendedor'])}><span class="pill pill-blue">${r.vendedor}</span></td>
         <td data-label="Nota fiscal">${nfCompact}</td>
         <td data-label="Ações">
@@ -23557,7 +23575,7 @@ function renderVendasLojista() {
         <td data-label="Aroma"><span class="pill pill-aroma ${typeof gsoAromaClass==='function'?gsoAromaClass(r.aroma):''}">${escapeHtml(r.aroma || 'Neutro')}</span></td>
         <td data-label="Qtd" class="num">${r.qtd}</td>
         <td data-label="Valor" data-preview="1" class="num">${fmtBR(r.valor)}</td>
-        <td data-label="Pagamento">${paymentDisplay(r)}</td>
+        <td data-label="Pagamento">${paymentDisplay(r)}${saleCobrancaWaBtn(r, 'lojista')}</td>
         <td data-label="Vendedor"><span class="pill pill-blue">${escapeHtml(r.vendedor || '')}</span></td>
         <td data-label="Nota fiscal">${nfCompact}</td>
         <td data-label="Ações">
@@ -31696,6 +31714,13 @@ body.theme-dark #gso-calc{ --gcbg:#1f1f1f; --gcsf:#272727; --gcink:#F4F4F4; --gc
 #gso-calc th.num{ text-align:right; }
 #gso-calc .gc-warn-cell{ text-align:center; }
 #gso-calc .gc-warn-ico{ display:inline-block; font-size:14px; cursor:help; }
+#gso-calc .gc-tag-auto, #gso-calc-dr .gc-tag-auto{ display:inline-block; font:700 9px inherit; font-family:inherit; letter-spacing:.06em; text-transform:uppercase; color:#1E7A46; background:rgba(30,122,70,.12); border-radius:20px; padding:2px 7px; margin-right:6px; vertical-align:middle; }
+#gso-calc .gc-tag-fixo, #gso-calc-dr .gc-tag-fixo{ display:inline-block; font:700 9px inherit; font-family:inherit; letter-spacing:.06em; text-transform:uppercase; color:#9A5B00; background:rgba(230,150,20,.18); border-radius:20px; padding:2px 7px; margin-right:6px; vertical-align:middle; }
+#gso-calc .gc-auto-reset, #gso-calc-dr .gc-auto-reset{ margin-right:8px; font-size:11px !important; }
+#gso-calc .gc-fixos-box{ background:rgba(230,150,20,.10); border:1px solid rgba(230,150,20,.35); border-radius:12px; padding:12px 14px; margin-bottom:14px; font-size:12.5px; }
+#gso-calc .gc-fixos-box b.t{ display:block; margin-bottom:6px; }
+#gso-calc .gc-fixos-item{ display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; padding:3px 0; }
+#gso-calc .gc-fixos-ok{ background:rgba(30,122,70,.10); border:1px solid rgba(30,122,70,.3); border-radius:12px; padding:9px 14px; margin-bottom:14px; font-size:12.5px; color:#1E7A46; }
 #gso-calc .gc-lnk{ border:0 !important; background:none !important; box-shadow:none !important; min-height:0 !important; border-radius:0 !important; font:600 12px inherit; font-family:inherit; color:var(--gcink) !important; text-decoration:underline; text-underline-offset:3px; cursor:pointer; padding:0 !important; }
 #gso-calc .gc-mp-del{ border:0 !important; background:none !important; box-shadow:none !important; min-height:0 !important; border-radius:0 !important; font:700 11px inherit; font-family:inherit; color:var(--gcbd) !important; cursor:pointer; padding:0 0 0 6px; opacity:.75; }
 #gso-calc .gc-mp-del:hover{ opacity:1; }
@@ -32212,8 +32237,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
 
   /* ---------- custos e preços por produto ---------- */
   var SEED = seedCustos();
-  function custoInfo(k) {
-    var c = store.custos[k] || {};
+  // auto=true ignora tudo que foi digitado à mão (valores "fixos") e devolve o custo 100% automático:
+  // líquido pela receita das matérias-primas + embalagem pelos materiais gerais.
+  function custoInfo(k, auto) {
+    var c = auto ? {} : (store.custos[k] || {});
     var parts = k.split('|');
     var nome = parts[0], tam = parts[1] || '';
     // "1.100mL" é um tamanho de referência (1L + 100mL, ex.: promoção "1L + brinde de 100ml"),
@@ -32257,8 +32284,10 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       ? c.embalagem
       : round2((Number(garrafa) || 0) + (Number(caixa) || 0) + (Number(rotulo) || 0) + (Number(outros) || 0));
     var total = (liquido == null) ? null : round2(liquido + embalagem);
+    var fixos = { liquido: c.liquido != null, garrafa: c.garrafa != null, caixa: c.caixa != null, rotulo: c.rotulo != null, outros: c.outros != null && Number(c.outros) !== 0 };
+    var temFixo = fixos.liquido || fixos.garrafa || fixos.caixa || fixos.rotulo || fixos.outros;
     return { liquido: liquido, origem: origem, garrafa: garrafa, caixa: caixa, rotulo: rotulo, outros: outros,
-      embalagem: embalagem, total: total, em: c.em || null, por: c.por || null };
+      embalagem: embalagem, total: total, em: c.em || null, por: c.por || null, fixos: fixos, temFixo: temFixo };
   }
   // Tabela de valores (2026) — seeds das 3 tabelas comerciais (consumidor final / revenda / revenda 10%).
   // Servem só de valor inicial: qualquer edição feita direto na tabela (clique no valor) tem prioridade.
@@ -33329,6 +33358,36 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
   function mpSpan(tipo, chave, val) {
     return '<span data-mp="' + tipo + ':' + chave + '" style="border-bottom:1px dotted var(--gcfnt);cursor:text;font-weight:700;font-variant-numeric:tabular-nums">' + inVal(val) + '</span>';
   }
+  // Lista os formatos que têm custo FIXO (digitado à mão) — esses não acompanham as matérias-primas.
+  function fixosLista() {
+    var out = [];
+    Object.keys(store.custos || {}).forEach(function (k) {
+      var ci = custoInfo(k); if (!ci.temFixo) return;
+      var au = custoInfo(k, true);
+      var campos = [];
+      ['liquido', 'garrafa', 'caixa', 'rotulo', 'outros'].forEach(function (f) { if (ci.fixos[f]) campos.push({ liquido: 'líquido', garrafa: 'garrafa', caixa: 'caixa', rotulo: 'rótulo', outros: 'outros' }[f]); });
+      out.push({ k: k, campos: campos, total: ci.total, auto: au.total });
+    });
+    return out;
+  }
+  function fixosBoxHTML() {
+    var l = fixosLista();
+    if (!l.length) return '<div class="gc-fixos-ok">✓ Todos os custos estão <b>automáticos</b>: mudou uma matéria-prima ou embalagem, o custo de todos os produtos (aqui e na Estratégia) atualiza sozinho.</div>';
+    return '<div class="gc-fixos-box"><b class="t">' + l.length + ' formato(s) com custo FIXO (digitado à mão) — não acompanham as matérias-primas</b>' +
+      l.map(function (x) {
+        var dif = (x.total != null && x.auto != null) ? ' · hoje ' + fmt(x.total) + ' · automático ' + fmt(x.auto) : '';
+        return '<div class="gc-fixos-item"><span><b>' + esc(x.k.replace('|', ' ')) + '</b> — fixo: ' + esc(x.campos.join(', ')) + dif + '</span>' +
+          '<button type="button" class="gc-lnk" data-fixo-open="' + esc(x.k) + '">Ver / editar</button>' +
+          '<button type="button" class="gc-lnk" data-fixo-auto="' + esc(x.k) + '">↺ voltar ao automático</button></div>';
+      }).join('') + '</div>';
+  }
+  function fixoVoltarAuto(k) {
+    if (!store.custos || !store.custos[k]) return;
+    var ci = custoInfo(k), au = custoInfo(k, true);
+    if (!window.confirm('Voltar "' + k.replace('|', ' ') + '" para o custo automático?\n\nHoje: ' + fmt(ci.total) + '\nAutomático: ' + fmt(au.total) + '\n\nOs valores digitados à mão (' + ['liquido', 'garrafa', 'caixa', 'rotulo', 'outros'].filter(function (f) { return ci.fixos[f]; }).join(', ') + ') serão apagados.')) return;
+    delete store.custos[k];
+    save(); renderFormulacao(); renderEstrategia(); refreshResultado();
+  }
   function mpCardHTML() {
     var p = insumos(), m = materiais();
     var bat = params().batelada || BATELADA_L_DEFAULT;
@@ -33436,7 +33495,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       if (temLitro && tamanhos.indexOf('1.100mL') < 0) tamanhos.push('1.100mL');
       var custoRows = tamanhos.map(function (tam) {
         var ck = keyOf(nomeDisplay, tam); var ci = custoInfo(ck);
-        return '<div class="gc-custo-row"><span class="gc-custo-tam">' + esc(tam) + '</span>' +
+        return '<div class="gc-custo-row"><span class="gc-custo-tam">' + esc(tam) + (ci.temFixo ? ' <span class="gc-tag-fixo" title="Tem valor digitado à mão: não acompanha sozinho">fixo</span>' : '') + '</span>' +
           '<span class="gc-custo-item"><i>Embalagem</i><b>' + fmt(ci.embalagem) + '</b></span>' +
           '<span class="gc-custo-item"><i>Custo total</i><b>' + fmt(ci.total) + '</b></span>' +
           '<button type="button" class="gc-lnk" data-open-custo="' + esc(ck) + '">Editar</button></div>';
@@ -33462,7 +33521,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         (custoRows ? '<details class="gc-custo-details"><summary>Custo de embalagem e total por formato</summary>' + custoRows + '</details>' : '') +
         '</div>';
     }).join('');
-    return '<div class="gc-blk" style="margin-bottom:14px">' +
+    return fixosBoxHTML() +
+      '<div class="gc-blk" style="margin-bottom:14px">' +
         '<h2>Matérias-primas <span>valor por litro ou kg · usadas nas receitas abaixo</span></h2>' +
         '<div class="gc-mp-grid">' + insHtml + '</div>' +
         addBtn +
@@ -33629,7 +33689,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
         : '';
       return '<tr data-f="' + esc(fParts.join('|')) + '">' +
         '<td>' + esc(d.r.produto) + '</td><td>' + esc(d.r.tamanho) + '</td><td>' + esc(d.aroma || 'Neutro') + '</td>' +
-        '<td class="num">' + fmt(d.ci.total) + '</td>' +
+        '<td class="num">' + fmt(d.ci.total) + (d.ci.temFixo ? ' <span class="gc-tag-fixo" title="Este custo tem valor digitado à mão (fixo): não acompanha sozinho as matérias-primas. Abra Composição para voltar ao automático.">fixo</span>' : '') + '</td>' +
         '<td class="num" data-ed="tab" data-campo="' + UI.estrTabela + '" data-k="' + esc(d.k) + '">' + fmt(d.preco) + '</td>' +
         sugeridoHtml +
         '<td class="num">' + (d.lucro == null ? '<span class="gc-dot gray" title="Sem lucro calculado"></span>' : '<span class="gc-margem-val ' + (d.margemSt ? d.margemSt.cls : 'gray') + '" title="Lucro em R$ por unidade (preço − custo − fiscal' + (UI.estrTaxaFin ? ' − taxa financeira' : '') + ')">' + fmt(d.lucro) + '</span>') + '</td>' +
@@ -33727,14 +33787,22 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     var ac = aromaCfg(nome);
     var temPreco = opts.preco != null;
     var taxaFinAtiva = UI.estrTaxaFin;
+    // Etiqueta de cada campo: "automático" (acompanha matérias-primas/embalagem) ou "fixo" (digitado à mão),
+    // com o botão "voltar ao automático" nos fixos.
+    function tagCampo(campo) {
+      if (campo !== 'outros' && !ci.fixos[campo]) return '<span class="gc-tag-auto" title="Acompanha as matérias-primas / materiais de embalagem sozinho">automático</span>';
+      if (!ci.fixos[campo]) return '';
+      return '<span class="gc-tag-fixo" title="Valor digitado à mão: NÃO acompanha as matérias-primas">fixo</span>' +
+        '<button type="button" class="gc-lnk gc-auto-reset" data-auto-reset="' + esc(campo) + '" title="Apagar o valor fixo e voltar a calcular sozinho">↺ automático</button>';
+    }
     var html =
       (temPreco ? '<div style="font:700 10px inherit;letter-spacing:.14em;color:var(--gcfnt);margin:2px 0 6px">PREÇO E MARGEM</div><div id="gc-cp-wrap">' + precoMargemHTML(opts.preco, ci, taxaFinAtiva) + '</div>' : '') +
       '<div style="font:700 10px inherit;letter-spacing:.14em;color:var(--gcfnt);margin:' + (temPreco ? '14' : '2') + 'px 0 6px">CUSTO (quanto custa fazer) — edite e salve</div>' +
-      '<div class="gc-kv"><span class="l">Custo líquido / matéria-prima</span><b><input id="gc-c-liq" type="text" inputmode="decimal" value="' + inVal(ci.liquido) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
-      '<div class="gc-kv"><span class="l">Garrafa + tampa</span><b><input id="gc-c-gar" type="text" inputmode="decimal" value="' + inVal(ci.garrafa) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
-      '<div class="gc-kv"><span class="l">Caixa</span><b><input id="gc-c-cai" type="text" inputmode="decimal" value="' + inVal(ci.caixa) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
-      '<div class="gc-kv"><span class="l">Rótulo</span><b><input id="gc-c-rot" type="text" inputmode="decimal" value="' + inVal(ci.rotulo) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
-      '<div class="gc-kv"><span class="l">Outros custos</span><b><input id="gc-c-out" type="text" inputmode="decimal" value="' + inVal(ci.outros) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
+      '<div class="gc-kv"><span class="l">Custo líquido / matéria-prima</span><b>' + tagCampo('liquido') + ' <input id="gc-c-liq" type="text" inputmode="decimal" value="' + inVal(ci.liquido) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
+      '<div class="gc-kv"><span class="l">Garrafa + tampa</span><b>' + tagCampo('garrafa') + ' <input id="gc-c-gar" type="text" inputmode="decimal" value="' + inVal(ci.garrafa) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
+      '<div class="gc-kv"><span class="l">Caixa</span><b>' + tagCampo('caixa') + ' <input id="gc-c-cai" type="text" inputmode="decimal" value="' + inVal(ci.caixa) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
+      '<div class="gc-kv"><span class="l">Rótulo</span><b>' + tagCampo('rotulo') + ' <input id="gc-c-rot" type="text" inputmode="decimal" value="' + inVal(ci.rotulo) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
+      '<div class="gc-kv"><span class="l">Outros custos</span><b>' + tagCampo('outros') + ' <input id="gc-c-out" type="text" inputmode="decimal" value="' + inVal(ci.outros) + '" style="width:110px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink);text-align:right"></b></div>' +
       '<div class="gc-kv"><span class="l">Custo total unitário</span><b id="gc-c-tot">' + fmt(ci.total) + '</b></div>' +
       '<div class="gc-kv"><span class="l">Última atualização</span><b>' + (ci.em ? esc(ci.em) + (ci.por ? ' · ' + esc(ci.por) : '') : '—') + '</b></div>' +
       '<div class="gc-row"><button class="gc-btn dark" id="gc-c-save">Salvar custos</button></div>' +
@@ -33743,7 +33811,7 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       '<div class="gc-kv"><span class="l">Aromas permitidos</span><b><input id="gc-ar-lista" type="text" value="' + esc(ac.lista.join(', ')) + '" style="width:180px;border:1px solid var(--gcln2);border-radius:7px;padding:4px 8px;font:600 12px inherit;font-family:inherit;background:var(--gcsf);color:var(--gcink)"></b></div>' +
       '<div class="gc-kv"><span class="l">Permite cadastrar novo aroma?</span><b><label style="cursor:pointer"><input type="checkbox" id="gc-ar-novo"' + (ac.novo ? ' checked' : '') + '> Sim</label></b></div>' +
       '<div class="gc-row"><button class="gc-btn dark" id="gc-ar-save" data-k="' + esc(nome) + '">Salvar aromas</button></div>' +
-      '<div class="gc-hint" style="margin-top:10px">Preços são editados na aba Estratégia. ' + (ci.origem === 'receita' ? 'Líquido calculado pela receita de matéria-prima, na Formulação — digitar um valor aqui passa a valer no lugar.' : '') + '</div>';
+      '<div class="gc-hint" style="margin-top:10px">Preços são editados na aba Estratégia. ' + 'Campos <b>automáticos</b> acompanham sozinhos as matérias-primas (Formulação) e os materiais de embalagem. Só vira valor <b>fixo</b> o que você digitar diferente do cálculo; use "↺ automático" para voltar.' + '</div>';
     drOpen(nome + ' ' + tam + ' — composição', html);
     function bindCpTaxaFin() {
       var cb = $('#gc-cp-taxafin');
@@ -33757,15 +33825,25 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
     if (temPreco) bindCpTaxaFin();
     var bc = $('#gc-c-save');
     if (bc) bc.addEventListener('click', function () {
+      // Só vira valor FIXO o que for diferente do cálculo automático — o que ficou igual continua
+      // acompanhando as matérias-primas e os materiais de embalagem sozinho.
       var c = store.custos[k] || {};
-      c.liquido = num($('#gc-c-liq').value);
-      c.garrafa = num($('#gc-c-gar').value) || 0;
-      c.caixa = num($('#gc-c-cai').value) || 0;
-      c.rotulo = num($('#gc-c-rot').value) || 0;
-      c.outros = num($('#gc-c-out').value) || 0;
+      var au = custoInfo(k, true);
+      function fixa(campo, digitado, autoVal, zeroEhAuto) {
+        var v = digitado;
+        if (v == null) { if (campo === 'liquido') { delete c[campo]; return; } v = 0; }
+        var igual = (autoVal != null && Math.abs(v - autoVal) < 0.005) || (zeroEhAuto && v === 0);
+        if (igual) delete c[campo]; else c[campo] = v;
+      }
+      fixa('liquido', num($('#gc-c-liq').value), au.liquido, false);
+      fixa('garrafa', num($('#gc-c-gar').value), au.garrafa, false);
+      fixa('caixa', num($('#gc-c-cai').value), au.caixa, false);
+      fixa('rotulo', num($('#gc-c-rot').value), au.rotulo, false);
+      fixa('outros', num($('#gc-c-out').value) || 0, 0, true);
       delete c.embalagem;
-      c.em = hojeBR(); c.por = usuarioAtual();
-      store.custos[k] = c; save();
+      var algumFixo = ['liquido', 'garrafa', 'caixa', 'rotulo', 'outros'].some(function (f) { return c[f] != null; });
+      if (algumFixo) { c.em = hojeBR(); c.por = usuarioAtual(); store.custos[k] = c; } else { delete store.custos[k]; }
+      save();
       var novo = custoInfo(k);
       var tot = $('#gc-c-tot'); if (tot) tot.textContent = fmt(novo.total);
       if (temPreco) {
@@ -33776,6 +33854,16 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       bc.textContent = 'Salvo!';
       setTimeout(function () { bc.textContent = 'Salvar custos'; }, 1500);
       renderFormulacao(); renderEstrategia(); refreshResultado();
+    });
+    $all('[data-auto-reset]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var campo = b.getAttribute('data-auto-reset');
+        var c = store.custos[k]; if (!c) return;
+        delete c[campo]; delete c.embalagem;
+        if (!['liquido', 'garrafa', 'caixa', 'rotulo', 'outros'].some(function (f) { return c[f] != null; })) delete store.custos[k]; else { c.em = hojeBR(); c.por = usuarioAtual(); }
+        save(); renderFormulacao(); renderEstrategia(); refreshResultado();
+        abrirProduto(k, opts);
+      });
     });
     var btn = $('#gc-ar-save');
     if (btn) btn.addEventListener('click', function () {
@@ -35139,6 +35227,8 @@ body.theme-dark #gso-calc-dr, body.theme-dark #gso-calc-mbg .mod{
       var szap = t.closest('[data-sim-zap]'); if (szap) { copiarSim(szap.dataset.simZap); return; }
       var sdel = t.closest('[data-sim-del]'); if (sdel) { store.sims = (store.sims || []).filter(function (s) { return s.id !== sdel.dataset.simDel; }); save(); renderPedido(); return; }
       var oc = t.closest('[data-open-custo]'); if (oc) { abrirProduto(oc.dataset.openCusto); return; }
+      var fo = t.closest('[data-fixo-open]'); if (fo) { abrirProduto(fo.dataset.fixoOpen); return; }
+      var fa = t.closest('[data-fixo-auto]'); if (fa) { fixoVoltarAuto(fa.dataset.fixoAuto); return; }
       var det = t.closest('[data-prod-det]'); if (det) {
         var detPreco = det.dataset.prodPreco;
         abrirProduto(det.dataset.prodDet, { k: det.dataset.prodK || null, preco: (detPreco != null && detPreco !== '') ? num(detPreco) : null });
@@ -40376,6 +40466,8 @@ body.theme-dark #view-inteligencia .dash-inline-metrics > div, body.theme-dark #
 .nf-inline-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px; }
 .nf-wa-btn { display: block; box-sizing: border-box; width: 100%; margin-top: 5px; padding: 3px 4px; border-radius: 6px; font-size: 9.5px; line-height: 1.3; font-weight: 700; text-align: center; text-decoration: none; white-space: normal; overflow-wrap: break-word; background: #25D366 !important; color: #fff !important; border: 1px solid #1EBE5D; cursor: pointer; }
 .nf-wa-btn:hover { background: #1EBE5D !important; }
+.nf-wa-btn.nf-wa-cobranca { background: #E8590C !important; border-color: #CF4F08; }
+.nf-wa-btn.nf-wa-cobranca:hover { background: #CF4F08 !important; }
 .nf-wa-btn.is-disabled { background: #C9CDD3 !important; border-color: #C9CDD3; color: #6F6F6F !important; cursor: not-allowed; }
 body.theme-dark .nf-wa-btn.is-disabled { background: #444 !important; border-color: #444; color: #AAA !important; }
 .venda-data-cell { display: flex; flex-direction: column; }
