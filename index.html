@@ -21881,12 +21881,8 @@ function saleCobrancaWaBtn(venda, origem) {
   const quem = origem === 'lojista' ? 'lojista' : 'cliente';
   if (!tel) return `<span class="nf-wa-btn nf-wa-cobranca is-disabled" onclick="event.stopPropagation()" data-tip="${quem === 'lojista' ? 'Lojista' : 'Cliente'} sem telefone cadastrado">Cobrar</span>`;
   const saldo = saleAnotadoSaldoDevedor(venda);
-  const pago = saleAnotadoTotalPago(venda);
-  const compra = `${venda.numeroVenda ? 'nº ' + venda.numeroVenda + ', ' : ''}feita no dia ${fmtDate(venda.data)}`;
-  const valorTxt = pago > 0.009
-    ? `Já recebemos ${fmtBR(pago)} e ainda falta ${fmtBR(saldo)}.`
-    : `O valor é de ${fmtBR(saldo)}.`;
-  const msg = `Olá ${venda.cliente}, tudo bem?\nPassando para lembrar do pagamento da compra ${compra}. ${valorTxt}\nQuando puder, me avise o melhor dia para o pagamento. Qualquer dúvida estou à disposição!\nAtt Equipe GSO Effects Line 💨`;
+  // O valor cobrado é o que ainda falta receber (se já houve pagamento parcial, só o saldo).
+  const msg = `Olá ${venda.cliente}, tudo bem?\nPassando para lembrar do pagamento da tua compra feita no dia ${fmtDate(venda.data)}, que ficou anotada. O valor é de ${fmtBR(saldo)}.\nQualquer dúvida estou à disposição!\nAtt Equipe GSO Effects Line`;
   return `<a class="nf-wa-btn nf-wa-cobranca" target="_blank" rel="noopener" href="https://wa.me/${tel}?text=${encodeURIComponent(msg)}" onclick="event.stopPropagation()" data-tip="Cobrar o saldo de ${escapeHtml(fmtBR(saldo))} pelo WhatsApp do ${quem}">Cobrar</a>`;
 }
 // Venda do Mercado Livre: só mexe no estoque (e no custo da mercadoria). O dinheiro dela entra pelas
