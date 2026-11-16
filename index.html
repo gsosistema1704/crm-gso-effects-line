@@ -17726,6 +17726,7 @@ async function renderBoletos() {
           </div>
           <div class="doc-actions">
             ${b.arquivo_pdf_url ? `<button class="industrial-btn secondary" onclick="openStorageFile('${SUPABASE_BUCKET_BOLETOS}', ${attrJsString(b.arquivo_pdf_url)}, false, ${attrJsString(b.titulo + '.pdf')})">Abrir PDF</button><button class="industrial-btn secondary" onclick="openStorageFile('${SUPABASE_BUCKET_BOLETOS}', ${attrJsString(b.arquivo_pdf_url)}, true, ${attrJsString(b.titulo + '.pdf')})">Baixar</button>` : '<span class="doc-sub">Sem PDF</span>'}
+            ${b.calc.status !== 'Pago' ? `<button class="industrial-btn secondary" onclick="copiarMensagemBoleto('${b.id}', this)" title="Copia o texto pronto para você mandar ao cliente">Copiar mensagem</button>` : ''}
             ${b.calc.status !== 'Pago' ? `<button class="industrial-btn good" onclick="markBoletoPago('${b.id}')">Pago</button>` : ''}
             <button class="industrial-btn secondary" onclick="openBoletoModal('${b.id}')">Editar</button>
             ${isAdminUser() ? `<button class="industrial-btn danger" onclick="deleteBoleto('${b.id}')">Excluir</button>` : ''}
@@ -17738,6 +17739,48 @@ async function renderBoletos() {
     console.error(err);
     list.innerHTML = `<div class="industrial-card boleto-card"><div class="doc-sub">Não consegui carregar boletos: ${escapeHtml(err.message)}</div></div>`;
   }
+}
+
+// Mensagem pronta para mandar ao cliente conforme a situação do boleto:
+// a vencer (lembrete), vence hoje (aviso do dia) e vencido (lembrar de pagar).
+function boletoMensagemCliente(b) {
+  const c = boletoComputed(b);
+  const nome = (b.nome_fornecedor_cliente || '').trim();
+  const saud = nome ? 'Olá ' + nome + ', tudo bem?' : 'Olá, tudo bem?';
+  const valor = Number(b.valor || 0) > 0 ? ' no valor de ' + fmtBR(Number(b.valor)) : '';
+  const ref = (b.descricao || b.titulo || '').trim();
+  const refTxt = ref ? ' referente a ' + ref : '';
+  const venc = fmtDate(b.data_vencimento);
+  let corpo;
+  if (c.status === 'Vencido') {
+    corpo = 'Passando para lembrar que o boleto' + refTxt + valor + ', com vencimento em ' + venc + ', ainda consta em aberto. Pode verificar e realizar o pagamento, por favor? Se já pagou, é só me enviar o comprovante que eu confirmo por aqui.';
+  } else if (c.status === 'Vence hoje') {
+    corpo = 'Passando para avisar que o boleto' + refTxt + valor + ' vence hoje, dia ' + venc + '. Para evitar atraso, o pagamento precisa ser feito ainda hoje.';
+  } else {
+    corpo = 'Estamos lembrando que o boleto' + refTxt + valor + ' vai vencer no dia ' + venc + '. Fique atento ao prazo para evitar atraso.';
+  }
+  return saud + '\n' + corpo + '\nQualquer dúvida estou à disposição!\nAtt Equipe GSO Effects Line';
+}
+
+function copiarMensagemBoleto(id, btn) {
+  const b = (docsState.boletos || []).find(x => String(x.id) === String(id));
+  if (!b) return;
+  const texto = boletoMensagemCliente(b);
+  const feito = () => {
+    if (!btn) return;
+    const antes = btn.textContent;
+    btn.textContent = 'Copiado!';
+    setTimeout(() => { btn.textContent = antes; }, 1800);
+  };
+  const fallback = () => {
+    const t = document.createElement('textarea');
+    t.value = texto; t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); feito(); } catch (e) { prompt('Copie a mensagem:', texto); }
+    t.remove();
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(feito, fallback);
+  else fallback();
 }
 
 function setBoletoFilter(filter) {
