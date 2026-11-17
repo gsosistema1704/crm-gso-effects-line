@@ -14245,6 +14245,15 @@ body.theme-dark #view-laboratorio .btn-amber { background: rgba(216, 168, 68, .1
           </div>
         </div>
 
+        <div class="conditional-row hidden" id="taxa-cartao-row">
+          <div class="form-row" style="margin-bottom:0;">
+            <div>
+              <label class="form-label">Taxa de cartão (R$) <span class="form-help" style="display:inline;margin:0">— opcional, pode preencher depois. É descontada do que você recebe (o valor da venda não muda).</span></label>
+              <input type="text" inputmode="decimal" class="form-input" id="f-taxa-cartao" placeholder="Ex: 12,50">
+            </div>
+          </div>
+        </div>
+
         <div class="conditional-row hidden" id="boleto-row">
           <div class="form-row form-r2" style="margin-bottom:0;">
             <div>
@@ -19061,7 +19070,28 @@ function saleLucroLiquido(venda) {
   const custo = saleCustoProduto(venda);
   if (custo == null) return null;
   const valor = parseFloat(venda.valor) || 0;
-  return round2(valor - custo - saleFiscalDescontado(venda));
+  return round2(valor - custo - saleFiscalDescontado(venda) - saleTaxaCartao(venda));
+}
+// Taxa de cartão da venda (R$): o valor da venda continua inteiro; a taxa é custo e sai do lucro / do "líquido recebido".
+function saleTaxaCartao(venda) {
+  const t = Number(venda?.pagamentoDetalhes?.taxaCartao);
+  return Number.isFinite(t) && t > 0 ? round2(t) : 0;
+}
+function saleTemCartao(venda) {
+  return salePaymentParts(venda).some(p => ['Débito', 'Crédito', 'Crédito à vista'].includes(p.forma));
+}
+function salvarTaxaCartaoVenda(id) {
+  const venda = findVendaAny(id);
+  if (!venda) return;
+  const inp = document.getElementById('vm-taxa-cartao-' + id);
+  const taxa = round2(parseMoneyValue(inp ? inp.value : ''));
+  if (taxa < 0) { alert('A taxa de cartão não pode ser negativa.'); return; }
+  venda.pagamentoDetalhes = { ...(venda.pagamentoDetalhes || {}) };
+  if (taxa > 0) venda.pagamentoDetalhes.taxaCartao = taxa; else delete venda.pagamentoDetalhes.taxaCartao;
+  vendaPersistir(venda);
+  renderVerMaisVenda(id);
+  vendaRerender(venda);
+  avisoRapido(taxa > 0 ? '✅ Taxa de cartão de ' + fmtBR(taxa) + ' salva. Líquido: ' + fmtBR((Number(venda.valor) || 0) - taxa) : '✅ Taxa de cartão removida.');
 }
 function aggregateCatalogSales() {
   const aggregate = {};
@@ -24364,6 +24394,7 @@ function renderVerMaisVenda(id) {
       <div class="s"><div class="l">Vendedor</div><div class="v">${escapeHtml(r.vendedor || '—')}</div></div>
     </div>
     ${revisaoHtml}
+    ${saleTemCartao(r) ? `<div class="vm-section"><div class="vm-section-title">Taxa de cartão</div><div class="nf-actions" style="flex-wrap:wrap;gap:8px;align-items:center;"><input type="text" inputmode="decimal" class="form-input" id="vm-taxa-cartao-${r.id}" placeholder="Ex: 12,50" value="${saleTaxaCartao(r) ? String(saleTaxaCartao(r)).replace('.', ',') : ''}" style="width:130px" onkeydown="if(event.key==='Enter'){salvarTaxaCartaoVenda('${r.id}')}"><button class="upload-icon nf-button-ok" onclick="salvarTaxaCartaoVenda('${r.id}')">Salvar taxa</button>${saleTaxaCartao(r) ? `<span class="note-number">Líquido recebido: ${fmtBR((Number(r.valor) || 0) - saleTaxaCartao(r))}</span>` : '<span class="form-help" style="margin:0">Sem taxa lançada.</span>'}</div></div>` : ''}
     <div class="vm-section"><div class="vm-section-title">Nota fiscal</div>${nfHtml}</div>
     ${boletoHtml ? `<div class="vm-section"><div class="vm-section-title">Boleto</div>${boletoHtml}</div>` : ''}
     ${r.obs ? `<div class="vm-section"><div class="vm-section-title">Observações</div><div class="v">${escapeHtml(r.obs)}</div></div>` : ''}
@@ -28879,6 +28910,7 @@ function initEditVenda(id) {
   document.getElementById('f-obs').value = venda.obs || '';
   document.getElementById('f-pag').value = venda.pagamento || 'Dinheiro';
   document.getElementById('f-parcelas').value = venda.pagamentoDetalhes?.parcelas || '';
+  { const tx = document.getElementById('f-taxa-cartao'); if (tx) tx.value = venda.pagamentoDetalhes?.taxaCartao ? String(venda.pagamentoDetalhes.taxaCartao).replace('.', ',') : ''; }
   const parcelasBoletoExistentes = venda.pagamento === 'Boleto' ? saleBoletoParcelas(venda) : [];
   document.getElementById('f-boleto-parcelas').value = parcelasBoletoExistentes.length || 1;
   document.getElementById('f-ml-tarifa').value = venda.pagamentoDetalhes?.mlTarifaVenda ?? '';
@@ -29252,6 +29284,12 @@ function togglePaymentFields() {
   const mlRow = document.getElementById('ml-row');
   const nfRow = document.getElementById('nf-row');
   if (creditoRow) creditoRow.classList.toggle('hidden', pagamento !== 'Crédito');
+  const taxaRow = document.getElementById('taxa-cartao-row');
+  if (taxaRow) {
+    const ehCartao = f => ['Débito', 'Crédito', 'Crédito à vista'].includes(canonicalPayment(f || ''));
+    const mostra = ehCartao(pagamento) || (pagDivAtivo() && pagDivExtras().some(e => ehCartao(e.forma)));
+    taxaRow.classList.toggle('hidden', !mostra);
+  }
   if (boletoRow) boletoRow.classList.toggle('hidden', pagamento !== 'Boleto');
   if (mlRow) mlRow.classList.toggle('hidden', pagamento !== 'Mercado Livre');
   const tudoDinheiro = pagamento === 'Dinheiro' && !(pagDivAtivo() && pagDivExtras().some(e => e.forma !== 'Dinheiro'));
@@ -29341,6 +29379,7 @@ function initNova() {
   document.getElementById('f-pag').value = 'Dinheiro';
   pagDivReset();
   document.getElementById('f-parcelas').value = '';
+  { const tx = document.getElementById('f-taxa-cartao'); if (tx) tx.value = ''; }
   document.getElementById('f-boleto-parcelas').value = '1';
   document.getElementById('boleto-parcelas-campos').innerHTML = '';
   document.getElementById('f-ml-tarifa').value = '';
@@ -29472,6 +29511,12 @@ async function salvarVenda() {
       return;
     }
     pagamentoDetalhes.parcelas = parcelas;
+  }
+  { // Taxa de cartão (opcional): só vale quando a venda tem alguma parte paga em cartão.
+    const taxaRowVisivel = document.getElementById('taxa-cartao-row') && !document.getElementById('taxa-cartao-row').classList.contains('hidden');
+    const taxa = taxaRowVisivel ? round2(parseMoneyValue(document.getElementById('f-taxa-cartao')?.value)) : 0;
+    if (taxa < 0) { alert('A taxa de cartão não pode ser negativa.'); return; }
+    if (taxa > 0) pagamentoDetalhes.taxaCartao = taxa;
   }
   if (pagamento === 'Boleto') {
     const vencimentoInputs = Array.from(document.querySelectorAll('.boleto-parcela-vencimento'));
