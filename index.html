@@ -22092,6 +22092,20 @@ async function ocultarVendaBoleto(id, origem) {
   if (typeof renderInteligencia === 'function') renderInteligencia();
 }
 
+async function mostrarVendaBoleto(id, origem) {
+  const client = requireSupabaseSession();
+  if (!client) return;
+  const venda = saleArrayByOrigem(origem).find(v => String(v.id) === String(id));
+  if (!venda) return;
+  const anterior = venda.boletoOculto;
+  venda.boletoOculto = false;
+  const row = saleToRow(venda);
+  const { error } = await client.from(saleTableByOrigem(origem)).update({ metadata: row.metadata }).eq('id', id);
+  if (error) { venda.boletoOculto = anterior; alert('Não consegui atualizar o boleto: ' + error.message); return; }
+  try { localStorage.setItem(saleLocalStorageKeyByOrigem(origem), JSON.stringify(saleArrayByOrigem(origem))); } catch (e) {}
+  if (typeof renderInteligencia === 'function') renderInteligencia();
+}
+
 function abrirParcelaBoletoModal(vendaId, idx, origem) {
   const venda = saleArrayByOrigem(origem).find(v => String(v.id) === String(vendaId));
   if (!venda) return;
@@ -31256,6 +31270,12 @@ function intelRenderOverview() {
     return new Date(b.venda.data) - new Date(a.venda.data);
   });
   const boletosPendentes = boletoLinhas.filter(l => !l.parcela.pago);
+  // Vendas que foram tiradas do bloco pelo ✕: ficam listadas aqui, com botão pra trazer de volta.
+  const boletosOcultos = vendasParaListasDashboard.filter(({ v }) => saleIsBoleto(v) && saleBoletoOculto(v));
+  const boletosOcultosHtml = boletosOcultos.length ? `<details style="margin-top:10px;font-size:12.5px;"><summary style="cursor:pointer;color:var(--text-2);">${boletosOcultos.length} venda${boletosOcultos.length === 1 ? '' : 's'} tirada${boletosOcultos.length === 1 ? '' : 's'} deste bloco — ver / mostrar de novo</summary><div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">${boletosOcultos.map(({ v, origem }) => {
+    const abertas = saleBoletoParcelas(v).filter(p => !p.pago).length;
+    return `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span>Venda ${escapeHtml(String(v.numeroVenda || ''))}${origem === 'vendasLojista' ? ' (lojista)' : ''} · ${escapeHtml(v.cliente || '—')} · ${fmtBR(Number(v.valor) || 0)}${abertas ? ' · <b>' + abertas + ' parcela' + (abertas === 1 ? '' : 's') + ' em aberto</b>' : ' · tudo pago'}</span><button class="btn btn-small" onclick="mostrarVendaBoleto('${v.id}','${origem}')">Mostrar de novo</button></div>`;
+  }).join('')}</div></details>` : '';
   const boletoRowsHtml = boletoLinhas.map(l => {
     const v = l.venda, parcela = l.parcela, idx = l.idx, origem = l.origem;
     const origemAttr = attrJsString(origem);
@@ -31338,6 +31358,7 @@ function intelRenderOverview() {
         </div>
       </div>
       ${boletoLinhas.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table stack-table"><thead><tr><th>Data</th><th>Cliente</th><th>Vencimento</th><th class="num">Valor</th><th>Status</th><th style="width:1%;white-space:nowrap">Ação</th></tr></thead><tbody>${boletoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda em boleto registrada.</div>`}
+      ${boletosOcultosHtml}
     </div>
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
