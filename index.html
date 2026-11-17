@@ -31345,6 +31345,13 @@ function intelRenderOverview() {
         <div${lucroHojeIncompleto ? ' data-tooltip="Alguma venda de hoje tem produto sem custo cadastrado — o lucro pode estar abaixo do real"' : ''}><span>Lucro líquido${lucroHojeIncompleto ? ' *' : ''}</span><strong>${fmtBR(lucroHoje)}</strong></div>
       </div>
     </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div><div class="card-title">Vendas anotadas</div><div class="card-sub">O valor só entra no faturamento nos meses em que cada pagamento for registrado. Fica na lista até quitar o valor todo.</div></div>
+        ${anotadoVendas.length ? `<span class="pill pill-amber">${anotadoVendas.length} pendente${anotadoVendas.length === 1 ? '' : 's'}</span>` : ''}
+      </div>
+      ${anotadoVendas.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table stack-table"><thead><tr><th>Data</th><th>Cliente</th><th class="num">Valor total</th><th class="num">Pago</th><th class="num">Saldo devedor</th><th style="width:1%;white-space:nowrap">Ação</th></tr></thead><tbody>${anotadoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda anotada pendente.</div>`}
+    </div>
     <div class="card data-card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div><div class="card-title">Vendas em boleto</div><div class="card-sub">O valor só entra no faturamento depois de marcado como pago.</div></div>
@@ -31359,13 +31366,6 @@ function intelRenderOverview() {
       </div>
       ${boletoLinhas.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table stack-table"><thead><tr><th>Data</th><th>Cliente</th><th>Vencimento</th><th class="num">Valor</th><th>Status</th><th style="width:1%;white-space:nowrap">Ação</th></tr></thead><tbody>${boletoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda em boleto registrada.</div>`}
       ${boletosOcultosHtml}
-    </div>
-    <div class="card" style="margin-bottom:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div><div class="card-title">Vendas anotadas</div><div class="card-sub">O valor só entra no faturamento nos meses em que cada pagamento for registrado. Fica na lista até quitar o valor todo.</div></div>
-        ${anotadoVendas.length ? `<span class="pill pill-amber">${anotadoVendas.length} pendente${anotadoVendas.length === 1 ? '' : 's'}</span>` : ''}
-      </div>
-      ${anotadoVendas.length ? `<div style="margin-top:12px;overflow-x:auto;"><table class="intel-table stack-table"><thead><tr><th>Data</th><th>Cliente</th><th class="num">Valor total</th><th class="num">Pago</th><th class="num">Saldo devedor</th><th style="width:1%;white-space:nowrap">Ação</th></tr></thead><tbody>${anotadoRowsHtml}</tbody></table></div>` : `<div class="intel-empty">Nenhuma venda anotada pendente.</div>`}
     </div>
   `;
 }
