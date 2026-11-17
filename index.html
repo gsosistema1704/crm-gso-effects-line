@@ -29428,6 +29428,19 @@ function updateDiscountPreview() {
   if (note) note.textContent = discount > 0 ? 'Calculado automaticamente pelo valor final informado.' : 'Comparado ao preço sugerido (já com frete, se houver).';
 }
 
+// Aviso rápido no canto da tela: some sozinho e não pede nenhum clique.
+function avisoRapido(texto) {
+  try {
+    const el = document.createElement('div');
+    el.setAttribute('role', 'status');
+    el.textContent = texto;
+    el.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:100000;max-width:min(92vw,520px);background:#1f7a3d;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 10px 28px rgba(0,0,0,.25);opacity:0;transition:opacity .2s;text-align:center';
+    document.body.appendChild(el);
+    requestAnimationFrame(() => { el.style.opacity = '1'; });
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 4500);
+  } catch (e) { alert(texto); }
+}
+
 async function salvarVenda() {
   const cliente = document.getElementById('f-cliente').value.trim();
   const valor = parseMoneyValue(document.getElementById('f-valor').value);
@@ -29591,9 +29604,9 @@ async function salvarVenda() {
     STORE.save(colAlvo, state[colAlvo]);
     updateSaleReviewBadge();
     editingVendaId = null;
-    alert('✅ Venda' + (vendaModoLojista ? ' lojista' : '') + ' nº ' + numeroVenda + ' atualizada!');
-    if (avisoEstoque) alert(avisoEstoque);
     navTo(vendaModoLojista ? 'lojista' : 'vendas');
+    avisoRapido('✅ Venda' + (vendaModoLojista ? ' lojista' : '') + ' nº ' + numeroVenda + ' atualizada!');
+    if (avisoEstoque) alert(avisoEstoque);
     return;
   }
 
@@ -29601,10 +29614,10 @@ async function salvarVenda() {
   STORE.save(colAlvo, state[colAlvo]);
   updateSaleReviewBadge();
   lastVendaDataUsada = venda.data;
-  const imprimir = confirm('✅ Venda' + (vendaModoLojista ? ' lojista' : '') + ' nº ' + numeroVenda + ' registrada!\n\n' + aliasResolvido.cliente + ' — ' + fmtBR(valor) + '\n\nDeseja imprimir a nota simplificada desta venda agora?');
-  if (imprimir) printSaleLabel(venda);
-  if (avisoEstoque) alert(avisoEstoque);
+  // Sem perguntas: só avisa que a venda entrou. O recibo fica no "Ver mais" da venda (botão Recibo).
   navTo(vendaModoLojista ? 'lojista' : 'inteligencia');
+  avisoRapido('✅ Venda' + (vendaModoLojista ? ' lojista' : '') + ' nº ' + numeroVenda + ' adicionada ao sistema — ' + aliasResolvido.cliente + ' (' + fmtBR(valor) + ')');
+  if (avisoEstoque) alert(avisoEstoque);
 }
 
 
@@ -29670,6 +29683,7 @@ function perguntarCaixasEstoque(descricaoVenda) {
 // guardados junto de estoqueBaixado — assim editar/excluir a venda estorna as caixas também.
 async function baixarCaixasDaVenda(venda, itensBase, baixasAnteriores, origem) {
   if (!window.Lab?.baixarInsumos) return { baixas: [], aviso: null };
+  try { await window.Lab.garantirInsumos?.(); } catch (e) {}
   const sig = caixasAssinaturaItens(itensBase);
   let lista = [];
   const plano = caixasRegraPorItens(itensBase);
@@ -37767,6 +37781,10 @@ async function excluirCompra(id) {
     abrir: abrir,
     sincronizarCustosComCalculadora: sincronizarCustosComCalculadora,
     baixarEstoquePorItens: baixarEstoquePorItens,
+    // Garante que a lista de insumos (onde estão as caixas) já foi carregada neste computador.
+    garantirInsumos: async function () {
+      if (!state.insumos.length) { try { await loadInsumos(); } catch (e) {} }
+    },
     listarCaixas: function () {
       return state.insumos.filter(function (i) { return i.ativo !== false && /caixa/i.test(i.titulo || ''); })
         .map(function (i) { return { id: i.id, titulo: i.titulo, estoque: i.estoque, unidade: i.unidade }; });
