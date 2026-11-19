@@ -22834,14 +22834,13 @@ function renderVendas() {
   const tipoVendaFiltro = isAdminUser() ? (document.getElementById('filterTipoVenda')?.value || '') : '';
   const nfFiltro = document.getElementById('filterNF')?.value || '';
   const revisarFiltro = Boolean(document.getElementById('filterRevisar')?.checked);
-  // Ordem por dia (mais recente primeiro) e, dentro do mesmo dia, por ordem de registro
-  // (a última venda lançada aparece em cima) — numeroVenda nunca muda ao editar uma venda,
-  // então essa ordem fica estável mesmo depois de alterar valor/produto/etc., só muda se
-  // a Data da venda for realmente alterada.
+  // Ordem pelo número da venda (a última lançada em cima). O número não muda ao editar a venda,
+  // então a posição na lista fica estável mesmo depois de alterar valor, produto ou data.
   let rows = [...vendasVisiveis].sort((a, b) => {
-    const diffData = new Date(b.data) - new Date(a.data);
-    if (diffData) return diffData;
-    return (parseInt(b.numeroVenda, 10) || 0) - (parseInt(a.numeroVenda, 10) || 0);
+    // Ordem pelo NÚMERO da venda (a maior em cima); só desempata pela data quando o número é igual/ausente.
+    const diffNum = (parseInt(b.numeroVenda, 10) || 0) - (parseInt(a.numeroVenda, 10) || 0);
+    if (diffNum) return diffNum;
+    return new Date(b.data) - new Date(a.data);
   });
   if (term) rows = rows.filter(r =>
     (r.cliente || '').toLowerCase().includes(term) ||
@@ -23627,12 +23626,12 @@ function renderVendasLojista() {
   const aromaFiltro = document.getElementById('filterAromaLojista')?.value || '';
   const pagamentoFiltro = document.getElementById('filterPagamentoLojista')?.value || '';
   const vendedorFiltro = document.getElementById('filterVendedorLojista')?.value || '';
-  // Mesma ordem estável da lista de Vendas: por dia, e dentro do dia por ordem de
-  // registro (numeroVenda não muda ao editar).
+  // Mesma ordem da lista de Vendas: pelo número da venda (a maior em cima).
   let rows = [...state.vendasLojista].sort((a, b) => {
-    const diffData = new Date(b.data) - new Date(a.data);
-    if (diffData) return diffData;
-    return (parseInt(b.numeroVenda, 10) || 0) - (parseInt(a.numeroVenda, 10) || 0);
+    // Ordem pelo NÚMERO da venda (a maior em cima); só desempata pela data quando o número é igual/ausente.
+    const diffNum = (parseInt(b.numeroVenda, 10) || 0) - (parseInt(a.numeroVenda, 10) || 0);
+    if (diffNum) return diffNum;
+    return new Date(b.data) - new Date(a.data);
   });
   if (term) rows = rows.filter(r =>
     (r.cliente || '').toLowerCase().includes(term) ||
